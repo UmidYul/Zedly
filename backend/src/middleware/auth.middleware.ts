@@ -75,7 +75,7 @@ export async function authenticate(
       });
     }
 
-    request.log.error('Authentication error:', error);
+    console.error('Authentication error:', error);
     return reply.status(500).send({
       code: 'AUTH_ERROR',
       message: 'Authentication failed',

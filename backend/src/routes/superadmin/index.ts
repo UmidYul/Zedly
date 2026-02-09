@@ -52,7 +52,7 @@ async function getAllSchools(
 
     return reply.send(result);
   } catch (error) {
-    request.log.error('Get schools error:', error);
+    console.error('Get schools error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'Failed to fetch schools',
@@ -87,7 +87,7 @@ async function getSchool(
       stats,
     });
   } catch (error) {
-    request.log.error('Get school error:', error);
+    console.error('Get school error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'Failed to fetch school',
@@ -142,7 +142,7 @@ async function createNewSchool(
           'ru'
         );
       } catch (emailError) {
-        request.log.error('Failed to send welcome email:', emailError);
+        console.error('Failed to send welcome email:', emailError);
         // Don't fail the whole operation
       }
     }
@@ -166,7 +166,7 @@ async function createNewSchool(
       });
     }
 
-    request.log.error('Create school error:', error);
+    console.error('Create school error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'Failed to create school',
@@ -248,7 +248,7 @@ async function updateSchool(
       });
     }
 
-    request.log.error('Update school error:', error);
+    console.error('Update school error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'Failed to update school',
@@ -265,7 +265,7 @@ async function getSettings(request: FastifyRequest, reply: FastifyReply) {
     const settings = await getAllPlatformSettings();
     return reply.send(settings);
   } catch (error) {
-    request.log.error('Get settings error:', error);
+    console.error('Get settings error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'Failed to fetch settings',
@@ -315,7 +315,7 @@ async function updateSettings(
       });
     }
 
-    request.log.error('Update settings error:', error);
+    console.error('Update settings error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'Failed to update settings',
@@ -348,7 +348,7 @@ async function getGlobalAudit(
 
     return reply.send(result);
   } catch (error) {
-    request.log.error('Get audit logs error:', error);
+    console.error('Get audit logs error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'Failed to fetch audit logs',

@@ -142,7 +142,7 @@ async function login(
       });
     }
 
-    request.log.error('Login error:', error);
+    console.error('Login error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'An error occurred during login',
@@ -208,7 +208,7 @@ async function refresh(
       });
     }
 
-    request.log.error('Refresh error:', error);
+    console.error('Refresh error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'An error occurred during token refresh',
@@ -312,7 +312,7 @@ async function changePassword(
       });
     }
 
-    request.log.error('Change password error:', error);
+    console.error('Change password error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'An error occurred while changing password',
@@ -365,7 +365,7 @@ async function forgotPassword(
           entityId: user.id,
         });
       } catch (emailError) {
-        request.log.error('Failed to send password reset email:', emailError);
+        console.error('Failed to send password reset email:', emailError);
         // Don't reveal email failure to user
       }
     }
@@ -384,7 +384,7 @@ async function forgotPassword(
       });
     }
 
-    request.log.error('Forgot password error:', error);
+    console.error('Forgot password error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'An error occurred',
@@ -463,7 +463,7 @@ async function resetPassword(
       });
     }
 
-    request.log.error('Reset password error:', error);
+    console.error('Reset password error:', error);
     return reply.status(500).send({
       code: 'INTERNAL_ERROR',
       message: 'An error occurred while resetting password',

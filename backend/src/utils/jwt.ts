@@ -7,8 +7,8 @@ import { JWTAccessPayload, JWTRefreshPayload } from '../types';
  * Generate access token (JWT)
  */
 export function generateAccessToken(payload: JWTAccessPayload): string {
-  const options: SignOptions = {
-    expiresIn: config.jwt.accessExpiresIn as string | number,
+  const options: any = {
+    expiresIn: config.jwt.accessExpiresIn,
     issuer: 'zedly-api',
     audience: 'zedly-client',
   };
@@ -19,8 +19,8 @@ export function generateAccessToken(payload: JWTAccessPayload): string {
  * Generate refresh token (JWT)
  */
 export function generateRefreshToken(payload: JWTRefreshPayload): string {
-  const options: SignOptions = {
-    expiresIn: config.jwt.refreshExpiresIn as string | number,
+  const options: any = {
+    expiresIn: config.jwt.refreshExpiresIn,
     issuer: 'zedly-api',
     audience: 'zedly-client',
   };
