@@ -12,11 +12,11 @@ export const config = {
 
   // Database
   database: {
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || '127.0.0.200',
     port: parseInt(process.env.DB_PORT || '5432', 10),
-    user: process.env.DB_USER || 'zedly',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'zedly',
+    user: process.env.DB_USER || 'zedlyuz_umid',
+    password: process.env.DB_PASSWORD || 'g@laxyA7',
+    database: process.env.DB_NAME || 'zedlyuz_DB',
     // Connection pool settings
     max: 20,
     idleTimeoutMillis: 30000,
