@@ -153,10 +153,10 @@ export async function logSuperAdminAccess(
 ): Promise<void> {
   if (request.user?.role === UserRole.SUPERADMIN) {
     // TODO: Implement audit logging for SuperAdmin access
-    request.log.warn('SuperAdmin accessing school data', {
+    request.log.warn({
       userId: request.user.userId,
       path: request.url,
       method: request.method,
-    });
+    }, 'SuperAdmin accessing school data');
   }
 }

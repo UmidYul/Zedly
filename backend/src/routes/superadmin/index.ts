@@ -364,15 +364,15 @@ export async function superadminRoutes(fastify: FastifyInstance) {
   const preHandler = [authenticate, requireRole(UserRole.SUPERADMIN)];
 
   // Schools
-  fastify.get('/schools', { preHandler }, getAllSchools);
-  fastify.get('/schools/:schoolId', { preHandler }, getSchool);
-  fastify.post('/schools', { preHandler }, createNewSchool);
-  fastify.patch('/schools/:schoolId', { preHandler }, updateSchool);
+  fastify.get('/schools', { preHandler }, getAllSchools as any);
+  fastify.get('/schools/:schoolId', { preHandler }, getSchool as any);
+  fastify.post('/schools', { preHandler }, createNewSchool as any);
+  fastify.patch('/schools/:schoolId', { preHandler }, updateSchool as any);
 
   // Settings
-  fastify.get('/settings', { preHandler }, getSettings);
-  fastify.put('/settings', { preHandler }, updateSettings);
+  fastify.get('/settings', { preHandler }, getSettings as any);
+  fastify.put('/settings', { preHandler }, updateSettings as any);
 
   // Audit
-  fastify.get('/audit', { preHandler }, getGlobalAudit);
+  fastify.get('/audit', { preHandler }, getGlobalAudit as any);
 }

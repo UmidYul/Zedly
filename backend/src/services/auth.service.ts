@@ -1,6 +1,5 @@
-import { query, transaction } from '../db';
+import { query } from '../db';
 import { User, RefreshSession, PasswordResetToken } from '../types';
-import { PoolClient } from 'pg';
 
 /**
  * Find user by username and school_id
