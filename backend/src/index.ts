@@ -11,15 +11,6 @@ import { superadminRoutes } from './routes/superadmin';
 const fastify = Fastify({
   logger: {
     level: config.isDevelopment ? 'debug' : 'info',
-    transport: config.isDevelopment
-      ? {
-        target: 'pino-pretty',
-        options: {
-          translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname',
-        },
-      }
-      : undefined,
   },
   trustProxy: true,
 });

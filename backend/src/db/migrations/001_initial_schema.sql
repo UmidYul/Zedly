@@ -3,14 +3,13 @@
 -- Description: Creates all core tables for Zedly platform
 
 -- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================================
 -- SCHOOLS AND USERS
 -- ============================================================================
 
 CREATE TABLE schools (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   status VARCHAR(20) NOT NULL CHECK (status IN ('active', 'blocked')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -19,7 +18,7 @@ CREATE TABLE schools (
 CREATE INDEX idx_schools_status ON schools(status);
 
 CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   role VARCHAR(20) NOT NULL CHECK (role IN ('superadmin', 'admin', 'teacher', 'student')),
   username VARCHAR(255) NOT NULL,
@@ -47,7 +46,7 @@ CREATE INDEX idx_users_username ON users(username);
 -- ============================================================================
 
 CREATE TABLE classes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   grade INTEGER NOT NULL CHECK (grade >= 1 AND grade <= 11),
   letter VARCHAR(10) NOT NULL,
@@ -77,7 +76,7 @@ CREATE TABLE teacher_class_access (
 CREATE INDEX idx_teacher_class_access_class ON teacher_class_access(class_id);
 
 CREATE TABLE subjects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   grade INTEGER CHECK (grade IS NULL OR (grade >= 1 AND grade <= 11)),
@@ -87,7 +86,7 @@ CREATE TABLE subjects (
 CREATE INDEX idx_subjects_school_id ON subjects(school_id);
 
 CREATE TABLE topics (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -103,7 +102,7 @@ CREATE INDEX idx_topics_parent ON topics(parent_topic_id);
 -- ============================================================================
 
 CREATE TABLE questions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
   type VARCHAR(20) NOT NULL CHECK (type IN ('single', 'multi', 'number')),
@@ -124,7 +123,7 @@ CREATE INDEX idx_questions_created_by ON questions(created_by_user_id);
 CREATE INDEX idx_questions_status ON questions(status);
 
 CREATE TABLE question_options (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
   is_correct BOOLEAN NOT NULL DEFAULT FALSE,
@@ -134,7 +133,7 @@ CREATE TABLE question_options (
 CREATE INDEX idx_question_options_question_id ON question_options(question_id);
 
 CREATE TABLE question_media (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
   media_type VARCHAR(20) NOT NULL CHECK (media_type = 'image'),
   url TEXT NOT NULL,
@@ -144,7 +143,7 @@ CREATE TABLE question_media (
 CREATE INDEX idx_question_media_question_id ON question_media(question_id);
 
 CREATE TABLE tags (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   CONSTRAINT unique_school_tag UNIQUE (school_id, name)
@@ -165,7 +164,7 @@ CREATE TABLE question_topic_map (
 );
 
 CREATE TABLE tests (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -198,7 +197,7 @@ CREATE TABLE test_questions (
 -- ============================================================================
 
 CREATE TABLE assignments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   test_id UUID NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
@@ -218,7 +217,7 @@ CREATE INDEX idx_assignments_class_id ON assignments(class_id);
 CREATE INDEX idx_assignments_status ON assignments(status);
 
 CREATE TABLE attempts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
   student_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   attempt_no INTEGER NOT NULL CHECK (attempt_no >= 1),
@@ -253,7 +252,7 @@ CREATE INDEX idx_attempt_answers_attempt ON attempt_answers(attempt_id);
 -- ============================================================================
 
 CREATE TABLE audit_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(id) ON DELETE SET NULL,
   actor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   action_type VARCHAR(100) NOT NULL,
@@ -269,7 +268,7 @@ CREATE INDEX idx_audit_log_action_type ON audit_log(action_type);
 CREATE INDEX idx_audit_log_created_at ON audit_log(created_at DESC);
 
 CREATE TABLE export_jobs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   requested_by_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type VARCHAR(50) NOT NULL CHECK (type IN ('test_report', 'class_report', 'school_summary')),
@@ -287,7 +286,7 @@ CREATE INDEX idx_export_jobs_status ON export_jobs(status);
 CREATE INDEX idx_export_jobs_created_at ON export_jobs(created_at DESC);
 
 CREATE TABLE notification_jobs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(id) ON DELETE SET NULL,
   channel VARCHAR(20) NOT NULL CHECK (channel IN ('email', 'telegram')),
   target TEXT NOT NULL,
@@ -312,7 +311,7 @@ CREATE TABLE platform_settings (
 -- ============================================================================
 
 CREATE TABLE refresh_sessions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   refresh_token_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -326,7 +325,7 @@ CREATE INDEX idx_refresh_sessions_user_id ON refresh_sessions(user_id);
 CREATE INDEX idx_refresh_sessions_expires_at ON refresh_sessions(expires_at);
 
 CREATE TABLE password_reset_tokens (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
