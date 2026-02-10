@@ -9,7 +9,7 @@
 
 /* Left Side - Branding */
 .login-left {
-    background: var(--gradient-primary);
+    background: var(--bg-secondary);
     color: white;
     padding: var(--spacing-3xl);
     display: flex;
