@@ -40,7 +40,7 @@ if (process.env.NODE_ENV !== 'production') {
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ==============================================
-// API Routes (will be added later)
+// API Routes
 // ==============================================
 
 app.get('/api/health', (req, res) => {
@@ -51,8 +51,10 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// API routes will be imported here
-// app.use('/api/auth', require('./routes/auth'));
+// Auth routes
+app.use('/api/auth', require('./routes/auth'));
+
+// Role-based routes (will be added later)
 // app.use('/api/superadmin', require('./routes/superadmin'));
 // app.use('/api/admin', require('./routes/admin'));
 // app.use('/api/teacher', require('./routes/teacher'));

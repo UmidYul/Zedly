@@ -9,12 +9,35 @@ npm install
 
 ## 2. Настройка БД PostgreSQL
 
+### Вариант 1: Использование скриптов (рекомендуется)
+
+**Windows:**
+```bash
+cd database
+reset_db.bat
+psql -U postgres -d zedly -f seed_safe.sql
+```
+
+**Linux/Mac:**
+```bash
+cd database
+chmod +x reset_db.sh
+./reset_db.sh
+psql -U postgres -d zedly -f seed_safe.sql
+```
+
+### Вариант 2: Вручную
+
 ```bash
 # Создайте базу данных
+psql -U postgres -c "DROP DATABASE IF EXISTS zedly;"
 psql -U postgres -c "CREATE DATABASE zedly;"
 
-# Примените схему
-psql -U postgres -d zedly -f ../database/schema.sql
+# Примените схему (идемпотентная версия)
+psql -U postgres -d zedly -f database/schema_safe.sql
+
+# Создайте тестовых пользователей (опционально)
+psql -U postgres -d zedly -f database/seed_safe.sql
 ```
 
 ## 3. Настройка .env
@@ -53,9 +76,33 @@ npm run dev
 - ✅ Красивым адаптивным дизайном
 - ✅ Анимациями и эффектами
 
+## Тестовые пользователи (после seed.sql)
+
+После выполнения seed.sql у вас будут следующие тестовые пользователи:
+
+| Роль           | Логин        | Пароль    |
+|----------------|--------------|-----------|
+| SuperAdmin     | superadmin   | admin123  |
+| SchoolAdmin    | admin1       | admin123  |
+| Teacher        | teacher1     | admin123  |
+| Student        | student1     | admin123  |
+
+## Структура API
+
+### Аутентификация
+- `POST /api/auth/login` - Вход в систему
+- `POST /api/auth/refresh` - Обновление токена
+- `POST /api/auth/logout` - Выход из системы
+- `GET /api/auth/me` - Получить данные текущего пользователя
+
+### Проверка здоровья
+- `GET /api/health` - Проверка работоспособности сервера
+
 ## Следующие шаги
 
-1. Создать страницу логина
-2. Добавить JWT аутентификацию
-3. Создать API endpoints
-4. Разработать Dashboard для каждой роли
+1. ✅ Создать страницу логина
+2. ✅ Добавить JWT аутентификацию
+3. ⏳ Создать Dashboard для каждой роли
+4. ⏳ Реализовать конструктор тестов
+5. ⏳ Добавить систему профориентации
+
