@@ -176,7 +176,7 @@
                 <div class="question-item" data-index="${index}">
                     <div class="question-header">
                         <div class="question-number">Q${index + 1}</div>
-                        <div class="question-type-badge">${QUESTION_TYPES[q.question_type.toUpperCase()]?.name || q.question_type}</div>
+                        <div class="question-type-badge">${Object.values(QUESTION_TYPES).find(t => t.id === q.question_type)?.name || q.question_type}</div>
                         <div class="question-marks">${q.marks || 1} mark${q.marks > 1 ? 's' : ''}</div>
                         <div class="question-actions">
                             <button class="btn-icon" onclick="TestEditor.editQuestion(${index})" title="Edit">
@@ -270,7 +270,8 @@
 
         // Show question editor with type-specific forms
         showQuestionEditor: function (question) {
-            const typeConfig = QUESTION_TYPES[question.question_type.toUpperCase()];
+            // Find type config by matching the id field
+            const typeConfig = Object.values(QUESTION_TYPES).find(t => t.id === question.question_type);
             const isEdit = this.editingQuestionIndex >= 0;
 
             let editorBodyHtml = '';
