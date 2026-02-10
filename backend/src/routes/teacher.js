@@ -409,10 +409,42 @@ router.get('/subjects', async (req, res) => {
  */
 router.get('/classes', async (req, res) => {
     try {
+        const { page = 1, limit = 10, search = '', grade = 'all' } = req.query;
+        const offset = (page - 1) * limit;
         const teacherId = req.user.id;
         const schoolId = req.user.school_id;
 
+        // Build WHERE clause
+        let whereClause = `WHERE c.school_id = $1
+            AND c.is_active = true
+            AND (c.homeroom_teacher_id = $2 OR tcs.teacher_id = $2)`;
+        const params = [schoolId, teacherId];
+        let paramCount = 3;
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClause += ` AND c.name ILIKE $${paramCount}`;
+            paramCount++;
+        }
+
+        if (grade !== 'all') {
+            params.push(grade);
+            whereClause += ` AND c.grade_level = $${paramCount}`;
+            paramCount++;
+        }
+
+        // Get total count
+        const countResult = await query(
+            `SELECT COUNT(DISTINCT c.id)
+             FROM classes c
+             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             ${whereClause}`,
+            params
+        );
+        const total = parseInt(countResult.rows[0].count);
+
         // Get classes where teacher teaches or is homeroom teacher
+        params.push(limit, offset);
         const result = await query(
             `SELECT DISTINCT
                 c.id, c.name, c.grade_level,
@@ -421,18 +453,25 @@ router.get('/classes', async (req, res) => {
                 (SELECT COUNT(*) FROM class_students cs WHERE cs.class_id = c.id) as student_count,
                 (SELECT COUNT(DISTINCT tcs.subject_id)
                  FROM teacher_class_subjects tcs
-                 WHERE tcs.class_id = c.id AND tcs.teacher_id = $1) as subject_count
+                 WHERE tcs.class_id = c.id AND tcs.teacher_id = $2) as subject_count
              FROM classes c
              LEFT JOIN users ht ON c.homeroom_teacher_id = ht.id
              LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
-             WHERE c.school_id = $2
-               AND c.is_active = true
-               AND (c.homeroom_teacher_id = $1 OR tcs.teacher_id = $1)
-             ORDER BY c.grade_level DESC, c.name ASC`,
-            [teacherId, schoolId]
+             ${whereClause}
+             ORDER BY c.grade_level DESC, c.name ASC
+             LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+            params
         );
 
-        res.json({ classes: result.rows });
+        res.json({
+            classes: result.rows,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
         console.error('Get classes error:', error);
         res.status(500).json({
