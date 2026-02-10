@@ -397,4 +397,127 @@ router.get('/subjects', async (req, res) => {
     }
 });
 
+/**
+ * ========================================
+ * CLASSES MANAGEMENT
+ * ========================================
+ */
+
+/**
+ * GET /api/teacher/classes
+ * Get classes where teacher teaches
+ */
+router.get('/classes', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+
+        // Get classes where teacher teaches or is homeroom teacher
+        const result = await query(
+            `SELECT DISTINCT
+                c.id, c.name, c.grade_level, c.section,
+                c.academic_year, c.is_active,
+                ht.full_name as homeroom_teacher_name,
+                (SELECT COUNT(*) FROM class_students cs WHERE cs.class_id = c.id) as student_count,
+                (SELECT COUNT(DISTINCT tcs.subject_id)
+                 FROM teacher_class_subjects tcs
+                 WHERE tcs.class_id = c.id AND tcs.teacher_id = $1) as subject_count
+             FROM classes c
+             LEFT JOIN users ht ON c.homeroom_teacher_id = ht.id
+             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             WHERE c.school_id = $2
+               AND c.is_active = true
+               AND (c.homeroom_teacher_id = $1 OR tcs.teacher_id = $1)
+             ORDER BY c.grade_level DESC, c.section ASC`,
+            [teacherId, schoolId]
+        );
+
+        res.json({ classes: result.rows });
+    } catch (error) {
+        console.error('Get classes error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch classes'
+        });
+    }
+});
+
+/**
+ * GET /api/teacher/classes/:id
+ * Get class details with students
+ */
+router.get('/classes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+
+        // Verify teacher has access to this class
+        const accessCheck = await query(
+            `SELECT 1 FROM classes c
+             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             WHERE c.id = $1
+               AND c.school_id = $2
+               AND (c.homeroom_teacher_id = $3 OR tcs.teacher_id = $3)
+             LIMIT 1`,
+            [id, schoolId, teacherId]
+        );
+
+        if (accessCheck.rows.length === 0) {
+            return res.status(403).json({
+                error: 'forbidden',
+                message: 'You do not have access to this class'
+            });
+        }
+
+        // Get class details
+        const classResult = await query(
+            `SELECT
+                c.id, c.name, c.grade_level, c.section,
+                c.academic_year, c.is_active,
+                c.homeroom_teacher_id,
+                ht.full_name as homeroom_teacher_name,
+                (SELECT COUNT(*) FROM class_students WHERE class_id = c.id) as student_count
+             FROM classes c
+             LEFT JOIN users ht ON c.homeroom_teacher_id = ht.id
+             WHERE c.id = $1`,
+            [id]
+        );
+
+        // Get subjects taught by this teacher in this class
+        const subjectsResult = await query(
+            `SELECT s.id, s.name, s.code, s.color
+             FROM teacher_class_subjects tcs
+             JOIN subjects s ON tcs.subject_id = s.id
+             WHERE tcs.class_id = $1 AND tcs.teacher_id = $2
+             ORDER BY s.name ASC`,
+            [id, teacherId]
+        );
+
+        // Get students in the class
+        const studentsResult = await query(
+            `SELECT
+                u.id, u.full_name, u.email,
+                cs.roll_number
+             FROM class_students cs
+             JOIN users u ON cs.student_id = u.id
+             WHERE cs.class_id = $1 AND cs.is_active = true
+             ORDER BY cs.roll_number ASC`,
+            [id]
+        );
+
+        res.json({
+            class: classResult.rows[0],
+            subjects: subjectsResult.rows,
+            students: studentsResult.rows
+        });
+    } catch (error) {
+        console.error('Get class details error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch class details'
+        });
+    }
+});
+
 module.exports = router;
