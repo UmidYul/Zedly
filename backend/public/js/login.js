@@ -53,6 +53,7 @@
 
             try {
                 // Send login request
+                console.log('📡 Sending login request...');
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {
@@ -62,21 +63,40 @@
                 });
 
                 const data = await response.json();
+                console.log('Login response status:', response.status);
+                console.log('Login response data:', data);
 
                 if (response.ok) {
+                    console.log('✅ Login successful');
+                    console.log('Access token:', data.access_token ? 'received' : 'missing');
+                    console.log('Refresh token:', data.refresh_token ? 'received' : 'missing');
+                    console.log('User data:', data.user);
+                    
                     // Store tokens
                     localStorage.setItem('access_token', data.access_token);
+                    console.log('✓ Access token stored');
+                    
                     if (data.refresh_token) {
                         localStorage.setItem('refresh_token', data.refresh_token);
+                        console.log('✓ Refresh token stored');
                     }
 
                     // Store user info
                     localStorage.setItem('user', JSON.stringify(data.user));
+                    console.log('✓ User info stored');
+                    
+                    // Verify storage
+                    console.log('Verifying localStorage:');
+                    console.log('- access_token:', localStorage.getItem('access_token') ? 'EXISTS' : 'MISSING');
+                    console.log('- refresh_token:', localStorage.getItem('refresh_token') ? 'EXISTS' : 'MISSING');
+                    console.log('- user:', localStorage.getItem('user') ? 'EXISTS' : 'MISSING');
 
                     // Redirect based on role
+                    console.log('🔄 Redirecting to dashboard...');
                     redirectToDashboard(data.user.role);
                 } else {
                     // Show error from server
+                    console.error('❌ Login failed:', data);
                     showError(data.message || getTranslation('login.error.failed'));
                 }
             } catch (error) {

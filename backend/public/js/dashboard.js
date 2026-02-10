@@ -126,12 +126,17 @@
     async function initDashboard() {
         // Check authentication
         const token = localStorage.getItem('access_token');
+        console.log('🔐 Checking authentication...');
+        console.log('Access token exists:', !!token);
+        
         if (!token) {
+            console.log('❌ No access token found, redirecting to login');
             redirectToLogin();
             return;
         }
 
         try {
+            console.log('📡 Fetching user info from /api/auth/me');
             // Fetch current user info
             const response = await fetch('/api/auth/me', {
                 headers: {
@@ -139,16 +144,22 @@
                 }
             });
 
+            console.log('Response status:', response.status);
+
             if (!response.ok) {
                 if (response.status === 401) {
+                    console.log('⚠️ Token expired, attempting refresh...');
                     // Token expired, try to refresh
                     await refreshToken();
                     return initDashboard();
                 }
+                const errorData = await response.json();
+                console.error('API error:', errorData);
                 throw new Error('Failed to fetch user info');
             }
 
             const data = await response.json();
+            console.log('✅ User authenticated:', data.user);
             currentUser = data.user;
 
             // Update UI
@@ -157,7 +168,8 @@
             loadDashboardContent();
 
         } catch (error) {
-            console.error('Dashboard initialization error:', error);
+            console.error('❌ Dashboard initialization error:', error);
+            console.log('Redirecting to login...');
             redirectToLogin();
         }
     }
