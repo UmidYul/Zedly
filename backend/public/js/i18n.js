@@ -233,6 +233,16 @@
                 element.placeholder = translation;
             }
         });
+
+        // Translate titles (tooltips)
+        const titleElements = document.querySelectorAll('[data-i18n-title]');
+        titleElements.forEach(element => {
+            const key = element.getAttribute('data-i18n-title');
+            const translation = translations[lang][key];
+            if (translation) {
+                element.title = translation;
+            }
+        });
     }
 
     // Update language buttons

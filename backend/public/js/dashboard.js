@@ -230,9 +230,14 @@
         const config = navigationConfig[currentUser.role];
         let html = '';
 
+        // Helper function to get translation
+        const t = (key) => {
+            return window.ZedlyI18n?.translate(key) || key;
+        };
+
         config.forEach(section => {
             html += `<div class="nav-section">`;
-            html += `<div class="nav-section-title" data-i18n="${section.section}">${section.section}</div>`;
+            html += `<div class="nav-section-title" data-i18n="${section.section}">${t(section.section)}</div>`;
 
             section.items.forEach(item => {
                 const iconSvg = icons[item.icon] || icons.grid;
@@ -241,7 +246,7 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             ${iconSvg}
                         </svg>
-                        <span data-i18n="${item.label}">${item.label}</span>
+                        <span data-i18n="${item.label}">${t(item.label)}</span>
                     </a>
                 `;
             });
@@ -877,6 +882,19 @@
                 logout();
             });
         }
+
+        // Language switcher - re-render navigation when language changes
+        const langButtons = document.querySelectorAll('.lang-btn');
+        langButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Wait for i18n to update, then re-render navigation
+                setTimeout(() => {
+                    if (currentUser) {
+                        renderNavigation();
+                    }
+                }, 100);
+            });
+        });
 
         console.log('Dashboard initialized ✓');
     });
