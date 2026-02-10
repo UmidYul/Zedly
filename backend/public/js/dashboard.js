@@ -640,7 +640,20 @@
 
         // Overview page with stats
         if (page === 'overview') {
+            const titles = {
+                superadmin: { title: 'Админ Панель', subtitle: 'Управление системой и контроль' },
+                school_admin: { title: 'Админ Панель', subtitle: 'Управление школой' },
+                teacher: { title: 'Панель Учителя', subtitle: 'Тесты и аналитика' },
+                student: { title: 'Панель Ученика', subtitle: 'Обучение и результаты' }
+            };
+            
+            const roleTitle = titles[role] || titles.student;
+            
             return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title">${roleTitle.title}</h1>
+                    <p class="page-subtitle">${roleTitle.subtitle}</p>
+                </div>
                 <div class="stats-grid">
                     ${getStatsForRole(role)}
                 </div>

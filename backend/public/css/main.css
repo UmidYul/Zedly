@@ -6,22 +6,22 @@
 
 :root {
     /* Colors - Modern Dark Theme */
-    --primary: #1b3b6f;
-    --primary-dark: #142a52;
-    --accent: #2b59c3;
-    --secondary: #10B981;
-    --success: #10B981;
-    --warning: #F59E0B;
-    --error: #EF4444;
-    --danger: #EF4444;
-    --info: #3B82F6;
+    --primary: #4A90E2;
+    --primary-dark: #357ABD;
+    --accent: #50E3C2;
+    --secondary: #50E3C2;
+    --success: #50E3C2;
+    --warning: #FFA726;
+    --error: #EF5350;
+    --danger: #EF5350;
+    --info: #4A90E2;
 
     /* Backgrounds */
-    --bg-primary: #0A0E1A;
-    --bg-secondary: #151B2D;
+    --bg-primary: #0F1729;
+    --bg-secondary: rgba(21, 27, 45, 0.6);
     --bg-tertiary: #1F2937;
-    --bg-card: #151B2D;
-    --bg-main: #0A0E1A;
+    --bg-card: rgba(21, 27, 45, 0.6);
+    --bg-main: #0F1729;
 
     /* Text Colors */
     --text-primary: #F9FAFB;
@@ -42,10 +42,10 @@
     --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #1b3b6f 0%, #2b59c3 100%);
-    --gradient-secondary: linear-gradient(135deg, rgba(43, 89, 195, 0.22), rgba(16, 185, 129, 0.18));
-    --gradient-hero: radial-gradient(circle at 20% 20%, rgba(43, 89, 195, 0.28), transparent 42%),
-        radial-gradient(circle at 80% 10%, rgba(16, 185, 129, 0.2), transparent 38%);
+    --gradient-primary: linear-gradient(135deg, #4A90E2 0%, #50E3C2 100%);
+    --gradient-secondary: linear-gradient(135deg, rgba(74, 144, 226, 0.22), rgba(80, 227, 194, 0.18));
+    --gradient-hero: radial-gradient(circle at 20% 20%, rgba(74, 144, 226, 0.28), transparent 42%),
+        radial-gradient(circle at 80% 10%, rgba(80, 227, 194, 0.2), transparent 38%);
 
     /* Typography */
     --font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -101,7 +101,7 @@ body {
     font-size: 1rem;
     line-height: 1.6;
     color: var(--text-primary);
-    background: var(--gradient-hero), var(--bg-main);
+    background: #0F1729;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
