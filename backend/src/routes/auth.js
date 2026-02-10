@@ -122,7 +122,7 @@ router.post('/login', loginLimiter, async (req, res) => {
                 full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
             },
             access_token: tokens.access_token,
-            refresh_token: remember ? tokens.refresh_token : undefined
+            refresh_token: tokens.refresh_token // Always send refresh token
         });
     } catch (error) {
         console.error('Login error:', error);
