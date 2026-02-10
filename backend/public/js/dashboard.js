@@ -275,6 +275,39 @@
     function getPageContent(page) {
         const role = currentUser?.role || 'student';
 
+        // Schools Management (SuperAdmin)
+        if (page === 'schools') {
+            return `
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="schoolsSearch"
+                            class="search-input"
+                            placeholder="Search schools..."
+                        />
+                    </div>
+                    <div class="toolbar-right">
+                        <select id="statusFilter" class="select-input">
+                            <option value="all">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <button class="btn btn-primary" id="addSchoolBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add School
+                        </button>
+                    </div>
+                </div>
+                <div id="schoolsContainer"></div>
+                <script src="/js/schools.js"></script>
+                <script>SchoolsManager.init();</script>
+            `;
+        }
+
         // Overview page with stats
         if (page === 'overview') {
             return `

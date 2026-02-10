@@ -95,8 +95,17 @@ try {
     console.error(error.stack);
 }
 
+// SuperAdmin routes
+try {
+    const superadminRouter = require('./routes/superadmin');
+    app.use('/api/superadmin', superadminRouter);
+    console.log('✓ SuperAdmin routes loaded: /api/superadmin');
+} catch (error) {
+    console.error('❌ Failed to load superadmin routes:', error.message);
+    console.error(error.stack);
+}
+
 // Role-based routes (will be added later)
-// app.use('/api/superadmin', require('./routes/superadmin'));
 // app.use('/api/admin', require('./routes/admin'));
 // app.use('/api/teacher', require('./routes/teacher'));
 // app.use('/api/student', require('./routes/student'));
