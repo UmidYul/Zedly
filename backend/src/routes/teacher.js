@@ -3,9 +3,9 @@ const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// All routes require teacher role
+// All routes require teacher or school_admin role
 router.use(authenticate);
-router.use(authorize('teacher'));
+router.use(authorize('teacher', 'school_admin'));
 
 /**
  * ========================================
