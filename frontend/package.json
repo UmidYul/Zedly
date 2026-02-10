@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "front-dev": "next dev",
+    "front-build": "next build",
+    "front-start": "next start",
+    "front-lint": "next lint"
   },
   "dependencies": {
     "next": "^14.2.0",

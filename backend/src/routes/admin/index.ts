@@ -608,6 +608,217 @@ async function deleteClass(
 }
 
 // =============================================================================
+// BULK IMPORT
+// =============================================================================
+
+// Helper: Parse CSV content
+function parseCSV(content: string): string[][] {
+  const lines = content.split('\n').filter(line => line.trim());
+  return lines.map(line => {
+    // Simple CSV parsing (doesn't handle quoted commas)
+    return line.split(',').map(cell => cell.trim());
+  });
+}
+
+// Import students from CSV
+async function importStudents(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const user = request.user;
+    if (!user?.schoolId) {
+      return reply.code(403).send({ message: 'School ID required' });
+    }
+
+    // Get uploaded file
+    const data = await request.file();
+    if (!data) {
+      return reply.code(400).send({ message: 'No file uploaded' });
+    }
+
+    // Read file content
+    const buffer = await data.toBuffer();
+    const content = buffer.toString('utf-8');
+
+    // Parse CSV
+    const rows = parseCSV(content);
+    if (rows.length === 0) {
+      return reply.code(400).send({ message: 'Empty file' });
+    }
+
+    // Expected format: firstName,lastName,username,email,password,classId
+    const header = rows[0];
+    const dataRows = rows.slice(1);
+
+    const results = {
+      total: dataRows.length,
+      success: 0,
+      failed: 0,
+      errors: [] as any[],
+    };
+
+    // Process each row
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      const rowNum = i + 2; // +2 because 1-indexed and skipping header
+
+      try {
+        if (row.length < 5) {
+          throw new Error('Insufficient columns');
+        }
+
+        const [firstName, lastName, username, email, password, classId] = row;
+
+        // Validate required fields
+        if (!firstName || !lastName || !username || !password) {
+          throw new Error('Missing required fields');
+        }
+
+        // Check if username exists
+        const existing = await query(
+          'SELECT id FROM users WHERE school_id = $1 AND username = $2',
+          [user.schoolId, username]
+        );
+
+        if (existing.rows.length > 0) {
+          throw new Error('Username already exists');
+        }
+
+        // Hash password
+        const passwordHash = await hashPassword(password);
+
+        // Create user
+        const userResult = await query(
+          `INSERT INTO users (school_id, role, username, email, password_hash, must_change_password, status)
+           VALUES ($1, 'student', $2, $3, $4, true, 'active')
+           RETURNING id`,
+          [user.schoolId, username, email || null, passwordHash]
+        );
+
+        const studentId = userResult.rows[0].id;
+
+        // Create student profile
+        await query(
+          `INSERT INTO student_profiles (user_id, first_name, last_name, class_id)
+           VALUES ($1, $2, $3, $4)`,
+          [studentId, firstName, lastName, classId || null]
+        );
+
+        results.success++;
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push({
+          row: rowNum,
+          data: row,
+          error: error.message,
+        });
+      }
+    }
+
+    return reply.send(results);
+  } catch (error) {
+    console.error('Import students error:', error);
+    return reply.code(500).send({ message: 'Server error' });
+  }
+}
+
+// Import teachers from CSV
+async function importTeachers(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const user = request.user;
+    if (!user?.schoolId) {
+      return reply.code(403).send({ message: 'School ID required' });
+    }
+
+    // Get uploaded file
+    const data = await request.file();
+    if (!data) {
+      return reply.code(400).send({ message: 'No file uploaded' });
+    }
+
+    // Read file content
+    const buffer = await data.toBuffer();
+    const content = buffer.toString('utf-8');
+
+    // Parse CSV
+    const rows = parseCSV(content);
+    if (rows.length === 0) {
+      return reply.code(400).send({ message: 'Empty file' });
+    }
+
+    // Expected format: firstName,lastName,username,email,password,subject
+    const dataRows = rows.slice(1);
+
+    const results = {
+      total: dataRows.length,
+      success: 0,
+      failed: 0,
+      errors: [] as any[],
+    };
+
+    // Process each row
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      const rowNum = i + 2;
+
+      try {
+        if (row.length < 5) {
+          throw new Error('Insufficient columns');
+        }
+
+        const [firstName, lastName, username, email, password, subject] = row;
+
+        if (!firstName || !lastName || !username || !email || !password) {
+          throw new Error('Missing required fields');
+        }
+
+        // Check if username exists
+        const existing = await query(
+          'SELECT id FROM users WHERE school_id = $1 AND username = $2',
+          [user.schoolId, username]
+        );
+
+        if (existing.rows.length > 0) {
+          throw new Error('Username already exists');
+        }
+
+        // Hash password
+        const passwordHash = await hashPassword(password);
+
+        // Create user
+        const userResult = await query(
+          `INSERT INTO users (school_id, role, username, email, password_hash, must_change_password, status)
+           VALUES ($1, 'teacher', $2, $3, $4, true, 'active')
+           RETURNING id`,
+          [user.schoolId, username, email, passwordHash]
+        );
+
+        const teacherId = userResult.rows[0].id;
+
+        // Create teacher profile
+        await query(
+          `INSERT INTO teacher_profiles (user_id, first_name, last_name, subject)
+           VALUES ($1, $2, $3, $4)`,
+          [teacherId, firstName, lastName, subject || null]
+        );
+
+        results.success++;
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push({
+          row: rowNum,
+          data: row,
+          error: error.message,
+        });
+      }
+    }
+
+    return reply.send(results);
+  } catch (error) {
+    console.error('Import teachers error:', error);
+    return reply.code(500).send({ message: 'Server error' });
+  }
+}
+
+// =============================================================================
 // ROUTES REGISTRATION
 // =============================================================================
 
@@ -631,4 +842,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.post('/classes', { preHandler }, createClass as any);
   fastify.put('/classes/:id', { preHandler }, updateClass as any);
   fastify.delete('/classes/:id', { preHandler }, deleteClass as any);
+
+  // Bulk Import
+  fastify.post('/import/students', { preHandler }, importStudents as any);
+  fastify.post('/import/teachers', { preHandler }, importTeachers as any);
 }

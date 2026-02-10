@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Users, GraduationCap, School, LogOut, LayoutDashboard } from 'lucide-react';
+import { Users, GraduationCap, School, LogOut, LayoutDashboard, Upload } from 'lucide-react';
 import Link from 'next/link';
 
 interface AdminLayoutProps {
@@ -35,6 +35,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/teachers', label: 'Учителя', icon: GraduationCap },
     { href: '/admin/students', label: 'Ученики', icon: Users },
     { href: '/admin/classes', label: 'Классы', icon: School },
+    { href: '/admin/import', label: 'Импорт', icon: Upload },
   ];
 
   return (

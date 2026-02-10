@@ -1,0 +1,4 @@
+firstName,lastName,username,email,password,subject
+Анна,Смирнова,smirnova_teacher,smirnova@example.com,Password123,Математика
+Петр,Сидоров,sidorov_teacher,sidorov@example.com,Password123,Физика
+Елена,Иванова,ivanova_teacher,ivanova@example.com,Password123,Русский язык
