@@ -7,11 +7,29 @@
         limit: 10,
         searchTerm: '',
         gradeFilter: 'all',
+        userRole: null,
 
         // Initialize classes page
         init: function () {
+            // Get user role from localStorage
+            const userDataStr = localStorage.getItem('user_data');
+            if (userDataStr) {
+                try {
+                    const userData = JSON.parse(userDataStr);
+                    this.userRole = userData.role;
+                } catch (e) {
+                    console.error('Failed to parse user data', e);
+                    this.userRole = 'teacher'; // Default to teacher
+                }
+            }
+
             this.loadClasses();
             this.setupEventListeners();
+        },
+
+        // Get API base path based on user role
+        getApiBasePath: function() {
+            return `/api/${this.userRole || 'teacher'}`;
         },
 
         // Setup event listeners
@@ -36,10 +54,14 @@
                 });
             }
 
-            // Add class button
+            // Add class button (only for admin)
             const addBtn = document.getElementById('addClassBtn');
             if (addBtn) {
-                addBtn.addEventListener('click', () => this.showClassModal());
+                if (this.userRole === 'admin') {
+                    addBtn.addEventListener('click', () => this.showClassModal());
+                } else {
+                    addBtn.style.display = 'none'; // Hide for teachers
+                }
             }
         },
 
@@ -65,7 +87,7 @@
                     grade: this.gradeFilter
                 });
 
-                const response = await fetch(`/api/admin/classes?${params}`, {
+                const response = await fetch(`${this.getApiBasePath()}/classes?${params}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -111,8 +133,8 @@
                                 <th>Academic Year</th>
                                 <th>Homeroom Teacher</th>
                                 <th>Students</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                ${this.userRole === 'admin' ? '<th>Status</th>' : ''}
+                                ${this.userRole === 'admin' ? '<th>Actions</th>' : '<th>Subjects</th>'}
                             </tr>
                         </thead>
                         <tbody>
@@ -132,6 +154,10 @@
                         <td>${cls.academic_year}</td>
                         <td>${teacherName}</td>
                         <td>${cls.student_count || 0} students</td>
+                `;
+
+                if (this.userRole === 'admin') {
+                    html += `
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>
                             <div class="action-buttons">
@@ -149,6 +175,15 @@
                                 </button>
                             </div>
                         </td>
+                    `;
+                } else {
+                    // For teachers, show subject count
+                    html += `
+                        <td>${cls.subject_count || 0} subjects</td>
+                    `;
+                }
+
+                html += `
                     </tr>
                 `;
             });
@@ -206,7 +241,7 @@
             if (isEdit) {
                 try {
                     const token = localStorage.getItem('access_token');
-                    const response = await fetch(`/api/admin/classes/${classId}`, {
+                    const response = await fetch(`${this.getApiBasePath()}/classes/${classId}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }
@@ -226,22 +261,24 @@
                 }
             }
 
-            // Load teachers list
+            // Load teachers list (only for admin)
             let teachersList = [];
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/admin/teachers', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+            if (this.userRole === 'admin') {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await fetch(`${this.getApiBasePath()}/teachers`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    teachersList = data.teachers;
+                    if (response.ok) {
+                        const data = await response.json();
+                        teachersList = data.teachers;
+                    }
+                } catch (error) {
+                    console.error('Load teachers error:', error);
                 }
-            } catch (error) {
-                console.error('Load teachers error:', error);
             }
 
             // Create modal HTML
@@ -413,8 +450,8 @@
             try {
                 const token = localStorage.getItem('access_token');
                 const url = classId
-                    ? `/api/admin/classes/${classId}`
-                    : '/api/admin/classes';
+                    ? `${this.getApiBasePath()}/classes/${classId}`
+                    : `${this.getApiBasePath()}/classes`;
                 const method = classId ? 'PUT' : 'POST';
 
                 const response = await fetch(url, {
@@ -465,7 +502,7 @@
 
             try {
                 const token = localStorage.getItem('access_token');
-                const response = await fetch(`/api/admin/classes/${classId}`, {
+                const response = await fetch(`${this.getApiBasePath()}/classes/${classId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`
