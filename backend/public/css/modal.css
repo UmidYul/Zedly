@@ -50,6 +50,10 @@
     }
 }
 
+.modal-large {
+    max-width: 900px;
+}
+
 .modal-header {
     padding: var(--spacing-xl);
     border-bottom: 1px solid var(--border-color);

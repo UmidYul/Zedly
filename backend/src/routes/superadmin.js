@@ -359,6 +359,169 @@ router.delete('/schools/:id', async (req, res) => {
 });
 
 /**
+ * GET /api/superadmin/schools/:schoolId/admins
+ * Get school administrators for a specific school
+ */
+router.get('/schools/:schoolId/admins', async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+
+        // Check if school exists
+        const schoolCheck = await query(
+            'SELECT id, name FROM schools WHERE id = $1',
+            [schoolId]
+        );
+
+        if (schoolCheck.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'School not found'
+            });
+        }
+
+        // Get school admins
+        const result = await query(
+            `SELECT
+                id, username, first_name, last_name, email, phone,
+                telegram_id, is_active, last_login, created_at
+             FROM users
+             WHERE school_id = $1 AND role = 'school_admin'
+             ORDER BY created_at DESC`,
+            [schoolId]
+        );
+
+        res.json({
+            school: schoolCheck.rows[0],
+            admins: result.rows
+        });
+    } catch (error) {
+        console.error('Get school admins error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch school administrators'
+        });
+    }
+});
+
+/**
+ * POST /api/superadmin/schools/:schoolId/admins
+ * Create school administrator for a specific school
+ */
+router.post('/schools/:schoolId/admins', async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+        const { username, first_name, last_name, email, phone, telegram_id, password } = req.body;
+
+        // Check if school exists
+        const schoolCheck = await query(
+            'SELECT id, name FROM schools WHERE id = $1',
+            [schoolId]
+        );
+
+        if (schoolCheck.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'School not found'
+            });
+        }
+
+        // Validation
+        if (!username || !first_name || !last_name) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Username, first name, and last name are required'
+            });
+        }
+
+        // Check if username already exists
+        const existingUser = await query(
+            'SELECT id FROM users WHERE username = $1',
+            [username.trim()]
+        );
+
+        if (existingUser.rows.length > 0) {
+            return res.status(400).json({
+                error: 'duplicate_error',
+                message: 'Username already exists'
+            });
+        }
+
+        // Generate OTP password if not provided
+        const bcrypt = require('bcrypt');
+        let finalPassword = password;
+        let otpPassword = null;
+
+        if (!finalPassword) {
+            // Generate 8-character OTP (A-Z0-9)
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            otpPassword = Array.from({ length: 8 }, () =>
+                chars.charAt(Math.floor(Math.random() * chars.length))
+            ).join('');
+            finalPassword = otpPassword;
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(finalPassword, 10);
+
+        // Create school admin
+        const result = await query(
+            `INSERT INTO users (
+                school_id, username, password_hash, first_name, last_name,
+                email, phone, telegram_id, role, is_active
+             )
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'school_admin', true)
+             RETURNING id, username, first_name, last_name, email, phone, telegram_id, created_at`,
+            [
+                schoolId,
+                username.trim(),
+                hashedPassword,
+                first_name.trim(),
+                last_name.trim(),
+                email?.trim() || null,
+                phone?.trim() || null,
+                telegram_id?.trim() || null
+            ]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'create',
+                'user',
+                result.rows[0].id,
+                {
+                    username: username.trim(),
+                    role: 'school_admin',
+                    school_id: schoolId,
+                    school_name: schoolCheck.rows[0].name
+                }
+            ]
+        );
+
+        const response = {
+            message: 'School administrator created successfully',
+            admin: result.rows[0]
+        };
+
+        // Include OTP password in response if generated
+        if (otpPassword) {
+            response.otp_password = otpPassword;
+        }
+
+        res.status(201).json(response);
+    } catch (error) {
+        console.error('Create school admin error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to create school administrator'
+        });
+    }
+});
+
+/**
  * GET /api/superadmin/dashboard/stats
  * Get dashboard statistics for superadmin
  */
