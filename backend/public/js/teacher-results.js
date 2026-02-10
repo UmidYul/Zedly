@@ -88,8 +88,9 @@
         // Render statistics
         renderStatistics: function () {
             const totalStudents = this.assignment.total_students || 0;
-            const completedCount = this.results.filter(r => r.is_completed).length;
-            const pendingCount = totalStudents - completedCount;
+            // Count unique students who have completed attempts
+            const uniqueCompletedStudents = new Set(this.results.map(r => r.student_id)).size;
+            const pendingCount = totalStudents - uniqueCompletedStudents;
 
             // Calculate average score
             const completedResults = this.results.filter(r => r.is_completed);
@@ -98,7 +99,7 @@
                 : 0;
 
             document.getElementById('totalStudents').textContent = totalStudents;
-            document.getElementById('completedCount').textContent = completedCount;
+            document.getElementById('completedCount').textContent = uniqueCompletedStudents;
             document.getElementById('pendingCount').textContent = pendingCount;
             document.getElementById('avgScore').textContent = `${avgScore}%`;
         },
