@@ -66,6 +66,8 @@
                     ...options.headers,
                     'Authorization': `Bearer ${accessToken}`
                 };
+            } else {
+                console.warn('⚠️ No access token found for API request:', url);
             }
 
             // Make the request
@@ -73,9 +75,12 @@
 
             // If 401, try to refresh token and retry
             if (response.status === 401 && !url.includes('/api/auth/')) {
+                console.log('⚠️ Got 401, attempting token refresh...');
+                
                 try {
                     // If already refreshing, wait for that to complete
                     if (isRefreshing) {
+                        console.log('Already refreshing, waiting...');
                         await refreshPromise;
                     } else {
                         // Start refresh process
@@ -89,19 +94,32 @@
                     // Get new access token
                     const newAccessToken = localStorage.getItem('access_token');
 
+                    if (!newAccessToken) {
+                        throw new Error('No access token after refresh');
+                    }
+
                     // Retry original request with new token
                     options.headers = {
                         ...options.headers,
                         'Authorization': `Bearer ${newAccessToken}`
                     };
 
+                    console.log('🔄 Retrying request with new token...');
                     response = await originalFetch(url, options);
 
                 } catch (error) {
-                    console.error('Token refresh failed:', error);
+                    console.error('❌ Token refresh failed:', error);
 
-                    // Redirect to login page
-                    window.location.href = '/login.html';
+                    // Clear tokens
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    localStorage.removeItem('user');
+
+                    // Only redirect if not already on login page
+                    if (!window.location.pathname.includes('/login')) {
+                        console.log('Redirecting to login page...');
+                        window.location.href = '/login';
+                    }
 
                     // Return error response
                     return response;

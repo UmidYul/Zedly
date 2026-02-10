@@ -737,12 +737,17 @@
     // Refresh token
     async function refreshToken() {
         const refreshToken = localStorage.getItem('refresh_token');
+        console.log('🔄 Attempting to refresh token...');
+        console.log('Refresh token exists:', !!refreshToken);
+        
         if (!refreshToken) {
+            console.log('❌ No refresh token, redirecting to login');
             redirectToLogin();
             return;
         }
 
         try {
+            console.log('📡 Calling /api/auth/refresh');
             const response = await fetch('/api/auth/refresh', {
                 method: 'POST',
                 headers: {
@@ -751,10 +756,15 @@
                 body: JSON.stringify({ refresh_token: refreshToken })
             });
 
+            console.log('Refresh response status:', response.status);
+
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem('access_token', data.access_token);
+                console.log('✅ Token refreshed successfully');
             } else {
+                const errorData = await response.json();
+                console.error('❌ Refresh failed:', errorData);
                 redirectToLogin();
             }
         } catch (error) {
@@ -818,8 +828,23 @@
         initDashboard();
         initMobileMenu();
 
-        // Logout button
-        document.getElementById('logoutBtn').addEventListener('click', logout);
+        // Logout button in sidebar
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                logout();
+            });
+        }
+
+        // Logout link in dropdown menu (if exists)
+        const logoutLink = document.getElementById('logoutLink');
+        if (logoutLink) {
+            logoutLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                logout();
+            });
+        }
 
         console.log('Dashboard initialized ✓');
     });

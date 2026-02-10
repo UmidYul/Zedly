@@ -139,7 +139,12 @@
     function redirectToDashboard(role) {
         // All roles use the same /dashboard page
         // The dashboard.js will dynamically load content based on user role
-        window.location.href = '/dashboard';
+        console.log('🔄 Redirecting to dashboard for role:', role);
+        
+        // Add small delay to ensure localStorage is written
+        setTimeout(() => {
+            window.location.href = '/dashboard';
+        }, 100);
     }
 
     // Get translation from i18n
