@@ -919,7 +919,7 @@ router.get('/assignments/:id/results', async (req, res) => {
 
         // Verify teacher owns this assignment
         const assignmentCheck = await query(
-            `SELECT ta.*, t.title as test_title, c.name as class_name
+            `SELECT ta.*, t.title as test_title, t.passing_score, c.name as class_name
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
              JOIN classes c ON ta.class_id = c.id
@@ -958,6 +958,16 @@ router.get('/assignments/:id/results', async (req, res) => {
              ORDER BY u.last_name ASC, u.first_name ASC, att.submitted_at DESC`,
             [id, assignment.class_id]
         );
+
+        // Get total student count in the class
+        const studentCountResult = await query(
+            `SELECT COUNT(*) as total_students
+             FROM class_students
+             WHERE class_id = $1`,
+            [assignment.class_id]
+        );
+
+        assignment.total_students = parseInt(studentCountResult.rows[0].total_students);
 
         res.json({
             assignment: assignment,

@@ -42,7 +42,7 @@
 
                 const data = await response.json();
                 this.assignment = data.assignment;
-                this.results = data.results;
+                this.results = data.attempts || [];
                 this.filteredResults = [...this.results];
 
                 // Render page
