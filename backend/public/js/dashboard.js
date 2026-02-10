@@ -342,6 +342,76 @@
             `;
         }
 
+        // Classes Management (SchoolAdmin)
+        if (page === 'classes') {
+            return `
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="classesSearch"
+                            class="search-input"
+                            placeholder="Search classes..."
+                        />
+                    </div>
+                    <div class="toolbar-right">
+                        <select id="gradeFilter" class="select-input">
+                            <option value="all">All Grades</option>
+                            <option value="1">1 класс</option>
+                            <option value="2">2 класс</option>
+                            <option value="3">3 класс</option>
+                            <option value="4">4 класс</option>
+                            <option value="5">5 класс</option>
+                            <option value="6">6 класс</option>
+                            <option value="7">7 класс</option>
+                            <option value="8">8 класс</option>
+                            <option value="9">9 класс</option>
+                            <option value="10">10 класс</option>
+                            <option value="11">11 класс</option>
+                        </select>
+                        <button class="btn btn-primary" id="addClassBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add Class
+                        </button>
+                    </div>
+                </div>
+                <div id="classesContainer"></div>
+                <script src="/js/classes.js"></script>
+                <script>ClassesManager.init();</script>
+            `;
+        }
+
+        // Subjects Management (SchoolAdmin)
+        if (page === 'subjects') {
+            return `
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="subjectsSearch"
+                            class="search-input"
+                            placeholder="Search subjects..."
+                        />
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-primary" id="addSubjectBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add Subject
+                        </button>
+                    </div>
+                </div>
+                <div id="subjectsContainer"></div>
+                <script src="/js/subjects.js"></script>
+                <script>SubjectsManager.init();</script>
+            `;
+        }
+
         // Overview page with stats
         if (page === 'overview') {
             return `

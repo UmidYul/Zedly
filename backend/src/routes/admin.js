@@ -401,6 +401,702 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
     }
 });
 
+/**
+ * ========================================
+ * CLASSES MANAGEMENT
+ * ========================================
+ */
+
+/**
+ * GET /api/admin/classes
+ * Get all classes in school
+ */
+router.get('/classes', async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '', grade = 'all' } = req.query;
+        const offset = (page - 1) * limit;
+        const schoolId = req.user.school_id;
+
+        // Build WHERE clause
+        let whereClause = 'WHERE school_id = $1';
+        const params = [schoolId];
+        let paramCount = 2;
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClause += ` AND (name ILIKE $${paramCount} OR academic_year ILIKE $${paramCount})`;
+            paramCount++;
+        }
+
+        if (grade !== 'all') {
+            params.push(parseInt(grade));
+            whereClause += ` AND grade_level = $${paramCount}`;
+            paramCount++;
+        }
+
+        // Get total count
+        const countResult = await query(
+            `SELECT COUNT(*) FROM classes ${whereClause}`,
+            params
+        );
+        const total = parseInt(countResult.rows[0].count);
+
+        // Get classes with student count and teacher name
+        params.push(limit, offset);
+        const result = await query(
+            `SELECT
+                c.id, c.name, c.grade_level, c.academic_year, c.is_active, c.created_at,
+                (SELECT COUNT(*) FROM class_students WHERE class_id = c.id) as student_count,
+                u.first_name || ' ' || u.last_name as homeroom_teacher_name,
+                u.id as homeroom_teacher_id
+             FROM classes c
+             LEFT JOIN users u ON c.homeroom_teacher_id = u.id
+             ${whereClause}
+             ORDER BY c.grade_level ASC, c.name ASC
+             LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+            params
+        );
+
+        res.json({
+            classes: result.rows,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get classes error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch classes'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/classes/:id
+ * Get single class by ID
+ */
+router.get('/classes/:id', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const schoolId = req.user.school_id;
+
+        const result = await query(
+            `SELECT
+                c.id, c.name, c.grade_level, c.academic_year, c.homeroom_teacher_id, c.is_active, c.created_at,
+                u.first_name || ' ' || u.last_name as homeroom_teacher_name
+             FROM classes c
+             LEFT JOIN users u ON c.homeroom_teacher_id = u.id
+             WHERE c.id = $1 AND c.school_id = $2`,
+            [id, schoolId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Class not found'
+            });
+        }
+
+        res.json({ class: result.rows[0] });
+    } catch (error) {
+        console.error('Get class error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch class'
+        });
+    }
+});
+
+/**
+ * POST /api/admin/classes
+ * Create new class
+ */
+router.post('/classes', async (req, res) => {
+    try {
+        const { name, grade_level, academic_year, homeroom_teacher_id } = req.body;
+        const schoolId = req.user.school_id;
+
+        // Validation
+        if (!name || !grade_level || !academic_year) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Name, grade level and academic year are required'
+            });
+        }
+
+        // Validate grade level (1-11 for Uzbekistan schools)
+        if (grade_level < 1 || grade_level > 11) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Grade level must be between 1 and 11'
+            });
+        }
+
+        // Check if teacher exists and is in same school
+        if (homeroom_teacher_id) {
+            const teacherCheck = await query(
+                'SELECT id FROM users WHERE id = $1 AND school_id = $2 AND role = $3',
+                [homeroom_teacher_id, schoolId, 'teacher']
+            );
+
+            if (teacherCheck.rows.length === 0) {
+                return res.status(400).json({
+                    error: 'validation_error',
+                    message: 'Invalid teacher selection'
+                });
+            }
+        }
+
+        // Check duplicate class name in same school
+        const duplicateCheck = await query(
+            'SELECT id FROM classes WHERE school_id = $1 AND name = $2 AND academic_year = $3',
+            [schoolId, name.trim(), academic_year.trim()]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(400).json({
+                error: 'duplicate_error',
+                message: 'Class with this name already exists for this academic year'
+            });
+        }
+
+        // Create class
+        const result = await query(
+            `INSERT INTO classes (school_id, name, grade_level, academic_year, homeroom_teacher_id, is_active)
+             VALUES ($1, $2, $3, $4, $5, true)
+             RETURNING id, name, grade_level, academic_year, homeroom_teacher_id, is_active, created_at`,
+            [schoolId, name.trim(), grade_level, academic_year.trim(), homeroom_teacher_id || null]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'create', 'class', result.rows[0].id, { name: name.trim(), grade_level }]
+        );
+
+        res.status(201).json({
+            message: 'Class created successfully',
+            class: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Create class error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to create class'
+        });
+    }
+});
+
+/**
+ * PUT /api/admin/classes/:id
+ * Update class
+ */
+router.put('/classes/:id', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, grade_level, academic_year, homeroom_teacher_id, is_active } = req.body;
+        const schoolId = req.user.school_id;
+
+        // Check if class exists in same school
+        const existingClass = await query(
+            'SELECT id FROM classes WHERE id = $1 AND school_id = $2',
+            [id, schoolId]
+        );
+
+        if (existingClass.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Class not found'
+            });
+        }
+
+        // Check duplicate name
+        if (name) {
+            const duplicateCheck = await query(
+                'SELECT id FROM classes WHERE school_id = $1 AND name = $2 AND academic_year = $3 AND id != $4',
+                [schoolId, name.trim(), academic_year, id]
+            );
+
+            if (duplicateCheck.rows.length > 0) {
+                return res.status(400).json({
+                    error: 'duplicate_error',
+                    message: 'Class with this name already exists'
+                });
+            }
+        }
+
+        // Build update query
+        const updates = [];
+        const params = [];
+        let paramCount = 1;
+
+        if (name !== undefined) {
+            params.push(name.trim());
+            updates.push(`name = $${paramCount++}`);
+        }
+
+        if (grade_level !== undefined) {
+            if (grade_level < 1 || grade_level > 11) {
+                return res.status(400).json({
+                    error: 'validation_error',
+                    message: 'Grade level must be between 1 and 11'
+                });
+            }
+            params.push(grade_level);
+            updates.push(`grade_level = $${paramCount++}`);
+        }
+
+        if (academic_year !== undefined) {
+            params.push(academic_year.trim());
+            updates.push(`academic_year = $${paramCount++}`);
+        }
+
+        if (homeroom_teacher_id !== undefined) {
+            if (homeroom_teacher_id) {
+                const teacherCheck = await query(
+                    'SELECT id FROM users WHERE id = $1 AND school_id = $2 AND role = $3',
+                    [homeroom_teacher_id, schoolId, 'teacher']
+                );
+
+                if (teacherCheck.rows.length === 0) {
+                    return res.status(400).json({
+                        error: 'validation_error',
+                        message: 'Invalid teacher selection'
+                    });
+                }
+            }
+            params.push(homeroom_teacher_id);
+            updates.push(`homeroom_teacher_id = $${paramCount++}`);
+        }
+
+        if (is_active !== undefined) {
+            params.push(is_active);
+            updates.push(`is_active = $${paramCount++}`);
+        }
+
+        updates.push(`updated_at = CURRENT_TIMESTAMP`);
+        params.push(id);
+
+        // Update class
+        const result = await query(
+            `UPDATE classes
+             SET ${updates.join(', ')}
+             WHERE id = $${paramCount}
+             RETURNING id, name, grade_level, academic_year, homeroom_teacher_id, is_active, updated_at`,
+            params
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'update', 'class', id, req.body]
+        );
+
+        res.json({
+            message: 'Class updated successfully',
+            class: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Update class error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to update class'
+        });
+    }
+});
+
+/**
+ * DELETE /api/admin/classes/:id
+ * Delete class (soft delete)
+ */
+router.delete('/classes/:id', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const schoolId = req.user.school_id;
+
+        // Check if class exists in same school
+        const existingClass = await query(
+            'SELECT id, name FROM classes WHERE id = $1 AND school_id = $2',
+            [id, schoolId]
+        );
+
+        if (existingClass.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Class not found'
+            });
+        }
+
+        // Soft delete
+        await query(
+            'UPDATE classes SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+            [id]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'delete', 'class', id, { name: existingClass.rows[0].name }]
+        );
+
+        res.json({
+            message: 'Class deactivated successfully'
+        });
+    } catch (error) {
+        console.error('Delete class error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to delete class'
+        });
+    }
+});
+
+/**
+ * ========================================
+ * SUBJECTS MANAGEMENT
+ * ========================================
+ */
+
+/**
+ * GET /api/admin/subjects
+ * Get all subjects in school
+ */
+router.get('/subjects', async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '' } = req.query;
+        const offset = (page - 1) * limit;
+        const schoolId = req.user.school_id;
+
+        // Build WHERE clause
+        let whereClause = 'WHERE school_id = $1';
+        const params = [schoolId];
+        let paramCount = 2;
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClause += ` AND (name ILIKE $${paramCount} OR code ILIKE $${paramCount})`;
+            paramCount++;
+        }
+
+        // Get total count
+        const countResult = await query(
+            `SELECT COUNT(*) FROM subjects ${whereClause}`,
+            params
+        );
+        const total = parseInt(countResult.rows[0].count);
+
+        // Get subjects
+        params.push(limit, offset);
+        const result = await query(
+            `SELECT id, name, code, color, description, is_active, created_at
+             FROM subjects
+             ${whereClause}
+             ORDER BY name ASC
+             LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+            params
+        );
+
+        res.json({
+            subjects: result.rows,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get subjects error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch subjects'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/subjects/:id
+ * Get single subject by ID
+ */
+router.get('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const schoolId = req.user.school_id;
+
+        const result = await query(
+            `SELECT id, name, code, color, description, is_active, created_at
+             FROM subjects
+             WHERE id = $1 AND school_id = $2`,
+            [id, schoolId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Subject not found'
+            });
+        }
+
+        res.json({ subject: result.rows[0] });
+    } catch (error) {
+        console.error('Get subject error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch subject'
+        });
+    }
+});
+
+/**
+ * POST /api/admin/subjects
+ * Create new subject
+ */
+router.post('/subjects', async (req, res) => {
+    try {
+        const { name, code, color, description } = req.body;
+        const schoolId = req.user.school_id;
+
+        // Validation
+        if (!name || !code) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Name and code are required'
+            });
+        }
+
+        // Check duplicate subject code in same school
+        const duplicateCheck = await query(
+            'SELECT id FROM subjects WHERE school_id = $1 AND code = $2',
+            [schoolId, code.trim().toUpperCase()]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(400).json({
+                error: 'duplicate_error',
+                message: 'Subject with this code already exists'
+            });
+        }
+
+        // Create subject
+        const result = await query(
+            `INSERT INTO subjects (school_id, name, code, color, description, is_active)
+             VALUES ($1, $2, $3, $4, $5, true)
+             RETURNING id, name, code, color, description, is_active, created_at`,
+            [
+                schoolId,
+                name.trim(),
+                code.trim().toUpperCase(),
+                color || '#4A90E2',
+                description?.trim() || null
+            ]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'create', 'subject', result.rows[0].id, { name: name.trim(), code: code.trim() }]
+        );
+
+        res.status(201).json({
+            message: 'Subject created successfully',
+            subject: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Create subject error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to create subject'
+        });
+    }
+});
+
+/**
+ * PUT /api/admin/subjects/:id
+ * Update subject
+ */
+router.put('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, code, color, description, is_active } = req.body;
+        const schoolId = req.user.school_id;
+
+        // Check if subject exists in same school
+        const existingSubject = await query(
+            'SELECT id FROM subjects WHERE id = $1 AND school_id = $2',
+            [id, schoolId]
+        );
+
+        if (existingSubject.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Subject not found'
+            });
+        }
+
+        // Check duplicate code
+        if (code) {
+            const duplicateCheck = await query(
+                'SELECT id FROM subjects WHERE school_id = $1 AND code = $2 AND id != $3',
+                [schoolId, code.trim().toUpperCase(), id]
+            );
+
+            if (duplicateCheck.rows.length > 0) {
+                return res.status(400).json({
+                    error: 'duplicate_error',
+                    message: 'Subject with this code already exists'
+                });
+            }
+        }
+
+        // Build update query
+        const updates = [];
+        const params = [];
+        let paramCount = 1;
+
+        if (name !== undefined) {
+            params.push(name.trim());
+            updates.push(`name = $${paramCount++}`);
+        }
+
+        if (code !== undefined) {
+            params.push(code.trim().toUpperCase());
+            updates.push(`code = $${paramCount++}`);
+        }
+
+        if (color !== undefined) {
+            params.push(color);
+            updates.push(`color = $${paramCount++}`);
+        }
+
+        if (description !== undefined) {
+            params.push(description?.trim() || null);
+            updates.push(`description = $${paramCount++}`);
+        }
+
+        if (is_active !== undefined) {
+            params.push(is_active);
+            updates.push(`is_active = $${paramCount++}`);
+        }
+
+        updates.push(`updated_at = CURRENT_TIMESTAMP`);
+        params.push(id);
+
+        // Update subject
+        const result = await query(
+            `UPDATE subjects
+             SET ${updates.join(', ')}
+             WHERE id = $${paramCount}
+             RETURNING id, name, code, color, description, is_active, updated_at`,
+            params
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'update', 'subject', id, req.body]
+        );
+
+        res.json({
+            message: 'Subject updated successfully',
+            subject: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Update subject error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to update subject'
+        });
+    }
+});
+
+/**
+ * DELETE /api/admin/subjects/:id
+ * Delete subject (soft delete)
+ */
+router.delete('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const schoolId = req.user.school_id;
+
+        // Check if subject exists in same school
+        const existingSubject = await query(
+            'SELECT id, name FROM subjects WHERE id = $1 AND school_id = $2',
+            [id, schoolId]
+        );
+
+        if (existingSubject.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Subject not found'
+            });
+        }
+
+        // Soft delete
+        await query(
+            'UPDATE subjects SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+            [id]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'delete', 'subject', id, { name: existingSubject.rows[0].name }]
+        );
+
+        res.json({
+            message: 'Subject deactivated successfully'
+        });
+    } catch (error) {
+        console.error('Delete subject error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to delete subject'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/teachers
+ * Get list of teachers for dropdown selection
+ */
+router.get('/teachers', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+
+        const result = await query(
+            `SELECT id, first_name, last_name, email
+             FROM users
+             WHERE school_id = $1 AND role = 'teacher' AND is_active = true
+             ORDER BY first_name, last_name`,
+            [schoolId]
+        );
+
+        res.json({
+            teachers: result.rows.map(t => ({
+                id: t.id,
+                name: `${t.first_name} ${t.last_name}`,
+                email: t.email
+            }))
+        });
+    } catch (error) {
+        console.error('Get teachers error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch teachers'
+        });
+    }
+});
+
 // Generate OTP password
 function generateOTP() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

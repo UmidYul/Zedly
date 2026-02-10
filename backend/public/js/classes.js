@@ -1,0 +1,486 @@
+// Classes Management Component
+(function () {
+    'use strict';
+
+    window.ClassesManager = {
+        currentPage: 1,
+        limit: 10,
+        searchTerm: '',
+        gradeFilter: 'all',
+
+        // Initialize classes page
+        init: function () {
+            this.loadClasses();
+            this.setupEventListeners();
+        },
+
+        // Setup event listeners
+        setupEventListeners: function () {
+            // Search input
+            const searchInput = document.getElementById('classesSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    this.searchTerm = e.target.value;
+                    this.currentPage = 1;
+                    this.loadClasses();
+                });
+            }
+
+            // Grade filter
+            const gradeFilter = document.getElementById('gradeFilter');
+            if (gradeFilter) {
+                gradeFilter.addEventListener('change', (e) => {
+                    this.gradeFilter = e.target.value;
+                    this.currentPage = 1;
+                    this.loadClasses();
+                });
+            }
+
+            // Add class button
+            const addBtn = document.getElementById('addClassBtn');
+            if (addBtn) {
+                addBtn.addEventListener('click', () => this.showClassModal());
+            }
+        },
+
+        // Load classes from API
+        loadClasses: async function () {
+            const container = document.getElementById('classesContainer');
+            if (!container) return;
+
+            // Show loading
+            container.innerHTML = `
+                <div style="text-align: center; padding: var(--spacing-3xl);">
+                    <div class="spinner" style="display: inline-block;"></div>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Loading classes...</p>
+                </div>
+            `;
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const params = new URLSearchParams({
+                    page: this.currentPage,
+                    limit: this.limit,
+                    search: this.searchTerm,
+                    grade: this.gradeFilter
+                });
+
+                const response = await fetch(`/api/admin/classes?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load classes');
+                }
+
+                const data = await response.json();
+                this.renderClasses(data.classes, data.pagination);
+            } catch (error) {
+                console.error('Load classes error:', error);
+                container.innerHTML = `
+                    <div class="error-message">
+                        <p>Failed to load classes. Please try again.</p>
+                    </div>
+                `;
+            }
+        },
+
+        // Render classes table
+        renderClasses: function (classes, pagination) {
+            const container = document.getElementById('classesContainer');
+            if (!container) return;
+
+            if (classes.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: var(--spacing-3xl);">
+                        <p style="color: var(--text-secondary);">No classes found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Class Name</th>
+                                <th>Grade Level</th>
+                                <th>Academic Year</th>
+                                <th>Homeroom Teacher</th>
+                                <th>Students</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            classes.forEach(cls => {
+                const statusClass = cls.is_active ? 'status-active' : 'status-inactive';
+                const statusText = cls.is_active ? 'Active' : 'Inactive';
+                const teacherName = cls.homeroom_teacher_name || '<span class="text-secondary">Not assigned</span>';
+
+                html += `
+                    <tr>
+                        <td>
+                            <div class="user-name">${cls.name}</div>
+                        </td>
+                        <td>${cls.grade_level} класс</td>
+                        <td>${cls.academic_year}</td>
+                        <td>${teacherName}</td>
+                        <td>${cls.student_count || 0} students</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-icon" onclick="ClassesManager.editClass(${cls.id})" title="Edit">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                                <button class="btn-icon btn-danger" onclick="ClassesManager.deleteClass(${cls.id}, '${cls.name}')" title="Delete">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Add pagination
+            if (pagination.pages > 1) {
+                html += this.renderPagination(pagination);
+            }
+
+            container.innerHTML = html;
+        },
+
+        // Render pagination
+        renderPagination: function (pagination) {
+            let html = '<div class="pagination">';
+
+            if (pagination.page > 1) {
+                html += `<button class="pagination-btn" onclick="ClassesManager.goToPage(${pagination.page - 1})">Previous</button>`;
+            }
+
+            for (let i = 1; i <= pagination.pages; i++) {
+                if (i === pagination.page) {
+                    html += `<button class="pagination-btn active">${i}</button>`;
+                } else {
+                    html += `<button class="pagination-btn" onclick="ClassesManager.goToPage(${i})">${i}</button>`;
+                }
+            }
+
+            if (pagination.page < pagination.pages) {
+                html += `<button class="pagination-btn" onclick="ClassesManager.goToPage(${pagination.page + 1})">Next</button>`;
+            }
+
+            html += '</div>';
+            return html;
+        },
+
+        // Go to page
+        goToPage: function (page) {
+            this.currentPage = page;
+            this.loadClasses();
+        },
+
+        // Show class modal (create/edit)
+        showClassModal: async function (classId = null) {
+            const isEdit = classId !== null;
+            let classData = null;
+
+            // Load class data if editing
+            if (isEdit) {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await fetch(`/api/admin/classes/${classId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        classData = data.class;
+                    } else {
+                        alert('Failed to load class data');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Load class error:', error);
+                    alert('Failed to load class data');
+                    return;
+                }
+            }
+
+            // Load teachers list
+            let teachersList = [];
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/teachers', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    teachersList = data.teachers;
+                }
+            } catch (error) {
+                console.error('Load teachers error:', error);
+            }
+
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal-overlay" id="classModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h2 class="modal-title">${isEdit ? 'Edit Class' : 'Add New Class'}</h2>
+                            <button class="modal-close" onclick="ClassesManager.closeModal()">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="classForm" onsubmit="ClassesManager.submitClass(event, ${classId})">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Class Name <span class="required">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="form-input"
+                                            name="name"
+                                            value="${classData?.name || ''}"
+                                            required
+                                            placeholder="9-A"
+                                        />
+                                        <span class="form-hint">Example: 9-A, 10-B, 11-В</span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Grade Level <span class="required">*</span>
+                                        </label>
+                                        <select class="form-input" name="grade_level" required>
+                                            <option value="">Select grade</option>
+                                            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(grade =>
+                `<option value="${grade}" ${classData?.grade_level === grade ? 'selected' : ''}>${grade} класс</option>`
+            ).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Academic Year <span class="required">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="form-input"
+                                            name="academic_year"
+                                            value="${classData?.academic_year || '2024-2025'}"
+                                            required
+                                            placeholder="2024-2025"
+                                        />
+                                        <span class="form-hint">Format: YYYY-YYYY</span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Homeroom Teacher</label>
+                                        <select class="form-input" name="homeroom_teacher_id">
+                                            <option value="">No teacher assigned</option>
+                                            ${teachersList.map(teacher =>
+                `<option value="${teacher.id}" ${classData?.homeroom_teacher_id === teacher.id ? 'selected' : ''}>${teacher.name}</option>`
+            ).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                ${isEdit ? `
+                                <div class="form-group">
+                                    <div class="form-check">
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input"
+                                            id="classActive"
+                                            name="is_active"
+                                            ${classData?.is_active ? 'checked' : ''}
+                                        />
+                                        <label class="form-check-label" for="classActive">
+                                            Active
+                                        </label>
+                                    </div>
+                                </div>
+                                ` : ''}
+
+                                <div id="formAlert" class="hidden"></div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline" onclick="ClassesManager.closeModal()">
+                                Cancel
+                            </button>
+                            <button type="submit" form="classForm" class="btn btn-primary" id="submitBtn">
+                                ${isEdit ? 'Update Class' : 'Create Class'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Close on overlay click
+            document.getElementById('classModal').addEventListener('click', (e) => {
+                if (e.target.id === 'classModal') {
+                    this.closeModal();
+                }
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', this.handleEscapeKey);
+        },
+
+        // Handle Escape key
+        handleEscapeKey: function (e) {
+            if (e.key === 'Escape') {
+                ClassesManager.closeModal();
+            }
+        },
+
+        // Close modal
+        closeModal: function () {
+            const modal = document.getElementById('classModal');
+            if (modal) {
+                modal.remove();
+            }
+            document.removeEventListener('keydown', this.handleEscapeKey);
+        },
+
+        // Submit class form
+        submitClass: async function (event, classId) {
+            event.preventDefault();
+
+            const form = event.target;
+            const submitBtn = document.getElementById('submitBtn');
+            const formAlert = document.getElementById('formAlert');
+
+            // Get form data
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('name').trim(),
+                grade_level: parseInt(formData.get('grade_level')),
+                academic_year: formData.get('academic_year').trim(),
+                homeroom_teacher_id: formData.get('homeroom_teacher_id') || null
+            };
+
+            if (classId) {
+                data.is_active = formData.get('is_active') === 'on';
+            }
+
+            // Validation
+            if (!data.name || !data.grade_level || !data.academic_year) {
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = 'Please fill all required fields';
+                return;
+            }
+
+            // Show loading
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            formAlert.className = 'hidden';
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const url = classId
+                    ? `/api/admin/classes/${classId}`
+                    : '/api/admin/classes';
+                const method = classId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    formAlert.className = 'alert alert-success';
+                    formAlert.textContent = result.message;
+
+                    // Reload classes list
+                    setTimeout(() => {
+                        this.closeModal();
+                        this.loadClasses();
+                    }, 1000);
+                } else {
+                    // Show error
+                    formAlert.className = 'alert alert-error';
+                    formAlert.textContent = result.message || 'An error occurred';
+                }
+            } catch (error) {
+                console.error('Submit class error:', error);
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = 'Network error. Please try again.';
+            } finally {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+            }
+        },
+
+        // Edit class
+        editClass: function (classId) {
+            this.showClassModal(classId);
+        },
+
+        // Delete class
+        deleteClass: async function (classId, className) {
+            if (!confirm(`Are you sure you want to deactivate class "${className}"?`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/admin/classes/${classId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    this.loadClasses();
+                } else {
+                    alert('Failed to delete class');
+                }
+            } catch (error) {
+                console.error('Delete class error:', error);
+                alert('Failed to delete class');
+            }
+        }
+    };
+})();

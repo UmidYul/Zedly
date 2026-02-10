@@ -240,8 +240,292 @@
                 }
             }
 
-            // Modal will be created next
-            alert('User modal coming soon...');
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal-overlay" id="userModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h2 class="modal-title">${isEdit ? 'Edit User' : 'Add New User'}</h2>
+                            <button class="modal-close" onclick="UsersManager.closeModal()">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="userForm" onsubmit="UsersManager.submitUser(event, ${userId})">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            First Name <span class="required">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="form-input"
+                                            name="first_name"
+                                            value="${user?.first_name || ''}"
+                                            required
+                                            placeholder="Иван"
+                                        />
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Last Name <span class="required">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="form-input"
+                                            name="last_name"
+                                            value="${user?.last_name || ''}"
+                                            required
+                                            placeholder="Петров"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Username <span class="required">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="form-input"
+                                            name="username"
+                                            value="${user?.username || ''}"
+                                            required
+                                            placeholder="ivan.petrov"
+                                            ${isEdit ? 'readonly' : ''}
+                                        />
+                                        <span class="form-hint">Только латинские буквы, цифры и точки</span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Role <span class="required">*</span>
+                                        </label>
+                                        <select class="form-input" name="role" required>
+                                            <option value="">Select role</option>
+                                            <option value="school_admin" ${user?.role === 'school_admin' ? 'selected' : ''}>School Admin</option>
+                                            <option value="teacher" ${user?.role === 'teacher' ? 'selected' : ''}>Teacher</option>
+                                            <option value="student" ${user?.role === 'student' ? 'selected' : ''}>Student</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                ${!isEdit ? `
+                                <div class="form-group">
+                                    <label class="form-label">Password</label>
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        name="password"
+                                        placeholder="Leave empty to auto-generate OTP"
+                                    />
+                                    <span class="form-hint">Auto-generated 8-character password will be shown after creation</span>
+                                </div>
+                                ` : ''}
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Email</label>
+                                        <input
+                                            type="email"
+                                            class="form-input"
+                                            name="email"
+                                            value="${user?.email || ''}"
+                                            placeholder="user@example.uz"
+                                        />
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Phone</label>
+                                        <input
+                                            type="tel"
+                                            class="form-input"
+                                            name="phone"
+                                            value="${user?.phone || ''}"
+                                            placeholder="+998901234567"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Telegram ID</label>
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        name="telegram_id"
+                                        value="${user?.telegram_id || ''}"
+                                        placeholder="123456789"
+                                    />
+                                    <span class="form-hint">For Telegram notifications</span>
+                                </div>
+
+                                ${isEdit ? `
+                                <div class="form-group">
+                                    <div class="form-check">
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input"
+                                            id="userActive"
+                                            name="is_active"
+                                            ${user?.is_active ? 'checked' : ''}
+                                        />
+                                        <label class="form-check-label" for="userActive">
+                                            Active
+                                        </label>
+                                    </div>
+                                </div>
+                                ` : ''}
+
+                                <div id="formAlert" class="hidden"></div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline" onclick="UsersManager.closeModal()">
+                                Cancel
+                            </button>
+                            <button type="submit" form="userForm" class="btn btn-primary" id="submitBtn">
+                                ${isEdit ? 'Update User' : 'Create User'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Close on overlay click
+            document.getElementById('userModal').addEventListener('click', (e) => {
+                if (e.target.id === 'userModal') {
+                    this.closeModal();
+                }
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', this.handleEscapeKey);
+        },
+
+        // Handle Escape key
+        handleEscapeKey: function (e) {
+            if (e.key === 'Escape') {
+                UsersManager.closeModal();
+            }
+        },
+
+        // Close modal
+        closeModal: function () {
+            const modal = document.getElementById('userModal');
+            if (modal) {
+                modal.remove();
+            }
+            document.removeEventListener('keydown', this.handleEscapeKey);
+        },
+
+        // Submit user form
+        submitUser: async function (event, userId) {
+            event.preventDefault();
+
+            const form = event.target;
+            const submitBtn = document.getElementById('submitBtn');
+            const formAlert = document.getElementById('formAlert');
+
+            // Get form data
+            const formData = new FormData(form);
+            const data = {
+                first_name: formData.get('first_name').trim(),
+                last_name: formData.get('last_name').trim(),
+                username: formData.get('username').trim(),
+                role: formData.get('role'),
+                email: formData.get('email')?.trim() || null,
+                phone: formData.get('phone')?.trim() || null,
+                telegram_id: formData.get('telegram_id')?.trim() || null
+            };
+
+            if (!userId) {
+                const password = formData.get('password')?.trim();
+                if (password) {
+                    data.password = password;
+                }
+            } else {
+                data.is_active = formData.get('is_active') === 'on';
+            }
+
+            // Validation
+            if (!data.first_name || !data.last_name || !data.username || !data.role) {
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = 'Please fill all required fields';
+                return;
+            }
+
+            // Show loading
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            formAlert.className = 'hidden';
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const url = userId
+                    ? `/api/admin/users/${userId}`
+                    : '/api/admin/users';
+                const method = userId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Show success with OTP password if generated
+                    if (result.otp_password) {
+                        formAlert.className = 'alert alert-success';
+                        formAlert.innerHTML = `
+                            <strong>User created successfully!</strong><br>
+                            <strong>Generated Password:</strong> <code style="background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; font-size: 1.1em;">${result.otp_password}</code><br>
+                            <small>Please save this password - it won't be shown again!</small>
+                        `;
+
+                        // Change button to "Close"
+                        submitBtn.textContent = 'Close';
+                        submitBtn.onclick = () => {
+                            this.closeModal();
+                            this.loadUsers();
+                        };
+                    } else {
+                        formAlert.className = 'alert alert-success';
+                        formAlert.textContent = result.message;
+
+                        // Reload users list
+                        setTimeout(() => {
+                            this.closeModal();
+                            this.loadUsers();
+                        }, 1000);
+                    }
+                } else {
+                    // Show error
+                    formAlert.className = 'alert alert-error';
+                    formAlert.textContent = result.message || 'An error occurred';
+                }
+            } catch (error) {
+                console.error('Submit user error:', error);
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = 'Network error. Please try again.';
+            } finally {
+                if (!formAlert.classList.contains('alert-success') || !formAlert.innerHTML.includes('Generated Password')) {
+                    submitBtn.classList.remove('loading');
+                    submitBtn.disabled = false;
+                }
+            }
         },
 
         // Edit user
