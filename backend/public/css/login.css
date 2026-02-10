@@ -293,6 +293,24 @@
     position: relative;
 }
 
+/* Match button with page background */
+.login-form .btn-primary {
+    background: #0F1729;
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: none;
+}
+
+.login-form .btn-primary::before {
+    display: none;
+}
+
+.login-form .btn-primary:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: rgba(255, 255, 255, 0.28);
+    background: #0B1324;
+}
+
 .login-form button[type="submit"] span {
     display: inline-block;
     transition: opacity 0.3s ease;
