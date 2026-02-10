@@ -206,7 +206,7 @@ router.post('/tests', async (req, res) => {
                         q.question_type,
                         q.question_text,
                         JSON.stringify(q.options || []),
-                        q.correct_answer,
+                        JSON.stringify(q.correct_answer),
                         q.marks || 1,
                         i + 1,
                         q.media_url || null
@@ -291,7 +291,7 @@ router.put('/tests/:id', async (req, res) => {
                     [
                         id, q.question_type, q.question_text,
                         JSON.stringify(q.options || []),
-                        q.correct_answer, q.marks || 1, i + 1,
+                        JSON.stringify(q.correct_answer), q.marks || 1, i + 1,
                         q.media_url || null
                     ]
                 );
