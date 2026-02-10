@@ -203,9 +203,262 @@
         },
 
         // Show school modal (create/edit)
-        showSchoolModal: function (schoolId = null) {
-            // Will implement modal later
-            alert('School modal will be implemented next');
+        showSchoolModal: async function (schoolId = null) {
+            const isEdit = schoolId !== null;
+            let school = null;
+
+            // Load school data if editing
+            if (isEdit) {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await fetch(`/api/superadmin/schools/${schoolId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        school = data.school;
+                    } else {
+                        alert('Failed to load school data');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Load school error:', error);
+                    alert('Failed to load school data');
+                    return;
+                }
+            }
+
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal-overlay" id="schoolModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h2 class="modal-title">${isEdit ? 'Edit School' : 'Add New School'}</h2>
+                            <button class="modal-close" onclick="SchoolsManager.closeModal()">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="schoolForm" onsubmit="SchoolsManager.submitSchool(event, ${schoolId})">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        School Name <span class="required">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        id="schoolName"
+                                        name="name"
+                                        value="${school?.name || ''}"
+                                        required
+                                        placeholder="Enter school name"
+                                    />
+                                    <span class="form-error hidden" id="nameError"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Address</label>
+                                    <textarea
+                                        class="form-textarea"
+                                        id="schoolAddress"
+                                        name="address"
+                                        placeholder="Enter school address"
+                                    >${school?.address || ''}</textarea>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Phone</label>
+                                        <input
+                                            type="tel"
+                                            class="form-input"
+                                            id="schoolPhone"
+                                            name="phone"
+                                            value="${school?.phone || ''}"
+                                            placeholder="+998901234567"
+                                        />
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Email</label>
+                                        <input
+                                            type="email"
+                                            class="form-input"
+                                            id="schoolEmail"
+                                            name="email"
+                                            value="${school?.email || ''}"
+                                            placeholder="school@example.uz"
+                                        />
+                                    </div>
+                                </div>
+
+                                ${isEdit ? `
+                                <div class="form-group">
+                                    <div class="form-check">
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input"
+                                            id="schoolActive"
+                                            name="is_active"
+                                            ${school?.is_active ? 'checked' : ''}
+                                        />
+                                        <label class="form-check-label" for="schoolActive">
+                                            Active
+                                        </label>
+                                    </div>
+                                </div>
+                                ` : ''}
+
+                                <div id="formAlert" class="hidden"></div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline" onclick="SchoolsManager.closeModal()">
+                                Cancel
+                            </button>
+                            <button type="submit" form="schoolForm" class="btn btn-primary" id="submitBtn">
+                                ${isEdit ? 'Update School' : 'Create School'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Close on overlay click
+            document.getElementById('schoolModal').addEventListener('click', (e) => {
+                if (e.target.id === 'schoolModal') {
+                    this.closeModal();
+                }
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', this.handleEscapeKey);
+        },
+
+        // Handle Escape key
+        handleEscapeKey: function (e) {
+            if (e.key === 'Escape') {
+                SchoolsManager.closeModal();
+            }
+        },
+
+        // Close modal
+        closeModal: function () {
+            const modal = document.getElementById('schoolModal');
+            if (modal) {
+                modal.remove();
+            }
+            document.removeEventListener('keydown', this.handleEscapeKey);
+        },
+
+        // Submit school form
+        submitSchool: async function (event, schoolId) {
+            event.preventDefault();
+
+            const form = event.target;
+            const submitBtn = document.getElementById('submitBtn');
+            const formAlert = document.getElementById('formAlert');
+
+            // Get form data
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('name').trim(),
+                address: formData.get('address')?.trim() || null,
+                phone: formData.get('phone')?.trim() || null,
+                email: formData.get('email')?.trim() || null
+            };
+
+            if (schoolId) {
+                data.is_active = formData.get('is_active') === 'on';
+            }
+
+            // Validation
+            if (!data.name) {
+                this.showFormError('nameError', 'School name is required');
+                return;
+            }
+
+            if (data.email && !this.validateEmail(data.email)) {
+                this.showFormError('emailError', 'Invalid email format');
+                return;
+            }
+
+            // Show loading
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            formAlert.className = 'hidden';
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const url = schoolId
+                    ? `/api/superadmin/schools/${schoolId}`
+                    : '/api/superadmin/schools';
+                const method = schoolId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Show success message
+                    formAlert.className = 'alert alert-success';
+                    formAlert.textContent = result.message;
+
+                    // Reload schools list
+                    setTimeout(() => {
+                        this.closeModal();
+                        this.loadSchools();
+                    }, 1000);
+                } else {
+                    // Show error
+                    formAlert.className = 'alert alert-error';
+                    formAlert.textContent = result.message || 'An error occurred';
+                }
+            } catch (error) {
+                console.error('Submit school error:', error);
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = 'Network error. Please try again.';
+            } finally {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+            }
+        },
+
+        // Show form error
+        showFormError: function (errorId, message) {
+            const errorEl = document.getElementById(errorId);
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.classList.remove('hidden');
+
+                // Add error class to input
+                const input = errorEl.previousElementSibling;
+                if (input) {
+                    input.classList.add('error');
+                }
+            }
+        },
+
+        // Validate email
+        validateEmail: function (email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
         },
 
         // Edit school
