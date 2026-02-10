@@ -265,10 +265,60 @@
             </div>
         `;
 
-        // Simulate loading (replace with actual API call later)
-        setTimeout(() => {
-            content.innerHTML = getPageContent(page);
-        }, 500);
+        // Set page content
+        content.innerHTML = getPageContent(page);
+
+        // Load script and initialize if needed
+        await loadPageScript(page);
+    }
+
+    // Load page-specific script
+    async function loadPageScript(page) {
+        const scriptMap = {
+            'schools': { src: '/js/schools.js', manager: 'SchoolsManager' },
+            'users': { src: '/js/users.js', manager: 'UsersManager' },
+            'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
+            'subjects': { src: '/js/subjects.js', manager: 'SubjectsManager' }
+        };
+
+        const scriptInfo = scriptMap[page];
+        if (!scriptInfo) return;
+
+        // Check if script already loaded and manager exists
+        if (window[scriptInfo.manager]) {
+            try {
+                window[scriptInfo.manager].init();
+            } catch (error) {
+                console.error(`Failed to initialize ${scriptInfo.manager}:`, error);
+            }
+            return;
+        }
+
+        // Load script dynamically
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = scriptInfo.src;
+            script.onload = () => {
+                console.log(`✓ Loaded: ${scriptInfo.src}`);
+                // Initialize manager after script loads
+                try {
+                    if (window[scriptInfo.manager]) {
+                        window[scriptInfo.manager].init();
+                        console.log(`✓ Initialized: ${scriptInfo.manager}`);
+                    } else {
+                        console.error(`Manager ${scriptInfo.manager} not found after loading script`);
+                    }
+                } catch (error) {
+                    console.error(`Failed to initialize ${scriptInfo.manager}:`, error);
+                }
+                resolve();
+            };
+            script.onerror = () => {
+                console.error(`Failed to load script: ${scriptInfo.src}`);
+                reject();
+            };
+            document.head.appendChild(script);
+        });
     }
 
     // Get page content (placeholder - will be replaced with actual components)
@@ -303,8 +353,6 @@
                     </div>
                 </div>
                 <div id="schoolsContainer"></div>
-                <script src="/js/schools.js"></script>
-                <script>SchoolsManager.init();</script>
             `;
         }
 
@@ -337,8 +385,6 @@
                     </div>
                 </div>
                 <div id="usersContainer"></div>
-                <script src="/js/users.js"></script>
-                <script>UsersManager.init();</script>
             `;
         }
 
@@ -379,8 +425,6 @@
                     </div>
                 </div>
                 <div id="classesContainer"></div>
-                <script src="/js/classes.js"></script>
-                <script>ClassesManager.init();</script>
             `;
         }
 
@@ -407,8 +451,6 @@
                     </div>
                 </div>
                 <div id="subjectsContainer"></div>
-                <script src="/js/subjects.js"></script>
-                <script>SubjectsManager.init();</script>
             `;
         }
 

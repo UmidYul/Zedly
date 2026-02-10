@@ -10,6 +10,7 @@
 
         // Initialize users page
         init: function () {
+            this.currentPage = 1; // Reset to first page
             this.loadUsers();
             this.setupEventListeners();
         },
