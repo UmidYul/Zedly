@@ -11,13 +11,15 @@
                 section: 'dashboard.nav.main',
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
-                    { icon: 'building', label: 'dashboard.nav.schools', id: 'schools', href: '#schools' }
+                    { icon: 'building', label: 'dashboard.nav.schools', id: 'schools', href: '#schools' },
+                    { icon: 'users', label: 'School Admins', id: 'school-admins', href: '#school-admins' }
                 ]
             },
             {
                 section: 'dashboard.nav.analytics',
                 items: [
                     { icon: 'chart', label: 'dashboard.nav.statistics', id: 'statistics', href: '#statistics' },
+                    { icon: 'trophy', label: 'School Comparison', id: 'comparison', href: '#comparison' },
                     { icon: 'file', label: 'dashboard.nav.reports', id: 'reports', href: '#reports' }
                 ]
             },
@@ -423,6 +425,149 @@
                     </div>
                 </div>
                 <div id="schoolsContainer"></div>
+            `;
+        }
+
+        // School Admins Management (SuperAdmin)
+        if (page === 'school-admins') {
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title">School Administrators</h1>
+                    <p class="page-subtitle">Manage school directors and administrators</p>
+                </div>
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="adminsSearch"
+                            class="search-input"
+                            placeholder="Search administrators..."
+                        />
+                    </div>
+                    <div class="toolbar-right">
+                        <select id="schoolFilterAdmins" class="select-input">
+                            <option value="all">All Schools</option>
+                        </select>
+                        <button class="btn btn-secondary" id="exportAdminsBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export
+                        </button>
+                        <button class="btn btn-primary" id="addAdminBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add School Admin
+                        </button>
+                    </div>
+                </div>
+                <div id="adminsContainer">
+                    <div class="empty-state">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <p>No school administrators yet. Click "Add School Admin" to get started.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // School Comparison (SuperAdmin)
+        if (page === 'comparison') {
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title">School Comparison</h1>
+                    <p class="page-subtitle">Compare performance across schools</p>
+                </div>
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <select id="comparisonMetric" class="select-input">
+                            <option value="avg_score">Average Score</option>
+                            <option value="test_completion">Test Completion Rate</option>
+                            <option value="student_count">Student Count</option>
+                            <option value="teacher_count">Teacher Count</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-right">
+                        <select id="timePeriod" class="select-input">
+                            <option value="week">Last Week</option>
+                            <option value="month">Last Month</option>
+                            <option value="quarter">Last Quarter</option>
+                            <option value="year">Last Year</option>
+                        </select>
+                        <button class="btn btn-secondary" id="exportComparisonBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export Report
+                        </button>
+                    </div>
+                </div>
+                <div id="comparisonContainer">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon blue">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    ${icons.building}
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Top Performer</div>
+                                <div class="stat-value">School #1</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    ${icons.chart}
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Avg Score</div>
+                                <div class="stat-value">87.5%</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    ${icons.users}
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Total Students</div>
+                                <div class="stat-value">2,456</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon purple">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    ${icons.clipboard}
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Tests Taken</div>
+                                <div class="stat-value">12,345</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">School Performance</h2>
+                        </div>
+                        <div id="comparisonChart" style="min-height: 400px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
+                            Performance chart will be displayed here
+                        </div>
+                    </div>
+                </div>
             `;
         }
 

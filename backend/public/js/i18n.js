@@ -96,7 +96,9 @@
             'dashboard.nav.calendar': 'Календарь',
             'dashboard.nav.progress': 'Прогресс',
             'dashboard.nav.career': 'Профориентация',
-            'dashboard.nav.leaderboard': 'Рейтинг'
+            'dashboard.nav.leaderboard': 'Рейтинг',
+            'School Admins': 'Администраторы школ',
+            'School Comparison': 'Сравнение школ'
         },
         uz: {
             login: 'Kirish',
@@ -187,7 +189,9 @@
             'dashboard.nav.calendar': 'Taqvim',
             'dashboard.nav.progress': 'Taraqqiyot',
             'dashboard.nav.career': 'Kasbga yo\'naltirish',
-            'dashboard.nav.leaderboard': 'Reyting'
+            'dashboard.nav.leaderboard': 'Reyting',
+            'School Admins': 'Maktab administratorlari',
+            'School Comparison': 'Maktablarni solishtirish'
         }
     };
 
