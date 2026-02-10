@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Test - Zedly</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/take-test.css">
+</head>
+
+<body>
+    <!-- Test Header -->
+    <div class="test-header">
+        <div class="test-header-content">
+            <div class="test-info">
+                <h1 class="test-title" id="testTitle">Loading test...</h1>
+                <div class="test-meta" id="testMeta"></div>
+            </div>
+            <div class="test-timer" id="testTimer">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span id="timerDisplay">--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Test Container -->
+    <div class="test-container">
+        <!-- Question Navigation Sidebar -->
+        <div class="question-nav">
+            <div class="nav-header">
+                <h3>Questions</h3>
+                <div class="nav-legend">
+                    <div class="legend-item">
+                        <span class="legend-dot answered"></span>
+                        <span>Answered</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot unanswered"></span>
+                        <span>Unanswered</span>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-grid" id="questionNav"></div>
+            <button class="btn btn-primary btn-submit" id="submitTestBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Submit Test
+            </button>
+        </div>
+
+        <!-- Question Display Area -->
+        <div class="question-area">
+            <div id="questionContainer">
+                <!-- Questions will be rendered here -->
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="question-controls">
+                <button class="btn btn-outline" id="prevBtn" style="visibility: hidden;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Previous
+                </button>
+                <button class="btn btn-primary" id="nextBtn">
+                    Next
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-save Indicator -->
+    <div class="auto-save-indicator" id="autoSaveIndicator">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Changes saved</span>
+    </div>
+
+    <script src="/js/auth-interceptor.js"></script>
+    <script src="/js/take-test.js"></script>
+</body>
+
+</html>

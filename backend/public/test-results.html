@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Results - Zedly</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/test-results.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="results-header">
+        <div class="results-header-content">
+            <button class="btn-back" onclick="window.location.href='/dashboard.html'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+            <h1 class="results-title" id="resultsTitle">Test Results</h1>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="results-container">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="spinner-large"></div>
+            <p>Loading results...</p>
+        </div>
+
+        <!-- Results Content -->
+        <div id="resultsContent" class="results-content" style="display: none;">
+
+            <!-- Summary Card -->
+            <div class="summary-card">
+                <div class="summary-header">
+                    <h2>Test Summary</h2>
+                    <div class="test-badge" id="testBadge"></div>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-icon score">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="summary-details">
+                            <div class="summary-label">Your Score</div>
+                            <div class="summary-value" id="scoreValue">-</div>
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-icon percentage">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 6v6l4 2"></path>
+                            </svg>
+                        </div>
+                        <div class="summary-details">
+                            <div class="summary-label">Percentage</div>
+                            <div class="summary-value" id="percentageValue">-</div>
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-icon time">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="summary-details">
+                            <div class="summary-label">Time Taken</div>
+                            <div class="summary-value" id="timeValue">-</div>
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-icon correct">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                        <div class="summary-details">
+                            <div class="summary-label">Correct Answers</div>
+                            <div class="summary-value" id="correctValue">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-footer">
+                    <div class="test-info-item">
+                        <strong>Test:</strong> <span id="testName">-</span>
+                    </div>
+                    <div class="test-info-item">
+                        <strong>Subject:</strong> <span id="subjectName">-</span>
+                    </div>
+                    <div class="test-info-item">
+                        <strong>Date:</strong> <span id="testDate">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions Review -->
+            <div class="questions-review">
+                <div class="review-header">
+                    <h2>Questions Review</h2>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all"
+                            onclick="ResultsViewer.filterQuestions('all')">
+                            All Questions
+                        </button>
+                        <button class="filter-btn" data-filter="correct"
+                            onclick="ResultsViewer.filterQuestions('correct')">
+                            Correct
+                        </button>
+                        <button class="filter-btn" data-filter="incorrect"
+                            onclick="ResultsViewer.filterQuestions('incorrect')">
+                            Incorrect
+                        </button>
+                    </div>
+                </div>
+
+                <div id="questionsContainer">
+                    <!-- Questions will be rendered here -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error-state" style="display: none;">
+            <div class="error-icon">❌</div>
+            <h3>Failed to load results</h3>
+            <p id="errorMessage">An error occurred while loading your test results.</p>
+            <button class="btn btn-primary" onclick="window.location.href='/dashboard.html'">
+                Back to Dashboard
+            </button>
+        </div>
+    </div>
+
+    <script src="/js/auth-interceptor.js"></script>
+    <script src="/js/test-results.js"></script>
+</body>
+
+</html>

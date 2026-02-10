@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Страница не найдена | ZEDLY</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        .error-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-lg);
+            text-align: center;
+        }
+
+        .error-content {
+            max-width: 500px;
+        }
+
+        .error-code {
+            font-size: 8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .error-title {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .error-desc {
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xl);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="error-page">
+        <div class="error-content">
+            <div class="error-code">404</div>
+            <h1 class="error-title">Страница не найдена</h1>
+            <p class="error-desc">
+                К сожалению, запрашиваемая страница не существует или была перемещена.
+            </p>
+            <a href="/" class="btn btn-primary btn-large">Вернуться на главную</a>
+        </div>
+    </div>
+    <script src="/js/theme.js"></script>
+</body>
+
+</html>

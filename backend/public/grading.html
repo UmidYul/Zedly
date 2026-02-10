@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Grading - Zedly</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/teacher-results.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="results-header">
+        <div class="results-header-content">
+            <button class="btn-back" onclick="window.location.href='/dashboard.html'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+            <h1 class="results-title">Manual Grading Queue</h1>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="results-container">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="spinner-large"></div>
+            <p>Loading pending grading...</p>
+        </div>
+
+        <!-- Results Content -->
+        <div id="resultsContent" class="results-content" style="display: none;">
+
+            <!-- Info Card -->
+            <div class="info-card">
+                <div class="info-header">
+                    <h2>Pending Essays</h2>
+                    <div class="info-meta">
+                        <span id="pendingCount">0 attempts waiting for review</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grading Table -->
+            <div class="results-table-card">
+                <div class="table-header">
+                    <h2>Attempts Requiring Grading</h2>
+                    <div class="table-actions">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" class="search-input" placeholder="Search students...">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="gradingTableContainer"></div>
+            </div>
+
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="error-state" style="display: none;">
+            <div class="error-icon">✅</div>
+            <h3>All caught up!</h3>
+            <p>No essays are waiting for grading at this time.</p>
+            <button class="btn btn-primary" onclick="window.location.href='/dashboard.html'">
+                Back to Dashboard
+            </button>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error-state" style="display: none;">
+            <div class="error-icon">❌</div>
+            <h3>Failed to load grading queue</h3>
+            <p id="errorMessage">An error occurred while loading pending attempts.</p>
+            <button class="btn btn-primary" onclick="window.location.href='/dashboard.html'">
+                Back to Dashboard
+            </button>
+        </div>
+    </div>
+
+    <script src="/js/auth-interceptor.js"></script>
+    <script src="/js/grading.js"></script>
+</body>
+
+</html>

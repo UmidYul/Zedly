@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZEDLY — Платформа обучения</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/landing.css">
+</head>
+<body class="landing-page">
+    <header class="landing-nav">
+        <div class="landing-brand">
+            <div class="landing-logo">Z</div>
+            <span>ZEDLY</span>
+        </div>
+        <nav class="landing-actions">
+            <a class="landing-link" href="/login" data-i18n="loginLink">Вход</a>
+            <a class="landing-btn" href="/login" data-i18n="signupLink">Зарегистрироваться</a>
+            <span class="landing-separator">|</span>
+            <button class="landing-lang-btn" id="landingLangBtn">RU</button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="landing-hero">
+            <div class="landing-hero-content">
+                <span class="landing-pill" data-i18n="pill">Новая образовательная платформа</span>
+                <h1 data-i18n="heroTitle">Обучение, которое растёт вместе с вами</h1>
+                <p>
+                    <span data-i18n="heroBodyLine1">ZEDLY — это единая среда для учеников, учителей и администраторов.</span>
+                    <span data-i18n="heroBodyLine2">Тесты, аналитика и управление учебным процессом в одном месте.</span>
+                </p>
+                <div class="landing-cta">
+                    <a class="landing-btn landing-btn-primary" href="/login" data-i18n="ctaPrimary">Начать сейчас</a>
+                    <a class="landing-btn landing-btn-outline" href="#features" data-i18n="ctaSecondary">Подробнее</a>
+                </div>
+            </div>
+            <div class="landing-hero-card">
+                <div class="landing-metric">
+                    <span class="landing-metric-title" data-i18n="metric1Title">Успеваемость</span>
+                    <strong>+28%</strong>
+                    <small data-i18n="metric1Note">рост за семестр</small>
+                </div>
+                <div class="landing-metric">
+                    <span class="landing-metric-title" data-i18n="metric2Title">Активные классы</span>
+                    <strong>120+</strong>
+                    <small data-i18n="metric2Note">в одной системе</small>
+                </div>
+                <div class="landing-metric">
+                    <span class="landing-metric-title" data-i18n="metric3Title">Тесты</span>
+                    <strong>4 500</strong>
+                    <small data-i18n="metric3Note">создано учителями</small>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="landing-section">
+            <h2 data-i18n="featuresTitle">Почему ZEDLY</h2>
+            <div class="landing-grid">
+                <article class="landing-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h3 data-i18n="feature1Title">Аналитика в реальном времени</h3>
+                    <p data-i18n="feature1Body">Отслеживайте прогресс, вовлечённость и результаты по каждому классу.</p>
+                </article>
+                <article class="landing-card">
+                    <i class="fas fa-layer-group"></i>
+                    <h3 data-i18n="feature2Title">Модули и контрольные</h3>
+                    <p data-i18n="feature2Body">Готовые и настраиваемые модули для предметов и контрольных работ.</p>
+                </article>
+                <article class="landing-card">
+                    <i class="fas fa-users"></i>
+                    <h3 data-i18n="feature3Title">Единая экосистема</h3>
+                    <p data-i18n="feature3Body">Ученики, учителя и администраторы работают в одном пространстве.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="landing-section landing-highlight">
+            <div>
+                <h2 data-i18n="highlightTitle">Готовы начать?</h2>
+                <p data-i18n="highlightBody">Нажмите «Зарегистрироваться» и перейдите на страницу входа.</p>
+            </div>
+            <a class="landing-btn landing-btn-primary" href="/login" data-i18n="highlightCta">Зарегистрироваться</a>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <span data-i18n="footer">© 2026 ZEDLY. Все права защищены.</span>
+        <a href="/login" data-i18n="footerLink">Перейти к входу</a>
+    </footer>
+    
+    <script src="/js/i18n.js"></script>
+    <script>
+        // Landing page specific translations
+        const landingTranslations = {
+            ru: {
+                pill: 'Новая образовательная платформа',
+                heroTitle: 'Обучение, которое растёт вместе с вами',
+                heroBodyLine1: 'ZEDLY — это единая среда для учеников, учителей и администраторов.',
+                heroBodyLine2: 'Тесты, аналитика и управление учебным процессом в одном месте.',
+                ctaPrimary: 'Начать сейчас',
+                ctaSecondary: 'Подробнее',
+                metric1Title: 'Успеваемость',
+                metric1Note: 'рост за семестр',
+                metric2Title: 'Активные классы',
+                metric2Note: 'в одной системе',
+                metric3Title: 'Тесты',
+                metric3Note: 'создано учителями',
+                featuresTitle: 'Почему ZEDLY',
+                feature1Title: 'Аналитика в реальном времени',
+                feature1Body: 'Отслеживайте прогресс, вовлечённость и результаты по каждому классу.',
+                feature2Title: 'Модули и контрольные',
+                feature2Body: 'Готовые и настраиваемые модули для предметов и контрольных работ.',
+                feature3Title: 'Единая экосистема',
+                feature3Body: 'Ученики, учителя и администраторы работают в одном пространстве.',
+                highlightTitle: 'Готовы начать?',
+                highlightBody: 'Нажмите «Зарегистрироваться» и перейдите на страницу входа.',
+                highlightCta: 'Зарегистрироваться',
+                footer: '© 2026 ZEDLY. Все права защищены.',
+                footerLink: 'Перейти к входу',
+                loginLink: 'Вход',
+                signupLink: 'Зарегистрироваться'
+            },
+            uz: {
+                pill: 'Yangi ta\'lim platformasi',
+                heroTitle: 'Ta\'lim siz bilan birga o\'sadi',
+                heroBodyLine1: 'ZEDLY — o\'quvchilar, o\'qituvchilar va administratorlar uchun yagona muhit.',
+                heroBodyLine2: 'Testlar, analitika va ta\'lim jarayonini boshqarish bir joyda.',
+                ctaPrimary: 'Boshlash',
+                ctaSecondary: 'Batafsil',
+                metric1Title: 'Natijadorlik',
+                metric1Note: 'semestr bo\'yicha o\'sish',
+                metric2Title: 'Faol sinflar',
+                metric2Note: 'bitta tizimda',
+                metric3Title: 'Testlar',
+                metric3Note: 'o\'qituvchilar yaratgan',
+                featuresTitle: 'Nega ZEDLY',
+                feature1Title: 'Real vaqt analitikasi',
+                feature1Body: 'Har bir sinf bo\'yicha progress va natijalarni kuzating.',
+                feature2Title: 'Modullar va nazoratlar',
+                feature2Body: 'Fanlar va nazoratlar uchun tayyor va moslanuvchi modullar.',
+                feature3Title: 'Yagona ekotizim',
+                feature3Body: 'O\'quvchi, o\'qituvchi va administrator bir makonda ishlaydi.',
+                highlightTitle: 'Boshlashga tayyormisiz?',
+                highlightBody: '"Ro\'yxatdan o\'tish" tugmasini bosing va kirish sahifasiga o\'ting.',
+                highlightCta: 'Ro\'yxatdan o\'tish',
+                footer: '© 2026 ZEDLY. Barcha huquqlar himoyalangan.',
+                footerLink: 'Kirish sahifasiga o\'tish',
+                loginLink: 'Kirish',
+                signupLink: 'Ro\'yxatdan o\'tish'
+            }
+        };
+
+        const landingLangBtn = document.getElementById('landingLangBtn');
+        const landingLoginLink = document.querySelector('.landing-actions .landing-link');
+        const landingSignupLink = document.querySelector('.landing-actions .landing-btn');
+
+        const applyLandingLang = (lang) => {
+            const dict = landingTranslations[lang];
+            if (!dict) return;
+            document.querySelectorAll('[data-i18n]').forEach((el) => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) el.textContent = dict[key];
+            });
+            if (landingLoginLink) landingLoginLink.textContent = dict.loginLink;
+            if (landingSignupLink) landingSignupLink.textContent = dict.signupLink;
+            landingLangBtn.textContent = lang.toUpperCase();
+            localStorage.setItem('landing-lang', lang);
+        };
+
+        const savedLandingLang = localStorage.getItem('landing-lang') || 'ru';
+        applyLandingLang(savedLandingLang);
+
+        landingLangBtn.addEventListener('click', () => {
+            const nextLang = landingLangBtn.textContent.toLowerCase() === 'ru' ? 'uz' : 'ru';
+            applyLandingLang(nextLang);
+        });
+    </script>
+</body>
+</html>
