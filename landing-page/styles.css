@@ -7,10 +7,10 @@
 }
 
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --accent: #60a5fa;
-    --success: #3b82f6;
+    --primary: #1d4ed8;
+    --primary-dark: #1e3a8a;
+    --accent: #3b82f6;
+    --success: #2563eb;
 
     --bg-primary: #0A0E1A;
     --bg-secondary: #151B2D;
@@ -24,9 +24,9 @@
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.7);
 
-    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-    --gradient-hero: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.28), transparent 42%),
-        radial-gradient(circle at 80% 10%, rgba(96, 165, 250, 0.2), transparent 38%);
+    --gradient-primary: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+    --gradient-hero: radial-gradient(circle at 20% 20%, rgba(29, 78, 216, 0.28), transparent 42%),
+        radial-gradient(circle at 80% 10%, rgba(59, 130, 246, 0.2), transparent 38%);
 }
 
 body {
