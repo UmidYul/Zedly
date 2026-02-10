@@ -2,6 +2,7 @@
 .table-responsive {
     overflow-x: auto;
     margin: var(--spacing-lg) 0;
+    -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
@@ -311,7 +312,13 @@
     }
 
     .toolbar-right {
-        justify-content: space-between;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .select-input,
+    .toolbar-right .btn {
+        width: 100%;
     }
 
     .data-table {
@@ -325,5 +332,21 @@
 
     .action-buttons {
         flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .data-table {
+        font-size: 0.8125rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
     }
 }

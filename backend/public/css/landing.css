@@ -301,3 +301,35 @@ body {
         align-items: flex-start;
     }
 }
+
+@media (max-width: 480px) {
+    .landing-hero {
+        padding: 48px 5vw 32px;
+    }
+
+    .landing-hero-content h1 {
+        font-size: 1.9rem;
+    }
+
+    .landing-hero-content p {
+        font-size: 0.95rem;
+    }
+
+    .landing-pill {
+        font-size: 0.8rem;
+    }
+
+    .landing-cta {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .landing-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .landing-hero-card {
+        padding: 16px;
+    }
+}
