@@ -115,8 +115,17 @@ try {
     console.error(error.stack);
 }
 
-// Role-based routes (will be added later)
-// app.use('/api/teacher', require('./routes/teacher'));
+// Teacher routes
+try {
+    const teacherRouter = require('./routes/teacher');
+    app.use('/api/teacher', teacherRouter);
+    console.log('✓ Teacher routes loaded: /api/teacher');
+} catch (error) {
+    console.error('❌ Failed to load teacher routes:', error.message);
+    console.error(error.stack);
+}
+
+// Student routes (will be added later)
 // app.use('/api/student', require('./routes/student'));
 
 // ==============================================
