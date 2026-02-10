@@ -70,6 +70,7 @@
 
 .logo-text {
     color: white !important;
+    border: 1px solid red;
 }
 
 .brand-title {
