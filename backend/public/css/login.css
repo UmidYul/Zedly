@@ -66,11 +66,15 @@
     font-size: 2rem;
     font-weight: 700;
     letter-spacing: -0.5px;
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: white !important;
+    background-clip: unset !important;
 }
 
 .logo-text {
     color: white !important;
-    border: 1px solid red;
 }
 
 .brand-title {
