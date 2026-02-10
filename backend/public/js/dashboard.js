@@ -124,9 +124,10 @@
 
     // Initialize dashboard
     async function initDashboard() {
+        console.log('🔐 Checking authentication...');
+        
         // Check authentication
         const token = localStorage.getItem('access_token');
-        console.log('🔐 Checking authentication...');
         console.log('Access token exists:', !!token);
         
         if (!token) {
@@ -162,13 +163,26 @@
             console.log('✅ User authenticated:', data.user);
             currentUser = data.user;
 
-            // Update UI
-            updateUserInfo();
-            renderNavigation();
-            loadDashboardContent();
+            try {
+                // Update UI (with error handling for each step)
+                console.log('📝 Updating user info...');
+                updateUserInfo();
+                
+                console.log('🧭 Rendering navigation...');
+                renderNavigation();
+                
+                console.log('📄 Loading dashboard content...');
+                loadDashboardContent();
+                
+                console.log('✅ Dashboard fully loaded');
+            } catch (uiError) {
+                console.error('⚠️ UI update error (non-critical):', uiError);
+                // Don't redirect on UI errors, dashboard might still be usable
+            }
 
         } catch (error) {
             console.error('❌ Dashboard initialization error:', error);
+            console.log('Error stack:', error.stack);
             console.log('Redirecting to login...');
             redirectToLogin();
         }
@@ -181,28 +195,35 @@
         const userRole = document.getElementById('userRole');
 
         if (currentUser) {
-            // Set avatar initials
-            const initials = `${currentUser.first_name?.[0] || ''}${currentUser.last_name?.[0] || ''}`.toUpperCase() || 'U';
-            userAvatar.textContent = initials;
+            // Set avatar initials (only if element exists)
+            if (userAvatar) {
+                const initials = `${currentUser.first_name?.[0] || ''}${currentUser.last_name?.[0] || ''}`.toUpperCase() || 'U';
+                userAvatar.textContent = initials;
+            }
 
-            // Set name
-            userName.textContent = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username;
+            // Set name (only if element exists)
+            if (userName) {
+                userName.textContent = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username;
+            }
 
-            // Set role
-            const roleNames = {
-                'superadmin': 'SuperAdmin',
-                'school_admin': 'School Admin',
-                'teacher': 'Teacher',
-                'student': 'Student'
-            };
-            userRole.textContent = roleNames[currentUser.role] || currentUser.role;
+            // Set role (only if element exists)
+            if (userRole) {
+                const roleNames = {
+                    'superadmin': 'SuperAdmin',
+                    'school_admin': 'School Admin',
+                    'teacher': 'Teacher',
+                    'student': 'Student'
+                };
+                userRole.textContent = roleNames[currentUser.role] || currentUser.role;
+            }
         }
     }
 
     // Render navigation based on role
     function renderNavigation() {
         const sidebarNav = document.getElementById('sidebarNav');
-        if (!currentUser || !navigationConfig[currentUser.role]) {
+        if (!sidebarNav || !currentUser || !navigationConfig[currentUser.role]) {
+            console.warn('⚠️ Cannot render navigation: element or config missing');
             return;
         }
 
@@ -271,7 +292,10 @@
 
     // Load dashboard content based on role
     function loadDashboardContent() {
-        if (!currentUser) return;
+        if (!currentUser) {
+            console.warn('⚠️ No current user, skipping content load');
+            return;
+        }
 
         // Load overview page by default
         loadPageContent('overview');
@@ -280,6 +304,11 @@
     // Load specific page content
     async function loadPageContent(page) {
         const content = document.getElementById('dashboardContent');
+        
+        if (!content) {
+            console.warn('⚠️ dashboardContent element not found');
+            return;
+        }
 
         // Show loading
         content.innerHTML = `
@@ -808,12 +837,15 @@
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
 
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('active');
-        });
+        // Check if elements exist before adding listeners
+        if (menuToggle && sidebar && overlay) {
+            menuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            });
 
-        overlay.addEventListener('click', closeMobileMenu);
+            overlay.addEventListener('click', closeMobileMenu);
+        }
     }
 
     function closeMobileMenu() {
