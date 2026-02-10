@@ -232,8 +232,17 @@
 
     // Handle navigation click
     function handleNavClick(e) {
-        e.preventDefault();
+        const href = this.getAttribute('href');
         const page = this.dataset.page;
+
+        // If href is an external link (starts with /), allow default navigation
+        if (href && href.startsWith('/') && !href.startsWith('/#')) {
+            // External link - let it navigate normally
+            return;
+        }
+
+        // Internal navigation - prevent default and load content
+        e.preventDefault();
 
         // Update active state
         document.querySelectorAll('.nav-item').forEach(item => {
