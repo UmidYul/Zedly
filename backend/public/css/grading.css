@@ -1,0 +1,260 @@
+/* Grading Interface Styles */
+
+/* Grading Card */
+.grading-card {
+    background: var(--bg-primary);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--spacing-xl);
+    transition: var(--transition-fast);
+}
+
+.grading-card.graded {
+    border-color: var(--success);
+    background: rgba(72, 187, 120, 0.02);
+}
+
+.grading-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.question-marks-info {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(74, 144, 226, 0.1);
+    border-radius: var(--radius-md);
+    color: var(--primary);
+    font-size: 0.875rem;
+}
+
+.grading-body {
+    padding: var(--spacing-xl);
+}
+
+/* Essay Answer Section */
+.essay-answer-section {
+    margin: var(--spacing-xl) 0;
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border);
+}
+
+.essay-label {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    font-size: 1rem;
+}
+
+.essay-content {
+    padding: var(--spacing-lg);
+    background: var(--bg-primary);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    white-space: pre-wrap;
+    line-height: 1.8;
+    font-size: 1rem;
+    color: var(--text-primary);
+    min-height: 100px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Grading Form */
+.grading-form {
+    margin-top: var(--spacing-xl);
+    padding: var(--spacing-xl);
+    background: rgba(74, 144, 226, 0.05);
+    border-radius: var(--radius-lg);
+    border: 2px solid rgba(74, 144, 226, 0.2);
+}
+
+.grading-input-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.grading-input-group label {
+    display: block;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.95rem;
+}
+
+.grading-input {
+    width: 200px;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: var(--transition-fast);
+}
+
+.grading-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.grading-textarea {
+    width: 100%;
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    line-height: 1.6;
+    transition: var(--transition-fast);
+}
+
+.grading-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.grading-textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+.grading-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.grading-actions .btn {
+    padding: var(--spacing-md) var(--spacing-2xl);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.graded-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(72, 187, 120, 0.1);
+    color: var(--success);
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+/* Save Notification */
+.save-notification {
+    position: fixed;
+    bottom: var(--spacing-xl);
+    right: var(--spacing-xl);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-xl);
+    background: linear-gradient(135deg, var(--success) 0%, #38a169 100%);
+    color: white;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 700;
+    box-shadow: var(--shadow-xl);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.save-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.save-notification svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Button Primary Style */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border: none;
+    color: white;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-icon.btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-color: var(--primary);
+    color: white;
+}
+
+.btn-icon.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .grading-body {
+        padding: var(--spacing-lg);
+    }
+
+    .grading-form {
+        padding: var(--spacing-lg);
+    }
+
+    .grading-input {
+        width: 100%;
+    }
+
+    .grading-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .grading-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .save-notification {
+        bottom: var(--spacing-md);
+        right: var(--spacing-md);
+        left: var(--spacing-md);
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .grading-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .essay-label {
+        font-size: 0.875rem;
+    }
+
+    .essay-content {
+        font-size: 0.95rem;
+    }
+}

@@ -1044,4 +1044,185 @@ router.get('/attempts/:id', async (req, res) => {
     }
 });
 
+/**
+ * ========================================
+ * MANUAL GRADING
+ * ========================================
+ */
+
+/**
+ * GET /api/teacher/grading/pending
+ * Get all attempts that need manual grading
+ */
+router.get('/grading/pending', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+
+        // Get all attempts that have essay questions needing grading
+        const attemptsResult = await query(
+            `SELECT DISTINCT
+                att.id as attempt_id,
+                att.student_id,
+                att.test_id,
+                att.assignment_id,
+                att.submitted_at,
+                att.is_completed,
+                CONCAT(u.first_name, ' ', u.last_name) as student_name,
+                t.title as test_title,
+                c.name as class_name,
+                ta.start_date,
+                ta.end_date
+             FROM test_attempts att
+             JOIN users u ON att.student_id = u.id
+             JOIN tests t ON att.test_id = t.id
+             JOIN test_assignments ta ON att.assignment_id = ta.id
+             JOIN classes c ON ta.class_id = c.id
+             WHERE ta.assigned_by = $1
+             AND att.is_completed = true
+             AND EXISTS (
+                 SELECT 1 FROM test_questions tq
+                 WHERE tq.test_id = att.test_id
+                 AND tq.question_type = 'essay'
+             )
+             AND EXISTS (
+                 SELECT 1 FROM jsonb_each(att.answers) AS answer_entry
+                 WHERE (answer_entry.value->>'is_correct')::text = 'null'
+             )
+             ORDER BY att.submitted_at ASC`,
+            [teacherId]
+        );
+
+        res.json({
+            attempts: attemptsResult.rows
+        });
+
+    } catch (error) {
+        console.error('Get pending grading error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch pending grading attempts'
+        });
+    }
+});
+
+/**
+ * PUT /api/teacher/grading/:attemptId/question/:questionId
+ * Grade a specific question in an attempt
+ */
+router.put('/grading/:attemptId/question/:questionId', async (req, res) => {
+    try {
+        const { attemptId, questionId } = req.params;
+        const { earned_marks, feedback } = req.body;
+        const teacherId = req.user.id;
+
+        // Validate earned_marks
+        if (earned_marks === undefined || earned_marks === null) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Earned marks is required'
+            });
+        }
+
+        // Get attempt and verify teacher owns it
+        const attemptResult = await query(
+            `SELECT att.*, t.id as test_id, ta.assigned_by
+             FROM test_attempts att
+             JOIN test_assignments ta ON att.assignment_id = ta.id
+             JOIN tests t ON att.test_id = t.id
+             WHERE att.id = $1 AND ta.assigned_by = $2`,
+            [attemptId, teacherId]
+        );
+
+        if (attemptResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Attempt not found'
+            });
+        }
+
+        const attempt = attemptResult.rows[0];
+
+        // Get question to verify marks
+        const questionResult = await query(
+            `SELECT * FROM test_questions
+             WHERE id = $1 AND test_id = $2`,
+            [questionId, attempt.test_id]
+        );
+
+        if (questionResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Question not found'
+            });
+        }
+
+        const question = questionResult.rows[0];
+        const maxMarks = question.marks;
+
+        // Validate earned marks is not greater than max
+        if (parseFloat(earned_marks) > parseFloat(maxMarks)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: `Earned marks cannot exceed ${maxMarks}`
+            });
+        }
+
+        // Update the answer in the JSONB answers field
+        const answers = attempt.answers || {};
+
+        if (!answers[questionId]) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Question answer not found in attempt'
+            });
+        }
+
+        // Update the specific answer
+        answers[questionId].earned_marks = parseFloat(earned_marks);
+        answers[questionId].is_correct = parseFloat(earned_marks) === parseFloat(maxMarks);
+        answers[questionId].feedback = feedback || null;
+        answers[questionId].graded_at = new Date().toISOString();
+        answers[questionId].graded_by = teacherId;
+
+        // Recalculate total score
+        let totalScore = 0;
+        Object.keys(answers).forEach(qId => {
+            const ans = answers[qId];
+            if (ans.earned_marks !== undefined && ans.earned_marks !== null) {
+                totalScore += parseFloat(ans.earned_marks);
+            }
+        });
+
+        // Get max score from all questions
+        const maxScoreResult = await query(
+            `SELECT SUM(marks) as max_score FROM test_questions WHERE test_id = $1`,
+            [attempt.test_id]
+        );
+        const maxScore = parseFloat(maxScoreResult.rows[0].max_score);
+        const percentage = (totalScore / maxScore) * 100;
+
+        // Update attempt
+        await query(
+            `UPDATE test_attempts
+             SET answers = $1, score = $2, percentage = $3
+             WHERE id = $4`,
+            [JSON.stringify(answers), totalScore, percentage, attemptId]
+        );
+
+        res.json({
+            message: 'Question graded successfully',
+            score: totalScore,
+            max_score: maxScore,
+            percentage: percentage.toFixed(2)
+        });
+
+    } catch (error) {
+        console.error('Grade question error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to grade question'
+        });
+    }
+});
+
 module.exports = router;
