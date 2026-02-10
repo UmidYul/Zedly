@@ -417,7 +417,7 @@ router.get('/classes', async (req, res) => {
             `SELECT DISTINCT
                 c.id, c.name, c.grade_level,
                 c.academic_year, c.is_active,
-                ht.full_name as homeroom_teacher_name,
+                CONCAT(ht.first_name, ' ', ht.last_name) as homeroom_teacher_name,
                 (SELECT COUNT(*) FROM class_students cs WHERE cs.class_id = c.id) as student_count,
                 (SELECT COUNT(DISTINCT tcs.subject_id)
                  FROM teacher_class_subjects tcs
@@ -476,7 +476,7 @@ router.get('/classes/:id', async (req, res) => {
                 c.id, c.name, c.grade_level,
                 c.academic_year, c.is_active,
                 c.homeroom_teacher_id,
-                ht.full_name as homeroom_teacher_name,
+                CONCAT(ht.first_name, ' ', ht.last_name) as homeroom_teacher_name,
                 (SELECT COUNT(*) FROM class_students WHERE class_id = c.id) as student_count
              FROM classes c
              LEFT JOIN users ht ON c.homeroom_teacher_id = ht.id
@@ -497,7 +497,9 @@ router.get('/classes/:id', async (req, res) => {
         // Get students in the class
         const studentsResult = await query(
             `SELECT
-                u.id, u.full_name, u.email,
+                u.id,
+                CONCAT(u.first_name, ' ', u.last_name) as full_name,
+                u.email,
                 cs.roll_number
              FROM class_students cs
              JOIN users u ON cs.student_id = u.id
