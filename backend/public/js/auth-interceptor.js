@@ -59,6 +59,16 @@
         }
 
         try {
+            // Check if using temporary token (for password change)
+            const tempToken = localStorage.getItem('temp_token');
+            if (tempToken && url.includes('/api/auth/change-password')) {
+                options.headers = {
+                    ...options.headers,
+                    'Authorization': `Bearer ${tempToken}`
+                };
+                return originalFetch(url, options);
+            }
+
             // Add access token to request if available
             const accessToken = localStorage.getItem('access_token');
             if (accessToken) {
@@ -114,9 +124,11 @@
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
                     localStorage.removeItem('user');
+                    localStorage.removeItem('temp_token');
 
-                    // Only redirect if not already on login page
-                    if (!window.location.pathname.includes('/login')) {
+                    // Only redirect if not already on login or change-password page
+                    if (!window.location.pathname.includes('/login') && 
+                        !window.location.pathname.includes('/change-password')) {
                         console.log('Redirecting to login page...');
                         window.location.href = '/login';
                     }

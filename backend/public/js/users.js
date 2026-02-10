@@ -140,6 +140,12 @@
                         <td class="text-secondary">${lastLogin}</td>
                         <td>
                             <div class="action-buttons">
+                                <button class="btn-icon" onclick="UsersManager.resetPassword(${user.id}, '${user.first_name} ${user.last_name}')" title="Reset Password">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </button>
                                 <button class="btn-icon" onclick="UsersManager.editUser(${user.id})" title="Edit">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -584,6 +590,102 @@
                 console.error('Delete user error:', error);
                 alert('Failed to delete user');
             }
+        },
+
+        // Reset user password
+        resetPassword: async function(userId, userName) {
+            if (!confirm(window.ZedlyI18n.translate('users.confirmResetPassword', { name: userName }))) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const otp = data.tempPassword;
+
+                    // Show OTP modal
+                    this.showOTPModal(userName, otp);
+
+                    // Create notification
+                    if (window.ZedlyNotifications) {
+                        window.ZedlyNotifications.add({
+                            type: 'password_reset',
+                            title: window.ZedlyI18n.translate('notifications.passwordReset'),
+                            message: window.ZedlyI18n.translate('notifications.passwordResetFor', { name: userName }),
+                            time: new Date().toISOString()
+                        });
+                    }
+                } else {
+                    alert(window.ZedlyI18n.translate('users.resetPasswordFailed'));
+                }
+            } catch (error) {
+                console.error('Reset password error:', error);
+                alert(window.ZedlyI18n.translate('users.resetPasswordFailed'));
+            }
+        },
+
+        // Show OTP modal
+        showOTPModal: function(userName, otp) {
+            const modalHTML = `
+                <div class="modal-overlay" id="otpModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>${window.ZedlyI18n.translate('users.tempPassword')}</h3>
+                            <button class="modal-close" onclick="UsersManager.closeOTPModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>${window.ZedlyI18n.translate('users.tempPasswordFor', { name: userName })}</p>
+                            <div class="otp-display">
+                                <div class="otp-code" id="otpCode">${otp}</div>
+                                <button class="btn btn-primary" onclick="UsersManager.copyOTP('${otp}')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                    ${window.ZedlyI18n.translate('users.copyPassword')}
+                                </button>
+                            </div>
+                            <p class="warning-text">${window.ZedlyI18n.translate('users.userMustChangePassword')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        },
+
+        // Close OTP modal
+        closeOTPModal: function() {
+            const modal = document.getElementById('otpModal');
+            if (modal) {
+                modal.remove();
+            }
+        },
+
+        // Copy OTP to clipboard
+        copyOTP: function(otp) {
+            navigator.clipboard.writeText(otp).then(() => {
+                alert(window.ZedlyI18n.translate('users.passwordCopied'));
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = otp;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(window.ZedlyI18n.translate('users.passwordCopied'));
+            });
         },
 
         // Teacher-specific functions

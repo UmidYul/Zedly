@@ -67,6 +67,21 @@
                 console.log('Login response data:', data);
 
                 if (response.ok) {
+                    // Check if user must change password
+                    if (data.must_change_password) {
+                        console.log('⚠️ User must change password');
+                        
+                        // Store temporary token
+                        localStorage.setItem('temp_token', data.temp_token);
+                        
+                        // Store basic user info
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        
+                        // Redirect to change password page
+                        window.location.href = '/change-password.html';
+                        return;
+                    }
+
                     console.log('✅ Login successful');
                     console.log('Access token:', data.access_token ? 'received' : 'missing');
                     console.log('Refresh token:', data.refresh_token ? 'received' : 'missing');

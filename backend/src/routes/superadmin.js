@@ -522,6 +522,138 @@ router.post('/schools/:schoolId/admins', async (req, res) => {
 });
 
 /**
+ * DELETE /api/superadmin/schools/:schoolId/admins/:id
+ * Delete (deactivate) a school administrator
+ */
+router.delete('/schools/:schoolId/admins/:id', async (req, res) => {
+    try {
+        const { schoolId, id } = req.params;
+
+        // Check if admin exists in the school
+        const existingAdmin = await query(
+            'SELECT id, username FROM users WHERE id = $1 AND school_id = $2 AND role = $3',
+            [id, schoolId, 'school_admin']
+        );
+
+        if (existingAdmin.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'School administrator not found'
+            });
+        }
+
+        // Soft delete
+        await query(
+            'UPDATE users SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+            [id]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'delete',
+                'user',
+                id,
+                { username: existingAdmin.rows[0].username, role: 'school_admin' }
+            ]
+        );
+
+        res.json({
+            message: 'School administrator deactivated successfully'
+        });
+    } catch (error) {
+        console.error('Delete school admin error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to delete school administrator'
+        });
+    }
+});
+
+/**
+ * POST /api/superadmin/schools/:schoolId/admins/:id/reset-password
+ * Reset password for a school administrator
+ */
+router.post('/schools/:schoolId/admins/:id/reset-password', async (req, res) => {
+    try {
+        const { schoolId, id } = req.params;
+
+        // Check if admin exists in the school
+        const existingAdmin = await query(
+            'SELECT id, username, first_name, last_name, email FROM users WHERE id = $1 AND school_id = $2 AND role = $3',
+            [id, schoolId, 'school_admin']
+        );
+
+        if (existingAdmin.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'School administrator not found'
+            });
+        }
+
+        const admin = existingAdmin.rows[0];
+
+        // Generate 8-character OTP (excluding similar looking characters)
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        let otp = '';
+        for (let i = 0; i < 8; i++) {
+            otp += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        // Hash the OTP
+        const bcrypt = require('bcrypt');
+        const hashedPassword = await bcrypt.hash(otp, 10);
+
+        // Update admin password and set must_change_password flag
+        await query(
+            `UPDATE users 
+             SET password_hash = $1, 
+                 must_change_password = true, 
+                 is_otp = true,
+                 updated_at = CURRENT_TIMESTAMP 
+             WHERE id = $2`,
+            [hashedPassword, id]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'reset_password',
+                'user',
+                id,
+                { 
+                    username: admin.username,
+                    role: 'school_admin',
+                    reset_by: req.user.username
+                }
+            ]
+        );
+
+        res.json({
+            message: 'Password reset successfully',
+            tempPassword: otp,
+            admin: {
+                id: admin.id,
+                username: admin.username,
+                name: `${admin.first_name} ${admin.last_name}`
+            }
+        });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to reset password'
+        });
+    }
+});
+
+/**
  * GET /api/superadmin/dashboard/stats
  * Get dashboard statistics for superadmin
  */

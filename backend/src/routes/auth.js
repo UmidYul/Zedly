@@ -51,7 +51,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
         // Find user
         const result = await query(
-            `SELECT id, username, password_hash, role, school_id, is_active, first_name, last_name
+            `SELECT id, username, password_hash, role, school_id, is_active, first_name, last_name, must_change_password
              FROM users
              WHERE username = $1`,
             [username]
@@ -81,6 +81,29 @@ router.post('/login', loginLimiter, async (req, res) => {
             return res.status(401).json({
                 error: 'invalid_credentials',
                 message: 'Invalid username or password'
+            });
+        }
+
+        // Check if user must change password
+        if (user.must_change_password) {
+            // Generate a temporary token for password change only
+            const tempToken = generateAccessToken({
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                school_id: user.school_id,
+                temp: true
+            });
+
+            return res.status(200).json({
+                must_change_password: true,
+                temp_token: tempToken,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    role: user.role,
+                    full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                }
             });
         }
 
@@ -222,6 +245,125 @@ router.post('/logout', authenticate, async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'An error occurred during logout'
+        });
+    }
+});
+
+/**
+ * POST /api/auth/change-password
+ * Change password (for users with must_change_password flag)
+ */
+router.post('/change-password', authenticate, async (req, res) => {
+    try {
+        const { old_password, new_password } = req.body;
+
+        // Validation
+        if (!old_password || !new_password) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Old password and new password are required'
+            });
+        }
+
+        if (new_password.length < 8) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'New password must be at least 8 characters'
+            });
+        }
+
+        // Password strength validation
+        const hasUpperCase = /[A-Z]/.test(new_password);
+        const hasLowerCase = /[a-z]/.test(new_password);
+        const hasNumber = /[0-9]/.test(new_password);
+
+        if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+            });
+        }
+
+        // Get user's current password
+        const result = await query(
+            'SELECT id, password_hash, must_change_password FROM users WHERE id = $1',
+            [req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: 'user_not_found',
+                message: 'User not found'
+            });
+        }
+
+        const user = result.rows[0];
+
+        // Verify old password
+        const passwordMatch = await bcrypt.compare(old_password, user.password_hash);
+
+        if (!passwordMatch) {
+            return res.status(401).json({
+                error: 'invalid_password',
+                message: 'Current password is incorrect'
+            });
+        }
+
+        // Check if new password is same as old
+        const samePassword = await bcrypt.compare(new_password, user.password_hash);
+
+        if (samePassword) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'New password must be different from current password'
+            });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(new_password, 10);
+
+        // Update password and remove must_change_password flag
+        await query(
+            `UPDATE users 
+             SET password_hash = $1, 
+                 must_change_password = false, 
+                 is_otp = false,
+                 updated_at = CURRENT_TIMESTAMP 
+             WHERE id = $2`,
+            [hashedPassword, req.user.id]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'change_password',
+                'user',
+                req.user.id,
+                { changed_by: 'self' }
+            ]
+        );
+
+        // Generate new tokens
+        const tokens = generateTokens({
+            id: user.id,
+            username: req.user.username,
+            role: req.user.role,
+            school_id: req.user.school_id
+        });
+
+        res.json({
+            message: 'Password changed successfully',
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token
+        });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to change password'
         });
     }
 });

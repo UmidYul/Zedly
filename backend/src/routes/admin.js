@@ -421,6 +421,85 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
 });
 
 /**
+ * POST /api/admin/users/:id/reset-password
+ * Reset user password and generate temporary OTP
+ */
+router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const schoolId = req.user.school_id;
+
+        // Check if user exists in same school
+        const existingUser = await query(
+            'SELECT id, username, first_name, last_name, email FROM users WHERE id = $1 AND school_id = $2',
+            [id, schoolId]
+        );
+
+        if (existingUser.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'User not found'
+            });
+        }
+
+        const user = existingUser.rows[0];
+
+        // Generate 8-character OTP (excluding similar looking characters)
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        let otp = '';
+        for (let i = 0; i < 8; i++) {
+            otp += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        // Hash the OTP
+        const hashedPassword = await bcrypt.hash(otp, 10);
+
+        // Update user password and set must_change_password flag
+        await query(
+            `UPDATE users 
+             SET password_hash = $1, 
+                 must_change_password = true, 
+                 is_otp = true,
+                 updated_at = CURRENT_TIMESTAMP 
+             WHERE id = $2`,
+            [hashedPassword, id]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'reset_password',
+                'user',
+                id,
+                { 
+                    username: user.username,
+                    reset_by: req.user.username
+                }
+            ]
+        );
+
+        res.json({
+            message: 'Password reset successfully',
+            tempPassword: otp,
+            user: {
+                id: user.id,
+                username: user.username,
+                name: `${user.first_name} ${user.last_name}`
+            }
+        });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to reset password'
+        });
+    }
+});
+
+/**
  * ========================================
  * CLASSES MANAGEMENT
  * ========================================
