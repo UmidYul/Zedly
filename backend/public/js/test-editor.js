@@ -20,6 +20,7 @@
         questions: [],
         subjects: [],
         editingQuestionIndex: -1,
+        dragSourceIndex: null,
 
         // Open editor for new or existing test
         open: async function (testId = null) {
@@ -160,6 +161,8 @@
                     this.close();
                 }
             });
+
+            this.initDragAndDrop();
         },
 
         // Render questions list
@@ -173,8 +176,18 @@
             }
 
             return this.questions.map((q, index) => `
-                <div class="question-item" data-index="${index}">
+                <div class="question-item" data-index="${index}" draggable="true">
                     <div class="question-header">
+                        <div class="drag-handle" title="Drag to reorder">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="10" y1="6" x2="21" y2="6"></line>
+                                <line x1="10" y1="12" x2="21" y2="12"></line>
+                                <line x1="10" y1="18" x2="21" y2="18"></line>
+                                <circle cx="4" cy="6" r="1"></circle>
+                                <circle cx="4" cy="12" r="1"></circle>
+                                <circle cx="4" cy="18" r="1"></circle>
+                            </svg>
+                        </div>
                         <div class="question-number">Q${index + 1}</div>
                         <div class="question-type-badge">${Object.values(QUESTION_TYPES).find(t => t.id === q.question_type)?.name || q.question_type}</div>
                         <div class="question-marks">${q.marks || 1} mark${q.marks > 1 ? 's' : ''}</div>
@@ -893,6 +906,73 @@
             if (header && header.textContent.includes('Questions')) {
                 header.textContent = `Questions (${this.questions.length})`;
             }
+
+            this.initDragAndDrop();
+        },
+
+        initDragAndDrop: function () {
+            const container = document.getElementById('questionsList');
+            if (!container) return;
+
+            const items = Array.from(container.querySelectorAll('.question-item'));
+            items.forEach(item => {
+                item.addEventListener('dragstart', (event) => {
+                    if (!event.target.closest('.drag-handle')) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    this.dragSourceIndex = parseInt(item.dataset.index, 10);
+                    item.classList.add('dragging');
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', item.dataset.index);
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    this.clearDragOver();
+                    this.dragSourceIndex = null;
+                });
+
+                item.addEventListener('dragover', (event) => {
+                    event.preventDefault();
+                    this.setDragOver(item);
+                });
+
+                item.addEventListener('dragleave', (event) => {
+                    if (!item.contains(event.relatedTarget)) {
+                        item.classList.remove('drag-over');
+                    }
+                });
+
+                item.addEventListener('drop', (event) => {
+                    event.preventDefault();
+                    const targetIndex = parseInt(item.dataset.index, 10);
+                    const sourceIndex = this.dragSourceIndex;
+
+                    if (Number.isNaN(targetIndex) || sourceIndex === null || sourceIndex === targetIndex) {
+                        this.clearDragOver();
+                        return;
+                    }
+
+                    const moved = this.questions.splice(sourceIndex, 1)[0];
+                    const insertIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+                    this.questions.splice(insertIndex, 0, moved);
+                    this.updateQuestionsList();
+                    this.clearDragOver();
+                });
+            });
+        },
+
+        setDragOver: function (item) {
+            this.clearDragOver();
+            item.classList.add('drag-over');
+        },
+
+        clearDragOver: function () {
+            document.querySelectorAll('.question-item.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
         },
 
         // Save as draft
