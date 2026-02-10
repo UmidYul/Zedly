@@ -125,8 +125,15 @@ try {
     console.error(error.stack);
 }
 
-// Student routes (will be added later)
-// app.use('/api/student', require('./routes/student'));
+// Student routes
+try {
+    const studentRouter = require('./routes/student');
+    app.use('/api/student', studentRouter);
+    console.log('✓ Student routes loaded: /api/student');
+} catch (error) {
+    console.error('❌ Failed to load student routes:', error.message);
+    console.error(error.stack);
+}
 
 // ==============================================
 // Serve Static Files (AFTER API routes!)

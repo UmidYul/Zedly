@@ -84,7 +84,7 @@
                 section: 'dashboard.nav.main',
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
-                    { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'myTests', href: '#tests' },
+                    { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'star', label: 'dashboard.nav.results', id: 'results', href: '#results' }
                 ]
             },
@@ -280,7 +280,10 @@
             'users': { src: '/js/users.js', manager: 'UsersManager' },
             'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
             'subjects': { src: '/js/subjects.js', manager: 'SubjectsManager' },
-            'tests': { src: '/js/tests.js', manager: 'TestsManager' },
+            'tests': {
+                src: currentUser && currentUser.role === 'student' ? '/js/student-tests.js' : '/js/tests.js',
+                manager: currentUser && currentUser.role === 'student' ? 'StudentTestsManager' : 'TestsManager'
+            },
             'assignments': { src: '/js/assignments.js', manager: 'AssignmentsManager' }
         };
 
@@ -457,40 +460,52 @@
             `;
         }
 
-        // Tests Management (Teacher)
+        // Tests Management (Teacher/Student)
         if (page === 'tests') {
-            return `
-                <div class="page-toolbar">
-                    <div class="search-box">
-                        <input
-                            type="text"
-                            id="testsSearch"
-                            class="search-input"
-                            placeholder="Search tests..."
-                        />
+            if (role === 'student') {
+                return `
+                    <div class="page-tabs">
+                        <div class="tabs">
+                            <button class="tab active" data-tab="available">Available Tests</button>
+                            <button class="tab" data-tab="completed">Completed Tests</button>
+                        </div>
                     </div>
-                    <div class="toolbar-filters">
-                        <select id="subjectFilter" class="filter-select">
-                            <option value="all">All Subjects</option>
-                        </select>
-                        <select id="statusFilter" class="filter-select">
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="draft">Drafts</option>
-                        </select>
+                    <div id="testsContainer"></div>
+                `;
+            } else {
+                return `
+                    <div class="page-toolbar">
+                        <div class="search-box">
+                            <input
+                                type="text"
+                                id="testsSearch"
+                                class="search-input"
+                                placeholder="Search tests..."
+                            />
+                        </div>
+                        <div class="toolbar-filters">
+                            <select id="subjectFilter" class="filter-select">
+                                <option value="all">All Subjects</option>
+                            </select>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="all">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="draft">Drafts</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn btn-primary" id="addTestBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Create Test
+                            </button>
+                        </div>
                     </div>
-                    <div class="toolbar-right">
-                        <button class="btn btn-primary" id="addTestBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Create Test
-                        </button>
-                    </div>
-                </div>
-                <div id="testsContainer"></div>
-            `;
+                    <div id="testsContainer"></div>
+                `;
+            }
         }
 
         // Test Assignments Management (Teacher)
