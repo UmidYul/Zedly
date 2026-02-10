@@ -21,16 +21,14 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="user-menu" id="userMenu">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <div class="user-info">
-                        <div class="user-name" id="userName">Loading...</div>
-                        <div class="user-role" id="userRole">...</div>
-                    </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 12 15 18 9"></polyline>
+                <button class="sidebar-logout-btn" id="logoutBtn" title="Выйти">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
                     </svg>
-                </div>
+                    <span>Выйти</span>
+                </button>
             </div>
         </aside>
 
@@ -84,10 +82,6 @@
                             </svg>
                         </button>
                     </div>
-
-                    <button class="btn btn-outline btn-sm" id="logoutBtn" data-i18n="dashboard.logout">
-                        Выйти
-                    </button>
                 </div>
             </header>
 
