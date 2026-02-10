@@ -238,8 +238,17 @@
 
         // Show test editor (create/edit)
         showTestEditor: function (testId = null) {
-            alert('Test editor coming soon! This will open a modal with test constructor.');
-            // TODO: Implement full test editor modal
+            // Load test editor script if not already loaded
+            if (typeof TestEditor === 'undefined') {
+                const script = document.createElement('script');
+                script.src = '/js/test-editor.js';
+                script.onload = () => {
+                    TestEditor.open(testId);
+                };
+                document.head.appendChild(script);
+            } else {
+                TestEditor.open(testId);
+            }
         },
 
         // View test details
