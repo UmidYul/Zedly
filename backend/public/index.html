@@ -1,224 +1,181 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ZEDLY - Образовательная платформа для мониторинга прогресса учеников">
-    <title>ZEDLY - Образовательная платформа</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZEDLY — Платформа обучения</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/landing.css">
 </head>
-
-<body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <img src="/images/logo.svg" alt="ZEDLY" class="logo-img">
-                    <span class="logo-text">ZEDLY</span>
-                </div>
-                <nav class="nav">
-                    <div class="lang-switch">
-                        <button class="lang-btn active" data-lang="ru">RU</button>
-                        <button class="lang-btn" data-lang="uz">UZ</button>
-                    </div>
-                    <button class="theme-toggle" id="themeToggle">
-                        <svg class="theme-icon" width="20" height="20" viewBox="0 0 20 20">
-                            <path class="sun"
-                                d="M10 2v2m0 12v2M4.22 4.22l1.42 1.42m8.72 8.72l1.42 1.42M2 10h2m12 0h2M4.22 15.78l1.42-1.42m8.72-8.72l1.42-1.42M10 5.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z" />
-                            <path class="moon"
-                                d="M10 2c1.34 0 2.62.26 3.77.74A6 6 0 017.5 14a6 6 0 01-5.26-6.49A8 8 0 0010 2z" />
-                        </svg>
-                    </button>
-                    <a href="/login" class="btn btn-primary" data-i18n="login">Войти</a>
-                </nav>
-            </div>
+<body class="landing-page">
+    <header class="landing-nav">
+        <div class="landing-brand">
+            <div class="landing-logo">Z</div>
+            <span>ZEDLY</span>
         </div>
+        <nav class="landing-actions">
+            <a class="landing-link" href="/login" data-i18n="loginLink">Вход</a>
+            <a class="landing-btn" href="/login" data-i18n="signupLink">Зарегистрироваться</a>
+            <span class="landing-separator">|</span>
+            <button class="landing-lang-btn" id="landingLangBtn">RU</button>
+        </nav>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="hero-title" data-i18n="hero.title">
-                    Современная образовательная платформа для школ Узбекистана
-                </h1>
-                <p class="hero-desc" data-i18n="hero.description">
-                    Мониторинг прогресса учеников, создание тестов, аналитика и профориентация в одной платформе
+    <main>
+        <section class="landing-hero">
+            <div class="landing-hero-content">
+                <span class="landing-pill" data-i18n="pill">Новая образовательная платформа</span>
+                <h1 data-i18n="heroTitle">Обучение, которое растёт вместе с вами</h1>
+                <p>
+                    <span data-i18n="heroBodyLine1">ZEDLY — это единая среда для учеников, учителей и администраторов.</span>
+                    <span data-i18n="heroBodyLine2">Тесты, аналитика и управление учебным процессом в одном месте.</span>
                 </p>
-                <div class="hero-buttons">
-                    <a href="/login" class="btn btn-primary btn-large" data-i18n="hero.getStarted">
-                        Начать работу
-                    </a>
-                    <a href="#features" class="btn btn-outline btn-large" data-i18n="hero.learnMore">
-                        Узнать больше
-                    </a>
+                <div class="landing-cta">
+                    <a class="landing-btn landing-btn-primary" href="/login" data-i18n="ctaPrimary">Начать сейчас</a>
+                    <a class="landing-btn landing-btn-outline" href="#features" data-i18n="ctaSecondary">Подробнее</a>
                 </div>
             </div>
-            <div class="hero-image">
-                <img src="/images/hero-illustration.svg" alt="ZEDLY Platform">
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="features">
-        <div class="container">
-            <h2 class="section-title" data-i18n="features.title">Возможности платформы</h2>
-
-            <div class="features-grid">
-                <!-- For Students -->
-                <div class="feature-card">
-                    <div class="feature-icon student">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 11a4 4 0 100-8 4 4 0 000 8z" />
-                        </svg>
-                    </div>
-                    <h3 class="feature-title" data-i18n="features.students.title">Для учеников</h3>
-                    <ul class="feature-list">
-                        <li data-i18n="features.students.item1">Прохождение тестов и контрольных работ</li>
-                        <li data-i18n="features.students.item2">Тест на профориентацию</li>
-                        <li data-i18n="features.students.item3">Таблица лидеров и рейтинги</li>
-                        <li data-i18n="features.students.item4">Отслеживание прогресса</li>
-                    </ul>
+            <div class="landing-hero-card">
+                <div class="landing-metric">
+                    <span class="landing-metric-title" data-i18n="metric1Title">Успеваемость</span>
+                    <strong>+28%</strong>
+                    <small data-i18n="metric1Note">рост за семестр</small>
                 </div>
-
-                <!-- For Teachers -->
-                <div class="feature-card">
-                    <div class="feature-icon teacher">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path
-                                d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                        </svg>
-                    </div>
-                    <h3 class="feature-title" data-i18n="features.teachers.title">Для учителей</h3>
-                    <ul class="feature-list">
-                        <li data-i18n="features.teachers.item1">Конструктор тестов (9 типов вопросов)</li>
-                        <li data-i18n="features.teachers.item2">Аналитика по классам и ученикам</li>
-                        <li data-i18n="features.teachers.item3">Визуализация результатов</li>
-                        <li data-i18n="features.teachers.item4">Массовое назначение тестов</li>
-                    </ul>
+                <div class="landing-metric">
+                    <span class="landing-metric-title" data-i18n="metric2Title">Активные классы</span>
+                    <strong>120+</strong>
+                    <small data-i18n="metric2Note">в одной системе</small>
                 </div>
-
-                <!-- For Admins -->
-                <div class="feature-card">
-                    <div class="feature-icon admin">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                        </svg>
-                    </div>
-                    <h3 class="feature-title" data-i18n="features.admins.title">Для администраторов</h3>
-                    <ul class="feature-list">
-                        <li data-i18n="features.admins.item1">Управление пользователями и классами</li>
-                        <li data-i18n="features.admins.item2">Импорт данных из Excel</li>
-                        <li data-i18n="features.admins.item3">Статистика по школе</li>
-                        <li data-i18n="features.admins.item4">Audit-логи и безопасность</li>
-                    </ul>
-                </div>
-
-                <!-- Analytics -->
-                <div class="feature-card">
-                    <div class="feature-icon analytics">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M18 20V10M12 20V4M6 20v-6" />
-                        </svg>
-                    </div>
-                    <h3 class="feature-title" data-i18n="features.analytics.title">Аналитика</h3>
-                    <ul class="feature-list">
-                        <li data-i18n="features.analytics.item1">Графики и диаграммы</li>
-                        <li data-i18n="features.analytics.item2">Heatmap успеваемости</li>
-                        <li data-i18n="features.analytics.item3">Автоматические отчеты</li>
-                        <li data-i18n="features.analytics.item4">Экспорт в Excel</li>
-                    </ul>
+                <div class="landing-metric">
+                    <span class="landing-metric-title" data-i18n="metric3Title">Тесты</span>
+                    <strong>4 500</strong>
+                    <small data-i18n="metric3Note">создано учителями</small>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Stats Section -->
-    <section class="stats">
-        <div class="container">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number">9</div>
-                    <div class="stat-label" data-i18n="stats.questionTypes">Типов вопросов</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">4</div>
-                    <div class="stat-label" data-i18n="stats.roles">Роли пользователей</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">2</div>
-                    <div class="stat-label" data-i18n="stats.languages">Языка интерфейса</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">24/7</div>
-                    <div class="stat-label" data-i18n="stats.available">Доступность</div>
-                </div>
+        <section id="features" class="landing-section">
+            <h2 data-i18n="featuresTitle">Почему ZEDLY</h2>
+            <div class="landing-grid">
+                <article class="landing-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h3 data-i18n="feature1Title">Аналитика в реальном времени</h3>
+                    <p data-i18n="feature1Body">Отслеживайте прогресс, вовлечённость и результаты по каждому классу.</p>
+                </article>
+                <article class="landing-card">
+                    <i class="fas fa-layer-group"></i>
+                    <h3 data-i18n="feature2Title">Модули и контрольные</h3>
+                    <p data-i18n="feature2Body">Готовые и настраиваемые модули для предметов и контрольных работ.</p>
+                </article>
+                <article class="landing-card">
+                    <i class="fas fa-users"></i>
+                    <h3 data-i18n="feature3Title">Единая экосистема</h3>
+                    <p data-i18n="feature3Body">Ученики, учителя и администраторы работают в одном пространстве.</p>
+                </article>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- CTA Section -->
-    <section class="cta">
-        <div class="container">
-            <div class="cta-content">
-                <h2 class="cta-title" data-i18n="cta.title">Готовы начать?</h2>
-                <p class="cta-desc" data-i18n="cta.description">
-                    Присоединяйтесь к современной образовательной платформе
-                </p>
-                <a href="/login" class="btn btn-primary btn-large" data-i18n="cta.button">
-                    Войти в систему
-                </a>
+        <section class="landing-section landing-highlight">
+            <div>
+                <h2 data-i18n="highlightTitle">Готовы начать?</h2>
+                <p data-i18n="highlightBody">Нажмите «Зарегистрироваться» и перейдите на страницу входа.</p>
             </div>
-        </div>
-    </section>
+            <a class="landing-btn landing-btn-primary" href="/login" data-i18n="highlightCta">Зарегистрироваться</a>
+        </section>
+    </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-brand">
-                    <div class="logo">
-                        <img src="/images/logo.svg" alt="ZEDLY" class="logo-img">
-                        <span class="logo-text">ZEDLY</span>
-                    </div>
-                    <p class="footer-desc" data-i18n="footer.description">
-                        Образовательная платформа для Узбекистана
-                    </p>
-                </div>
-                <div class="footer-links">
-                    <div class="footer-col">
-                        <h4 data-i18n="footer.product">Продукт</h4>
-                        <ul>
-                            <li><a href="#features" data-i18n="footer.features">Возможности</a></li>
-                            <li><a href="/login" data-i18n="footer.login">Вход</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-col">
-                        <h4 data-i18n="footer.support">Поддержка</h4>
-                        <ul>
-                            <li><a href="mailto:support@zedly.uz">support@zedly.uz</a></li>
-                            <li><a href="tel:+998901234567">+998 90 123 45 67</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 ZEDLY. <span data-i18n="footer.rights">Все права защищены</span>.</p>
-            </div>
-        </div>
+    <footer class="landing-footer">
+        <span data-i18n="footer">© 2026 ZEDLY. Все права защищены.</span>
+        <a href="/login" data-i18n="footerLink">Перейти к входу</a>
     </footer>
-
+    
     <script src="/js/i18n.js"></script>
-    <script src="/js/theme.js"></script>
-    <script src="/js/main.js"></script>
-</body>
+    <script>
+        // Landing page specific translations
+        const landingTranslations = {
+            ru: {
+                pill: 'Новая образовательная платформа',
+                heroTitle: 'Обучение, которое растёт вместе с вами',
+                heroBodyLine1: 'ZEDLY — это единая среда для учеников, учителей и администраторов.',
+                heroBodyLine2: 'Тесты, аналитика и управление учебным процессом в одном месте.',
+                ctaPrimary: 'Начать сейчас',
+                ctaSecondary: 'Подробнее',
+                metric1Title: 'Успеваемость',
+                metric1Note: 'рост за семестр',
+                metric2Title: 'Активные классы',
+                metric2Note: 'в одной системе',
+                metric3Title: 'Тесты',
+                metric3Note: 'создано учителями',
+                featuresTitle: 'Почему ZEDLY',
+                feature1Title: 'Аналитика в реальном времени',
+                feature1Body: 'Отслеживайте прогресс, вовлечённость и результаты по каждому классу.',
+                feature2Title: 'Модули и контрольные',
+                feature2Body: 'Готовые и настраиваемые модули для предметов и контрольных работ.',
+                feature3Title: 'Единая экосистема',
+                feature3Body: 'Ученики, учителя и администраторы работают в одном пространстве.',
+                highlightTitle: 'Готовы начать?',
+                highlightBody: 'Нажмите «Зарегистрироваться» и перейдите на страницу входа.',
+                highlightCta: 'Зарегистрироваться',
+                footer: '© 2026 ZEDLY. Все права защищены.',
+                footerLink: 'Перейти к входу',
+                loginLink: 'Вход',
+                signupLink: 'Зарегистрироваться'
+            },
+            uz: {
+                pill: 'Yangi ta\'lim platformasi',
+                heroTitle: 'Ta\'lim siz bilan birga o\'sadi',
+                heroBodyLine1: 'ZEDLY — o\'quvchilar, o\'qituvchilar va administratorlar uchun yagona muhit.',
+                heroBodyLine2: 'Testlar, analitika va ta\'lim jarayonini boshqarish bir joyda.',
+                ctaPrimary: 'Boshlash',
+                ctaSecondary: 'Batafsil',
+                metric1Title: 'Natijadorlik',
+                metric1Note: 'semestr bo\'yicha o\'sish',
+                metric2Title: 'Faol sinflar',
+                metric2Note: 'bitta tizimda',
+                metric3Title: 'Testlar',
+                metric3Note: 'o\'qituvchilar yaratgan',
+                featuresTitle: 'Nega ZEDLY',
+                feature1Title: 'Real vaqt analitikasi',
+                feature1Body: 'Har bir sinf bo\'yicha progress va natijalarni kuzating.',
+                feature2Title: 'Modullar va nazoratlar',
+                feature2Body: 'Fanlar va nazoratlar uchun tayyor va moslanuvchi modullar.',
+                feature3Title: 'Yagona ekotizim',
+                feature3Body: 'O\'quvchi, o\'qituvchi va administrator bir makonda ishlaydi.',
+                highlightTitle: 'Boshlashga tayyormisiz?',
+                highlightBody: '"Ro\'yxatdan o\'tish" tugmasini bosing va kirish sahifasiga o\'ting.',
+                highlightCta: 'Ro\'yxatdan o\'tish',
+                footer: '© 2026 ZEDLY. Barcha huquqlar himoyalangan.',
+                footerLink: 'Kirish sahifasiga o\'tish',
+                loginLink: 'Kirish',
+                signupLink: 'Ro\'yxatdan o\'tish'
+            }
+        };
 
+        const landingLangBtn = document.getElementById('landingLangBtn');
+        const landingLoginLink = document.querySelector('.landing-actions .landing-link');
+        const landingSignupLink = document.querySelector('.landing-actions .landing-btn');
+
+        const applyLandingLang = (lang) => {
+            const dict = landingTranslations[lang];
+            if (!dict) return;
+            document.querySelectorAll('[data-i18n]').forEach((el) => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) el.textContent = dict[key];
+            });
+            if (landingLoginLink) landingLoginLink.textContent = dict.loginLink;
+            if (landingSignupLink) landingSignupLink.textContent = dict.signupLink;
+            landingLangBtn.textContent = lang.toUpperCase();
+            localStorage.setItem('landing-lang', lang);
+        };
+
+        const savedLandingLang = localStorage.getItem('landing-lang') || 'ru';
+        applyLandingLang(savedLandingLang);
+
+        landingLangBtn.addEventListener('click', () => {
+            const nextLang = landingLangBtn.textContent.toLowerCase() === 'ru' ? 'uz' : 'ru';
+            applyLandingLang(nextLang);
+        });
+    </script>
+</body>
 </html>
