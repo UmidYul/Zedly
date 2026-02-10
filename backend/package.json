@@ -1,0 +1,57 @@
+{
+  "name": "zedly-backend",
+  "version": "1.0.0",
+  "description": "ZEDLY Educational Platform - Backend API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed.js",
+    "db:backup": "node scripts/backup.js",
+    "test": "jest --coverage",
+    "lint": "eslint src/**/*.js",
+    "cron:reports": "node src/jobs/reports.js",
+    "cron:backups": "node src/jobs/backups.js"
+  },
+  "keywords": [
+    "education",
+    "testing",
+    "school",
+    "uzbekistan"
+  ],
+  "author": "ZEDLY Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
+    "multer": "^1.4.5-lts.1",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0",
+    "winston": "^3.11.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.7",
+    "node-telegram-bot-api": "^0.64.0",
+    "xlsx": "^0.18.5",
+    "uuid": "^9.0.1",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "eslint": "^8.56.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}
