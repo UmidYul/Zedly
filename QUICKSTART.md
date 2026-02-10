@@ -26,6 +26,7 @@ chmod +x reset_db.sh
 psql -U postgres -d zedly -f seed_safe.sql
 ```
 
+
 ### Вариант 2: Вручную
 
 ```bash
