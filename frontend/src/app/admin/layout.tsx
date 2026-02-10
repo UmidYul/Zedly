@@ -17,10 +17,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, clearAuth } = useAuthStore();
 
   // TEMPORARY: Auth check disabled for UI preview
-  if (!user || user.role !== UserRole.ADMIN) {
-    router.push('/login');
-    return null;
-  }
+  // if (!user || user.role !== UserRole.ADMIN) {
+  //   router.push('/login');
+  //   return null;
+  // }
 
   // Mock user for preview
   const mockUser = user || { username: 'admin', email: 'admin@example.com', role: UserRole.ADMIN };
