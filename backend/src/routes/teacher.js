@@ -562,6 +562,104 @@ router.get('/classes/:id', async (req, res) => {
 });
 
 /**
+ * GET /api/teacher/classes/:id/analytics
+ * Get analytics overview for a class
+ */
+router.get('/classes/:id/analytics', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+
+        // Verify teacher has access to this class
+        const accessCheck = await query(
+            `SELECT 1 FROM classes c
+             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             WHERE c.id = $1
+               AND c.school_id = $2
+               AND (c.homeroom_teacher_id = $3 OR tcs.teacher_id = $3)
+             LIMIT 1`,
+            [id, schoolId, teacherId]
+        );
+
+        if (accessCheck.rows.length === 0) {
+            return res.status(403).json({
+                error: 'forbidden',
+                message: 'You do not have access to this class'
+            });
+        }
+
+        const classResult = await query(
+            `SELECT id, name, grade_level, academic_year
+             FROM classes
+             WHERE id = $1`,
+            [id]
+        );
+
+        const studentCountResult = await query(
+            `SELECT COUNT(*) as total_students
+             FROM class_students
+             WHERE class_id = $1 AND is_active = true`,
+            [id]
+        );
+
+        const statsResult = await query(
+            `SELECT
+                COUNT(DISTINCT ta.id) as assignments_total,
+                COUNT(DISTINCT ta.id) FILTER (WHERE ta.is_active = true AND ta.end_date > CURRENT_TIMESTAMP) as active_assignments,
+                COUNT(att.id) FILTER (WHERE att.is_completed = true) as completed_attempts,
+                AVG(att.percentage) FILTER (WHERE att.is_completed = true) as avg_percentage
+             FROM test_assignments ta
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id
+             WHERE ta.class_id = $1 AND ta.assigned_by = $2`,
+            [id, teacherId]
+        );
+
+        const assignmentsResult = await query(
+            `SELECT
+                ta.id,
+                ta.start_date,
+                ta.end_date,
+                ta.is_active,
+                ta.created_at,
+                t.title as test_title,
+                t.passing_score,
+                COUNT(att.id) as total_attempts,
+                COUNT(att.id) FILTER (WHERE att.is_completed = true) as completed_attempts,
+                AVG(att.percentage) FILTER (WHERE att.is_completed = true) as avg_percentage
+             FROM test_assignments ta
+             JOIN tests t ON ta.test_id = t.id
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id
+             WHERE ta.class_id = $1 AND ta.assigned_by = $2
+             GROUP BY ta.id, t.title, t.passing_score
+             ORDER BY ta.created_at DESC
+             LIMIT 20`,
+            [id, teacherId]
+        );
+
+        const statsRow = statsResult.rows[0] || {};
+
+        res.json({
+            class: classResult.rows[0],
+            stats: {
+                student_count: parseInt(studentCountResult.rows[0].total_students),
+                assignments_total: parseInt(statsRow.assignments_total || 0),
+                active_assignments: parseInt(statsRow.active_assignments || 0),
+                completed_attempts: parseInt(statsRow.completed_attempts || 0),
+                avg_percentage: statsRow.avg_percentage
+            },
+            assignments: assignmentsResult.rows
+        });
+    } catch (error) {
+        console.error('Get class analytics error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch class analytics'
+        });
+    }
+});
+
+/**
  * ========================================
  * TEST ASSIGNMENTS MANAGEMENT
  * ========================================

@@ -87,6 +87,7 @@
 - ✅ SchoolAdmin: User Management
 - ✅ SchoolAdmin: Classes & Subjects Management
 - ✅ Teacher: Test Constructor
+- ✅ Teacher: Class Analytics
 - ✅ Student: Available Tests
 
 ### 11. Конструктор тестов
@@ -102,7 +103,6 @@
 ## ⏳ В процессе / Планируется
 
 ### Dashboard Страницы
-- ⏳ Teacher: Class Analytics
 - ⏳ Student: My Results
 
 ### Конструктор тестов

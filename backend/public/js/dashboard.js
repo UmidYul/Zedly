@@ -292,6 +292,10 @@
             'users': { src: '/js/users.js', manager: 'UsersManager' },
             'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
             'subjects': { src: '/js/subjects.js', manager: 'SubjectsManager' },
+            'results': {
+                src: currentUser && currentUser.role === 'teacher' ? '/js/teacher-analytics.js' : null,
+                manager: 'TeacherAnalytics'
+            },
             'tests': {
                 src: currentUser && currentUser.role === 'student' ? '/js/student-tests.js' : '/js/tests.js',
                 manager: currentUser && currentUser.role === 'student' ? 'StudentTestsManager' : 'TestsManager'
@@ -300,7 +304,7 @@
         };
 
         const scriptInfo = scriptMap[page];
-        if (!scriptInfo) return;
+        if (!scriptInfo || !scriptInfo.src) return;
 
         // Check if script already loaded and manager exists
         if (window[scriptInfo.manager]) {
@@ -518,6 +522,30 @@
                     <div id="testsContainer"></div>
                 `;
             }
+        }
+
+        // Teacher Class Analytics
+        if (page === 'results' && role === 'teacher') {
+            return `
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <select id="classAnalyticsSelect" class="select-input" style="width: 100%;">
+                            <option value="">Select class...</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-outline" id="refreshAnalyticsBtn">Refresh</button>
+                    </div>
+                </div>
+                <div class="stats-grid" id="classAnalyticsStats"></div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Recent Assignments</h2>
+                    </div>
+                    <div id="classAnalyticsAssignments"></div>
+                </div>
+                <div class="dashboard-section" id="classAnalyticsNotes"></div>
+            `;
         }
 
         // Test Assignments Management (Teacher)
