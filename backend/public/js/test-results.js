@@ -207,32 +207,33 @@
         // Render answer based on question type
         renderQuestionAnswer: function (question, answer) {
             const studentAnswer = answer?.student_answer;
+            const isCorrect = answer?.is_correct ?? null;
 
             switch (question.question_type) {
                 case 'singlechoice':
                 case 'multiplechoice':
-                    return this.renderChoiceAnswer(question, studentAnswer, answer.is_correct);
+                    return this.renderChoiceAnswer(question, studentAnswer, isCorrect);
 
                 case 'truefalse':
-                    return this.renderTrueFalseAnswer(question, studentAnswer, answer.is_correct);
+                    return this.renderTrueFalseAnswer(question, studentAnswer, isCorrect);
 
                 case 'shortanswer':
-                    return this.renderShortAnswer(question, studentAnswer, answer.is_correct);
+                    return this.renderShortAnswer(question, studentAnswer, isCorrect);
 
                 case 'essay':
                     return this.renderEssayAnswer(studentAnswer);
 
                 case 'fillblanks':
-                    return this.renderFillBlanksAnswer(question, studentAnswer, answer.is_correct);
+                    return this.renderFillBlanksAnswer(question, studentAnswer, isCorrect);
 
                 case 'ordering':
-                    return this.renderOrderingAnswer(question, studentAnswer, answer.is_correct);
+                    return this.renderOrderingAnswer(question, studentAnswer, isCorrect);
 
                 case 'matching':
-                    return this.renderMatchingAnswer(question, studentAnswer, answer.is_correct);
+                    return this.renderMatchingAnswer(question, studentAnswer, isCorrect);
 
                 case 'imagebased':
-                    return this.renderChoiceAnswer(question, studentAnswer, answer.is_correct);
+                    return this.renderChoiceAnswer(question, studentAnswer, isCorrect);
 
                 default:
                     return '<p>Answer type not supported</p>';
