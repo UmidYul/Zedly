@@ -24,7 +24,7 @@ router.get('/tests', async (req, res) => {
         const teacherId = req.user.id;
 
         // Build WHERE clause
-        let whereClause = 'WHERE t.created_by = $1';
+        let whereClause = 'WHERE t.teacher_id = $1';
         const params = [teacherId];
         let paramCount = 2;
 
@@ -41,9 +41,9 @@ router.get('/tests', async (req, res) => {
         }
 
         if (status !== 'all') {
-            const isActive = status === 'active';
-            params.push(isActive);
-            whereClause += ` AND t.is_active = $${paramCount}`;
+            const isPublished = status === 'active';
+            params.push(isPublished);
+            whereClause += ` AND t.is_published = $${paramCount}`;
             paramCount++;
         }
 
@@ -59,7 +59,7 @@ router.get('/tests', async (req, res) => {
         const result = await query(
             `SELECT
                 t.id, t.title, t.description, t.subject_id, t.duration_minutes,
-                t.total_marks, t.passing_marks, t.is_active, t.created_at, t.updated_at,
+                t.passing_score, t.is_published as is_active, t.created_at, t.updated_at,
                 s.name as subject_name, s.color as subject_color,
                 (SELECT COUNT(*) FROM test_questions WHERE test_id = t.id) as question_count,
                 (SELECT COUNT(*) FROM test_attempts WHERE test_id = t.id) as attempt_count,
@@ -106,7 +106,7 @@ router.get('/tests/:id', async (req, res) => {
                 (SELECT COUNT(*) FROM test_attempts WHERE test_id = t.id) as attempt_count
              FROM tests t
              LEFT JOIN subjects s ON t.subject_id = s.id
-             WHERE t.id = $1 AND t.created_by = $2`,
+             WHERE t.id = $1 AND t.teacher_id = $2`,
             [id, teacherId]
         );
 
@@ -146,7 +146,7 @@ router.post('/tests', async (req, res) => {
     try {
         const {
             title, description, subject_id, duration_minutes,
-            total_marks, passing_marks, questions
+            passing_score, max_attempts, questions
         } = req.body;
         const teacherId = req.user.id;
         const schoolId = req.user.school_id;
@@ -175,17 +175,17 @@ router.post('/tests', async (req, res) => {
         // Create test
         const testResult = await query(
             `INSERT INTO tests (
-                school_id, subject_id, created_by, title, description,
-                duration_minutes, total_marks, passing_marks, is_active
+                school_id, teacher_id, subject_id, title, description,
+                duration_minutes, passing_score, max_attempts, is_published
              )
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false)
              RETURNING id, title, created_at`,
             [
-                schoolId, subject_id, teacherId, title.trim(),
+                schoolId, teacherId, subject_id, title.trim(),
                 description?.trim() || null,
                 duration_minutes || 60,
-                total_marks || 0,
-                passing_marks || 0
+                passing_score || 60,
+                max_attempts || 1
             ]
         );
 
@@ -244,13 +244,13 @@ router.put('/tests/:id', async (req, res) => {
         const { id } = req.params;
         const {
             title, description, subject_id, duration_minutes,
-            total_marks, passing_marks, is_active, questions
+            passing_score, max_attempts, is_published, questions
         } = req.body;
         const teacherId = req.user.id;
 
         // Check ownership
         const testCheck = await query(
-            'SELECT id FROM tests WHERE id = $1 AND created_by = $2',
+            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2',
             [id, teacherId]
         );
 
@@ -265,12 +265,12 @@ router.put('/tests/:id', async (req, res) => {
         await query(
             `UPDATE tests SET
                 title = $1, description = $2, subject_id = $3,
-                duration_minutes = $4, total_marks = $5, passing_marks = $6,
-                is_active = $7, updated_at = CURRENT_TIMESTAMP
+                duration_minutes = $4, passing_score = $5, max_attempts = $6,
+                is_published = $7, updated_at = CURRENT_TIMESTAMP
              WHERE id = $8`,
             [
                 title.trim(), description?.trim() || null, subject_id,
-                duration_minutes, total_marks, passing_marks, is_active, id
+                duration_minutes, passing_score, max_attempts, is_published, id
             ]
         );
 
@@ -326,7 +326,7 @@ router.delete('/tests/:id', async (req, res) => {
 
         // Check ownership
         const testCheck = await query(
-            'SELECT id, title FROM tests WHERE id = $1 AND created_by = $2',
+            'SELECT id, title FROM tests WHERE id = $1 AND teacher_id = $2',
             [id, teacherId]
         );
 
@@ -346,7 +346,7 @@ router.delete('/tests/:id', async (req, res) => {
         if (parseInt(attemptsCheck.rows[0].count) > 0) {
             // Soft delete if has attempts
             await query(
-                'UPDATE tests SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+                'UPDATE tests SET is_published = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
                 [id]
             );
         } else {
