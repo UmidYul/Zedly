@@ -58,56 +58,63 @@
             return originalFetch.apply(this, args);
         }
 
-        // Add access token to request if available
-        const accessToken = localStorage.getItem('access_token');
-        if (accessToken) {
-            options.headers = {
-                ...options.headers,
-                'Authorization': `Bearer ${accessToken}`
-            };
-        }
-
-        // Make the request
-        let response = await originalFetch(url, options);
-
-        // If 401, try to refresh token and retry
-        if (response.status === 401 && !url.includes('/api/auth/')) {
-            try {
-                // If already refreshing, wait for that to complete
-                if (isRefreshing) {
-                    await refreshPromise;
-                } else {
-                    // Start refresh process
-                    isRefreshing = true;
-                    refreshPromise = refreshAccessToken();
-                    await refreshPromise;
-                    isRefreshing = false;
-                    refreshPromise = null;
-                }
-
-                // Get new access token
-                const newAccessToken = localStorage.getItem('access_token');
-
-                // Retry original request with new token
+        try {
+            // Add access token to request if available
+            const accessToken = localStorage.getItem('access_token');
+            if (accessToken) {
                 options.headers = {
                     ...options.headers,
-                    'Authorization': `Bearer ${newAccessToken}`
+                    'Authorization': `Bearer ${accessToken}`
                 };
-
-                response = await originalFetch(url, options);
-
-            } catch (error) {
-                console.error('Token refresh failed:', error);
-
-                // Redirect to login page
-                window.location.href = '/login.html';
-
-                // Return error response
-                return response;
             }
-        }
 
-        return response;
+            // Make the request
+            let response = await originalFetch(url, options);
+
+            // If 401, try to refresh token and retry
+            if (response.status === 401 && !url.includes('/api/auth/')) {
+                try {
+                    // If already refreshing, wait for that to complete
+                    if (isRefreshing) {
+                        await refreshPromise;
+                    } else {
+                        // Start refresh process
+                        isRefreshing = true;
+                        refreshPromise = refreshAccessToken();
+                        await refreshPromise;
+                        isRefreshing = false;
+                        refreshPromise = null;
+                    }
+
+                    // Get new access token
+                    const newAccessToken = localStorage.getItem('access_token');
+
+                    // Retry original request with new token
+                    options.headers = {
+                        ...options.headers,
+                        'Authorization': `Bearer ${newAccessToken}`
+                    };
+
+                    response = await originalFetch(url, options);
+
+                } catch (error) {
+                    console.error('Token refresh failed:', error);
+
+                    // Redirect to login page
+                    window.location.href = '/login.html';
+
+                    // Return error response
+                    return response;
+                }
+            }
+
+            return response;
+
+        } catch (error) {
+            // Network error or other fetch error - just rethrow
+            console.error('Fetch error:', error);
+            throw error;
+        }
     };
 
     console.log('Auth interceptor initialized ✓');
