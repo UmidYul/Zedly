@@ -218,6 +218,12 @@
                                         <circle cx="12" cy="12" r="3"></circle>
                                     </svg>
                                 </button>
+                                <button class="btn-icon btn-success" onclick="AssignmentsManager.viewResults(${assignment.id})" title="View Results">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 11l3 3L22 4"></path>
+                                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                                    </svg>
+                                </button>
                                 <button class="btn-icon" onclick="AssignmentsManager.editAssignment(${assignment.id})" title="Edit">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -769,6 +775,11 @@
                 console.error('Delete assignment error:', error);
                 alert('Failed to delete assignment');
             }
+        },
+
+        // View assignment results
+        viewResults: function (assignmentId) {
+            window.location.href = `/teacher-results.html?assignment_id=${assignmentId}`;
         }
     };
 })();

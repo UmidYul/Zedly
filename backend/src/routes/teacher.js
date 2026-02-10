@@ -902,4 +902,136 @@ router.delete('/assignments/:id', async (req, res) => {
     }
 });
 
+/**
+ * ========================================
+ * RESULTS & ANALYTICS
+ * ========================================
+ */
+
+/**
+ * GET /api/teacher/assignments/:id/results
+ * Get detailed results for all students in an assignment
+ */
+router.get('/assignments/:id/results', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user.id;
+
+        // Verify teacher owns this assignment
+        const assignmentCheck = await query(
+            `SELECT ta.*, t.title as test_title, c.name as class_name
+             FROM test_assignments ta
+             JOIN tests t ON ta.test_id = t.id
+             JOIN classes c ON ta.class_id = c.id
+             WHERE ta.id = $1 AND ta.assigned_by = $2`,
+            [id, teacherId]
+        );
+
+        if (assignmentCheck.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Assignment not found'
+            });
+        }
+
+        const assignment = assignmentCheck.rows[0];
+
+        // Get all attempts for this assignment
+        const attemptsResult = await query(
+            `SELECT
+                att.id as attempt_id,
+                att.student_id,
+                CONCAT(u.first_name, ' ', u.last_name) as student_name,
+                u.username,
+                cs.roll_number,
+                att.started_at,
+                att.submitted_at,
+                att.time_spent_seconds,
+                att.score,
+                att.max_score,
+                att.percentage,
+                att.is_completed
+             FROM test_attempts att
+             JOIN users u ON att.student_id = u.id
+             LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.class_id = $2
+             WHERE att.assignment_id = $1 AND att.is_completed = true
+             ORDER BY u.last_name ASC, u.first_name ASC, att.submitted_at DESC`,
+            [id, assignment.class_id]
+        );
+
+        res.json({
+            assignment: assignment,
+            attempts: attemptsResult.rows
+        });
+
+    } catch (error) {
+        console.error('Get assignment results error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch assignment results'
+        });
+    }
+});
+
+/**
+ * GET /api/teacher/attempts/:id
+ * Get detailed view of a specific student attempt
+ */
+router.get('/attempts/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user.id;
+
+        // Get attempt with validation
+        const attemptResult = await query(
+            `SELECT
+                att.*,
+                t.title as test_title,
+                t.passing_score,
+                u.username,
+                CONCAT(u.first_name, ' ', u.last_name) as student_name,
+                c.name as class_name,
+                s.name as subject_name,
+                s.color as subject_color,
+                ta.start_date,
+                ta.end_date
+             FROM test_attempts att
+             JOIN tests t ON att.test_id = t.id
+             JOIN users u ON att.student_id = u.id
+             JOIN test_assignments ta ON att.assignment_id = ta.id
+             JOIN classes c ON ta.class_id = c.id
+             LEFT JOIN subjects s ON t.subject_id = s.id
+             WHERE att.id = $1 AND ta.assigned_by = $2`,
+            [id, teacherId]
+        );
+
+        if (attemptResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Attempt not found'
+            });
+        }
+
+        const attempt = attemptResult.rows[0];
+
+        // Get questions with answers
+        const questionsResult = await query(
+            `SELECT * FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`,
+            [attempt.test_id]
+        );
+
+        res.json({
+            attempt: attempt,
+            questions: questionsResult.rows
+        });
+
+    } catch (error) {
+        console.error('Get attempt error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch attempt details'
+        });
+    }
+});
+
 module.exports = router;
