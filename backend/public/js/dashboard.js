@@ -308,6 +308,40 @@
             `;
         }
 
+        // Users Management (SchoolAdmin)
+        if (page === 'users') {
+            return `
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="usersSearch"
+                            class="search-input"
+                            placeholder="Search users..."
+                        />
+                    </div>
+                    <div class="toolbar-right">
+                        <select id="roleFilter" class="select-input">
+                            <option value="all">All Roles</option>
+                            <option value="school_admin">School Admin</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="student">Student</option>
+                        </select>
+                        <button class="btn btn-primary" id="addUserBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add User
+                        </button>
+                    </div>
+                </div>
+                <div id="usersContainer"></div>
+                <script src="/js/users.js"></script>
+                <script>UsersManager.init();</script>
+            `;
+        }
+
         // Overview page with stats
         if (page === 'overview') {
             return `

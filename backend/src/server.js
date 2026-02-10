@@ -105,8 +105,17 @@ try {
     console.error(error.stack);
 }
 
+// SchoolAdmin routes
+try {
+    const adminRouter = require('./routes/admin');
+    app.use('/api/admin', adminRouter);
+    console.log('✓ SchoolAdmin routes loaded: /api/admin');
+} catch (error) {
+    console.error('❌ Failed to load admin routes:', error.message);
+    console.error(error.stack);
+}
+
 // Role-based routes (will be added later)
-// app.use('/api/admin', require('./routes/admin'));
 // app.use('/api/teacher', require('./routes/teacher'));
 // app.use('/api/student', require('./routes/student'));
 

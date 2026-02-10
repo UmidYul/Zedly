@@ -60,6 +60,36 @@
     color: var(--text-secondary);
 }
 
+/* Role Badge */
+.role-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.role-school_admin {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8B5CF6;
+}
+
+.role-teacher {
+    background: rgba(74, 144, 226, 0.1);
+    color: var(--primary);
+}
+
+.role-student {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+/* User Name */
+.user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
 /* Action Buttons */
 .action-buttons {
     display: flex;
