@@ -60,6 +60,7 @@
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
+                    { icon: 'assignment', label: 'dashboard.nav.assignments', id: 'assignments', href: '#assignments' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' }
                 ]
             },
@@ -115,7 +116,8 @@
         star: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
         target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
         trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M6 9h12v4a6 6 0 0 1-12 0V9zM8 22v-3M16 22v-3M10 19h4"/>',
-        calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'
+        calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+        assignment: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>'
     };
 
     // Initialize dashboard
@@ -278,7 +280,8 @@
             'users': { src: '/js/users.js', manager: 'UsersManager' },
             'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
             'subjects': { src: '/js/subjects.js', manager: 'SubjectsManager' },
-            'tests': { src: '/js/tests.js', manager: 'TestsManager' }
+            'tests': { src: '/js/tests.js', manager: 'TestsManager' },
+            'assignments': { src: '/js/assignments.js', manager: 'AssignmentsManager' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -487,6 +490,43 @@
                     </div>
                 </div>
                 <div id="testsContainer"></div>
+            `;
+        }
+
+        // Test Assignments Management (Teacher)
+        if (page === 'assignments') {
+            return `
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="assignmentsSearch"
+                            class="search-input"
+                            placeholder="Search assignments..."
+                        />
+                    </div>
+                    <div class="toolbar-filters">
+                        <select id="classFilter" class="filter-select">
+                            <option value="all">All Classes</option>
+                        </select>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="all">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-primary" id="addAssignmentBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Create Assignment
+                        </button>
+                    </div>
+                </div>
+                <div id="assignmentsContainer"></div>
             `;
         }
 

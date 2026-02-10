@@ -561,4 +561,345 @@ router.get('/classes/:id', async (req, res) => {
     }
 });
 
+/**
+ * ========================================
+ * TEST ASSIGNMENTS MANAGEMENT
+ * ========================================
+ */
+
+/**
+ * GET /api/teacher/assignments
+ * Get all test assignments created by teacher
+ */
+router.get('/assignments', async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '', class_id = 'all', status = 'all' } = req.query;
+        const offset = (page - 1) * limit;
+        const teacherId = req.user.id;
+
+        // Build WHERE clause
+        let whereClause = 'WHERE ta.assigned_by = $1';
+        const params = [teacherId];
+        let paramCount = 2;
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClause += ` AND (t.title ILIKE $${paramCount} OR c.name ILIKE $${paramCount})`;
+            paramCount++;
+        }
+
+        if (class_id !== 'all') {
+            params.push(class_id);
+            whereClause += ` AND ta.class_id = $${paramCount}`;
+            paramCount++;
+        }
+
+        if (status === 'active') {
+            whereClause += ` AND ta.is_active = true AND ta.end_date > CURRENT_TIMESTAMP`;
+        } else if (status === 'completed') {
+            whereClause += ` AND ta.end_date < CURRENT_TIMESTAMP`;
+        } else if (status === 'inactive') {
+            whereClause += ` AND ta.is_active = false`;
+        }
+
+        // Get total count
+        const countResult = await query(
+            `SELECT COUNT(*) FROM test_assignments ta ${whereClause}`,
+            params
+        );
+        const total = parseInt(countResult.rows[0].count);
+
+        // Get assignments with test and class info
+        params.push(limit, offset);
+        const result = await query(
+            `SELECT
+                ta.id, ta.test_id, ta.class_id, ta.start_date, ta.end_date, ta.is_active, ta.created_at,
+                t.title as test_title, t.duration_minutes, t.passing_score,
+                c.name as class_name, c.grade_level,
+                s.name as subject_name, s.color as subject_color,
+                (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = ta.id) as attempt_count,
+                (SELECT COUNT(*) FROM class_students WHERE class_id = ta.class_id) as student_count
+             FROM test_assignments ta
+             JOIN tests t ON ta.test_id = t.id
+             JOIN classes c ON ta.class_id = c.id
+             LEFT JOIN subjects s ON t.subject_id = s.id
+             ${whereClause}
+             ORDER BY ta.created_at DESC
+             LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+            params
+        );
+
+        res.json({
+            assignments: result.rows,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get assignments error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch assignments'
+        });
+    }
+});
+
+/**
+ * GET /api/teacher/assignments/:id
+ * Get assignment details with student progress
+ */
+router.get('/assignments/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user.id;
+
+        // Get assignment with validation
+        const assignmentResult = await query(
+            `SELECT
+                ta.*, t.title as test_title, t.description as test_description,
+                t.duration_minutes, t.passing_score, t.max_attempts,
+                c.name as class_name, c.grade_level,
+                s.name as subject_name, s.color as subject_color,
+                (SELECT COUNT(*) FROM test_questions WHERE test_id = t.id) as question_count
+             FROM test_assignments ta
+             JOIN tests t ON ta.test_id = t.id
+             JOIN classes c ON ta.class_id = c.id
+             LEFT JOIN subjects s ON t.subject_id = s.id
+             WHERE ta.id = $1 AND ta.assigned_by = $2`,
+            [id, teacherId]
+        );
+
+        if (assignmentResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Assignment not found'
+            });
+        }
+
+        // Get students and their progress
+        const progressResult = await query(
+            `SELECT
+                u.id as student_id,
+                CONCAT(u.first_name, ' ', u.last_name) as student_name,
+                cs.roll_number,
+                (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = $1 AND student_id = u.id) as attempts_made,
+                (SELECT MAX(percentage) FROM test_attempts WHERE assignment_id = $1 AND student_id = u.id AND is_completed = true) as best_score,
+                (SELECT submitted_at FROM test_attempts WHERE assignment_id = $1 AND student_id = u.id AND is_completed = true ORDER BY submitted_at DESC LIMIT 1) as last_attempt_date
+             FROM class_students cs
+             JOIN users u ON cs.student_id = u.id
+             WHERE cs.class_id = $2 AND cs.is_active = true
+             ORDER BY cs.roll_number ASC`,
+            [id, assignmentResult.rows[0].class_id]
+        );
+
+        res.json({
+            assignment: assignmentResult.rows[0],
+            students: progressResult.rows
+        });
+    } catch (error) {
+        console.error('Get assignment error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch assignment'
+        });
+    }
+});
+
+/**
+ * POST /api/teacher/assignments
+ * Create new test assignment
+ */
+router.post('/assignments', async (req, res) => {
+    try {
+        const { test_id, class_id, start_date, end_date } = req.body;
+        const teacherId = req.user.id;
+
+        // Validation
+        if (!test_id || !class_id || !start_date || !end_date) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Test, class, start date and end date are required'
+            });
+        }
+
+        // Verify test belongs to teacher
+        const testCheck = await query(
+            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2',
+            [test_id, teacherId]
+        );
+
+        if (testCheck.rows.length === 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid test'
+            });
+        }
+
+        // Verify teacher has access to class
+        const schoolId = req.user.school_id;
+        const classCheck = await query(
+            `SELECT 1 FROM classes c
+             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             WHERE c.id = $1
+               AND c.school_id = $2
+               AND (c.homeroom_teacher_id = $3 OR tcs.teacher_id = $3)
+             LIMIT 1`,
+            [class_id, schoolId, teacherId]
+        );
+
+        if (classCheck.rows.length === 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'You do not have access to this class'
+            });
+        }
+
+        // Check if assignment already exists
+        const existingCheck = await query(
+            'SELECT id FROM test_assignments WHERE test_id = $1 AND class_id = $2 AND is_active = true',
+            [test_id, class_id]
+        );
+
+        if (existingCheck.rows.length > 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'This test is already assigned to this class'
+            });
+        }
+
+        // Create assignment
+        const result = await query(
+            `INSERT INTO test_assignments (test_id, class_id, assigned_by, start_date, end_date, is_active)
+             VALUES ($1, $2, $3, $4, $5, true)
+             RETURNING id, created_at`,
+            [test_id, class_id, teacherId, start_date, end_date]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [teacherId, 'create', 'test_assignment', result.rows[0].id, { test_id, class_id }]
+        );
+
+        res.status(201).json({
+            message: 'Assignment created successfully',
+            assignment: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Create assignment error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to create assignment'
+        });
+    }
+});
+
+/**
+ * PUT /api/teacher/assignments/:id
+ * Update test assignment
+ */
+router.put('/assignments/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { start_date, end_date, is_active } = req.body;
+        const teacherId = req.user.id;
+
+        // Check ownership
+        const assignmentCheck = await query(
+            'SELECT id FROM test_assignments WHERE id = $1 AND assigned_by = $2',
+            [id, teacherId]
+        );
+
+        if (assignmentCheck.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Assignment not found'
+            });
+        }
+
+        // Update assignment
+        await query(
+            `UPDATE test_assignments SET
+                start_date = $1, end_date = $2, is_active = $3
+             WHERE id = $4`,
+            [start_date, end_date, is_active, id]
+        );
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [teacherId, 'update', 'test_assignment', id, { start_date, end_date, is_active }]
+        );
+
+        res.json({ message: 'Assignment updated successfully' });
+    } catch (error) {
+        console.error('Update assignment error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to update assignment'
+        });
+    }
+});
+
+/**
+ * DELETE /api/teacher/assignments/:id
+ * Delete test assignment (soft delete by setting is_active to false)
+ */
+router.delete('/assignments/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user.id;
+
+        // Check ownership
+        const assignmentCheck = await query(
+            'SELECT id FROM test_assignments WHERE id = $1 AND assigned_by = $2',
+            [id, teacherId]
+        );
+
+        if (assignmentCheck.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Assignment not found'
+            });
+        }
+
+        // Check if there are attempts
+        const attemptsCheck = await query(
+            'SELECT COUNT(*) FROM test_attempts WHERE assignment_id = $1',
+            [id]
+        );
+
+        if (parseInt(attemptsCheck.rows[0].count) > 0) {
+            // Soft delete if has attempts
+            await query(
+                'UPDATE test_assignments SET is_active = false WHERE id = $1',
+                [id]
+            );
+        } else {
+            // Hard delete if no attempts
+            await query('DELETE FROM test_assignments WHERE id = $1', [id]);
+        }
+
+        // Log action
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [teacherId, 'delete', 'test_assignment', id, {}]
+        );
+
+        res.json({ message: 'Assignment deleted successfully' });
+    } catch (error) {
+        console.error('Delete assignment error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to delete assignment'
+        });
+    }
+});
+
 module.exports = router;
