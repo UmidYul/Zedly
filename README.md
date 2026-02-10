@@ -43,20 +43,29 @@
 - XLSX для импорта/экспорта
 
 ### Frontend:
-- React 18
-- Vite
+- HTML5, CSS3, JavaScript (ES6+)
+- Native Web Components
 - Chart.js (для графиков)
-- i18next (Русский + Узбекский)
-- Tailwind CSS
+- Vanilla i18n (Русский + Узбекский)
+- CSS Variables (для тем)
 - PWA (Progressive Web App)
 
 ## Структура проекта
 
 ```
 Zedly/
-├── backend/                 # Серверная часть
-├── frontend/                # Клиентская часть
-├── database/                # Схема БД и миграции
+├── backend/                 # Серверная часть + Frontend
+│   ├── src/
+│   │   └── server.js        # Express сервер
+│   ├── public/              # Статические файлы (HTML, CSS, JS)
+│   │   ├── index.html       # Landing page
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── images/
+│   └── package.json
+├── database/                # Схема БД
+│   ├── schema.sql
+│   └── DATABASE.md
 └── README.md
 ```
 
@@ -83,16 +92,9 @@ psql -U your_user -d zedly -f ../database/schema.sql
 npm run dev
 ```
 
-### Frontend:
+Сервер будет доступен на http://localhost:5000
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Сервер: http://localhost:5000
-Frontend: http://localhost:3000
+Frontend встроен в backend и сервится через Express.
 
 ## Безопасность
 
