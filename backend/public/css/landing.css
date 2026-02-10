@@ -9,8 +9,8 @@
 :root {
     --primary: #4A90E2;
     --primary-dark: #357ABD;
-    --accent: #50E3C2;
-    --success: #50E3C2;
+    --accent: #60a5fa;
+    --success: #3b82f6;
 
     --bg-primary: #0F1729;
     --bg-secondary: rgba(21, 27, 45, 0.6);
@@ -24,9 +24,9 @@
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.7);
 
-    --gradient-primary: linear-gradient(135deg, #4A90E2 0%, #50E3C2 100%);
-    --gradient-hero: radial-gradient(circle at 20% 20%, rgba(74, 144, 226, 0.28), transparent 42%),
-        radial-gradient(circle at 80% 10%, rgba(80, 227, 194, 0.2), transparent 38%);
+    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    --gradient-hero: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.28), transparent 42%),
+        radial-gradient(circle at 80% 10%, rgba(96, 165, 250, 0.2), transparent 38%);
 }
 
 body {
