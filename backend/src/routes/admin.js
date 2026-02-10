@@ -183,6 +183,25 @@ router.post('/users', async (req, res) => {
             ]
         );
 
+        const userId = result.rows[0].id;
+
+        // If teacher, save teacher assignments
+        if (role === 'teacher' && req.body.teacher_assignments && Array.isArray(req.body.teacher_assignments)) {
+            for (const assignment of req.body.teacher_assignments) {
+                const { subject_id, class_ids } = assignment;
+                if (subject_id && Array.isArray(class_ids)) {
+                    for (const classId of class_ids) {
+                        await query(
+                            `INSERT INTO teacher_class_subjects (teacher_id, class_id, subject_id)
+                             VALUES ($1, $2, $3)
+                             ON CONFLICT (teacher_id, class_id, subject_id) DO NOTHING`,
+                            [userId, classId, subject_id]
+                        );
+                    }
+                }
+            }
+        }
+
         // Log action
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
@@ -191,7 +210,7 @@ router.post('/users', async (req, res) => {
                 req.user.id,
                 'create',
                 'user',
-                result.rows[0].id,
+                userId,
                 { username: username.trim(), role }
             ]
         );

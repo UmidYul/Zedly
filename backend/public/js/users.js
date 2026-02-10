@@ -307,13 +307,29 @@
                                         <label class="form-label">
                                             Role <span class="required">*</span>
                                         </label>
-                                        <select class="form-input" name="role" required>
+                                        <select class="form-input" name="role" required onchange="UsersManager.toggleTeacherFields(this.value)">
                                             <option value="">Select role</option>
                                             <option value="school_admin" ${user?.role === 'school_admin' ? 'selected' : ''}>School Admin</option>
                                             <option value="teacher" ${user?.role === 'teacher' ? 'selected' : ''}>Teacher</option>
                                             <option value="student" ${user?.role === 'student' ? 'selected' : ''}>Student</option>
                                         </select>
                                     </div>
+                                </div>
+
+                                <!-- Teacher-specific fields -->
+                                <div id="teacherFields" style="display: none;">
+                                    <div class="form-section-header">
+                                        <h3>Teaching Assignments</h3>
+                                        <p>Select subjects and classes this teacher will teach</p>
+                                    </div>
+
+                                    <div id="teacherAssignments">
+                                        <!-- Assignments will be added here dynamically -->
+                                    </div>
+
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="UsersManager.addTeacherAssignment()">
+                                        + Add Subject & Classes
+                                    </button>
                                 </div>
 
                                 ${!isEdit ? `
@@ -447,6 +463,11 @@
                 telegram_id: formData.get('telegram_id')?.trim() || null
             };
 
+            // Add teacher assignments if role is teacher
+            if (data.role === 'teacher') {
+                data.teacher_assignments = this.getTeacherAssignments();
+            }
+
             if (!userId) {
                 const password = formData.get('password')?.trim();
                 if (password) {
@@ -558,6 +579,130 @@
                 console.error('Delete user error:', error);
                 alert('Failed to delete user');
             }
+        },
+
+        // Teacher-specific functions
+        subjects: [],
+        classes: [],
+        assignmentCounter: 0,
+
+        // Toggle teacher fields visibility
+        toggleTeacherFields: function(role) {
+            const teacherFields = document.getElementById('teacherFields');
+            if (role === 'teacher') {
+                teacherFields.style.display = 'block';
+                if (!this.subjects.length) {
+                    this.loadSubjectsAndClasses();
+                }
+                // Add one assignment by default if none exist
+                const container = document.getElementById('teacherAssignments');
+                if (!container.children.length) {
+                    this.addTeacherAssignment();
+                }
+            } else {
+                teacherFields.style.display = 'none';
+            }
+        },
+
+        // Load subjects and classes
+        loadSubjectsAndClasses: async function() {
+            try {
+                const token = localStorage.getItem('access_token');
+
+                // Load subjects
+                const subjectsResponse = await fetch('/api/admin/subjects?page=1&limit=1000', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (subjectsResponse.ok) {
+                    const subjectsData = await subjectsResponse.json();
+                    this.subjects = subjectsData.subjects || [];
+                }
+
+                // Load classes
+                const classesResponse = await fetch('/api/admin/classes?page=1&limit=1000&search=&grade=all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (classesResponse.ok) {
+                    const classesData = await classesResponse.json();
+                    this.classes = classesData.classes || [];
+                }
+            } catch (error) {
+                console.error('Load subjects/classes error:', error);
+            }
+        },
+
+        // Add new teacher assignment row
+        addTeacherAssignment: function() {
+            const container = document.getElementById('teacherAssignments');
+            const assignmentId = this.assignmentCounter++;
+
+            const subjectOptions = this.subjects.map(s =>
+                `<option value="${s.id}">${s.name}</option>`
+            ).join('');
+
+            const classOptions = this.classes.map(c =>
+                `<option value="${c.id}">${c.name} (Grade ${c.grade_level})</option>`
+            ).join('');
+
+            const html = `
+                <div class="teacher-assignment" data-id="${assignmentId}">
+                    <div class="assignment-row">
+                        <div class="form-group flex-1">
+                            <label class="form-label">Subject</label>
+                            <select class="form-input" name="subject_${assignmentId}" required>
+                                <option value="">Select subject</option>
+                                ${subjectOptions}
+                            </select>
+                        </div>
+                        <div class="form-group flex-2">
+                            <label class="form-label">Classes</label>
+                            <select class="form-input" name="classes_${assignmentId}" multiple size="3" required>
+                                ${classOptions}
+                            </select>
+                            <span class="form-hint">Hold Ctrl/Cmd to select multiple</span>
+                        </div>
+                        <button type="button" class="btn-remove" onclick="UsersManager.removeTeacherAssignment(${assignmentId})" title="Remove">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', html);
+        },
+
+        // Remove teacher assignment row
+        removeTeacherAssignment: function(assignmentId) {
+            const assignment = document.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
+            if (assignment) {
+                assignment.remove();
+            }
+        },
+
+        // Get teacher assignments from form
+        getTeacherAssignments: function() {
+            const assignments = [];
+            const container = document.getElementById('teacherAssignments');
+            const assignmentDivs = container.querySelectorAll('.teacher-assignment');
+
+            assignmentDivs.forEach(div => {
+                const id = div.dataset.id;
+                const subjectId = div.querySelector(`[name="subject_${id}"]`)?.value;
+                const classesSelect = div.querySelector(`[name="classes_${id}"]`);
+                const classIds = classesSelect ? Array.from(classesSelect.selectedOptions).map(opt => parseInt(opt.value)) : [];
+
+                if (subjectId && classIds.length > 0) {
+                    assignments.push({
+                        subject_id: parseInt(subjectId),
+                        class_ids: classIds
+                    });
+                }
+            });
+
+            return assignments;
         }
     };
 })();
