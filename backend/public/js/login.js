@@ -117,15 +117,9 @@
 
     // Redirect to appropriate dashboard based on role
     function redirectToDashboard(role) {
-        const dashboards = {
-            'superadmin': '/dashboard/superadmin',
-            'school_admin': '/dashboard/school-admin',
-            'teacher': '/dashboard/teacher',
-            'student': '/dashboard/student'
-        };
-
-        const dashboard = dashboards[role] || '/dashboard';
-        window.location.href = dashboard;
+        // All roles use the same /dashboard page
+        // The dashboard.js will dynamically load content based on user role
+        window.location.href = '/dashboard';
     }
 
     // Get translation from i18n
