@@ -388,23 +388,32 @@
             const correctMatches = Array.isArray(question.correct_answer) ? question.correct_answer : [];
             const studentMatches = Array.isArray(studentAnswer) ? studentAnswer : [];
 
+            // Extract all right items into an array
+            const rightItems = pairs.map(p => p.right);
+
             let html = '<div class="matching-review">';
             pairs.forEach((pair, index) => {
                 const studentMatch = studentMatches[index];
                 const correctMatch = correctMatches[index];
                 const isMatchCorrect = studentMatch === correctMatch;
 
+                // Get the text for student's match and correct match
+                const studentMatchText = studentMatch !== null && studentMatch !== undefined
+                    ? rightItems[studentMatch]
+                    : 'Not matched';
+                const correctMatchText = rightItems[correctMatch];
+
                 html += `
                     <div class="matching-review-item">
                         <div class="matching-left">${pair.left}</div>
                         <div class="matching-center">
                             <div class="matching-student ${isMatchCorrect ? 'correct-match' : 'wrong-match'}">
-                                Your match: <strong>${pair.right[studentMatch] || 'Not matched'}</strong>
+                                Your match: <strong>${studentMatchText}</strong>
                                 ${isMatchCorrect ? '✓' : '✗'}
                             </div>
                             ${!isMatchCorrect ? `
                                 <div class="matching-correct">
-                                    Correct: <strong>${pair.right[correctMatch]}</strong>
+                                    Correct: <strong>${correctMatchText}</strong>
                                 </div>
                             ` : ''}
                         </div>
