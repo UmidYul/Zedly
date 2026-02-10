@@ -155,6 +155,7 @@
             const attemptsLeft = assignment.max_attempts - assignment.attempts_made;
             const hasOngoing = assignment.ongoing_attempt_id !== null;
             const bestScore = assignment.best_score !== null ? parseFloat(assignment.best_score).toFixed(1) : null;
+            const hasPendingGrading = assignment.has_pending_grading === true;
             const passed = bestScore !== null && bestScore >= assignment.passing_score;
 
             let actionButton = '';
@@ -236,7 +237,9 @@
                             ${bestScore !== null ? `
                                 <div class="progress-row">
                                     <span>Best Score:</span>
-                                    <span class="${passed ? 'text-success' : 'text-warning'}">${bestScore}%</span>
+                                    <span class="${hasPendingGrading ? 'text-warning' : (passed ? 'text-success' : 'text-warning')}">
+                                        ${hasPendingGrading ? '⏳ Pending Review' : bestScore + '%'}
+                                    </span>
                                 </div>
                             ` : ''}
                         </div>

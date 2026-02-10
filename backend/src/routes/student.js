@@ -57,7 +57,19 @@ router.get('/assignments', async (req, res) => {
                 (SELECT COUNT(*) FROM test_questions WHERE test_id = t.id) as question_count,
                 (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2) as attempts_made,
                 (SELECT MAX(percentage) FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND is_completed = true) as best_score,
-                (SELECT id FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND is_completed = false ORDER BY started_at DESC LIMIT 1) as ongoing_attempt_id
+                (SELECT id FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND is_completed = false ORDER BY started_at DESC LIMIT 1) as ongoing_attempt_id,
+                (
+                    SELECT CASE WHEN EXISTS (
+                        SELECT 1 FROM test_attempts att
+                        WHERE att.assignment_id = ta.id
+                        AND att.student_id = $2
+                        AND att.is_completed = true
+                        AND EXISTS (
+                            SELECT 1 FROM jsonb_each(att.answers) AS answer_entry
+                            WHERE (answer_entry.value->>'is_correct')::text = 'null'
+                        )
+                    ) THEN true ELSE false END
+                ) as has_pending_grading
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
              JOIN classes c ON ta.class_id = c.id

@@ -226,6 +226,10 @@
     color: var(--error);
 }
 
+.summary-value.pending {
+    color: var(--warning);
+}
+
 .summary-footer {
     display: flex;
     gap: var(--spacing-2xl);
