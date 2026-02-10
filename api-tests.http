@@ -6,8 +6,8 @@
 @contentType = application/json
 
 # Переменные (замените после получения токенов)
-@accessToken = YOUR_ACCESS_TOKEN_HERE
-@refreshToken = YOUR_REFRESH_TOKEN_HERE
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YmYyMjkwMi0xNzE1LTRkYmUtYTdmYy1hNTEyODAzMzY2NDUiLCJyb2xlIjoic3VwZXJhZG1pbiIsInNjaG9vbElkIjpudWxsLCJpYXQiOjE3NzA3MTE2NzcsImV4cCI6MTc3MDcxMjU3NywiYXVkIjoiemVkbHktY2xpZW50IiwiaXNzIjoiemVkbHktYXBpIn0.N62TYL9idSmCHfDXzmEfu2YQ80C69cK8GkDNzf6rGPQ
+@refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YmYyMjkwMi0xNzE1LTRkYmUtYTdmYy1hNTEyODAzMzY2NDUiLCJzZXNzaW9uSWQiOiI5NmQ4MzlhNC1hY2U1LTQ5MjUtYTU1NC0zM2ZhZjA3NGQxNDQiLCJpYXQiOjE3NzA3MTE2NzcsImV4cCI6MTc3MTMxNjQ3NywiYXVkIjoiemVkbHktY2xpZW50IiwiaXNzIjoiemVkbHktYXBpIn0.lz6KAgrRkm20mKWAkDsuA5d4pddurkiVog7Bx2UXnJg
 @schoolId = YOUR_SCHOOL_ID_HERE
 @classId = YOUR_CLASS_ID_HERE
 @teacherId = YOUR_TEACHER_ID_HERE
@@ -18,7 +18,7 @@
 ###############################################################################
 
 ### Health Check
-GET http://167.235.222.200:3001/health
+GET {{baseUrl}}/health
 
 ###############################################################################
 # AUTHENTICATION
