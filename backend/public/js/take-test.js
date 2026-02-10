@@ -12,6 +12,15 @@
         endTime: null,
         autoSaveInterval: null,
         lastSaveTime: null,
+        tabSwitches: 0,
+        copyAttempts: 0,
+        suspiciousActivity: [],
+        proctoring: {
+            blockCopyPaste: true,
+            trackTabSwitches: true,
+            fullscreenRequired: false
+        },
+        lastTabSwitchAt: 0,
 
         // Initialize test taking page
         init: async function () {
@@ -30,6 +39,9 @@
 
             // Setup event listeners
             this.setupEventListeners();
+
+            // Setup proctoring listeners
+            this.initProctoring();
 
             // Start timer
             this.startTimer();
@@ -66,6 +78,16 @@
                 const data = await response.json();
                 this.attempt = data.attempt;
                 this.questions = data.questions;
+                this.proctoring = {
+                    blockCopyPaste: this.attempt.block_copy_paste !== false,
+                    trackTabSwitches: this.attempt.track_tab_switches !== false,
+                    fullscreenRequired: this.attempt.fullscreen_required === true
+                };
+                this.tabSwitches = parseInt(this.attempt.tab_switches || 0, 10);
+                this.copyAttempts = parseInt(this.attempt.copy_attempts || 0, 10);
+                this.suspiciousActivity = Array.isArray(this.attempt.suspicious_activity)
+                    ? [...this.attempt.suspicious_activity]
+                    : [];
 
                 // Load existing answers if any
                 if (this.attempt.answers && typeof this.attempt.answers === 'object') {
@@ -120,6 +142,90 @@
             });
         },
 
+        initProctoring: function () {
+            if (this.proctoring.trackTabSwitches) {
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        this.recordTabSwitch('visibility');
+                    }
+                });
+
+                window.addEventListener('blur', () => {
+                    this.recordTabSwitch('blur');
+                });
+            }
+
+            if (this.proctoring.blockCopyPaste) {
+                ['copy', 'cut', 'paste'].forEach(eventName => {
+                    document.addEventListener(eventName, (event) => {
+                        event.preventDefault();
+                        this.copyAttempts += 1;
+                        this.recordSuspiciousActivity('clipboard_blocked', { action: eventName });
+                        this.showProctoringNotice('Copy/paste is disabled during this test.');
+                    });
+                });
+            }
+
+            if (this.proctoring.fullscreenRequired) {
+                this.requestFullscreen();
+                document.addEventListener('fullscreenchange', () => {
+                    if (!document.fullscreenElement && !this.attempt.is_completed) {
+                        this.recordSuspiciousActivity('fullscreen_exit', {});
+                        this.showProctoringNotice('Fullscreen is required. Please return to fullscreen.');
+                        this.requestFullscreen();
+                    }
+                });
+            }
+        },
+
+        recordTabSwitch: function (source) {
+            const now = Date.now();
+            if (now - this.lastTabSwitchAt < 1500) {
+                return;
+            }
+            this.lastTabSwitchAt = now;
+            this.tabSwitches += 1;
+            this.recordSuspiciousActivity('tab_switch', { source: source });
+            this.showProctoringNotice('Tab switching is monitored during this test.');
+        },
+
+        recordSuspiciousActivity: function (type, details) {
+            this.suspiciousActivity.push({
+                type: type,
+                details: details || {},
+                timestamp: new Date().toISOString()
+            });
+        },
+
+        requestFullscreen: function () {
+            const root = document.documentElement;
+            if (!root.requestFullscreen) {
+                return;
+            }
+            if (!document.fullscreenElement) {
+                root.requestFullscreen().catch(() => {
+                    this.showProctoringNotice('Please enable fullscreen to continue this test.');
+                });
+            }
+        },
+
+        showProctoringNotice: function (message) {
+            let notice = document.getElementById('proctoringNotice');
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.id = 'proctoringNotice';
+                notice.className = 'proctoring-notice';
+                document.body.appendChild(notice);
+            }
+
+            notice.textContent = message;
+            notice.classList.add('show');
+            clearTimeout(notice._timeout);
+            notice._timeout = setTimeout(() => {
+                notice.classList.remove('show');
+            }, 3000);
+        },
+
         // Start countdown timer
         startTimer: function () {
             const updateTimer = () => {
@@ -166,7 +272,12 @@
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ answers: this.answers })
+                    body: JSON.stringify({
+                        answers: this.answers,
+                        tab_switches: this.tabSwitches,
+                        copy_attempts: this.copyAttempts,
+                        suspicious_activity: this.suspiciousActivity
+                    })
                 });
 
                 if (response.ok) {
@@ -634,7 +745,12 @@
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ answers: this.answers })
+                    body: JSON.stringify({
+                        answers: this.answers,
+                        tab_switches: this.tabSwitches,
+                        copy_attempts: this.copyAttempts,
+                        suspicious_activity: this.suspiciousActivity
+                    })
                 });
 
                 const data = await response.json();

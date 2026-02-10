@@ -146,7 +146,9 @@ router.post('/tests', async (req, res) => {
     try {
         const {
             title, description, subject_id, duration_minutes,
-            passing_score, max_attempts, questions
+            passing_score, max_attempts, shuffle_questions,
+            block_copy_paste, track_tab_switches, fullscreen_required,
+            questions
         } = req.body;
         const teacherId = req.user.id;
         const schoolId = req.user.school_id;
@@ -176,16 +178,22 @@ router.post('/tests', async (req, res) => {
         const testResult = await query(
             `INSERT INTO tests (
                 school_id, teacher_id, subject_id, title, description,
-                duration_minutes, passing_score, max_attempts, is_published
+                duration_minutes, passing_score, max_attempts,
+                shuffle_questions, block_copy_paste, track_tab_switches, fullscreen_required,
+                is_published
              )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, false)
              RETURNING id, title, created_at`,
             [
                 schoolId, teacherId, subject_id, title.trim(),
                 description?.trim() || null,
                 duration_minutes || 60,
                 passing_score || 60,
-                max_attempts || 1
+                max_attempts || 1,
+                shuffle_questions === true,
+                block_copy_paste !== false,
+                track_tab_switches !== false,
+                fullscreen_required === true
             ]
         );
 
@@ -244,7 +252,9 @@ router.put('/tests/:id', async (req, res) => {
         const { id } = req.params;
         const {
             title, description, subject_id, duration_minutes,
-            passing_score, max_attempts, is_published, questions
+            passing_score, max_attempts, shuffle_questions,
+            block_copy_paste, track_tab_switches, fullscreen_required,
+            is_published, questions
         } = req.body;
         const teacherId = req.user.id;
 
@@ -266,11 +276,16 @@ router.put('/tests/:id', async (req, res) => {
             `UPDATE tests SET
                 title = $1, description = $2, subject_id = $3,
                 duration_minutes = $4, passing_score = $5, max_attempts = $6,
-                is_published = $7, updated_at = CURRENT_TIMESTAMP
-             WHERE id = $8`,
+                shuffle_questions = $7, block_copy_paste = $8,
+                track_tab_switches = $9, fullscreen_required = $10,
+                is_published = $11, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $12`,
             [
                 title.trim(), description?.trim() || null, subject_id,
-                duration_minutes, passing_score, max_attempts, is_published, id
+                duration_minutes, passing_score, max_attempts,
+                shuffle_questions === true, block_copy_paste !== false,
+                track_tab_switches !== false, fullscreen_required === true,
+                is_published, id
             ]
         );
 

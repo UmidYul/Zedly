@@ -125,6 +125,28 @@
                                         <input type="number" id="testMaxAttempts" class="form-input" value="${test.max_attempts || 1}" min="1">
                                     </div>
                                 </div>
+                                <div class="form-group">
+                                    <label class="form-label">Question Order</label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="testShuffleQuestions" ${test.shuffle_questions ? 'checked' : ''}>
+                                        <span>Shuffle questions for students</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Anti-Cheating</label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="testBlockCopyPaste" ${test.block_copy_paste !== false ? 'checked' : ''}>
+                                        <span>Block copy/paste</span>
+                                    </label>
+                                    <label class="checkbox-label" style="margin-left: 16px;">
+                                        <input type="checkbox" id="testTrackTabSwitches" ${test.track_tab_switches !== false ? 'checked' : ''}>
+                                        <span>Track tab switches</span>
+                                    </label>
+                                    <label class="checkbox-label" style="margin-left: 16px;">
+                                        <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required ? 'checked' : ''}>
+                                        <span>Require fullscreen</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <!-- Questions Section -->
@@ -997,6 +1019,10 @@
             const duration_minutes = parseInt(document.getElementById('testDuration').value);
             const passing_score = parseFloat(document.getElementById('testPassingScore').value);
             const max_attempts = parseInt(document.getElementById('testMaxAttempts').value);
+            const shuffle_questions = document.getElementById('testShuffleQuestions')?.checked || false;
+            const block_copy_paste = document.getElementById('testBlockCopyPaste')?.checked !== false;
+            const track_tab_switches = document.getElementById('testTrackTabSwitches')?.checked !== false;
+            const fullscreen_required = document.getElementById('testFullscreenRequired')?.checked === true;
 
             if (!title || !subject_id) {
                 alert('Please fill in all required fields.');
@@ -1010,6 +1036,10 @@
                 duration_minutes,
                 passing_score,
                 max_attempts,
+                shuffle_questions,
+                block_copy_paste,
+                track_tab_switches,
+                fullscreen_required,
                 is_published: isPublished,
                 questions: this.questions
             };

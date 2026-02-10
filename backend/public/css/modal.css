@@ -354,6 +354,20 @@
     color: var(--text-secondary);
 }
 
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: 6px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
 /* Question Items */
 .question-item {
     padding: var(--spacing-md);

@@ -169,7 +169,8 @@ router.post('/attempts', async (req, res) => {
 
         // Get assignment details
         const assignmentResult = await query(
-            `SELECT ta.*, t.max_attempts, t.duration_minutes
+            `SELECT ta.*, t.max_attempts, t.duration_minutes,
+                t.shuffle_questions, t.block_copy_paste, t.track_tab_switches, t.fullscreen_required
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
              JOIN class_students cs ON ta.class_id = cs.class_id
@@ -240,8 +241,12 @@ router.post('/attempts', async (req, res) => {
             [assignment.test_id]
         );
 
+        const questions = assignment.shuffle_questions
+            ? shuffleQuestions(questionsResult.rows)
+            : questionsResult.rows;
+
         // Calculate max score
-        const maxScore = questionsResult.rows.reduce((sum, q) => sum + parseFloat(q.marks), 0);
+        const maxScore = questions.reduce((sum, q) => sum + parseFloat(q.marks), 0);
 
         // Create new attempt
         const attemptResult = await query(
@@ -259,7 +264,7 @@ router.post('/attempts', async (req, res) => {
             attempt_id: attemptResult.rows[0].id,
             started_at: attemptResult.rows[0].started_at,
             duration_minutes: assignment.duration_minutes,
-            questions: questionsResult.rows
+            questions: questions
         });
     } catch (error) {
         console.error('Start attempt error:', error);
@@ -282,7 +287,8 @@ router.get('/attempts/:id', async (req, res) => {
         // Get attempt with validation
         const attemptResult = await query(
             `SELECT
-                ta.*, t.title as test_title, t.duration_minutes, t.passing_score,
+            ta.*, t.title as test_title, t.duration_minutes, t.passing_score,
+            t.shuffle_questions, t.block_copy_paste, t.track_tab_switches, t.fullscreen_required,
                 tass.start_date, tass.end_date,
                 s.name as subject_name, s.color as subject_color
              FROM test_attempts ta
@@ -309,10 +315,13 @@ router.get('/attempts/:id', async (req, res) => {
                FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`;
 
         const questionsResult = await query(questionsQuery, [attempt.test_id]);
+        const questions = attempt.shuffle_questions && !attempt.is_completed
+            ? shuffleQuestions(questionsResult.rows)
+            : questionsResult.rows;
 
         res.json({
             attempt: attempt,
-            questions: questionsResult.rows
+            questions: questions
         });
     } catch (error) {
         console.error('Get attempt error:', error);
@@ -330,7 +339,7 @@ router.get('/attempts/:id', async (req, res) => {
 router.put('/attempts/:id/submit', async (req, res) => {
     try {
         const { id } = req.params;
-        const { answers } = req.body;
+        const { answers, tab_switches, copy_attempts, suspicious_activity } = req.body;
         const studentId = req.user.id;
 
         // Get attempt with validation
@@ -446,9 +455,21 @@ router.put('/attempts/:id/submit', async (req, res) => {
                 score = $2,
                 percentage = $3,
                 answers = $4,
+                tab_switches = $5,
+                copy_attempts = $6,
+                suspicious_activity = $7,
                 is_completed = true
-             WHERE id = $5`,
-            [timeSpentSeconds, totalScore, percentage, JSON.stringify(gradedAnswers), id]
+             WHERE id = $8`,
+            [
+                timeSpentSeconds,
+                totalScore,
+                percentage,
+                JSON.stringify(gradedAnswers),
+                Number.isInteger(tab_switches) ? tab_switches : 0,
+                Number.isInteger(copy_attempts) ? copy_attempts : 0,
+                JSON.stringify(Array.isArray(suspicious_activity) ? suspicious_activity : []),
+                id
+            ]
         );
 
         res.json({
@@ -475,7 +496,7 @@ router.put('/attempts/:id/submit', async (req, res) => {
 router.put('/attempts/:id/save', async (req, res) => {
     try {
         const { id } = req.params;
-        const { answers } = req.body;
+        const { answers, tab_switches, copy_attempts, suspicious_activity } = req.body;
         const studentId = req.user.id;
 
         // Verify attempt belongs to student and is not completed
@@ -493,8 +514,19 @@ router.put('/attempts/:id/save', async (req, res) => {
 
         // Save answers without grading
         await query(
-            'UPDATE test_attempts SET answers = $1 WHERE id = $2',
-            [JSON.stringify(answers), id]
+            `UPDATE test_attempts SET
+                answers = $1,
+                tab_switches = $2,
+                copy_attempts = $3,
+                suspicious_activity = $4
+             WHERE id = $5`,
+            [
+                JSON.stringify(answers),
+                Number.isInteger(tab_switches) ? tab_switches : 0,
+                Number.isInteger(copy_attempts) ? copy_attempts : 0,
+                JSON.stringify(Array.isArray(suspicious_activity) ? suspicious_activity : []),
+                id
+            ]
         );
 
         res.json({ message: 'Progress saved' });
@@ -543,5 +575,14 @@ router.get('/results', async (req, res) => {
         });
     }
 });
+
+function shuffleQuestions(questions) {
+    const shuffled = [...questions];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
 
 module.exports = router;
