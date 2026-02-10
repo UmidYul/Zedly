@@ -418,25 +418,25 @@ router.get('/classes', async (req, res) => {
         const schoolId = req.user.school_id;
 
         // Build WHERE clause
-        let whereClause = 'WHERE school_id = $1';
+        let whereClause = 'WHERE c.school_id = $1';
         const params = [schoolId];
         let paramCount = 2;
 
         if (search) {
             params.push(`%${search}%`);
-            whereClause += ` AND (name ILIKE $${paramCount} OR academic_year ILIKE $${paramCount})`;
+            whereClause += ` AND (c.name ILIKE $${paramCount} OR c.academic_year ILIKE $${paramCount})`;
             paramCount++;
         }
 
         if (grade !== 'all') {
             params.push(parseInt(grade));
-            whereClause += ` AND grade_level = $${paramCount}`;
+            whereClause += ` AND c.grade_level = $${paramCount}`;
             paramCount++;
         }
 
         // Get total count
         const countResult = await query(
-            `SELECT COUNT(*) FROM classes ${whereClause}`,
+            `SELECT COUNT(*) FROM classes c ${whereClause}`,
             params
         );
         const total = parseInt(countResult.rows[0].count);
