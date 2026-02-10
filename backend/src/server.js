@@ -36,11 +36,8 @@ if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
 }
 
-// Serve static files (HTML, CSS, JS)
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
 // ==============================================
-// API Routes
+// API Routes (BEFORE static files!)
 // ==============================================
 
 app.get('/api/health', (req, res) => {
@@ -59,6 +56,13 @@ app.use('/api/auth', require('./routes/auth'));
 // app.use('/api/admin', require('./routes/admin'));
 // app.use('/api/teacher', require('./routes/teacher'));
 // app.use('/api/student', require('./routes/student'));
+
+// ==============================================
+// Serve Static Files (AFTER API routes!)
+// ==============================================
+
+// Serve static files (HTML, CSS, JS)
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ==============================================
 // Serve Frontend (HTML pages)
