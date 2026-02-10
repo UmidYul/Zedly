@@ -150,6 +150,11 @@
     color: white;
 }
 
+.test-badge.pending {
+    background: linear-gradient(135deg, var(--warning) 0%, #d69e2e 100%);
+    color: white;
+}
+
 .summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));

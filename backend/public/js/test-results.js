@@ -108,12 +108,22 @@
         // Render summary card
         renderSummary: function () {
             const percentage = parseFloat(this.attempt.percentage);
+            const answers = this.attempt.answers || {};
+
+            // Check if there are any ungraded questions (essay questions)
+            const hasUngradedQuestions = Object.values(answers).some(a => a.is_correct === null);
+
             const passed = percentage >= this.attempt.passing_score;
 
             // Badge
             const badge = document.getElementById('testBadge');
-            badge.className = `test-badge ${passed ? 'passed' : 'failed'}`;
-            badge.textContent = passed ? '✓ Passed' : '✗ Failed';
+            if (hasUngradedQuestions) {
+                badge.className = 'test-badge pending';
+                badge.textContent = '⏳ Pending Review';
+            } else {
+                badge.className = `test-badge ${passed ? 'passed' : 'failed'}`;
+                badge.textContent = passed ? '✓ Passed' : '✗ Failed';
+            }
 
             // Score
             document.getElementById('scoreValue').textContent = `${this.attempt.score} / ${this.attempt.max_score}`;
@@ -121,14 +131,17 @@
             // Percentage
             const percentageEl = document.getElementById('percentageValue');
             percentageEl.textContent = `${percentage.toFixed(1)}%`;
-            percentageEl.className = 'summary-value ' + (passed ? 'passed' : 'failed');
+            if (hasUngradedQuestions) {
+                percentageEl.className = 'summary-value pending';
+            } else {
+                percentageEl.className = 'summary-value ' + (passed ? 'passed' : 'failed');
+            }
 
             // Time
             const timeSpent = this.formatTime(this.attempt.time_spent_seconds);
             document.getElementById('timeValue').textContent = timeSpent;
 
             // Correct answers
-            const answers = this.attempt.answers || {};
             const correctCount = Object.values(answers).filter(a => a.is_correct === true).length;
             const totalQuestions = this.questions.length;
             document.getElementById('correctValue').textContent = `${correctCount} / ${totalQuestions}`;
