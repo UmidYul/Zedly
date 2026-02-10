@@ -270,11 +270,13 @@ router.get('/attempts/:id', async (req, res) => {
         // Get attempt with validation
         const attemptResult = await query(
             `SELECT
-                ta.*, t.title as test_title, t.duration_minutes,
-                tass.start_date, tass.end_date
+                ta.*, t.title as test_title, t.duration_minutes, t.passing_score,
+                tass.start_date, tass.end_date,
+                s.name as subject_name, s.color as subject_color
              FROM test_attempts ta
              JOIN tests t ON ta.test_id = t.id
              JOIN test_assignments tass ON ta.assignment_id = tass.id
+             LEFT JOIN subjects s ON t.subject_id = s.id
              WHERE ta.id = $1 AND ta.student_id = $2`,
             [id, studentId]
         );
