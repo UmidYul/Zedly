@@ -11,8 +11,7 @@
                 section: 'dashboard.nav.main',
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
-                    { icon: 'building', label: 'dashboard.nav.schools', id: 'schools', href: '#schools' },
-                    { icon: 'users', label: 'dashboard.nav.users', id: 'users', href: '#users' }
+                    { icon: 'building', label: 'dashboard.nav.schools', id: 'schools', href: '#schools' }
                 ]
             },
             {
