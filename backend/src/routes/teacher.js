@@ -415,7 +415,7 @@ router.get('/classes', async (req, res) => {
         // Get classes where teacher teaches or is homeroom teacher
         const result = await query(
             `SELECT DISTINCT
-                c.id, c.name, c.grade_level, c.section,
+                c.id, c.name, c.grade_level,
                 c.academic_year, c.is_active,
                 ht.full_name as homeroom_teacher_name,
                 (SELECT COUNT(*) FROM class_students cs WHERE cs.class_id = c.id) as student_count,
@@ -428,7 +428,7 @@ router.get('/classes', async (req, res) => {
              WHERE c.school_id = $2
                AND c.is_active = true
                AND (c.homeroom_teacher_id = $1 OR tcs.teacher_id = $1)
-             ORDER BY c.grade_level DESC, c.section ASC`,
+             ORDER BY c.grade_level DESC, c.name ASC`,
             [teacherId, schoolId]
         );
 
@@ -473,7 +473,7 @@ router.get('/classes/:id', async (req, res) => {
         // Get class details
         const classResult = await query(
             `SELECT
-                c.id, c.name, c.grade_level, c.section,
+                c.id, c.name, c.grade_level,
                 c.academic_year, c.is_active,
                 c.homeroom_teacher_id,
                 ht.full_name as homeroom_teacher_name,
