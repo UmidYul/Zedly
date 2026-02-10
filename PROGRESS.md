@@ -89,6 +89,7 @@
 - ✅ Teacher: Test Constructor
 - ✅ Teacher: Class Analytics
 - ✅ Student: Available Tests
+- ✅ Student: My Results
 
 ### 11. Конструктор тестов
 - ✅ UI для создания тестов
@@ -103,7 +104,6 @@
 ## ⏳ В процессе / Планируется
 
 ### Dashboard Страницы
-- ⏳ Student: My Results
 
 ### Конструктор тестов
 - ⏳ Drag & drop интерфейс

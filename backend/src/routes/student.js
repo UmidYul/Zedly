@@ -519,7 +519,7 @@ router.get('/results', async (req, res) => {
             `SELECT
                 ta.id as attempt_id, ta.started_at, ta.submitted_at,
                 ta.score, ta.max_score, ta.percentage, ta.is_completed,
-                t.title as test_title,
+                t.title as test_title, t.passing_score,
                 s.name as subject_name, s.color as subject_color,
                 tass.id as assignment_id,
                 c.name as class_name

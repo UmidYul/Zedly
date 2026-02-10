@@ -293,8 +293,10 @@
             'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
             'subjects': { src: '/js/subjects.js', manager: 'SubjectsManager' },
             'results': {
-                src: currentUser && currentUser.role === 'teacher' ? '/js/teacher-analytics.js' : null,
-                manager: 'TeacherAnalytics'
+                src: currentUser && currentUser.role === 'teacher'
+                    ? '/js/teacher-analytics.js'
+                    : (currentUser && currentUser.role === 'student' ? '/js/student-results.js' : null),
+                manager: currentUser && currentUser.role === 'teacher' ? 'TeacherAnalytics' : 'StudentResults'
             },
             'tests': {
                 src: currentUser && currentUser.role === 'student' ? '/js/student-tests.js' : '/js/tests.js',
@@ -545,6 +547,32 @@
                     <div id="classAnalyticsAssignments"></div>
                 </div>
                 <div class="dashboard-section" id="classAnalyticsNotes"></div>
+            `;
+        }
+
+        // Student Results
+        if (page === 'results' && role === 'student') {
+            return `
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="studentResultsSearch"
+                            class="search-input"
+                            placeholder="Search results..."
+                        />
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-outline" id="studentResultsRefresh">Refresh</button>
+                    </div>
+                </div>
+                <div class="stats-grid" id="studentResultsStats"></div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Test History</h2>
+                    </div>
+                    <div id="studentResultsTable"></div>
+                </div>
             `;
         }
 
