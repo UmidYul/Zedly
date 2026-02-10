@@ -6,6 +6,7 @@ import multipart from '@fastify/multipart';
 import { config } from './config';
 import { authRoutes } from './routes/auth';
 import { superadminRoutes } from './routes/superadmin';
+import { adminRoutes } from './routes/admin';
 
 // Create Fastify instance
 const fastify = Fastify({
@@ -56,7 +57,8 @@ async function registerRoutes() {
   // SuperAdmin routes
   await fastify.register(superadminRoutes, { prefix: `${config.apiBasePath}/superadmin` });
 
-  // TODO: Add more routes (admin, teacher, student)
+  // School Admin routes
+  await fastify.register(adminRoutes, { prefix: `${config.apiBasePath}/admin` });
 }
 
 // Error handler
