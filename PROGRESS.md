@@ -81,29 +81,36 @@
 - ✅ **Logout функционал**
 - ✅ **i18n поддержка** - 30+ переводов RU/UZ
 
+### 10. Dashboard страницы (реализованы)
+- ✅ SuperAdmin: Schools Management
+- ✅ SuperAdmin: Global Statistics
+- ✅ SchoolAdmin: User Management
+- ✅ SchoolAdmin: Classes & Subjects Management
+- ✅ Teacher: Test Constructor
+- ✅ Student: Available Tests
+
+### 11. Конструктор тестов
+- ✅ UI для создания тестов
+- ✅ 9 типов вопросов
+- ✅ Настройки теста (время, попытки)
+
+### 12. Прохождение тестов
+- ✅ UI для прохождения
+- ✅ Автосохранение прогресса
+- ✅ Таймер
+
 ## ⏳ В процессе / Планируется
 
 ### Dashboard Страницы
-- ⏳ SuperAdmin: Schools Management
-- ⏳ SuperAdmin: Global Statistics
-- ⏳ SchoolAdmin: User Management
-- ⏳ SchoolAdmin: Classes & Subjects Management
-- ⏳ Teacher: Test Constructor
 - ⏳ Teacher: Class Analytics
-- ⏳ Student: Available Tests
 - ⏳ Student: My Results
 
 ### Конструктор тестов
-- ⏳ UI для создания тестов
-- ⏳ 9 типов вопросов
 - ⏳ Drag & drop интерфейс
-- ⏳ Настройки теста (время, попытки, порядок)
+- ⏳ Настройки теста (порядок)
 
 ### Прохождение тестов
-- ⏳ UI для прохождения
 - ⏳ Anti-cheating механизмы
-- ⏳ Автосохранение прогресса
-- ⏳ Таймер
 
 ### Профориентация
 - ⏳ Тест на профориентацию

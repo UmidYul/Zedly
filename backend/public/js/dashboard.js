@@ -288,6 +288,7 @@
     async function loadPageScript(page) {
         const scriptMap = {
             'schools': { src: '/js/schools.js', manager: 'SchoolsManager' },
+            'statistics': { src: '/js/superadmin-stats.js', manager: 'SuperadminStats' },
             'users': { src: '/js/users.js', manager: 'UsersManager' },
             'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
             'subjects': { src: '/js/subjects.js', manager: 'SubjectsManager' },
@@ -553,6 +554,31 @@
                     </div>
                 </div>
                 <div id="assignmentsContainer"></div>
+            `;
+        }
+
+        // Global Statistics (SuperAdmin)
+        if (page === 'statistics') {
+            if (role !== 'superadmin') {
+                return `
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Statistics</h2>
+                        </div>
+                        <p style="color: var(--text-secondary);">This section is only available for SuperAdmin.</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="stats-grid" id="superadminStatsCards"></div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Global Breakdown</h2>
+                    </div>
+                    <div id="superadminStatsBreakdown"></div>
+                </div>
+                <div class="dashboard-section" id="superadminStatsNote"></div>
             `;
         }
 
