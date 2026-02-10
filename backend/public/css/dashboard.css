@@ -9,7 +9,9 @@
 /* Sidebar */
 .sidebar {
     width: 260px;
-    background: var(--bg-secondary);
+    background: rgba(21, 27, 45, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -149,7 +151,9 @@
 }
 
 .dashboard-header {
-    background: var(--bg-secondary);
+    background: rgba(21, 27, 45, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
     padding: var(--spacing-lg) var(--spacing-xl);
     display: flex;
@@ -254,7 +258,9 @@
 }
 
 .stat-card {
-    background: var(--bg-secondary);
+    background: rgba(21, 27, 45, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
@@ -265,8 +271,9 @@
 }
 
 .stat-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.12);
 }
 
 .stat-icon {

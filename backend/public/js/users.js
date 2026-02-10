@@ -416,6 +416,11 @@
             // Add modal to body
             document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+            // Initialize teacher fields if role is teacher
+            if (user?.role === 'teacher') {
+                this.toggleTeacherFields('teacher');
+            }
+
             // Close on overlay click
             document.getElementById('userModal').addEventListener('click', (e) => {
                 if (e.target.id === 'userModal') {
