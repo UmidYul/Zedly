@@ -12,8 +12,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve static files from public directory
+const publicPath = path.join(__dirname, 'public');
+console.log('Public directory:', publicPath);
+app.use(express.static(publicPath));
 
 // Mock users
 const users = {
@@ -71,7 +73,13 @@ app.post('/api/auth/refresh', (req, res) => {
 app.get('*', (req, res) => {
     if (!req.url.startsWith('/api/')) {
         const page = req.url === '/' ? 'index.html' : req.url.substring(1);
-        res.sendFile(path.join(__dirname, '../public', page));
+        const filePath = path.join(__dirname, 'public', page);
+        res.sendFile(filePath, (err) => {
+            if (err) {
+                console.error('File not found:', filePath);
+                res.status(404).send('Page not found');
+            }
+        });
     } else {
         res.status(404).json({ error: 'Not found' });
     }
