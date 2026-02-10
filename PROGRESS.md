@@ -66,15 +66,32 @@
 - ✅ QUICKSTART.md - быстрый старт для разработчиков
 - ✅ DATABASE.md - документация по БД
 - ✅ API_DOCS.md - документация по API
+- ✅ DASHBOARD.md - документация по Dashboard
 - ✅ Комментарии в коде
+
+### 9. Dashboard (базовая структура)
+- ✅ **Универсальный Dashboard** - адаптивная навигация по ролям
+- ✅ **Responsive sidebar** - фиксированная навигация с overlay на мобильных
+- ✅ **4 навигационных конфигурации** - для каждой роли
+- ✅ **Header** с переключателями темы/языка
+- ✅ **User menu** в sidebar footer
+- ✅ **Stat cards** - карточки статистики с иконками
+- ✅ **JWT защита** - проверка токена при загрузке
+- ✅ **Auto token refresh** - автоматическое обновление токена
+- ✅ **Logout функционал**
+- ✅ **i18n поддержка** - 30+ переводов RU/UZ
 
 ## ⏳ В процессе / Планируется
 
-### Dashboards
-- ⏳ SuperAdmin Dashboard
-- ⏳ SchoolAdmin Dashboard
-- ⏳ Teacher Dashboard
-- ⏳ Student Dashboard
+### Dashboard Страницы
+- ⏳ SuperAdmin: Schools Management
+- ⏳ SuperAdmin: Global Statistics
+- ⏳ SchoolAdmin: User Management
+- ⏳ SchoolAdmin: Classes & Subjects Management
+- ⏳ Teacher: Test Constructor
+- ⏳ Teacher: Class Analytics
+- ⏳ Student: Available Tests
+- ⏳ Student: My Results
 
 ### Конструктор тестов
 - ⏳ UI для создания тестов
