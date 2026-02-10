@@ -8,15 +8,11 @@
     top: 0;
     left: 0;
     right: 0;
-    background: var(--bg-primary);
-    border-bottom: 1px solid var(--border);
+    background: var(--surface-glass);
+    border-bottom: 1px solid var(--border-light);
     z-index: 1000;
     backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.95);
-}
-
-[data-theme="dark"] .header {
-    background: rgba(26, 32, 44, 0.95);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .header-content {
@@ -35,11 +31,7 @@
 /* Hero Section */
 .hero {
     padding: 120px 0 80px;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-}
-
-[data-theme="dark"] .hero {
-    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+    background: transparent;
 }
 
 .hero-content {
@@ -110,11 +102,11 @@
 }
 
 .feature-card {
-    background: var(--bg-primary);
+    background: var(--surface-card);
     border-radius: var(--radius-lg);
     padding: var(--spacing-xl);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border);
+    box-shadow: var(--glow);
+    border: 1px solid var(--border-light);
     transition: var(--transition);
 }
 
@@ -185,7 +177,7 @@
 /* Stats Section */
 .stats {
     padding: var(--spacing-3xl) 0;
-    background: var(--bg-secondary);
+    background: rgba(21, 27, 45, 0.5);
 }
 
 .stats-grid {
@@ -197,7 +189,7 @@
 .stat-card {
     text-align: center;
     padding: var(--spacing-xl);
-    background: var(--bg-primary);
+    background: var(--surface-card);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
 }
@@ -220,7 +212,7 @@
 /* CTA Section */
 .cta {
     padding: var(--spacing-3xl) 0;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    background: var(--gradient-secondary);
     color: white;
     text-align: center;
 }
@@ -238,8 +230,8 @@
 }
 
 .cta .btn-primary {
-    background: white;
-    color: var(--primary);
+    background: var(--gradient-primary);
+    color: white;
 }
 
 .cta .btn-primary:hover {
@@ -250,8 +242,8 @@
 /* Footer */
 .footer {
     padding: var(--spacing-3xl) 0 var(--spacing-xl);
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--border);
+    background: var(--surface-glass);
+    border-top: 1px solid var(--border-light);
 }
 
 .footer-content {

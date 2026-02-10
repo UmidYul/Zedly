@@ -2,8 +2,8 @@
 
 /* Header */
 .results-header {
-    background: var(--bg-primary);
-    border-bottom: 2px solid var(--border);
+    background: var(--surface-glass);
+    border-bottom: 1px solid var(--border-light);
     box-shadow: var(--shadow-sm);
     padding: var(--spacing-lg) var(--spacing-xl);
 }
@@ -21,8 +21,8 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-lg);
-    background: var(--bg-secondary);
-    border: 2px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     color: var(--text-primary);
     font-weight: 600;
@@ -109,8 +109,8 @@
 
 /* Info Card */
 .info-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-xl);
     padding: var(--spacing-2xl);
     box-shadow: var(--shadow-md);
@@ -120,7 +120,7 @@
 .info-header {
     margin-bottom: var(--spacing-xl);
     padding-bottom: var(--spacing-lg);
-    border-bottom: 2px solid var(--border);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .info-header h2 {
@@ -150,9 +150,9 @@
     align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-xl);
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.03);
     border-radius: var(--radius-lg);
-    border: 2px solid var(--border);
+    border: 1px solid var(--border-light);
     transition: var(--transition-fast);
 }
 
@@ -215,8 +215,8 @@
 
 /* Results Table Card */
 .results-table-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-xl);
     padding: var(--spacing-2xl);
     box-shadow: var(--shadow-md);
@@ -250,7 +250,7 @@
 
 .search-input {
     padding: var(--spacing-sm) var(--spacing-lg);
-    border: 2px solid var(--border);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     background: var(--bg-primary);
     color: var(--text-primary);

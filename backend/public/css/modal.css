@@ -5,7 +5,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(7, 10, 18, 0.75);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -26,7 +26,7 @@
 }
 
 .modal {
-    background: var(--bg-secondary);
+    background: var(--surface-card);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
     width: 100%;
@@ -56,7 +56,7 @@
 
 .modal-header {
     padding: var(--spacing-xl);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -96,7 +96,7 @@
 
 .modal-footer {
     padding: var(--spacing-xl);
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-light);
     display: flex;
     gap: var(--spacing-md);
     justify-content: flex-end;
@@ -124,7 +124,7 @@
 .form-textarea {
     width: 100%;
     padding: var(--spacing-md) var(--spacing-lg);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     background: var(--bg-primary);
     color: var(--text-primary);
@@ -519,6 +519,7 @@
 }
 
 @media (max-width: 768px) {
+
     .modal-xl,
     .modal-large {
         max-width: 100%;
@@ -541,6 +542,7 @@
         text-align: center;
     }
 }
+
 /* Assignment details styles */
 .assignment-details {
     display: flex;
@@ -634,6 +636,7 @@
     color: var(--text-primary);
     line-height: 1.6;
 }
+
 /* Teacher Assignment Styles */
 
 .form-section-header {
@@ -645,7 +648,7 @@
 .form-section-header h3 {
     font-size: 1.125rem;
     font-weight: 700;
-   color: var(--text-primary);
+    color: var(--text-primary);
     margin: 0 0 var(--spacing-xs) 0;
 }
 

@@ -10,8 +10,8 @@
 
 /* Test Card */
 .test-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
     overflow: hidden;
     transition: all 0.3s ease;
@@ -27,7 +27,7 @@
 /* Test Card Header */
 .test-card-header {
     padding: var(--spacing-md) var(--spacing-lg);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -90,8 +90,8 @@
 /* Test Card Footer */
 .test-card-footer {
     padding: var(--spacing-md) var(--spacing-lg);
-    border-top: 1px solid var(--border-color);
-    background: var(--bg-primary);
+    border-top: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.03);
     display: flex;
     gap: var(--spacing-sm);
 }
@@ -112,7 +112,7 @@
 
 .filter-select {
     padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     background: var(--bg-secondary);
     color: var(--text-primary);
@@ -195,9 +195,10 @@
 .empty-state p {
     margin: 0;
 }
+
 /* Student Tests Styles */
 .page-tabs {
-    background: var(--bg-secondary);
+    background: var(--surface-glass);
     border-radius: var(--radius-lg);
     padding: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
@@ -221,7 +222,7 @@
 }
 
 .tab:hover {
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text-primary);
 }
 
@@ -241,9 +242,9 @@
 }
 
 .test-card {
-    background: var(--bg-secondary);
+    background: var(--surface-card);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-light);
     overflow: hidden;
     transition: all 0.2s ease;
 }
@@ -270,8 +271,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .test-card-body {
@@ -307,8 +308,8 @@
     flex-direction: column;
     gap: var(--spacing-sm);
     padding: var(--spacing-md) 0;
-    border-top: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .meta-item {
@@ -369,8 +370,8 @@
 
 .test-card-footer {
     padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--bg-primary);
-    border-top: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid var(--border-light);
 }
 
 .test-card-footer .btn {

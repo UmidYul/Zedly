@@ -7,14 +7,14 @@
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--bg-secondary);
+    background: var(--surface-card);
     border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
 .data-table thead {
-    background: var(--bg-primary);
-    border-bottom: 2px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .data-table th {
@@ -29,12 +29,12 @@
 
 .data-table td {
     padding: var(--spacing-md) var(--spacing-lg);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
     color: var(--text-primary);
 }
 
 .data-table tbody tr:hover {
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .data-table tbody tr:last-child td {
@@ -100,7 +100,7 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-light);
     background: none;
     color: var(--text-secondary);
     border-radius: var(--radius-md);
@@ -135,8 +135,8 @@
     min-width: 40px;
     height: 40px;
     padding: 0 var(--spacing-md);
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.03);
     color: var(--text-primary);
     border-radius: var(--radius-md);
     cursor: pointer;
@@ -181,7 +181,7 @@
     width: 100%;
     padding: var(--spacing-md) var(--spacing-lg);
     padding-left: 40px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     background: var(--bg-secondary);
     color: var(--text-primary);
@@ -203,7 +203,7 @@
 
 .select-input {
     padding: var(--spacing-md) var(--spacing-lg);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     background: var(--bg-secondary);
     color: var(--text-primary);
@@ -242,8 +242,8 @@
 }
 
 .btn-outline {
-    background: none;
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-light);
     color: var(--text-primary);
 }
 

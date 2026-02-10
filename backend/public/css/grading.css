@@ -2,8 +2,8 @@
 
 /* Grading Card */
 .grading-card {
-    background: var(--bg-primary);
-    border: 2px solid var(--border);
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
     overflow: hidden;
     margin-bottom: var(--spacing-xl);
@@ -20,8 +20,8 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--spacing-lg);
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--border-light);
     flex-wrap: wrap;
     gap: var(--spacing-md);
 }
@@ -42,9 +42,9 @@
 .essay-answer-section {
     margin: var(--spacing-xl) 0;
     padding: var(--spacing-lg);
-    background: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.03);
     border-radius: var(--radius-lg);
-    border: 2px solid var(--border);
+    border: 1px solid var(--border-light);
 }
 
 .essay-label {
@@ -56,8 +56,8 @@
 
 .essay-content {
     padding: var(--spacing-lg);
-    background: var(--bg-primary);
-    border: 2px solid var(--border);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     white-space: pre-wrap;
     line-height: 1.8;
@@ -72,9 +72,9 @@
 .grading-form {
     margin-top: var(--spacing-xl);
     padding: var(--spacing-xl);
-    background: rgba(74, 144, 226, 0.05);
+    background: rgba(43, 89, 195, 0.08);
     border-radius: var(--radius-lg);
-    border: 2px solid rgba(74, 144, 226, 0.2);
+    border: 1px solid rgba(43, 89, 195, 0.25);
 }
 
 .grading-input-group {
@@ -92,7 +92,7 @@
 .grading-input {
     width: 200px;
     padding: var(--spacing-md) var(--spacing-lg);
-    border: 2px solid var(--border);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     background: var(--bg-primary);
     color: var(--text-primary);
@@ -110,7 +110,7 @@
 .grading-textarea {
     width: 100%;
     padding: var(--spacing-lg);
-    border: 2px solid var(--border);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     background: var(--bg-primary);
     color: var(--text-primary);

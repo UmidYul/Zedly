@@ -2,8 +2,8 @@
 
 /* Header */
 .results-header {
-    background: var(--bg-primary);
-    border-bottom: 2px solid var(--border);
+    background: var(--surface-glass);
+    border-bottom: 1px solid var(--border-light);
     box-shadow: var(--shadow-sm);
     padding: var(--spacing-lg) var(--spacing-xl);
 }
@@ -21,8 +21,8 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-lg);
-    background: var(--bg-secondary);
-    border: 2px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     color: var(--text-primary);
     font-weight: 600;
@@ -109,8 +109,8 @@
 
 /* Summary Card */
 .summary-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-xl);
     padding: var(--spacing-2xl);
     box-shadow: var(--shadow-lg);
@@ -123,7 +123,7 @@
     align-items: center;
     margin-bottom: var(--spacing-xl);
     padding-bottom: var(--spacing-lg);
-    border-bottom: 2px solid var(--border);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .summary-header h2 {
@@ -167,9 +167,9 @@
     align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-lg);
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.03);
     border-radius: var(--radius-lg);
-    border: 2px solid var(--border);
+    border: 1px solid var(--border-light);
 }
 
 .summary-icon {
@@ -234,7 +234,7 @@
     display: flex;
     gap: var(--spacing-2xl);
     padding-top: var(--spacing-lg);
-    border-top: 2px solid var(--border);
+    border-top: 1px solid var(--border-light);
     flex-wrap: wrap;
 }
 
@@ -249,8 +249,8 @@
 
 /* Questions Review */
 .questions-review {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-xl);
     padding: var(--spacing-2xl);
     box-shadow: var(--shadow-md);

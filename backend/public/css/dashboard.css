@@ -3,16 +3,16 @@
 .dashboard {
     display: flex;
     min-height: 100vh;
-    background: var(--bg-primary);
+    background: transparent;
 }
 
 /* Sidebar */
 .sidebar {
     width: 260px;
-    background: rgba(21, 27, 45, 0.8);
+    background: var(--surface-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -25,7 +25,7 @@
 
 .sidebar-header {
     padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .sidebar-logo {
@@ -78,12 +78,12 @@
 }
 
 .nav-item:hover {
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.04);
     color: var(--text-primary);
 }
 
 .nav-item.active {
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.06);
     color: var(--primary);
     border-left-color: var(--primary);
     font-weight: 600;
@@ -97,7 +97,7 @@
 
 .sidebar-footer {
     padding: var(--spacing-lg);
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-light);
 }
 
 .user-menu {
@@ -151,10 +151,10 @@
 }
 
 .dashboard-header {
-    background: rgba(21, 27, 45, 0.8);
+    background: var(--surface-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
     padding: var(--spacing-lg) var(--spacing-xl);
     display: flex;
     align-items: center;
@@ -207,7 +207,7 @@
     height: 40px;
     border-radius: var(--radius-md);
     background: none;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-light);
     color: var(--text-secondary);
     display: flex;
     align-items: center;
@@ -218,7 +218,7 @@
 }
 
 .icon-btn:hover {
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.06);
     color: var(--text-primary);
     border-color: var(--primary);
 }
