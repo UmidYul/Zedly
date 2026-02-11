@@ -995,4 +995,103 @@ router.get('/dashboard/stats', async (req, res) => {
     }
 });
 
+// SuperAdmin Dashboard Overview
+router.get('/dashboard/overview', async (req, res) => {
+    try {
+        // Count schools
+        const schoolsResult = await query('SELECT COUNT(*) as count FROM school');
+        const schoolCount = parseInt(schoolsResult.rows[0]?.count || 0);
+
+        // Count users by role
+        const usersResult = await query(`
+            SELECT role, COUNT(*) as count
+            FROM users
+            GROUP BY role
+        `);
+        const userCounts = {};
+        usersResult.rows.forEach(row => {
+            userCounts[row.role] = parseInt(row.count);
+        });
+
+        // Count total tests
+        const testsResult = await query('SELECT COUNT(*) as count FROM test');
+        const testCount = parseInt(testsResult.rows[0]?.count || 0);
+
+        // Get average score across all attempts
+        const columnsResult = await query(`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'test_attempts'
+        `);
+        const columns = new Set(columnsResult.rows.map(row => row.column_name));
+
+        let scoreExpr = columns.has('percentage') ? 'tatt.percentage'
+            : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)'
+                : 'NULL';
+
+        let completedFilter = 'false';
+        if (columns.has('status')) completedFilter = "tatt.status = 'completed'";
+        else if (columns.has('is_completed')) completedFilter = 'tatt.is_completed = true';
+        else if (columns.has('submitted_at')) completedFilter = 'tatt.submitted_at IS NOT NULL';
+
+        let avgScoreResult = { rows: [{ avg: null }] };
+        if (scoreExpr !== 'NULL') {
+            avgScoreResult = await query(`
+                SELECT AVG(${scoreExpr})::int as avg
+                FROM test_attempts tatt
+                WHERE ${completedFilter}
+            `);
+        }
+        const avgScore = avgScoreResult.rows[0]?.avg || 0;
+
+        // Count career tests completed
+        const careerResult = await query(`
+            SELECT COUNT(DISTINCT student_id) as count
+            FROM student_career_results
+        `);
+        const careerTestsCompleted = parseInt(careerResult.rows[0]?.count || 0);
+
+        // Get top schools by average test score
+        const topSchoolsResult = await query(`
+            SELECT 
+                s.id,
+                s.name,
+                COUNT(DISTINCT tatt.id) as attempts,
+                ${scoreExpr !== 'NULL' ? `AVG(${scoreExpr})::int` : '0'}::int as avg_score
+            FROM test_attempts tatt
+            INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
+            INNER JOIN test t ON t.id = ta.test_id
+            INNER JOIN users u ON u.id = t.created_by
+            INNER JOIN school s ON s.id = u.school_id
+            ${completedFilter !== 'false' ? `WHERE ${completedFilter}` : ''}
+            GROUP BY s.id, s.name
+            ORDER BY avg_score DESC
+            LIMIT 5
+        `);
+        const topSchools = topSchoolsResult.rows || [];
+
+        res.json({
+            stats: {
+                schools: schoolCount,
+                students: userCounts.student || 0,
+                teachers: userCounts.teacher || 0,
+                tests: testCount,
+                avg_score: Math.round(avgScore),
+                career_tests_completed: careerTestsCompleted
+            },
+            top_schools: topSchools.map(row => ({
+                school_name: row.name,
+                attempts: parseInt(row.attempts),
+                avg_score: row.avg_score || 0
+            }))
+        });
+    } catch (error) {
+        console.error('SuperAdmin dashboard overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch dashboard overview'
+        });
+    }
+});
+
 module.exports = router;

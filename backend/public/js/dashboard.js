@@ -326,7 +326,40 @@
             </div>
         `;
 
-        // Set page content
+        // Load stats from API if overview page
+        if (page === 'overview' && currentUser) {
+            const statsData = await loadStatsFromAPI(currentUser.role);
+            if (statsData) {
+                // Set page content with API data
+                const titles = {
+                    superadmin: { title: 'Админ Панель', subtitle: 'Управление системой и контроль' },
+                    school_admin: { title: 'Админ Панель', subtitle: 'Управление школой' },
+                    teacher: { title: 'Панель Учителя', subtitle: 'Тесты и аналитика' },
+                    student: { title: 'Панель Ученика', subtitle: 'Обучение и результаты' }
+                };
+
+                const roleTitle = titles[currentUser.role] || titles.student;
+
+                content.innerHTML = `
+                    <div class="page-header-section">
+                        <h1 class="page-main-title">${roleTitle.title}</h1>
+                        <p class="page-subtitle">${roleTitle.subtitle}</p>
+                    </div>
+                    <div class="stats-grid">
+                        ${buildStatsCards(currentUser.role, statsData)}
+                    </div>
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Recent Activity</h2>
+                        </div>
+                        <p style="color: var(--text-secondary);">Content coming soon...</p>
+                    </div>
+                `;
+                return;
+            }
+        }
+
+        // Set page content (fallback or non-overview pages)
         content.innerHTML = getPageContent(page);
 
         // Load script and initialize if needed
@@ -938,7 +971,94 @@
         `;
     }
 
-    // Get stats cards based on role
+    // Load stats from API
+    async function loadStatsFromAPI(role) {
+        try {
+            const endpoints = {
+                superadmin: '/api/superadmin/dashboard/overview',
+                school_admin: '/api/admin/dashboard/overview',
+                teacher: '/api/teacher/dashboard/overview',
+                student: '/api/student/dashboard/overview'
+            };
+
+            const endpoint = endpoints[role];
+            if (!endpoint) return null;
+
+            const response = await fetch(endpoint, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to load stats for ${role}`);
+                return null;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            return null;
+        }
+    }
+
+    // Build stat cards from API data
+    function buildStatsCards(role, data) {
+        if (!data || !data.stats) {
+            return '';
+        }
+
+        const stats = data.stats;
+        const cards = [];
+
+        if (role === 'superadmin') {
+            cards.push(
+                { icon: 'building', label: 'Schools', value: stats.schools },
+                { icon: 'users', label: 'Students', value: stats.students },
+                { icon: 'clipboard', label: 'Tests', value: stats.tests },
+                { icon: 'star', label: 'Avg Score', value: `${stats.avg_score}%` }
+            );
+        } else if (role === 'school_admin') {
+            cards.push(
+                { icon: 'users', label: 'Students', value: stats.students },
+                { icon: 'class', label: 'Classes', value: stats.classes },
+                { icon: 'clipboard', label: 'Tests', value: stats.tests },
+                { icon: 'star', label: 'Avg Score', value: `${stats.avg_score}%` }
+            );
+        } else if (role === 'teacher') {
+            cards.push(
+                { icon: 'clipboard', label: 'Tests Created', value: stats.tests_created },
+                { icon: 'users', label: 'Students', value: stats.student_count },
+                { icon: 'clipboard', label: 'Assignments', value: stats.assignments_total },
+                { icon: 'star', label: 'Avg Score', value: `${stats.avg_percentage}%` }
+            );
+        } else if (role === 'student') {
+            cards.push(
+                { icon: 'clipboard', label: 'Tests Assigned', value: stats.tests_assigned },
+                { icon: 'star', label: 'Tests Completed', value: stats.tests_completed },
+                { icon: 'trophy', label: 'Avg Score', value: `${stats.avg_score}%` },
+                { icon: 'target', label: 'Career Test', value: stats.career_test_completed ? 'Done' : 'Pending' }
+            );
+        }
+
+        const colors = ['blue', 'green', 'orange', 'purple'];
+        return cards.map((card, i) => `
+            <div class="stat-card">
+                <div class="stat-icon ${colors[i]}">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        ${icons[card.icon]}
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">${card.label}</div>
+                    <div class="stat-value">${card.value}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Get stats cards based on role (fallback with placeholder data)
     function getStatsForRole(role) {
         const stats = {
             superadmin: [

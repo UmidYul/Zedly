@@ -1031,4 +1031,113 @@ function shuffleQuestions(questions) {
     return shuffled;
 }
 
+// Student Dashboard Overview
+router.get('/dashboard/overview', async (req, res) => {
+    try {
+        const studentId = req.user.user_id;
+
+        // Get tests assigned to student's classes
+        const testsAssignedResult = await query(`
+            SELECT COUNT(DISTINCT ta.id) as count
+            FROM test_assignments ta
+            INNER JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 AND cs.is_active = true
+        `, [studentId]);
+        const testsAssigned = parseInt(testsAssignedResult.rows[0]?.count || 0);
+
+        // Get tests completed by student
+        const columnsResult = await query(`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'test_attempts'
+        `);
+        const columns = new Set(columnsResult.rows.map(row => row.column_name));
+
+        let completedFilter = 'false';
+        if (columns.has('status')) completedFilter = "tatt.status = 'completed'";
+        else if (columns.has('is_completed')) completedFilter = 'tatt.is_completed = true';
+        else if (columns.has('submitted_at')) completedFilter = 'tatt.submitted_at IS NOT NULL';
+
+        const testsCompletedResult = await query(`
+            SELECT COUNT(DISTINCT tatt.id) as count
+            FROM test_attempts tatt
+            INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
+            INNER JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+        `, [studentId]);
+        const testsCompleted = parseInt(testsCompletedResult.rows[0]?.count || 0);
+
+        // Get average score
+        let scoreExpr = columns.has('percentage') ? 'tatt.percentage'
+            : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)'
+                : 'NULL';
+
+        let avgScoreResult = { rows: [{ avg: null }] };
+        if (scoreExpr !== 'NULL') {
+            avgScoreResult = await query(`
+                SELECT AVG(${scoreExpr})::int as avg
+                FROM test_attempts tatt
+                INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
+                INNER JOIN class_students cs ON cs.class_id = ta.class_id
+                WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+            `, [studentId]);
+        }
+        const avgScore = avgScoreResult.rows[0]?.avg || 0;
+
+        // Get career test completion
+        const careerResult = await query(`
+            SELECT COUNT(*) as count
+            FROM student_career_results
+            WHERE student_id = $1
+        `, [studentId]);
+        const careerTestCompleted = parseInt(careerResult.rows[0]?.count || 0) > 0;
+
+        // Get recent test attempts (last 5)
+        const recentResult = await query(`
+            SELECT 
+                t.id,
+                t.title,
+                c.name as class_name,
+                ${columns.has('percentage') ? 'tatt.percentage'
+                : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)::int'
+                    : '0'}::int as percentage,
+                ${columns.has('submitted_at') ? 'tatt.submitted_at'
+                : columns.has('completed_at') ? 'tatt.completed_at'
+                    : 'NULL'}::timestamp as submitted_at
+            FROM test_attempts tatt
+            INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
+            INNER JOIN test t ON t.id = ta.test_id
+            INNER JOIN class c ON c.id = ta.class_id
+            INNER JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+            ORDER BY ${columns.has('submitted_at') ? 'tatt.submitted_at'
+                : columns.has('completed_at') ? 'tatt.completed_at'
+                    : 'tatt.id'} DESC
+            LIMIT 5
+        `, [studentId]);
+        const recentAttempts = recentResult.rows || [];
+
+        res.json({
+            stats: {
+                tests_assigned: testsAssigned,
+                tests_completed: testsCompleted,
+                avg_score: Math.round(avgScore),
+                career_test_completed: careerTestCompleted
+            },
+            recent_attempts: recentAttempts.map(row => ({
+                test_title: row.title,
+                class_name: row.class_name,
+                percentage: row.percentage || 0,
+                submitted_at: row.submitted_at
+            }))
+        });
+    } catch (error) {
+        console.error('Student dashboard overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch dashboard overview'
+        });
+    }
+});
+
 module.exports = router;

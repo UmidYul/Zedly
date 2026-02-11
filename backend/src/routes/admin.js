@@ -1559,4 +1559,106 @@ router.get('/users/template', (req, res) => {
     }
 });
 
+// School Admin Dashboard Overview
+router.get('/dashboard/overview', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+
+        // Count users by role in school
+        const usersResult = await query(`
+            SELECT role, COUNT(*) as count
+            FROM users
+            WHERE school_id = $1
+            GROUP BY role
+        `, [schoolId]);
+
+        const userCounts = {};
+        usersResult.rows.forEach(row => {
+            userCounts[row.role] = parseInt(row.count);
+        });
+
+        // Count classes
+        const classesResult = await query(`
+            SELECT COUNT(*) as count
+            FROM class
+            WHERE school_id = $1
+        `, [schoolId]);
+        const classCount = parseInt(classesResult.rows[0]?.count || 0);
+
+        // Count students
+        const studentsResult = await query(`
+            SELECT COUNT(DISTINCT u.id) as count
+            FROM users u
+            WHERE u.school_id = $1 AND u.role = 'student'
+        `, [schoolId]);
+        const studentCount = parseInt(studentsResult.rows[0]?.count || 0);
+
+        // Count tests
+        const testsResult = await query(`
+            SELECT COUNT(DISTINCT t.id) as count
+            FROM test t
+            INNER JOIN users u ON u.id = t.created_by
+            WHERE u.school_id = $1
+        `, [schoolId]);
+        const testCount = parseInt(testsResult.rows[0]?.count || 0);
+
+        // Get average score across all test attempts
+        const columnsResult = await query(`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'test_attempts'
+        `);
+        const columns = new Set(columnsResult.rows.map(row => row.column_name));
+
+        let scoreExpr = columns.has('percentage') ? 'tatt.percentage'
+            : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)'
+                : 'NULL';
+
+        let completedFilter = 'false';
+        if (columns.has('status')) completedFilter = "tatt.status = 'completed'";
+        else if (columns.has('is_completed')) completedFilter = 'tatt.is_completed = true';
+        else if (columns.has('submitted_at')) completedFilter = 'tatt.submitted_at IS NOT NULL';
+
+        let avgScoreResult = { rows: [{ avg: null }] };
+        if (scoreExpr !== 'NULL') {
+            avgScoreResult = await query(`
+                SELECT AVG(${scoreExpr})::int as avg
+                FROM test_attempts tatt
+                INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
+                INNER JOIN test t ON t.id = ta.test_id
+                INNER JOIN users u ON u.id = t.created_by
+                WHERE u.school_id = $1 AND ${completedFilter}
+            `, [schoolId]);
+        }
+        const avgScore = avgScoreResult.rows[0]?.avg || 0;
+
+        // Count active assignments
+        const activeAssignmentsResult = await query(`
+            SELECT COUNT(DISTINCT ta.id) as count
+            FROM test_assignments ta
+            INNER JOIN test t ON t.id = ta.test_id
+            INNER JOIN users u ON u.id = t.created_by
+            WHERE u.school_id = $1 AND (ta.end_date IS NULL OR ta.end_date > NOW())
+        `, [schoolId]);
+        const activeAssignments = parseInt(activeAssignmentsResult.rows[0]?.count || 0);
+
+        res.json({
+            stats: {
+                students: studentCount,
+                teachers: userCounts.teacher || 0,
+                classes: classCount,
+                tests: testCount,
+                active_assignments: activeAssignments,
+                avg_score: Math.round(avgScore)
+            }
+        });
+    } catch (error) {
+        console.error('Admin dashboard overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch dashboard overview'
+        });
+    }
+});
+
 module.exports = router;

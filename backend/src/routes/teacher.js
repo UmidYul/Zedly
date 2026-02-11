@@ -4,6 +4,42 @@ const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { notifyNewTest } = require('../utils/notifications');
 
+async function getAttemptOverviewExpressions(alias = 'att') {
+    const result = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'test_attempts'
+    `);
+    const columns = new Set(result.rows.map((row) => row.column_name));
+    const col = (name) => (columns.has(name) ? `${alias}.${name}` : null);
+
+    const percent = col('percentage') || col('score_percentage');
+    const score = col('score');
+    const maxScore = col('max_score');
+    let scoreExpr = 'NULL';
+    if (percent) {
+        scoreExpr = percent;
+    } else if (score && maxScore) {
+        scoreExpr = `CASE WHEN ${maxScore} IS NOT NULL AND ${maxScore} > 0 THEN (${score} / ${maxScore} * 100) ELSE ${score} END`;
+    } else if (score) {
+        scoreExpr = score;
+    }
+
+    const completedAt = col('submitted_at') || col('completed_at') || col('graded_at') || col('created_at') || 'NULL';
+
+    let completedFilter = 'TRUE';
+    if (columns.has('status')) {
+        completedFilter = `${alias}.status = 'completed'`;
+    } else if (columns.has('is_completed')) {
+        completedFilter = `${alias}.is_completed = true`;
+    } else if (completedAt !== 'NULL') {
+        completedFilter = `${completedAt} IS NOT NULL`;
+    }
+
+    return { score: scoreExpr, completedAt, completedFilter };
+}
+
 // All routes require teacher or school_admin role
 router.use(authenticate);
 router.use(authorize('teacher', 'school_admin'));
@@ -87,6 +123,87 @@ router.get('/tests', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to fetch tests'
+        });
+    }
+});
+
+/**
+ * GET /api/teacher/dashboard/overview
+ * Get teacher dashboard overview analytics
+ */
+router.get('/dashboard/overview', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+        const attempt = await getAttemptOverviewExpressions();
+
+        const testsResult = await query(
+            'SELECT COUNT(*) as total FROM tests WHERE teacher_id = $1',
+            [teacherId]
+        );
+
+        const assignmentsResult = await query(
+            `SELECT
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE is_active = true AND end_date > CURRENT_TIMESTAMP) as active
+             FROM test_assignments
+             WHERE assigned_by = $1`,
+            [teacherId]
+        );
+
+        const studentsResult = await query(
+            `SELECT COUNT(DISTINCT cs.student_id) as total
+             FROM classes c
+             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             LEFT JOIN class_students cs ON cs.class_id = c.id AND cs.is_active = true
+             WHERE c.school_id = $1
+               AND c.is_active = true
+               AND (c.homeroom_teacher_id = $2 OR tcs.teacher_id = $2)`,
+            [schoolId, teacherId]
+        );
+
+        const avgScoreResult = await query(
+            `SELECT AVG(${attempt.score}) as avg_percentage
+             FROM test_assignments ta
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id
+             WHERE ta.assigned_by = $1 AND ${attempt.completedFilter}`,
+            [teacherId]
+        );
+
+        const recentAssignments = await query(
+            `SELECT
+                ta.id,
+                ta.end_date,
+                t.title as test_title,
+                c.name as class_name,
+                COUNT(att.id) FILTER (WHERE ${attempt.completedFilter}) as completed_attempts,
+                AVG(${attempt.score}) FILTER (WHERE ${attempt.completedFilter}) as avg_percentage
+             FROM test_assignments ta
+             JOIN tests t ON ta.test_id = t.id
+             JOIN classes c ON ta.class_id = c.id
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id
+             WHERE ta.assigned_by = $1
+             GROUP BY ta.id, t.title, c.name
+             ORDER BY ta.created_at DESC
+             LIMIT 5`,
+            [teacherId]
+        );
+
+        res.json({
+            stats: {
+                tests_created: parseInt(testsResult.rows[0].total || 0),
+                assignments_total: parseInt(assignmentsResult.rows[0].total || 0),
+                active_assignments: parseInt(assignmentsResult.rows[0].active || 0),
+                student_count: parseInt(studentsResult.rows[0].total || 0),
+                avg_percentage: avgScoreResult.rows[0]?.avg_percentage
+            },
+            recent_assignments: recentAssignments.rows
+        });
+    } catch (error) {
+        console.error('Teacher dashboard overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch dashboard overview'
         });
     }
 });

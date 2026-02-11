@@ -329,6 +329,18 @@
             'studentHistory.continue': 'Продолжить',
             'studentHistory.noAttempts': 'История пуста',
             'studentHistory.startTaking': 'Начните проходить тесты, чтобы увидеть свою историю',
+            // Dashboard stats
+            'dashboard.stats.schools': 'Школы',
+            'dashboard.stats.students': 'Ученики',
+            'dashboard.stats.teachers': 'Учителя',
+            'dashboard.stats.tests': 'Тесты',
+            'dashboard.stats.avgScore': 'Средний балл',
+            'dashboard.stats.classes': 'Классы',
+            'dashboard.stats.active': 'Активные',
+            'dashboard.stats.testAssigned': 'Назначенные тесты',
+            'dashboard.stats.testCompleted': 'Завершенные тесты',
+            'dashboard.stats.careerTest': 'Профориентация',
+            'dashboard.stats.recentActivity': 'Недавняя активность',
         },
         uz: {
             login: 'Kirish',
@@ -652,6 +664,18 @@
             'studentHistory.continue': 'Davom ettirish',
             'studentHistory.noAttempts': 'Tarix bo\'sh',
             'studentHistory.startTaking': 'Tarixingizni ko\'rish uchun testlar topshiring',
+            // Dashboard stats
+            'dashboard.stats.schools': 'Maktablar',
+            'dashboard.stats.students': 'O\'quvchilar',
+            'dashboard.stats.teachers': 'O\'qituvchilar',
+            'dashboard.stats.tests': 'Testlar',
+            'dashboard.stats.avgScore': 'O\'rtacha Ball',
+            'dashboard.stats.classes': 'Sinflar',
+            'dashboard.stats.active': 'Faol',
+            'dashboard.stats.testAssigned': 'Tayinlangan Testlar',
+            'dashboard.stats.testCompleted': 'Bajarilgan Testlar',
+            'dashboard.stats.careerTest': 'Kasbga Yo\'naltirish',
+            'dashboard.stats.recentActivity': 'So\'nggi Faoliyat',
         }
     };
 
