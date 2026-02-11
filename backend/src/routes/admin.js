@@ -7,6 +7,21 @@ const { query } = require('../config/database');
 const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
 const { notifyNewUser } = require('../utils/notifications');
 
+const SUBJECT_COLOR_PALETTE = [
+    '#4A90E2', '#E94C4C', '#50C878', '#F59E0B',
+    '#8B5CF6', '#EC4899', '#06B6D4', '#10B981',
+    '#F97316', '#6366F1', '#84CC16', '#EF4444'
+];
+
+function pickSubjectColor(usedColors) {
+    for (const color of SUBJECT_COLOR_PALETTE) {
+        if (!usedColors.has(color.toLowerCase())) {
+            return color;
+        }
+    }
+    return SUBJECT_COLOR_PALETTE[Math.floor(Math.random() * SUBJECT_COLOR_PALETTE.length)];
+}
+
 // Configure multer for file uploads
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -1455,6 +1470,18 @@ router.post('/subjects', async (req, res) => {
             });
         }
 
+        const existingColorsResult = await query(
+            'SELECT color FROM subjects WHERE school_id = $1 AND color IS NOT NULL',
+            [schoolId]
+        );
+        const usedColors = new Set(
+            existingColorsResult.rows
+                .map(row => String(row.color || '').toLowerCase())
+                .filter(Boolean)
+        );
+
+        const finalColor = color?.trim() || pickSubjectColor(usedColors);
+
         // Create subject
         const result = await query(
             `INSERT INTO subjects (school_id, name, code, color, description, is_active)
@@ -1464,7 +1491,7 @@ router.post('/subjects', async (req, res) => {
                 schoolId,
                 name.trim(),
                 code.trim().toUpperCase(),
-                color || '#4A90E2',
+                finalColor,
                 description?.trim() || null
             ]
         );
