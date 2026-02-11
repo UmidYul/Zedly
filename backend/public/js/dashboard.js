@@ -319,11 +319,11 @@
 
         // Show loading
         content.innerHTML = `
-            <div style="text-align: center; padding: var(--spacing-3xl);">
-                <div class="spinner" style="display: inline-block; width: 40px; height: 40px;"></div>
-                <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Loading ${page}...</p>
-            </div>
-        `;
+                <div style="text-align: center; padding: var(--spacing-3xl);">
+                    <div class="spinner" style="display: inline-block; width: 40px; height: 40px;"></div>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('common.loading', 'Loading...')}</p>
+                </div>
+            `;
 
         // Load stats from API if overview page
         if (page === 'overview' && currentUser) {
@@ -349,7 +349,7 @@
                     </div>
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Recent Activity</h2>
+                            <h2 class="section-title">${t('dashboard.activity.recentTitle', 'Recent Activity')}</h2>
                         </div>
                         ${buildRecentActivity(currentUser.role, statsData)}
                     </div>
@@ -369,7 +369,9 @@
     async function loadPageScript(page) {
         const scriptMap = {
             'schools': { src: '/js/schools.js', manager: 'SchoolsManager' },
-            'statistics': { src: '/js/superadmin-stats.js', manager: 'SuperadminStats' },
+            'statistics': currentUser && currentUser.role === 'school_admin'
+                ? { src: '/js/school-admin-stats.js', manager: 'SchoolAdminStats' }
+                : { src: '/js/superadmin-stats.js', manager: 'SuperadminStats' },
             'users': { src: '/js/users.js', manager: 'UsersManager' },
             'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
             'subjects': { src: '/js/subjects.js', manager: 'SubjectsManager' },
@@ -1020,15 +1022,28 @@
             `;
         }
 
-        // Global Statistics (SuperAdmin)
+        // Global Statistics (SuperAdmin) / School Statistics (School Admin)
         if (page === 'statistics') {
+            if (role === 'school_admin') {
+                return `
+                    <div class="stats-grid" id="schoolAdminStatsCards"></div>
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">${t('dashboard.statistics.schoolBreakdown', 'School Breakdown')}</h2>
+                        </div>
+                        <div id="schoolAdminStatsBreakdown"></div>
+                    </div>
+                    <div class="dashboard-section" id="schoolAdminStatsNote"></div>
+                `;
+            }
+
             if (role !== 'superadmin') {
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Statistics</h2>
+                            <h2 class="section-title">${t('dashboard.statistics.title', 'Statistics')}</h2>
                         </div>
-                        <p style="color: var(--text-secondary);">This section is only available for SuperAdmin.</p>
+                        <p style="color: var(--text-secondary);">${t('dashboard.statistics.superadminOnly', 'This section is only available for SuperAdmin.')}</p>
                     </div>
                 `;
             }
@@ -1037,7 +1052,7 @@
                 <div class="stats-grid" id="superadminStatsCards"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Global Breakdown</h2>
+                        <h2 class="section-title">${t('dashboard.statistics.globalBreakdown', 'Global Breakdown')}</h2>
                     </div>
                     <div id="superadminStatsBreakdown"></div>
                 </div>
@@ -1066,9 +1081,9 @@
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Recent Activity</h2>
+                        <h2 class="section-title">${t('dashboard.activity.recentTitle', 'Recent Activity')}</h2>
                     </div>
-                    <p style="color: var(--text-secondary);">Content coming soon...</p>
+                    <p style="color: var(--text-secondary);">${t('dashboard.activity.placeholder', 'Content coming soon...')}</p>
                 </div>
             `;
         }
@@ -1116,6 +1131,10 @@
         }
     }
 
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
+
     function formatPercent(value) {
         const num = Number(value);
         if (!Number.isFinite(num)) {
@@ -1144,14 +1163,14 @@
     function buildRecentActivity(role, data) {
         const items = data?.recent_activity || [];
         if (!items.length) {
-            return '<p style="color: var(--text-secondary);">No recent activity yet.</p>';
+            return `<p style="color: var(--text-secondary);">${t('dashboard.activity.none', 'No recent activity yet.')}</p>`;
         }
 
         const typeLabels = {
-            attempt: 'Attempt',
-            assignment: 'Assignment',
-            test: 'Test',
-            user: 'User'
+            attempt: t('dashboard.activity.typeAttempt', 'Attempt'),
+            assignment: t('dashboard.activity.typeAssignment', 'Assignment'),
+            test: t('dashboard.activity.typeTest', 'Test'),
+            user: t('dashboard.activity.typeUser', 'User')
         };
 
         const rows = items.map((item) => {
@@ -1175,11 +1194,11 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Type</th>
-                            <th>Title</th>
-                            <th>Details</th>
-                            <th>Score</th>
-                            <th>Date</th>
+                            <th>${t('dashboard.activity.type', 'Type')}</th>
+                            <th>${t('dashboard.activity.title', 'Title')}</th>
+                            <th>${t('dashboard.activity.details', 'Details')}</th>
+                            <th>${t('dashboard.activity.score', 'Score')}</th>
+                            <th>${t('dashboard.activity.date', 'Date')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1201,31 +1220,31 @@
 
         if (role === 'superadmin') {
             cards.push(
-                { icon: 'building', label: 'Schools', value: stats.schools },
-                { icon: 'users', label: 'Students', value: stats.students },
-                { icon: 'clipboard', label: 'Tests', value: stats.tests },
-                { icon: 'star', label: 'Avg Score', value: `${formatPercent(stats.avg_score)}%` }
+                { icon: 'building', label: t('dashboard.stats.schools', 'Schools'), value: stats.schools },
+                { icon: 'users', label: t('dashboard.stats.students', 'Students'), value: stats.students },
+                { icon: 'clipboard', label: t('dashboard.stats.tests', 'Tests'), value: stats.tests },
+                { icon: 'star', label: t('dashboard.stats.avgScore', 'Avg Score'), value: `${formatPercent(stats.avg_score)}%` }
             );
         } else if (role === 'school_admin') {
             cards.push(
-                { icon: 'users', label: 'Students', value: stats.students },
-                { icon: 'class', label: 'Classes', value: stats.classes },
-                { icon: 'clipboard', label: 'Tests', value: stats.tests },
-                { icon: 'star', label: 'Avg Score', value: `${formatPercent(stats.avg_score)}%` }
+                { icon: 'users', label: t('dashboard.stats.students', 'Students'), value: stats.students },
+                { icon: 'class', label: t('dashboard.stats.classes', 'Classes'), value: stats.classes },
+                { icon: 'clipboard', label: t('dashboard.stats.tests', 'Tests'), value: stats.tests },
+                { icon: 'star', label: t('dashboard.stats.avgScore', 'Avg Score'), value: `${formatPercent(stats.avg_score)}%` }
             );
         } else if (role === 'teacher') {
             cards.push(
-                { icon: 'clipboard', label: 'Tests Created', value: stats.tests_created },
-                { icon: 'users', label: 'Students', value: stats.student_count },
-                { icon: 'clipboard', label: 'Assignments', value: stats.assignments_total },
-                { icon: 'star', label: 'Avg Score', value: `${formatPercent(stats.avg_percentage)}%` }
+                { icon: 'clipboard', label: t('dashboard.stats.testsCreated', 'Tests Created'), value: stats.tests_created },
+                { icon: 'users', label: t('dashboard.stats.students', 'Students'), value: stats.student_count },
+                { icon: 'clipboard', label: t('dashboard.stats.assignments', 'Assignments'), value: stats.assignments_total },
+                { icon: 'star', label: t('dashboard.stats.avgScore', 'Avg Score'), value: `${formatPercent(stats.avg_percentage)}%` }
             );
         } else if (role === 'student') {
             cards.push(
-                { icon: 'clipboard', label: 'Tests Assigned', value: stats.tests_assigned },
-                { icon: 'star', label: 'Tests Completed', value: stats.tests_completed },
-                { icon: 'trophy', label: 'Avg Score', value: `${formatPercent(stats.avg_score)}%` },
-                { icon: 'target', label: 'Career Test', value: stats.career_test_completed ? 'Done' : 'Pending' }
+                { icon: 'clipboard', label: t('dashboard.stats.testsAssigned', 'Tests Assigned'), value: stats.tests_assigned },
+                { icon: 'star', label: t('dashboard.stats.testsCompleted', 'Tests Completed'), value: stats.tests_completed },
+                { icon: 'trophy', label: t('dashboard.stats.avgScore', 'Avg Score'), value: `${formatPercent(stats.avg_score)}%` },
+                { icon: 'target', label: t('dashboard.stats.careerTest', 'Career Test'), value: stats.career_test_completed ? t('dashboard.stats.careerDone', 'Done') : t('dashboard.stats.careerPending', 'Pending') }
             );
         }
 
