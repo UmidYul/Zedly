@@ -1,6 +1,10 @@
 const nodemailer = require('nodemailer');
 const TelegramBot = require('node-telegram-bot-api');
 
+function getAppUrl() {
+    return process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+}
+
 /**
  * Email Transporter Configuration
  * Настройте SMTP в .env файле
@@ -11,7 +15,7 @@ const emailTransporter = nodemailer.createTransport({
     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
     auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS
     }
 });
 
@@ -38,7 +42,7 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
  * @returns {Promise<boolean>}
  */
 async function sendEmail({ to, subject, text, html }) {
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    if (!process.env.SMTP_USER || !(process.env.SMTP_PASSWORD || process.env.SMTP_PASS)) {
         console.warn('Email not configured. Skipping email notification.');
         return false;
     }
@@ -72,6 +76,10 @@ async function sendTelegram(chatId, message, options = {}) {
         return false;
     }
 
+    if (process.env.ENABLE_TELEGRAM_NOTIFICATIONS === 'false') {
+        return false;
+    }
+
     try {
         await telegramBot.sendMessage(chatId, message, {
             parse_mode: 'HTML',
@@ -83,6 +91,27 @@ async function sendTelegram(chatId, message, options = {}) {
         console.error('Telegram send error:', error);
         return false;
     }
+}
+
+async function sendTelegramToTargets(userChatId, message, globalMessage) {
+    const results = {
+        user: false,
+        global: false
+    };
+
+    if (userChatId) {
+        results.user = await sendTelegram(userChatId, message);
+    }
+
+    const globalChatId = process.env.TELEGRAM_CHAT_ID;
+    if (globalChatId) {
+        const globalText = globalMessage || message;
+        if (!userChatId || String(globalChatId) !== String(userChatId)) {
+            results.global = await sendTelegram(globalChatId, globalText);
+        }
+    }
+
+    return results;
 }
 
 /**
@@ -107,7 +136,7 @@ async function notifyNewTest(user, test, language = 'ru') {
                         ${test.time_limit ? `<p style="margin: 5px 0; color: #6b7280;">Время: ${test.time_limit} минут</p>` : ''}
                     </div>
                     <p>Войдите в систему, чтобы пройти тест.</p>
-                    <a href="${process.env.APP_URL || 'http://localhost:3000'}/take-test.html?id=${test.id}" 
+                      <a href="${getAppUrl()}/take-test.html?id=${test.id}" 
                        style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; 
                               text-decoration: none; border-radius: 6px; margin-top: 10px;">
                         Пройти тест
@@ -132,7 +161,7 @@ async function notifyNewTest(user, test, language = 'ru') {
                         ${test.time_limit ? `<p style="margin: 5px 0; color: #6b7280;">Vaqt: ${test.time_limit} daqiqa</p>` : ''}
                     </div>
                     <p>Testni topshirish uchun tizimga kiring.</p>
-                    <a href="${process.env.APP_URL || 'http://localhost:3000'}/take-test.html?id=${test.id}" 
+                      <a href="${getAppUrl()}/take-test.html?id=${test.id}" 
                        style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; 
                               text-decoration: none; border-radius: 6px; margin-top: 10px;">
                         Testni boshlash
@@ -159,9 +188,12 @@ async function notifyNewTest(user, test, language = 'ru') {
     }
 
     // Send Telegram
-    if (user.telegram_id) {
-        results.telegram = await sendTelegram(user.telegram_id, msg.telegram);
-    }
+    const telegramResults = await sendTelegramToTargets(
+        user.telegram_id,
+        msg.telegram,
+        `🆕 <b>Новый тест назначен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n📚 ${test.title}`
+    );
+    results.telegram = telegramResults.user || telegramResults.global;
 
     return results;
 }
@@ -187,7 +219,7 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
                         <p style="font-size: 20px; font-family: monospace; margin: 10px 0; color: #92400e;">${newPassword}</p>
                     </div>
                     <p><strong>Внимание:</strong> Пожалуйста, войдите в систему и измените пароль на постоянный.</p>
-                    <a href="${process.env.APP_URL || 'http://localhost:3000'}/login.html" 
+                      <a href="${getAppUrl()}/login.html" 
                        style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; 
                               text-decoration: none; border-radius: 6px; margin-top: 10px;">
                         Войти в систему
@@ -211,7 +243,7 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
                         <p style="font-size: 20px; font-family: monospace; margin: 10px 0; color: #92400e;">${newPassword}</p>
                     </div>
                     <p><strong>Diqqat:</strong> Iltimos, tizimga kirib parolni doimiy parolga o'zgartiring.</p>
-                    <a href="${process.env.APP_URL || 'http://localhost:3000'}/login.html" 
+                      <a href="${getAppUrl()}/login.html" 
                        style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; 
                               text-decoration: none; border-radius: 6px; margin-top: 10px;">
                         Tizimga kirish
@@ -238,9 +270,12 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
     }
 
     // Send Telegram
-    if (user.telegram_id) {
-        results.telegram = await sendTelegram(user.telegram_id, msg.telegram);
-    }
+    const telegramResults = await sendTelegramToTargets(
+        user.telegram_id,
+        msg.telegram,
+        `🔐 <b>Пароль сброшен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n🆔 ${user.username || ''}`
+    );
+    results.telegram = telegramResults.user || telegramResults.global;
 
     return results;
 }
@@ -266,7 +301,7 @@ async function notifyNewUser(user, password, language = 'ru') {
                         <p style="margin: 5px 0;"><strong>Временный пароль:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${password}</code></p>
                     </div>
                     <p><strong>Важно:</strong> При первом входе вам будет предложено создать постоянный пароль.</p>
-                    <a href="${process.env.APP_URL || 'http://localhost:3000'}/login.html" 
+                      <a href="${getAppUrl()}/login.html" 
                        style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; 
                               text-decoration: none; border-radius: 6px; margin-top: 10px;">
                         Войти в систему
@@ -290,7 +325,7 @@ async function notifyNewUser(user, password, language = 'ru') {
                         <p style="margin: 5px 0;"><strong>Vaqtinchalik parol:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${password}</code></p>
                     </div>
                     <p><strong>Muhim:</strong> Birinchi kirganingizda sizdan doimiy parol yaratish so'raladi.</p>
-                    <a href="${process.env.APP_URL || 'http://localhost:3000'}/login.html" 
+                      <a href="${getAppUrl()}/login.html" 
                        style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; 
                               text-decoration: none; border-radius: 6px; margin-top: 10px;">
                         Tizimga kirish
@@ -317,9 +352,12 @@ async function notifyNewUser(user, password, language = 'ru') {
     }
 
     // Send Telegram
-    if (user.telegram_id) {
-        results.telegram = await sendTelegram(user.telegram_id, msg.telegram);
-    }
+    const telegramResults = await sendTelegramToTargets(
+        user.telegram_id,
+        msg.telegram,
+        `👋 <b>Новый пользователь</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n🆔 ${user.username || ''}`
+    );
+    results.telegram = telegramResults.user || telegramResults.global;
 
     return results;
 }
@@ -328,6 +366,7 @@ module.exports = {
     sendEmail,
     sendTelegram,
     telegramBot,
+    sendTelegramToTargets,
     notifyNewTest,
     notifyPasswordReset,
     notifyNewUser
