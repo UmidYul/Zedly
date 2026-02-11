@@ -813,7 +813,7 @@
                 </button>
                 <h1 data-i18n="advanced_analytics">📊 Расширенная аналитика</h1>
             </div>
-            <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+            <button class="theme-toggle" id="themeToggle">
                 <span class="theme-icon" id="themeIcon">🌙</span>
                 <span id="themeText">Тёмная тема</span>
             </button>
@@ -1034,7 +1034,6 @@
     </div>
 
     <script src="js/i18n.js"></script>
-    <script src="js/theme.js"></script>
     <script src="js/auth-interceptor.js"></script>
     <script>
         const API_URL = 'http://167.235.222.200:5000/api';
@@ -1648,6 +1647,12 @@
             // Load theme
             loadTheme();
 
+            // Add theme toggle listener
+            const themeToggleBtn = document.getElementById('themeToggle');
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', toggleTheme);
+            }
+
             // Load subjects for filter
             try {
                 const token = localStorage.getItem('access_token');
@@ -1678,7 +1683,7 @@
                     console.log('Total subjects added:', subjects.length);
                 } else {
                     console.error('Failed to load subjects, status:', response.status);
-                } \n
+                }
             } catch (error) {
                 console.error('Failed to load subjects:', error);
             }
