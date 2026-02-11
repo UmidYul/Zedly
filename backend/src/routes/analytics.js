@@ -4,6 +4,39 @@ const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const XLSX = require('xlsx');
 
+const COLUMN_CACHE = {};
+
+async function getTableColumns(tableName) {
+    if (COLUMN_CACHE[tableName]) {
+        return COLUMN_CACHE[tableName];
+    }
+
+    const result = await query(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1`,
+        [tableName]
+    );
+
+    const columns = new Set(result.rows.map(row => row.column_name));
+    COLUMN_CACHE[tableName] = columns;
+    return columns;
+}
+
+function pickColumn(columns, candidates, fallback = null) {
+    for (const candidate of candidates) {
+        if (columns.has(candidate)) {
+            return candidate;
+        }
+    }
+    return fallback;
+}
+
+async function getClassGradeColumn() {
+    const columns = await getTableColumns('classes');
+    return pickColumn(columns, ['grade_level', 'grade'], 'grade_level');
+}
+
 async function getSubjectNameExpressions() {
     const nameRuResult = await query(`
                 SELECT 1
@@ -97,6 +130,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
         const { period = '30' } = req.query; // days
         const { nameRu, nameUz } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
+        const classGradeColumn = await getClassGradeColumn();
 
         // Overall statistics
         const overallStats = await query(`
@@ -130,7 +164,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
             SELECT
                 c.id,
                 c.name,
-                c.grade_level,
+                c.${classGradeColumn} as grade_level,
                 COUNT(DISTINCT ta.student_id) as student_count,
                 COUNT(ta.id) as total_attempts,
                 AVG(${attempt.score}) as avg_score,
@@ -139,7 +173,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
             LEFT JOIN class_students cs ON cs.class_id = c.id
             LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
             WHERE c.school_id = $1
-            GROUP BY c.id, c.name, c.grade_level
+            GROUP BY c.id, c.name, c.${classGradeColumn}
             HAVING COUNT(ta.id) > 0
             ORDER BY avg_score DESC
             LIMIT 10
@@ -189,13 +223,14 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
         const { grade_level, period = '90' } = req.query;
         const { nameRu } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
+        const classGradeColumn = await getClassGradeColumn();
 
         let gradeFilter = '';
         const params = [schoolId];
 
         if (grade_level) {
             params.push(grade_level);
-            gradeFilter = 'AND c.grade_level = $2';
+            gradeFilter = `AND c.${classGradeColumn} = $2`;
         }
 
         // Get heatmap data: [subject, week, average_score]
@@ -244,6 +279,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
         const { type = 'classes', subject_id } = req.query;
         const { nameRu, nameUz } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
+        const classGradeColumn = await getClassGradeColumn();
 
         let comparisonData;
 
@@ -253,7 +289,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 SELECT
                     c.id,
                     c.name,
-                    c.grade_level,
+                    c.${classGradeColumn} as grade_level,
                     ${nameRu} as subject,
                     COUNT(DISTINCT cs.student_id) as student_count,
                     COUNT(ta.id) as total_attempts,
@@ -269,8 +305,8 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 LEFT JOIN subjects s ON s.id = t.subject_id
                 WHERE c.school_id = $1
                   ${subject_id ? 'AND t.subject_id = $2' : ''}
-                GROUP BY c.id, c.name, c.grade_level, ${nameRu}
-                ORDER BY c.grade_level, c.name
+                GROUP BY c.id, c.name, c.${classGradeColumn}, ${nameRu}
+                ORDER BY c.${classGradeColumn}, c.name
             `, subject_id ? [schoolId, subject_id] : [schoolId]);
         } else if (type === 'subjects') {
             // Compare subjects
@@ -346,10 +382,11 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
         const schoolId = req.user.school_id;
         const { nameRu } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
+        const classGradeColumn = await getClassGradeColumn();
 
         // Verify access
         const classCheck = await query(
-            'SELECT id, name, grade_level FROM classes WHERE id = $1 AND school_id = $2',
+            `SELECT id, name, ${classGradeColumn} as grade_level FROM classes WHERE id = $1 AND school_id = $2`,
             [id, schoolId]
         );
 
@@ -473,7 +510,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const studentInfo = await query(`
             SELECT
                 u.id, u.first_name, u.last_name, u.email,
-                c.name as class_name, c.grade_level
+                c.name as class_name, c.${classGradeColumn} as grade_level
             FROM users u
             LEFT JOIN class_students cs ON cs.student_id = u.id
             LEFT JOIN classes c ON c.id = cs.class_id
@@ -611,6 +648,7 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
         const schoolId = req.user.school_id;
         const { nameRu } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
+        const classGradeColumn = await getClassGradeColumn();
 
         // Get comprehensive data
         const studentsData = await query(`
@@ -634,15 +672,15 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
         const classesData = await query(`
             SELECT
                 c.name,
-                c.grade_level,
+                c.${classGradeColumn} as grade_level,
                 COUNT(DISTINCT cs.student_id) as students,
                 AVG(${attempt.score}) as avg_score
             FROM classes c
             LEFT JOIN class_students cs ON cs.class_id = c.id
             LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
             WHERE c.school_id = $1
-            GROUP BY c.id, c.name, c.grade_level
-            ORDER BY c.grade_level, c.name
+            GROUP BY c.id, c.name, c.${classGradeColumn}
+            ORDER BY c.${classGradeColumn}, c.name
         `, [schoolId]);
 
         const subjectsData = await query(`
