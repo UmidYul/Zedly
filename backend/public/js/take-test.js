@@ -171,6 +171,13 @@
             if (this.proctoring.blockCopyPaste) {
                 ['copy', 'cut', 'paste'].forEach(eventName => {
                     document.addEventListener(eventName, (event) => {
+                        // Allow copy/paste in input and textarea fields
+                        const target = event.target;
+                        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+                            // Allow normal typing and editing in input fields
+                            return;
+                        }
+
                         event.preventDefault();
                         this.copyAttempts += 1;
                         this.recordSuspiciousActivity('clipboard_blocked', { action: eventName });
@@ -537,8 +544,10 @@
                             type="text"
                             class="blank-input"
                             data-blank-index="${i}"
-                            value="${answers[i] || ''}"
+                            value="${this.escapeHtml(answers[i] || '')}"
                             placeholder="Answer for blank ${i + 1}"
+                            autocomplete="off"
+                            spellcheck="false"
                         />
                     </div>
                 `;
@@ -546,6 +555,18 @@
 
             html += '</div>';
             return html;
+        },
+
+        // Escape HTML to prevent XSS
+        escapeHtml: function (text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
         },
 
         // Render ordering
