@@ -113,6 +113,116 @@
     background: var(--bg-main);
 }
 
+/* Career test */
+.career-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--spacing-xl);
+}
+
+.career-card {
+    padding: var(--spacing-lg);
+}
+
+.career-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+}
+
+.career-hint {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.career-questions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.career-question {
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+}
+
+.career-question-title {
+    font-weight: 600;
+}
+
+.career-scale {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.career-scale label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-card);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 1px solid var(--border-light);
+}
+
+.career-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+.career-status {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.career-radar {
+    margin-top: var(--spacing-md);
+    max-height: 360px;
+}
+
+.career-recommendations {
+    margin-top: var(--spacing-lg);
+}
+
+.career-recommendations ul {
+    list-style: disc;
+    padding-left: 20px;
+    color: var(--text-secondary);
+}
+
+.career-admin-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.career-admin-sub {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.career-color {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+}
+
+.table-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
 .dashboard-header {
     background: var(--bg-header);
     backdrop-filter: blur(20px);
@@ -582,7 +692,7 @@
     .stats-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .header-center {
         flex: 1;
     }
@@ -659,11 +769,11 @@
     .header-actions {
         display: none;
     }
-    
+
     .header-logo span {
         font-size: 1rem;
     }
-    
+
     .header-logo img {
         width: 28px;
         height: 28px;

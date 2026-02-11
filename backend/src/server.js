@@ -135,6 +135,16 @@ try {
     console.error(error.stack);
 }
 
+// Analytics routes
+try {
+    const analyticsRouter = require('./routes/analytics');
+    app.use('/api/analytics', analyticsRouter);
+    console.log('✓ Analytics routes loaded: /api/analytics');
+} catch (error) {
+    console.error('❌ Failed to load analytics routes:', error.message);
+    console.error(error.stack);
+}
+
 // ==============================================
 // Serve Static Files (AFTER API routes!)
 // ==============================================

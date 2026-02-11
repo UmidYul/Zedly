@@ -7,6 +7,148 @@ const { authenticate, authorize } = require('../middleware/auth');
 router.use(authenticate);
 router.use(authorize('student'));
 
+async function getCareerInterestExpressions() {
+    const columnsResult = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'career_interests'
+    `);
+    const columns = new Set(columnsResult.rows.map((row) => row.column_name));
+
+    const col = (name) => (columns.has(name) ? `ci.${name}` : null);
+    const nameRu = col('name_ru') || col('name');
+    const nameUz = col('name_uz') || col('name');
+    const descriptionRu = col('description_ru') || col('description');
+    const descriptionUz = col('description_uz') || col('description');
+    const icon = col('icon') || 'NULL';
+    const color = col('color') || 'NULL';
+
+    return {
+        nameRu,
+        nameUz,
+        descriptionRu,
+        descriptionUz,
+        icon,
+        color
+    };
+}
+
+async function getCareerResultsColumns() {
+    const columnsResult = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'student_career_results'
+    `);
+    const columns = new Set(columnsResult.rows.map((row) => row.column_name));
+
+    return {
+        interestsScores: columns.has('interests_scores'),
+        recommendedSubjects: columns.has('recommended_subjects'),
+        results: columns.has('results'),
+        topInterests: columns.has('top_interests'),
+        recommendations: columns.has('recommendations'),
+        completedAt: columns.has('completed_at'),
+        takenAt: columns.has('taken_at')
+    };
+}
+
+function buildCareerQuestions(interests) {
+    const questions = [];
+
+    interests.forEach((interest) => {
+        const baseId = `interest-${interest.id}`;
+        questions.push({
+            id: `${baseId}-1`,
+            interest_id: interest.id,
+            text_ru: `Мне интересно направление: ${interest.name_ru}`,
+            text_uz: `Menga yoqadi: ${interest.name_uz}`
+        });
+        questions.push({
+            id: `${baseId}-2`,
+            interest_id: interest.id,
+            text_ru: `Я хотел(а) бы больше изучать тему: ${interest.name_ru}`,
+            text_uz: `Men ko'proq o'rganmoqchiman: ${interest.name_uz}`
+        });
+    });
+
+    return questions;
+}
+
+function buildCareerRecommendations(topInterests) {
+    const mapping = {
+        'точные науки': {
+            ru: ['Математика', 'Физика', 'Информатика'],
+            uz: ['Matematika', 'Fizika', 'Informatika']
+        },
+        'естественные науки': {
+            ru: ['Биология', 'Химия', 'География'],
+            uz: ['Biologiya', 'Kimyo', 'Geografiya']
+        },
+        'гуманитарные науки': {
+            ru: ['История', 'Литература', 'Языки'],
+            uz: ['Tarix', 'Adabiyot', 'Tillar']
+        },
+        'искусство': {
+            ru: ['Музыка', 'ИЗО', 'Театр'],
+            uz: ['Musiqa', 'Tasviriy san'at', 'Teatr']
+        },
+        'технологии': {
+            ru: ['Информатика', 'Технология', 'Робототехника'],
+            uz: ['Informatika', 'Texnologiya', 'Robototexnika']
+        },
+        'социальные науки': {
+            ru: ['Психология', 'Обществознание', 'Экономика'],
+            uz: ['Psixologiya', 'Jamiyatshunoslik', 'Iqtisodiyot']
+        },
+        "aniq fanlar": {
+            ru: ['Математика', 'Физика', 'Информатика'],
+            uz: ['Matematika', 'Fizika', 'Informatika']
+        },
+        "tabiiy fanlar": {
+            ru: ['Биология', 'Химия', 'География'],
+            uz: ['Biologiya', 'Kimyo', 'Geografiya']
+        },
+        "gumanitar fanlar": {
+            ru: ['История', 'Литература', 'Языки'],
+            uz: ['Tarix', 'Adabiyot', 'Tillar']
+        },
+        "san'at": {
+            ru: ['Музыка', 'ИЗО', 'Театр'],
+            uz: ['Musiqa', 'Tasviriy san'at', 'Teatr']
+        },
+        "texnologiya": {
+            ru: ['Информатика', 'Технология', 'Робототехника'],
+            uz: ['Informatika', 'Texnologiya', 'Robototexnika']
+        },
+        "ijtimoiy fanlar": {
+            ru: ['Психология', 'Обществознание', 'Экономика'],
+            uz: ['Psixologiya', 'Jamiyatshunoslik', 'Iqtisodiyot']
+        }
+    };
+
+    const recommendations = { ru: [], uz: [] };
+    const addUnique = (target, values) => {
+        values.forEach((value) => {
+            if (!target.includes(value)) {
+                target.push(value);
+            }
+        });
+    };
+
+    topInterests.forEach((interest) => {
+        const key = (interest.name_ru || interest.name_uz || '').toLowerCase();
+        const match = mapping[key];
+        if (match) {
+            addUnique(recommendations.ru, match.ru);
+            addUnique(recommendations.uz, match.uz);
+        }
+    });
+
+    return recommendations;
+}
+
 /**
  * ========================================
  * STUDENT ASSIGNMENTS & TESTS
@@ -576,6 +718,310 @@ router.get('/results', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/student/career/interests
+ * Get career interests list
+ */
+router.get('/career/interests', async (req, res) => {
+    try {
+        const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color } = await getCareerInterestExpressions();
+        const interestsResult = await query(`
+            SELECT
+                ci.id,
+                ${nameRu} as name_ru,
+                ${nameUz} as name_uz,
+                COALESCE(${descriptionRu}, '') as description_ru,
+                COALESCE(${descriptionUz}, '') as description_uz,
+                ${icon} as icon,
+                COALESCE(${color}, '#4A90E2') as color
+            FROM career_interests ci
+            ORDER BY ci.id
+        `);
+
+        res.json({ interests: interestsResult.rows });
+    } catch (error) {
+        console.error('Get career interests error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch career interests'
+        });
+    }
+});
+
+/**
+ * GET /api/student/career/questions
+ * Get career test questions
+ */
+router.get('/career/questions', async (req, res) => {
+    try {
+        const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color } = await getCareerInterestExpressions();
+        const interestsResult = await query(`
+            SELECT
+                ci.id,
+                ${nameRu} as name_ru,
+                ${nameUz} as name_uz,
+                COALESCE(${descriptionRu}, '') as description_ru,
+                COALESCE(${descriptionUz}, '') as description_uz,
+                ${icon} as icon,
+                COALESCE(${color}, '#4A90E2') as color
+            FROM career_interests ci
+            ORDER BY ci.id
+        `);
+
+        const interests = interestsResult.rows;
+        const questions = buildCareerQuestions(interests);
+
+        res.json({ questions, interests });
+    } catch (error) {
+        console.error('Get career questions error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch career questions'
+        });
+    }
+});
+
+/**
+ * POST /api/student/career/submit
+ * Submit career test answers
+ */
+router.post('/career/submit', async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const answers = req.body?.answers;
+
+        if (!answers || typeof answers !== 'object') {
+            return res.status(400).json({
+                error: 'invalid_request',
+                message: 'Answers are required'
+            });
+        }
+
+        const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color } = await getCareerInterestExpressions();
+        const interestsResult = await query(`
+            SELECT
+                ci.id,
+                ${nameRu} as name_ru,
+                ${nameUz} as name_uz,
+                COALESCE(${descriptionRu}, '') as description_ru,
+                COALESCE(${descriptionUz}, '') as description_uz,
+                ${icon} as icon,
+                COALESCE(${color}, '#4A90E2') as color
+            FROM career_interests ci
+            ORDER BY ci.id
+        `);
+        const interests = interestsResult.rows;
+
+        if (interests.length === 0) {
+            return res.status(400).json({
+                error: 'no_interests',
+                message: 'Career interests not configured'
+            });
+        }
+
+        const questions = buildCareerQuestions(interests);
+
+        const totals = new Map();
+        for (const question of questions) {
+            if (!(question.id in answers)) {
+                return res.status(400).json({
+                    error: 'incomplete',
+                    message: 'All questions must be answered'
+                });
+            }
+
+            const value = Number(answers[question.id]);
+            if (!Number.isFinite(value) || value < 1 || value > 5) {
+                return res.status(400).json({
+                    error: 'invalid_answer',
+                    message: 'Answer values must be between 1 and 5'
+                });
+            }
+
+            const current = totals.get(question.interest_id) || { sum: 0, count: 0 };
+            totals.set(question.interest_id, {
+                sum: current.sum + value,
+                count: current.count + 1
+            });
+        }
+
+        const interestsScores = {};
+        const scoredInterests = interests.map((interest) => {
+            const total = totals.get(interest.id) || { sum: 0, count: 0 };
+            const avg = total.count ? total.sum / total.count : 0;
+            const score = Math.round(avg * 20);
+            interestsScores[interest.id] = score;
+
+            return {
+                id: interest.id,
+                name_ru: interest.name_ru,
+                name_uz: interest.name_uz,
+                color: interest.color,
+                score
+            };
+        });
+
+        const topInterests = [...scoredInterests]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+
+        const recommendedSubjects = buildCareerRecommendations(topInterests);
+
+        const resultsSchema = await getCareerResultsColumns();
+        const insertColumns = ['student_id'];
+        const values = [studentId];
+        const placeholders = ['$1'];
+        let index = 2;
+
+        if (resultsSchema.interestsScores) {
+            insertColumns.push('interests_scores');
+            values.push(JSON.stringify(interestsScores));
+            placeholders.push(`$${index}`);
+            index += 1;
+        }
+
+        if (resultsSchema.recommendedSubjects) {
+            insertColumns.push('recommended_subjects');
+            values.push(JSON.stringify(recommendedSubjects));
+            placeholders.push(`$${index}`);
+            index += 1;
+        }
+
+        if (resultsSchema.results) {
+            insertColumns.push('results');
+            values.push(JSON.stringify({ scores: interestsScores, recommended_subjects: recommendedSubjects }));
+            placeholders.push(`$${index}`);
+            index += 1;
+        }
+
+        if (resultsSchema.topInterests) {
+            insertColumns.push('top_interests');
+            values.push(topInterests.map((interest) => interest.name_ru || interest.name_uz));
+            placeholders.push(`$${index}`);
+            index += 1;
+        }
+
+        if (resultsSchema.recommendations) {
+            insertColumns.push('recommendations');
+            values.push(recommendedSubjects.ru.join(', '));
+            placeholders.push(`$${index}`);
+            index += 1;
+        }
+
+        await query(
+            `INSERT INTO student_career_results (${insertColumns.join(', ')}) VALUES (${placeholders.join(', ')})`,
+            values
+        );
+
+        res.json({
+            result: {
+                interests: scoredInterests,
+                recommended_subjects: recommendedSubjects,
+                top_interests: topInterests
+            }
+        });
+    } catch (error) {
+        console.error('Submit career test error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to submit career test'
+        });
+    }
+});
+
+/**
+ * GET /api/student/career/results
+ * Get latest career test results for student
+ */
+router.get('/career/results', async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color } = await getCareerInterestExpressions();
+        const interestsResult = await query(`
+            SELECT
+                ci.id,
+                ${nameRu} as name_ru,
+                ${nameUz} as name_uz,
+                COALESCE(${descriptionRu}, '') as description_ru,
+                COALESCE(${descriptionUz}, '') as description_uz,
+                ${icon} as icon,
+                COALESCE(${color}, '#4A90E2') as color
+            FROM career_interests ci
+            ORDER BY ci.id
+        `);
+        const interests = interestsResult.rows;
+
+        const resultsSchema = await getCareerResultsColumns();
+        let resultRow = null;
+
+        if (resultsSchema.interestsScores || resultsSchema.recommendedSubjects) {
+            const orderColumn = resultsSchema.completedAt ? 'completed_at' : 'id';
+            const result = await query(
+                `SELECT interests_scores, recommended_subjects, completed_at
+                 FROM student_career_results
+                 WHERE student_id = $1
+                 ORDER BY ${orderColumn} DESC NULLS LAST
+                 LIMIT 1`,
+                [studentId]
+            );
+            resultRow = result.rows[0] || null;
+        } else if (resultsSchema.results) {
+            const orderColumn = resultsSchema.takenAt ? 'taken_at' : 'id';
+            const result = await query(
+                `SELECT results, top_interests, recommendations, taken_at
+                 FROM student_career_results
+                 WHERE student_id = $1
+                 ORDER BY ${orderColumn} DESC NULLS LAST
+                 LIMIT 1`,
+                [studentId]
+            );
+            resultRow = result.rows[0] || null;
+        }
+
+        if (!resultRow) {
+            return res.json({ result: null });
+        }
+
+        let scores = {};
+        let recommendedSubjects = { ru: [], uz: [] };
+        let completedAt = resultRow.completed_at || resultRow.taken_at || null;
+
+        if (resultRow.interests_scores) {
+            scores = resultRow.interests_scores || {};
+            if (resultRow.recommended_subjects) {
+                recommendedSubjects = resultRow.recommended_subjects;
+            }
+        } else if (resultRow.results) {
+            scores = resultRow.results.scores || {};
+            if (resultRow.results.recommended_subjects) {
+                recommendedSubjects = resultRow.results.recommended_subjects;
+            }
+        }
+
+        const scoredInterests = interests.map((interest) => ({
+            id: interest.id,
+            name_ru: interest.name_ru,
+            name_uz: interest.name_uz,
+            color: interest.color,
+            score: Number(scores[interest.id]) || 0
+        }));
+
+        res.json({
+            result: {
+                interests: scoredInterests,
+                recommended_subjects: recommendedSubjects,
+                completed_at: completedAt
+            }
+        });
+    } catch (error) {
+        console.error('Get career results error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch career results'
+        });
+    }
+});
+
 function shuffleQuestions(questions) {
     const shuffled = [...questions];
     for (let i = shuffled.length - 1; i > 0; i -= 1) {
@@ -584,5 +1030,114 @@ function shuffleQuestions(questions) {
     }
     return shuffled;
 }
+
+// Student Dashboard Overview
+router.get('/dashboard/overview', async (req, res) => {
+    try {
+        const studentId = req.user.user_id;
+
+        // Get tests assigned to student's classes
+        const testsAssignedResult = await query(`
+            SELECT COUNT(DISTINCT ta.id) as count
+            FROM test_assignments ta
+            INNER JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 AND cs.is_active = true
+        `, [studentId]);
+        const testsAssigned = parseInt(testsAssignedResult.rows[0]?.count || 0);
+
+        // Get tests completed by student
+        const columnsResult = await query(`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'test_attempts'
+        `);
+        const columns = new Set(columnsResult.rows.map(row => row.column_name));
+
+        let completedFilter = 'false';
+        if (columns.has('status')) completedFilter = "tatt.status = 'completed'";
+        else if (columns.has('is_completed')) completedFilter = 'tatt.is_completed = true';
+        else if (columns.has('submitted_at')) completedFilter = 'tatt.submitted_at IS NOT NULL';
+
+        const testsCompletedResult = await query(`
+            SELECT COUNT(DISTINCT tatt.id) as count
+            FROM test_attempts tatt
+            INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
+            INNER JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+        `, [studentId]);
+        const testsCompleted = parseInt(testsCompletedResult.rows[0]?.count || 0);
+
+        // Get average score
+        let scoreExpr = columns.has('percentage') ? 'tatt.percentage'
+            : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)'
+                : 'NULL';
+
+        let avgScoreResult = { rows: [{ avg: null }] };
+        if (scoreExpr !== 'NULL') {
+            avgScoreResult = await query(`
+                SELECT AVG(${scoreExpr})::int as avg
+                FROM test_attempts tatt
+                INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
+                INNER JOIN class_students cs ON cs.class_id = ta.class_id
+                WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+            `, [studentId]);
+        }
+        const avgScore = avgScoreResult.rows[0]?.avg || 0;
+
+        // Get career test completion
+        const careerResult = await query(`
+            SELECT COUNT(*) as count
+            FROM student_career_results
+            WHERE student_id = $1
+        `, [studentId]);
+        const careerTestCompleted = parseInt(careerResult.rows[0]?.count || 0) > 0;
+
+        // Get recent test attempts (last 5)
+        const recentResult = await query(`
+            SELECT 
+                t.id,
+                t.title,
+                c.name as class_name,
+                ${columns.has('percentage') ? 'tatt.percentage'
+                : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)::int'
+                    : '0'}::int as percentage,
+                ${columns.has('submitted_at') ? 'tatt.submitted_at'
+                : columns.has('completed_at') ? 'tatt.completed_at'
+                    : 'NULL'}::timestamp as submitted_at
+            FROM test_attempts tatt
+            INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
+            INNER JOIN test t ON t.id = ta.test_id
+            INNER JOIN class c ON c.id = ta.class_id
+            INNER JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+            ORDER BY ${columns.has('submitted_at') ? 'tatt.submitted_at'
+                : columns.has('completed_at') ? 'tatt.completed_at'
+                    : 'tatt.id'} DESC
+            LIMIT 5
+        `, [studentId]);
+        const recentAttempts = recentResult.rows || [];
+
+        res.json({
+            stats: {
+                tests_assigned: testsAssigned,
+                tests_completed: testsCompleted,
+                avg_score: Math.round(avgScore),
+                career_test_completed: careerTestCompleted
+            },
+            recent_attempts: recentAttempts.map(row => ({
+                test_title: row.title,
+                class_name: row.class_name,
+                percentage: row.percentage || 0,
+                submitted_at: row.submitted_at
+            }))
+        });
+    } catch (error) {
+        console.error('Student dashboard overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch dashboard overview'
+        });
+    }
+});
 
 module.exports = router;

@@ -27,7 +27,8 @@
                 section: 'dashboard.nav.system',
                 items: [
                     { icon: 'settings', label: 'dashboard.nav.settings', id: 'settings', href: '#settings' },
-                    { icon: 'shield', label: 'dashboard.nav.audit', id: 'audit', href: '#audit' }
+                    { icon: 'shield', label: 'dashboard.nav.audit', id: 'audit', href: '#audit' },
+                    { icon: 'target', label: 'dashboard.nav.careerAdmin', id: 'career-admin', href: '#career-admin' }
                 ]
             }
         ],
@@ -127,11 +128,11 @@
     // Initialize dashboard
     async function initDashboard() {
         console.log('🔐 Checking authentication...');
-        
+
         // Check authentication
         const token = localStorage.getItem('access_token');
         console.log('Access token exists:', !!token);
-        
+
         if (!token) {
             console.log('❌ No access token found, redirecting to login');
             redirectToLogin();
@@ -169,13 +170,13 @@
                 // Update UI (with error handling for each step)
                 console.log('📝 Updating user info...');
                 updateUserInfo();
-                
+
                 console.log('🧭 Rendering navigation...');
                 renderNavigation();
-                
+
                 console.log('📄 Loading dashboard content...');
                 loadDashboardContent();
-                
+
                 console.log('✅ Dashboard fully loaded');
             } catch (uiError) {
                 console.error('⚠️ UI update error (non-critical):', uiError);
@@ -311,7 +312,7 @@
     // Load specific page content
     async function loadPageContent(page) {
         const content = document.getElementById('dashboardContent');
-        
+
         if (!content) {
             console.warn('⚠️ dashboardContent element not found');
             return;
@@ -325,7 +326,40 @@
             </div>
         `;
 
-        // Set page content
+        // Load stats from API if overview page
+        if (page === 'overview' && currentUser) {
+            const statsData = await loadStatsFromAPI(currentUser.role);
+            if (statsData) {
+                // Set page content with API data
+                const titles = {
+                    superadmin: { title: 'Админ Панель', subtitle: 'Управление системой и контроль' },
+                    school_admin: { title: 'Админ Панель', subtitle: 'Управление школой' },
+                    teacher: { title: 'Панель Учителя', subtitle: 'Тесты и аналитика' },
+                    student: { title: 'Панель Ученика', subtitle: 'Обучение и результаты' }
+                };
+
+                const roleTitle = titles[currentUser.role] || titles.student;
+
+                content.innerHTML = `
+                    <div class="page-header-section">
+                        <h1 class="page-main-title">${roleTitle.title}</h1>
+                        <p class="page-subtitle">${roleTitle.subtitle}</p>
+                    </div>
+                    <div class="stats-grid">
+                        ${buildStatsCards(currentUser.role, statsData)}
+                    </div>
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Recent Activity</h2>
+                        </div>
+                        <p style="color: var(--text-secondary);">Content coming soon...</p>
+                    </div>
+                `;
+                return;
+            }
+        }
+
+        // Set page content (fallback or non-overview pages)
         content.innerHTML = getPageContent(page);
 
         // Load script and initialize if needed
@@ -832,6 +866,42 @@
             `;
         }
 
+        // Career Orientation (Student)
+        if (page === 'career' && role === 'student') {
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title" data-i18n="career.title">Профориентация</h1>
+                    <p class="page-subtitle" data-i18n="career.subtitle">Тест интересов и рекомендации по предметам</p>
+                </div>
+                <div class="career-grid">
+                    <div class="card career-card">
+                        <div class="career-card-header">
+                            <h2 data-i18n="career.testTitle">Тест интересов</h2>
+                            <p class="career-hint" data-i18n="career.testHint">Оцените утверждения по шкале от 1 до 5</p>
+                        </div>
+                        <form id="careerTestForm">
+                            <div id="careerQuestions" class="career-questions"></div>
+                            <div class="career-actions">
+                                <button class="btn btn-primary" type="submit" id="careerSubmitBtn" data-i18n="career.submit">Пройти тест</button>
+                                <span id="careerFormStatus" class="career-status"></span>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card career-card">
+                        <div class="career-card-header">
+                            <h2 data-i18n="career.resultsTitle">Результаты</h2>
+                            <p class="career-hint" data-i18n="career.resultsHint">Ваши сильные интересы и рекомендации</p>
+                        </div>
+                        <div id="careerResultsEmpty" class="empty-state">
+                            <p data-i18n="career.noResults">Пока нет результатов. Пройдите тест.</p>
+                        </div>
+                        <canvas id="careerRadarChart" class="career-radar" style="display: none;"></canvas>
+                        <div id="careerRecommendations" class="career-recommendations"></div>
+                    </div>
+                </div>
+            `;
+        }
+
         // Test Assignments Management (Teacher)
         if (page === 'assignments') {
             return `
@@ -869,6 +939,37 @@
             `;
         }
 
+        // Career Interests Management (SuperAdmin)
+        if (page === 'career-admin' && role === 'superadmin') {
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title" data-i18n="careerAdmin.title">Профориентация</h1>
+                    <p class="page-subtitle" data-i18n="careerAdmin.subtitle">Управление направлениями и описаниями</p>
+                </div>
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="careerAdminSearch"
+                            class="search-input"
+                            placeholder="Search interests..."
+                            data-i18n-placeholder="careerAdmin.search"
+                        />
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-primary" id="addCareerInterestBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span data-i18n="careerAdmin.add">Добавить направление</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="careerInterestsContainer"></div>
+            `;
+        }
+
         // Global Statistics (SuperAdmin)
         if (page === 'statistics') {
             if (role !== 'superadmin') {
@@ -902,9 +1003,9 @@
                 teacher: { title: 'Панель Учителя', subtitle: 'Тесты и аналитика' },
                 student: { title: 'Панель Ученика', subtitle: 'Обучение и результаты' }
             };
-            
+
             const roleTitle = titles[role] || titles.student;
-            
+
             return `
                 <div class="page-header-section">
                     <h1 class="page-main-title">${roleTitle.title}</h1>
@@ -933,7 +1034,94 @@
         `;
     }
 
-    // Get stats cards based on role
+    // Load stats from API
+    async function loadStatsFromAPI(role) {
+        try {
+            const endpoints = {
+                superadmin: '/api/superadmin/dashboard/overview',
+                school_admin: '/api/admin/dashboard/overview',
+                teacher: '/api/teacher/dashboard/overview',
+                student: '/api/student/dashboard/overview'
+            };
+
+            const endpoint = endpoints[role];
+            if (!endpoint) return null;
+
+            const response = await fetch(endpoint, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to load stats for ${role}`);
+                return null;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            return null;
+        }
+    }
+
+    // Build stat cards from API data
+    function buildStatsCards(role, data) {
+        if (!data || !data.stats) {
+            return '';
+        }
+
+        const stats = data.stats;
+        const cards = [];
+
+        if (role === 'superadmin') {
+            cards.push(
+                { icon: 'building', label: 'Schools', value: stats.schools },
+                { icon: 'users', label: 'Students', value: stats.students },
+                { icon: 'clipboard', label: 'Tests', value: stats.tests },
+                { icon: 'star', label: 'Avg Score', value: `${stats.avg_score}%` }
+            );
+        } else if (role === 'school_admin') {
+            cards.push(
+                { icon: 'users', label: 'Students', value: stats.students },
+                { icon: 'class', label: 'Classes', value: stats.classes },
+                { icon: 'clipboard', label: 'Tests', value: stats.tests },
+                { icon: 'star', label: 'Avg Score', value: `${stats.avg_score}%` }
+            );
+        } else if (role === 'teacher') {
+            cards.push(
+                { icon: 'clipboard', label: 'Tests Created', value: stats.tests_created },
+                { icon: 'users', label: 'Students', value: stats.student_count },
+                { icon: 'clipboard', label: 'Assignments', value: stats.assignments_total },
+                { icon: 'star', label: 'Avg Score', value: `${stats.avg_percentage}%` }
+            );
+        } else if (role === 'student') {
+            cards.push(
+                { icon: 'clipboard', label: 'Tests Assigned', value: stats.tests_assigned },
+                { icon: 'star', label: 'Tests Completed', value: stats.tests_completed },
+                { icon: 'trophy', label: 'Avg Score', value: `${stats.avg_score}%` },
+                { icon: 'target', label: 'Career Test', value: stats.career_test_completed ? 'Done' : 'Pending' }
+            );
+        }
+
+        const colors = ['blue', 'green', 'orange', 'purple'];
+        return cards.map((card, i) => `
+            <div class="stat-card">
+                <div class="stat-icon ${colors[i]}">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        ${icons[card.icon]}
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">${card.label}</div>
+                    <div class="stat-value">${card.value}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Get stats cards based on role (fallback with placeholder data)
     function getStatsForRole(role) {
         const stats = {
             superadmin: [
@@ -983,7 +1171,7 @@
         const refreshToken = localStorage.getItem('refresh_token');
         console.log('🔄 Attempting to refresh token...');
         console.log('Refresh token exists:', !!refreshToken);
-        
+
         if (!refreshToken) {
             console.log('❌ No refresh token, redirecting to login');
             redirectToLogin();
