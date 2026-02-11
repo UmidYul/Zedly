@@ -28,7 +28,11 @@
         },
 
         // Get API base path based on user role
-        getApiBasePath: function() {
+        getApiBasePath: function () {
+            // Map school_admin to admin API route
+            if (this.userRole === 'school_admin') {
+                return '/api/admin';
+            }
             return `/api/${this.userRole || 'teacher'}`;
         },
 
@@ -57,7 +61,7 @@
             // Add class button (only for admin)
             const addBtn = document.getElementById('addClassBtn');
             if (addBtn) {
-                if (this.userRole === 'admin') {
+                if (this.userRole === 'school_admin' || this.userRole === 'admin') {
                     addBtn.addEventListener('click', () => this.showClassModal());
                 } else {
                     addBtn.style.display = 'none'; // Hide for teachers
@@ -133,8 +137,8 @@
                                 <th>Academic Year</th>
                                 <th>Homeroom Teacher</th>
                                 <th>Students</th>
-                                ${this.userRole === 'admin' ? '<th>Status</th>' : ''}
-                                ${this.userRole === 'admin' ? '<th>Actions</th>' : '<th>Subjects</th>'}
+                                ${this.userRole === 'school_admin' ? '<th>Status</th>' : ''}
+                                ${this.userRole === 'school_admin' ? '<th>Actions</th>' : '<th>Subjects</th>'}
                             </tr>
                         </thead>
                         <tbody>
@@ -156,7 +160,7 @@
                         <td>${cls.student_count || 0} students</td>
                 `;
 
-                if (this.userRole === 'admin') {
+                if (this.userRole === 'school_admin') {
                     html += `
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>
@@ -263,7 +267,7 @@
 
             // Load teachers list (only for admin)
             let teachersList = [];
-            if (this.userRole === 'admin') {
+            if (this.userRole === 'school_admin') {
                 try {
                     const token = localStorage.getItem('access_token');
                     const response = await fetch(`${this.getApiBasePath()}/teachers`, {
