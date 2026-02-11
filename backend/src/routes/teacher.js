@@ -1105,7 +1105,7 @@ router.post('/assignments', async (req, res) => {
         try {
             // Get test info and students
             const testInfo = await query(
-                `SELECT t.id, t.title, t.duration_minutes as time_limit, s.name_ru as subject_name
+                `SELECT t.id, t.title, t.duration_minutes as time_limit, s.name as subject_name
                  FROM tests t
                  JOIN subjects s ON s.id = t.subject_id
                  WHERE t.id = $1`,
