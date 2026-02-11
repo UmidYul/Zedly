@@ -921,7 +921,6 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
             `UPDATE users 
              SET password_hash = $1, 
                  must_change_password = true, 
-                 is_otp = true,
                  updated_at = CURRENT_TIMESTAMP 
              WHERE id = $2`,
             [hashedPassword, id]

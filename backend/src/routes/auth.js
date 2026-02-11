@@ -327,7 +327,6 @@ router.post('/change-password', authenticate, async (req, res) => {
             `UPDATE users 
              SET password_hash = $1, 
                  must_change_password = false, 
-                 is_otp = false,
                  updated_at = CURRENT_TIMESTAMP 
              WHERE id = $2`,
             [hashedPassword, req.user.id]
