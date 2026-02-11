@@ -145,6 +145,16 @@ try {
     console.error(error.stack);
 }
 
+// Telegram routes
+try {
+    const telegramRouter = require('./routes/telegram');
+    app.use('/api/telegram', telegramRouter);
+    console.log('✓ Telegram routes loaded: /api/telegram');
+} catch (error) {
+    console.error('❌ Failed to load telegram routes:', error.message);
+    console.error(error.stack);
+}
+
 // ==============================================
 // Serve Static Files (AFTER API routes!)
 // ==============================================
