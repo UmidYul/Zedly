@@ -179,7 +179,6 @@
 4. Audit log всех критичных действий
 
 5. Upload security (image only, size limit)  
-6. 
 
 2\. Роли
 
