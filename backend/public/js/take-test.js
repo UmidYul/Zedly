@@ -79,6 +79,11 @@
                 this.attempt = data.attempt;
                 this.questions = data.questions;
 
+                if (this.attempt.is_completed) {
+                    window.location.href = `/test-results.html?attempt_id=${this.attemptId}`;
+                    return;
+                }
+
                 // Validate questions exist
                 if (!this.questions || this.questions.length === 0) {
                     alert('This test has no questions. Please contact your teacher.');

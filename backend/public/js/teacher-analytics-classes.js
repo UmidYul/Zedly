@@ -1,5 +1,5 @@
 // Teacher Analytics - My Classes
-(function() {
+(function () {
     'use strict';
 
     const API_URL = '/api';
@@ -9,6 +9,8 @@
     let selectedClassId = '';
     let selectedSubjectId = '';
     let students = [];
+    let subjectPerformance = [];
+    let assignmentPerformance = [];
     let performanceChart = null;
     let topicsChart = null;
 
@@ -46,7 +48,7 @@
     async function fetchCurrentUser() {
         const response = await fetch(`${API_URL}/auth/me`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
         });
 
@@ -100,7 +102,7 @@
         try {
             const response = await fetch(`${API_URL}/teacher/classes`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                 }
             });
 
@@ -114,7 +116,7 @@
             // Populate class filter
             const classFilter = document.getElementById('classFilter');
             classFilter.innerHTML = `<option value="" data-i18n="teacherAnalytics.allClasses">Все классы</option>`;
-            
+
             classes.forEach(cls => {
                 const option = document.createElement('option');
                 option.value = cls.id;
@@ -132,7 +134,7 @@
         try {
             const response = await fetch(`${API_URL}/teacher/subjects`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                 }
             });
 
@@ -146,7 +148,7 @@
             // Populate subject filter
             const subjectFilter = document.getElementById('subjectFilter');
             subjectFilter.innerHTML = `<option value="" data-i18n="teacherAnalytics.allSubjects">Все предметы</option>`;
-            
+
             subjects.forEach(subject => {
                 const option = document.createElement('option');
                 option.value = subject.id;
@@ -162,8 +164,7 @@
     // Refresh analytics
     async function refreshAnalytics() {
         try {
-            // Load students
-            await loadStudents();
+            await loadAnalytics();
 
             // Render charts
             renderPerformanceChart();
@@ -177,17 +178,24 @@
         }
     }
 
-    // Load students
-    async function loadStudents() {
+    // Load analytics
+    async function loadAnalytics() {
         try {
             if (!selectedClassId) {
                 students = [];
+                subjectPerformance = [];
+                assignmentPerformance = [];
                 return;
             }
 
-            const response = await fetch(`${API_URL}/teacher/classes/${selectedClassId}`, {
+            const params = new URLSearchParams();
+            if (selectedSubjectId) {
+                params.set('subject_id', selectedSubjectId);
+            }
+
+            const response = await fetch(`${API_URL}/teacher/classes/${selectedClassId}/analytics?${params.toString()}`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                 }
             });
 
@@ -197,18 +205,11 @@
 
             const data = await response.json();
             students = data.students || [];
-
-            // TODO: Fetch actual analytics data for students
-            // For now, using mock data
-            students = students.map((student, index) => ({
-                ...student,
-                rank: index + 1,
-                avg_score: Math.floor(Math.random() * 40) + 60, // Mock data
-                tests_completed: Math.floor(Math.random() * 20) + 5 // Mock data
-            }));
+            subjectPerformance = data.subject_performance || [];
+            assignmentPerformance = data.assignments || [];
 
             // Sort by avg_score descending
-            students.sort((a, b) => b.avg_score - a.avg_score);
+            students.sort((a, b) => (b.avg_score || 0) - (a.avg_score || 0));
 
             // Update ranks
             students.forEach((student, index) => {
@@ -217,20 +218,21 @@
         } catch (error) {
             console.error('Error loading students:', error);
             students = [];
+            subjectPerformance = [];
+            assignmentPerformance = [];
         }
     }
 
     // Render performance chart
     function renderPerformanceChart() {
         const ctx = document.getElementById('classPerformanceChart');
-        
+
         if (performanceChart) {
             performanceChart.destroy();
         }
 
-        // Mock data - replace with actual API data
-        const labels = subjects.map(s => getCurrentLang() === 'ru' ? s.name_ru : s.name_uz);
-        const data = subjects.map(() => Math.floor(Math.random() * 30) + 60);
+        const labels = subjectPerformance.map(item => item.subject_name);
+        const data = subjectPerformance.map(item => Math.round(item.avg_score || 0));
 
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
@@ -296,14 +298,13 @@
     // Render topics chart
     function renderTopicsChart() {
         const ctx = document.getElementById('topicsPerformanceChart');
-        
+
         if (topicsChart) {
             topicsChart.destroy();
         }
 
-        // Mock data - replace with actual API data
-        const labels = ['Тема 1', 'Тема 2', 'Тема 3', 'Тема 4', 'Тема 5', 'Тема 6'];
-        const data = labels.map(() => Math.floor(Math.random() * 30) + 60);
+        const labels = assignmentPerformance.map(item => item.test_title);
+        const data = assignmentPerformance.map(item => Math.round(item.avg_percentage || 0));
 
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
@@ -411,11 +412,11 @@
                     <td>${student.first_name} ${student.last_name}</td>
                     <td>${student.username}</td>
                     <td>
-                        <span class="score-badge ${getScoreClass(student.avg_score)}">
-                            ${student.avg_score}%
+                        <span class="score-badge ${getScoreClass(student.avg_score || 0)}">
+                            ${Math.round(student.avg_score || 0)}%
                         </span>
                     </td>
-                    <td>${student.tests_completed}</td>
+                    <td>${student.tests_completed || 0}</td>
                     <td>
                         <button class="btn-view-profile" onclick="viewProfile(${student.id})">
                             <span>👤</span>
@@ -468,13 +469,13 @@
     }
 
     // Change page
-    window.changePage = function(page) {
+    window.changePage = function (page) {
         currentPage = page;
         renderStudentsTable();
     };
 
     // View profile
-    window.viewProfile = function(userId) {
+    window.viewProfile = function (userId) {
         window.location.href = `profile.html?id=${userId}`;
     };
 

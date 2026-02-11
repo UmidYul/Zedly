@@ -56,7 +56,7 @@
                     this.questions = data.questions;
                 } else {
                     // Get best attempt from attempts list
-                    const attempts = data.attempts;
+                    const attempts = (data.attempts || []).filter(item => item.is_completed);
                     if (attempts.length === 0) {
                         throw new Error('No completed attempts found');
                     }

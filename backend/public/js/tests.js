@@ -28,10 +28,24 @@
                 if (response.ok) {
                     const data = await response.json();
                     this.subjects = data.subjects;
+                    this.renderSubjectFilter();
                 }
             } catch (error) {
                 console.error('Load subjects error:', error);
             }
+        },
+
+        renderSubjectFilter: function () {
+            const subjectFilter = document.getElementById('subjectFilter');
+            if (!subjectFilter) return;
+
+            subjectFilter.innerHTML = '<option value="all">All Subjects</option>';
+            this.subjects.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject.id;
+                option.textContent = subject.name || subject.name_ru || subject.name_uz || 'Subject';
+                subjectFilter.appendChild(option);
+            });
         },
 
         // Setup event listeners
@@ -253,8 +267,111 @@
 
         // View test details
         viewTest: function (testId) {
-            alert(`Viewing test ${testId} - Preview coming soon!`);
-            // TODO: Implement test preview modal
+            this.showTestPreview(testId);
+        },
+
+        showTestPreview: async function (testId) {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/teacher/tests/${testId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load test');
+                }
+
+                const data = await response.json();
+                this.renderTestPreviewModal(data.test, data.questions || []);
+            } catch (error) {
+                console.error('Load test preview error:', error);
+                alert('Failed to load test preview');
+            }
+        },
+
+        renderTestPreviewModal: function (test, questions) {
+            const modalHtml = `
+                <div class="modal-overlay" id="testPreviewModal">
+                    <div class="modal modal-large">
+                        <div class="modal-header">
+                            <h2 class="modal-title">${test.title}</h2>
+                            <button class="modal-close" onclick="TestsManager.closeTestPreview()">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="detail-section">
+                                <div class="detail-grid">
+                                    <div class="detail-item">
+                                        <label>Subject:</label>
+                                        <span>${test.subject_name || '-'}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Duration:</label>
+                                        <span>${test.duration_minutes || '-'} minutes</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Passing Score:</label>
+                                        <span>${test.passing_score || 0}%</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Questions:</label>
+                                        <span>${questions.length}</span>
+                                    </div>
+                                </div>
+                                ${test.description ? `<p style="margin-top: 12px; color: var(--text-secondary);">${test.description}</p>` : ''}
+                            </div>
+                            <div class="detail-section">
+                                <h3>Questions</h3>
+                                ${questions.length === 0 ? '<p style="color: var(--text-secondary);">No questions found.</p>' : `
+                                    <div class="table-responsive">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Type</th>
+                                                    <th>Question</th>
+                                                    <th>Marks</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${questions.map((q, index) => `
+                                                    <tr>
+                                                        <td>${index + 1}</td>
+                                                        <td>${q.question_type}</td>
+                                                        <td>${q.question_text}</td>
+                                                        <td>${q.marks}</td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline" onclick="TestsManager.closeTestPreview()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('testPreviewModal').addEventListener('click', (e) => {
+                if (e.target.id === 'testPreviewModal') {
+                    this.closeTestPreview();
+                }
+            });
+        },
+
+        closeTestPreview: function () {
+            const modal = document.getElementById('testPreviewModal');
+            if (modal) {
+                modal.remove();
+            }
         },
 
         // Edit test

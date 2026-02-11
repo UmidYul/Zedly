@@ -742,8 +742,10 @@ router.get('/classes/:id', async (req, res) => {
 router.get('/classes/:id/analytics', async (req, res) => {
     try {
         const { id } = req.params;
+        const { subject_id } = req.query;
         const teacherId = req.user.id;
         const schoolId = req.user.school_id;
+        const attempt = await getAttemptOverviewExpressions();
 
         // Verify teacher has access to this class
         const accessCheck = await query(
@@ -781,13 +783,16 @@ router.get('/classes/:id/analytics', async (req, res) => {
             `SELECT
                 COUNT(DISTINCT ta.id) as assignments_total,
                 COUNT(DISTINCT ta.id) FILTER (WHERE ta.is_active = true AND ta.end_date > CURRENT_TIMESTAMP) as active_assignments,
-                COUNT(att.id) FILTER (WHERE att.is_completed = true) as completed_attempts,
-                AVG(att.percentage) FILTER (WHERE att.is_completed = true) as avg_percentage
+                COUNT(att.id) FILTER (WHERE ${attempt.completedFilter}) as completed_attempts,
+                AVG(${attempt.score}) FILTER (WHERE ${attempt.completedFilter}) as avg_percentage
              FROM test_assignments ta
              LEFT JOIN test_attempts att ON att.assignment_id = ta.id
              WHERE ta.class_id = $1 AND ta.assigned_by = $2`,
             [id, teacherId]
         );
+
+        const assignmentFilter = subject_id ? 'AND t.subject_id = $3' : '';
+        const assignmentParams = subject_id ? [id, teacherId, subject_id] : [id, teacherId];
 
         const assignmentsResult = await query(
             `SELECT
@@ -799,15 +804,52 @@ router.get('/classes/:id/analytics', async (req, res) => {
                 t.title as test_title,
                 t.passing_score,
                 COUNT(att.id) as total_attempts,
-                COUNT(att.id) FILTER (WHERE att.is_completed = true) as completed_attempts,
-                AVG(att.percentage) FILTER (WHERE att.is_completed = true) as avg_percentage
+                COUNT(att.id) FILTER (WHERE ${attempt.completedFilter}) as completed_attempts,
+                AVG(${attempt.score}) FILTER (WHERE ${attempt.completedFilter}) as avg_percentage
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
              LEFT JOIN test_attempts att ON att.assignment_id = ta.id
              WHERE ta.class_id = $1 AND ta.assigned_by = $2
+             ${assignmentFilter}
              GROUP BY ta.id, t.title, t.passing_score
              ORDER BY ta.created_at DESC
              LIMIT 20`,
+            assignmentParams
+        );
+
+        const studentsResult = await query(
+            `SELECT
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.username,
+                cs.roll_number,
+                COUNT(att.id) FILTER (WHERE ${attempt.completedFilter}) as tests_completed,
+                AVG(${attempt.score}) FILTER (WHERE ${attempt.completedFilter}) as avg_score
+             FROM class_students cs
+             JOIN users u ON u.id = cs.student_id
+             LEFT JOIN test_assignments ta ON ta.class_id = cs.class_id AND ta.assigned_by = $2
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id AND att.student_id = u.id
+             WHERE cs.class_id = $1 AND cs.is_active = true
+             GROUP BY u.id, cs.roll_number
+             ORDER BY cs.roll_number ASC`,
+            [id, teacherId]
+        );
+
+        const subjectPerformanceResult = await query(
+            `SELECT
+                s.id,
+                s.name as subject_name,
+                s.color as subject_color,
+                COUNT(att.id) FILTER (WHERE ${attempt.completedFilter}) as attempts,
+                AVG(${attempt.score}) FILTER (WHERE ${attempt.completedFilter}) as avg_score
+             FROM test_assignments ta
+             JOIN tests t ON t.id = ta.test_id
+             JOIN subjects s ON s.id = t.subject_id
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id
+             WHERE ta.class_id = $1 AND ta.assigned_by = $2
+             GROUP BY s.id, s.name, s.color
+             ORDER BY avg_score DESC NULLS LAST`,
             [id, teacherId]
         );
 
@@ -822,7 +864,9 @@ router.get('/classes/:id/analytics', async (req, res) => {
                 completed_attempts: parseInt(statsRow.completed_attempts || 0),
                 avg_percentage: statsRow.avg_percentage
             },
-            assignments: assignmentsResult.rows
+            assignments: assignmentsResult.rows,
+            students: studentsResult.rows,
+            subject_performance: subjectPerformanceResult.rows
         });
     } catch (error) {
         console.error('Get class analytics error:', error);
