@@ -78,6 +78,14 @@
                 const data = await response.json();
                 this.attempt = data.attempt;
                 this.questions = data.questions;
+
+                // Validate questions exist
+                if (!this.questions || this.questions.length === 0) {
+                    alert('This test has no questions. Please contact your teacher.');
+                    window.location.href = '/dashboard.html';
+                    return;
+                }
+
                 this.proctoring = {
                     blockCopyPaste: this.attempt.block_copy_paste !== false,
                     trackTabSwitches: this.attempt.track_tab_switches !== false,
@@ -349,6 +357,15 @@
         // Render current question
         renderQuestion: function () {
             const question = this.questions[this.currentQuestionIndex];
+
+            // Safety check
+            if (!question) {
+                console.error('Question not found at index:', this.currentQuestionIndex);
+                alert('Unable to load question. Returning to dashboard.');
+                window.location.href = '/dashboard.html';
+                return;
+            }
+
             const container = document.getElementById('questionContainer');
 
             let html = `
@@ -657,6 +674,13 @@
         // Save current answer
         saveCurrentAnswer: function () {
             const question = this.questions[this.currentQuestionIndex];
+
+            // Safety check
+            if (!question) {
+                console.warn('No question to save answer for');
+                return;
+            }
+
             let answer = null;
 
             switch (question.question_type) {
