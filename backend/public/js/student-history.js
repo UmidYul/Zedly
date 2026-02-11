@@ -1,5 +1,5 @@
 // Student History Page
-(function() {
+(function () {
     'use strict';
 
     const API_URL = '/api';
@@ -142,7 +142,7 @@
             // Populate subject filter
             const subjectFilter = document.getElementById('subjectFilter');
             subjectFilter.innerHTML = `<option value="" data-i18n="studentHistory.allSubjects">Все предметы</option>`;
-            
+
             subjects.forEach(subject => {
                 const option = document.createElement('option');
                 option.value = subject.id;
@@ -169,14 +169,14 @@
     // Render performance chart
     function renderPerformanceChart() {
         const ctx = document.getElementById('performanceChart');
-        
+
         if (performanceChart) {
             performanceChart.destroy();
         }
 
         // Group attempts by subject
         const subjectScores = new Map();
-        
+
         attempts
             .filter(a => a.status === 'completed' && a.score !== null)
             .forEach(attempt => {
@@ -239,7 +239,7 @@
                         padding: 12,
                         displayColors: false,
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 return ` ${context.parsed.y.toFixed(1)}%`;
                             }
                         }
@@ -251,7 +251,7 @@
                         max: 100,
                         ticks: {
                             color: isDark ? '#a0aec0' : '#4a5568',
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value + '%';
                             }
                         },
@@ -329,9 +329,9 @@
                     <td>${attempt.subject_name || '-'}</td>
                     <td>${formatDate(attempt.started_at)}</td>
                     <td>
-                        ${attempt.status === 'completed' && attempt.score !== null 
-                            ? `<span class="score-badge ${getScoreClass(attempt.score)}">${attempt.score}%</span>`
-                            : '-'}
+                        ${attempt.status === 'completed' && attempt.score !== null
+                    ? `<span class="score-badge ${getScoreClass(attempt.score)}">${attempt.score}%</span>`
+                    : '-'}
                     </td>
                     <td>
                         <span class="status-badge ${attempt.status}">
@@ -340,15 +340,15 @@
                     </td>
                     <td>
                         ${attempt.status === 'completed'
-                            ? `<button class="btn-view" onclick="viewResults('${attempt.id}')">
+                    ? `<button class="btn-view" onclick="viewResults('${attempt.id}')">
                                 <span>👁️</span>
                                 <span data-i18n="studentHistory.viewResults">Результаты</span>
                                </button>`
-                            : `<button class="btn-continue" onclick="continueTest('${attempt.id}')">
+                    : `<button class="btn-continue" onclick="continueTest('${attempt.id}')">
                                 <span>▶️</span>
                                 <span data-i18n="studentHistory.continue">Продолжить</span>
                                </button>`
-                        }
+                }
                     </td>
                 </tr>
             `).join('');
@@ -396,18 +396,18 @@
     }
 
     // Change page
-    window.changePage = function(page) {
+    window.changePage = function (page) {
         currentPage = page;
         renderHistory();
     };
 
     // View results
-    window.viewResults = function(attemptId) {
+    window.viewResults = function (attemptId) {
         window.location.href = `test-results.html?attempt=${attemptId}`;
     };
 
     // Continue test
-    window.continueTest = function(attemptId) {
+    window.continueTest = function (attemptId) {
         window.location.href = `take-test.html?attempt=${attemptId}`;
     };
 

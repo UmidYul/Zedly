@@ -63,14 +63,14 @@
 
     function renderNotifications() {
         let dropdown = document.getElementById('notificationsDropdown');
-        
+
         // Create dropdown if it doesn't exist
         if (!dropdown) {
             dropdown = document.createElement('div');
             dropdown.id = 'notificationsDropdown';
             dropdown.className = 'notifications-dropdown';
             dropdown.style.display = 'none';
-            
+
             const notificationsBtn = document.getElementById('notificationsBtn');
             if (notificationsBtn) {
                 notificationsBtn.parentElement.appendChild(dropdown);
@@ -85,8 +85,8 @@
                 ${unreadCount > 0 ? `<button class="mark-all-read" onclick="window.ZedlyNotifications.markAllAsRead()">${translate('notifications.markAllRead')}</button>` : ''}
             </div>
             <div class="notifications-list">
-                ${notifications.length > 0 
-                    ? notifications.map(notification => `
+                ${notifications.length > 0
+                ? notifications.map(notification => `
                         <div class="notification-item ${notification.read ? 'read' : 'unread'}" data-id="${notification.id}">
                             <div class="notification-icon">${notification.icon}</div>
                             <div class="notification-content">
@@ -101,14 +101,14 @@
                             </button>` : ''}
                         </div>
                     `).join('')
-                    : `<div class="notifications-empty">
+                : `<div class="notifications-empty">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                         </svg>
                         <p>${translate('notifications.empty')}</p>
                     </div>`
-                }
+            }
             </div>
             ${notifications.length > 0 ? `
                 <div class="notifications-footer">
@@ -131,7 +131,7 @@
         if (minutes < 60) return `${minutes} ${translate('time.minutesAgo')}`;
         if (hours < 24) return `${hours} ${translate('time.hoursAgo')}`;
         if (days < 7) return `${days} ${translate('time.daysAgo')}`;
-        
+
         return new Date(timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
     }
 
