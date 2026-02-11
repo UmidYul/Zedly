@@ -46,6 +46,21 @@ async function tableExists(tableName) {
     return result.rows.length > 0;
 }
 
+async function getQuestionCountExpr() {
+    if (await tableExists('test_questions')) {
+        return '(SELECT COUNT(*) FROM test_questions WHERE test_id = t.id)';
+    }
+
+    if (await tableExists('questions')) {
+        const questionColumns = await getTableColumns('questions');
+        if (questionColumns.has('test_id')) {
+            return '(SELECT COUNT(*) FROM questions WHERE test_id = t.id)';
+        }
+    }
+
+    return '0';
+}
+
 async function getCareerInterestExpressions() {
     const columnsResult = await query(`
         SELECT column_name
@@ -207,6 +222,7 @@ router.get('/assignments', async (req, res) => {
         const subjectColumns = await getTableColumns('subjects');
         const assignmentColumns = await getTableColumns('test_assignments');
         const attemptColumns = await getTableColumns('test_attempts');
+        const classStudentColumns = await getTableColumns('class_students');
         const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
         const testDescriptionColumn = pickColumn(testColumns, ['description', 'description_ru', 'description_uz'], null);
         const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
@@ -217,6 +233,10 @@ router.get('/assignments', async (req, res) => {
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
         const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
         const isActiveColumn = pickColumn(assignmentColumns, ['is_active', 'active'], null);
+        const classStudentActiveFilter = classStudentColumns.has('is_active')
+            ? 'AND cs.is_active = true'
+            : '';
+        const questionCountExpr = await getQuestionCountExpr();
 
         const completedFilter = attemptColumns.has('status')
             ? "status = 'completed'"
@@ -242,7 +262,7 @@ router.get('/assignments', async (req, res) => {
 
         // Get student's classes
         const classesResult = await query(
-            'SELECT class_id FROM class_students WHERE student_id = $1 AND is_active = true',
+            `SELECT class_id FROM class_students WHERE student_id = $1 ${classStudentActiveFilter}`,
             [studentId]
         );
 
@@ -284,7 +304,7 @@ router.get('/assignments', async (req, res) => {
                 c.name as class_name,
                 s.${subjectNameColumn} as subject_name,
                 ${subjectColorColumn ? `s.${subjectColorColumn}` : 'NULL'} as subject_color,
-                (SELECT COUNT(*) FROM test_questions WHERE test_id = t.id) as question_count,
+                ${questionCountExpr} as question_count,
                 (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2) as attempts_made,
                 (SELECT MAX(${bestScoreExpr}) FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND ${completedFilter}) as best_score,
                 (SELECT id FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND ${incompleteFilter} ORDER BY started_at DESC LIMIT 1) as ongoing_attempt_id,
@@ -331,6 +351,7 @@ router.get('/assignments/:id', async (req, res) => {
         const testColumns = await getTableColumns('tests');
         const subjectColumns = await getTableColumns('subjects');
         const assignmentColumns = await getTableColumns('test_assignments');
+        const classStudentColumns = await getTableColumns('class_students');
         const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
         const testDescriptionColumn = pickColumn(testColumns, ['description', 'description_ru', 'description_uz'], null);
         const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
@@ -340,12 +361,16 @@ router.get('/assignments/:id', async (req, res) => {
         const maxAttemptsColumn = pickColumn(testColumns, ['max_attempts', 'attempts_limit'], null);
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
         const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
+        const classStudentActiveFilter = classStudentColumns.has('is_active')
+            ? 'AND cs.is_active = true'
+            : '';
+        const questionCountExpr = await getQuestionCountExpr();
 
         // Verify student has access to this assignment
         const accessCheck = await query(
             `SELECT 1 FROM test_assignments ta
              JOIN class_students cs ON ta.class_id = cs.class_id
-             WHERE ta.id = $1 AND cs.student_id = $2 AND cs.is_active = true`,
+             WHERE ta.id = $1 AND cs.student_id = $2 ${classStudentActiveFilter}`,
             [id, studentId]
         );
 
@@ -370,7 +395,7 @@ router.get('/assignments/:id', async (req, res) => {
                 c.name as class_name,
                 s.${subjectNameColumn} as subject_name,
                 ${subjectColorColumn ? `s.${subjectColorColumn}` : 'NULL'} as subject_color,
-                (SELECT COUNT(*) FROM test_questions WHERE test_id = t.id) as question_count
+                ${questionCountExpr} as question_count
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
              JOIN classes c ON ta.class_id = c.id
@@ -1146,13 +1171,17 @@ router.get('/dashboard/overview', async (req, res) => {
 
         const testColumns = await getTableColumns('tests');
         const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
+        const classStudentColumns = await getTableColumns('class_students');
+        const classStudentActiveFilter = classStudentColumns.has('is_active')
+            ? 'AND cs.is_active = true'
+            : '';
 
         // Get tests assigned to student's classes
         const testsAssignedResult = await query(`
             SELECT COUNT(DISTINCT ta.id) as count
             FROM test_assignments ta
             INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 AND cs.is_active = true
+            WHERE cs.student_id = $1 ${classStudentActiveFilter}
         `, [studentId]);
         const testsAssigned = parseInt(testsAssignedResult.rows[0]?.count || 0);
 
@@ -1174,7 +1203,7 @@ router.get('/dashboard/overview', async (req, res) => {
             FROM test_attempts tatt
             INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
             INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+            WHERE cs.student_id = $1 ${classStudentActiveFilter} AND ${completedFilter}
         `, [studentId]);
         const testsCompleted = parseInt(testsCompletedResult.rows[0]?.count || 0);
 
@@ -1190,7 +1219,7 @@ router.get('/dashboard/overview', async (req, res) => {
                 FROM test_attempts tatt
                 INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
                 INNER JOIN class_students cs ON cs.class_id = ta.class_id
-                WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+                WHERE cs.student_id = $1 ${classStudentActiveFilter} AND ${completedFilter}
             `, [studentId]);
         }
         const avgScore = avgScoreResult.rows[0]?.avg || 0;
@@ -1223,7 +1252,7 @@ router.get('/dashboard/overview', async (req, res) => {
             INNER JOIN tests t ON t.id = ta.test_id
             INNER JOIN classes c ON c.id = ta.class_id
             INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
+            WHERE cs.student_id = $1 ${classStudentActiveFilter} AND ${completedFilter}
             ORDER BY ${columns.has('submitted_at') ? 'tatt.submitted_at'
                 : columns.has('completed_at') ? 'tatt.completed_at'
                     : 'tatt.id'} DESC
