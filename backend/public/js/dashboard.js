@@ -18,15 +18,15 @@
             {
                 section: 'dashboard.nav.analytics',
                 items: [
-                    { icon: 'chart', label: 'dashboard.nav.statistics', id: 'statistics', href: '#statistics' },
-                    { icon: 'trophy', label: 'School Comparison', id: 'comparison', href: '#comparison' },
+                    { icon: 'bar', label: 'dashboard.nav.statistics', id: 'statistics', href: '#statistics' },
+                    { icon: 'compare', label: 'School Comparison', id: 'comparison', href: '#comparison' },
                     { icon: 'file', label: 'dashboard.nav.reports', id: 'reports', href: '#reports' }
                 ]
             },
             {
                 section: 'dashboard.nav.system',
                 items: [
-                    { icon: 'settings', label: 'dashboard.nav.settings', id: 'settings', href: '#settings' },
+                    { icon: 'sliders', label: 'dashboard.nav.settings', id: 'settings', href: '#settings' },
                     { icon: 'shield', label: 'dashboard.nav.audit', id: 'audit', href: '#audit' },
                     { icon: 'target', label: 'dashboard.nav.careerAdmin', id: 'career-admin', href: '#career-admin' }
                 ]
@@ -110,8 +110,9 @@
         building: '<path d="M3 21h18M3 7v14M21 7v14M9 7v14M15 7v14M3 7h18M9 3v4M15 3v4"/>',
         users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
         chart: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+        bar: '<line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="11" width="3" height="9"/><rect x="11" y="7" width="3" height="13"/><rect x="16" y="4" width="3" height="16"/>',
         file: '<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/>',
-        settings: '<circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6"/>',
+        sliders: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="18" r="2"/>',
         shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
         clipboard: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>',
         class: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
@@ -121,6 +122,7 @@
         star: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
         target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
         trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M6 9h12v4a6 6 0 0 1-12 0V9zM8 22v-3M16 22v-3M10 19h4"/>',
+        compare: '<path d="M10 3H5a2 2 0 0 0-2 2v5"/><path d="M14 21h5a2 2 0 0 0 2-2v-5"/><path d="M7 21V10"/><path d="M17 3v11"/><polyline points="9 12 7 10 5 12"/><polyline points="15 12 17 14 19 12"/>',
         calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
         assignment: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>',
         edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'
@@ -137,9 +139,12 @@
         if (!token) {
             console.log('❌ No access token found, redirecting to login');
             redirectToLogin();
+                refreshTranslations();
             return;
         }
+                await loadDashboardContent();
 
+                refreshTranslations();
         try {
             console.log('📡 Fetching user info from /api/auth/me');
             // Fetch current user info
@@ -199,11 +204,7 @@
         const userRole = document.getElementById('userRole');
 
         if (currentUser) {
-            // Set avatar initials (only if element exists)
-            if (userAvatar) {
-                const initials = `${currentUser.first_name?.[0] || ''}${currentUser.last_name?.[0] || ''}`.toUpperCase() || 'U';
-                userAvatar.textContent = initials;
-            }
+            // Avatar icon is static in markup; no update needed.
 
             // Set name (only if element exists)
             if (userName) {
@@ -220,6 +221,7 @@
                 };
                 userRole.textContent = roleNames[currentUser.role] || currentUser.role;
             }
+
         }
     }
 
@@ -242,6 +244,11 @@
         config.forEach(section => {
             html += `<div class="nav-section">`;
             html += `<div class="nav-section-title" data-i18n="${section.section}">${t(section.section)}</div>`;
+        if (window.ZedlyI18n?.getCurrentLang && window.ZedlyI18n?.setLang) {
+            const lang = window.ZedlyI18n.getCurrentLang();
+            window.ZedlyI18n.setLang(lang);
+        }
+    }
 
             section.items.forEach(item => {
                 const iconSvg = icons[item.icon] || icons.grid;
