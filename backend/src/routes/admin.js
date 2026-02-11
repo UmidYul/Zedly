@@ -983,6 +983,8 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
  */
 router.get('/classes', async (req, res) => {
     try {
+        const { page = 1, limit = 10, search = '', grade = 'all' } = req.query;
+        const offset = (page - 1) * limit;
 
         const schoolId = req.user.school_id;
 

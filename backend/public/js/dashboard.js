@@ -244,11 +244,6 @@
         config.forEach(section => {
             html += `<div class="nav-section">`;
             html += `<div class="nav-section-title" data-i18n="${section.section}">${t(section.section)}</div>`;
-        if (window.ZedlyI18n?.getCurrentLang && window.ZedlyI18n?.setLang) {
-            const lang = window.ZedlyI18n.getCurrentLang();
-            window.ZedlyI18n.setLang(lang);
-        }
-    }
 
             section.items.forEach(item => {
                 const iconSvg = icons[item.icon] || icons.grid;
@@ -277,6 +272,13 @@
         sidebarNav.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', handleNavClick);
         });
+    }
+
+    function refreshTranslations() {
+        if (window.ZedlyI18n?.getCurrentLang && window.ZedlyI18n?.setLang) {
+            const lang = window.ZedlyI18n.getCurrentLang();
+            window.ZedlyI18n.setLang(lang);
+        }
     }
 
     // Handle navigation click
