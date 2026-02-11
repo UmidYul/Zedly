@@ -492,29 +492,6 @@
     color: var(--text-primary);
 }
 
-.essay-content {
-    padding: var(--spacing-lg);
-    background: var(--bg-primary);
-    border: 2px solid var(--border);
-    border-radius: var(--radius-md);
-    white-space: pre-wrap;
-    line-height: 1.8;
-    font-size: 1rem;
-}
-
-.manual-grading-notice {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md) var(--spacing-lg);
-    background: rgba(236, 201, 75, 0.1);
-    border: 2px solid var(--warning);
-    border-radius: var(--radius-md);
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    margin-top: var(--spacing-lg);
-}
-
 /* Blanks Review */
 .blanks-review {
     display: flex;

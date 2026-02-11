@@ -71,7 +71,6 @@
                 section: 'dashboard.nav.analytics',
                 items: [
                     { icon: 'chart', label: 'dashboard.nav.results', id: 'results', href: '#results' },
-                    { icon: 'edit', label: 'Manual Grading', id: 'grading', href: '/grading.html' },
                     { icon: 'users', label: 'dashboard.nav.students', id: 'students', href: '#students' }
                 ]
             },

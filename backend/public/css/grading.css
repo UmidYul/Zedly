@@ -38,36 +38,6 @@
     padding: var(--spacing-xl);
 }
 
-/* Essay Answer Section */
-.essay-answer-section {
-    margin: var(--spacing-xl) 0;
-    padding: var(--spacing-lg);
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-light);
-}
-
-.essay-label {
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: var(--spacing-md);
-    font-size: 1rem;
-}
-
-.essay-content {
-    padding: var(--spacing-lg);
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    white-space: pre-wrap;
-    line-height: 1.8;
-    font-size: 1rem;
-    color: var(--text-primary);
-    min-height: 100px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
 /* Grading Form */
 .grading-form {
     margin-top: var(--spacing-xl);
@@ -250,11 +220,4 @@
         align-items: flex-start;
     }
 
-    .essay-label {
-        font-size: 0.875rem;
-    }
-
-    .essay-content {
-        font-size: 0.95rem;
-    }
 }

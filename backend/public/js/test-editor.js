@@ -8,7 +8,6 @@
         MULTIPLE_CHOICE: { id: 'multiplechoice', name: 'Multiple Choice', icon: '☑', description: 'Multiple correct answers' },
         TRUE_FALSE: { id: 'truefalse', name: 'True/False', icon: '✓✗', description: 'True or false question' },
         SHORT_ANSWER: { id: 'shortanswer', name: 'Short Answer', icon: '✎', description: 'Brief text response' },
-        ESSAY: { id: 'essay', name: 'Essay', icon: '📝', description: 'Long text response' },
         MATCHING: { id: 'matching', name: 'Matching', icon: '⇄', description: 'Match pairs' },
         ORDERING: { id: 'ordering', name: 'Ordering', icon: '↕', description: 'Put in correct order' },
         FILL_BLANKS: { id: 'fillblanks', name: 'Fill in Blanks', icon: '___', description: 'Fill missing words' },
@@ -322,12 +321,10 @@
                         <label class="form-label">Marks <span class="required">*</span></label>
                         <input type="number" id="questionMarks" class="form-input" value="${question.marks || 1}" min="1" required>
                     </div>
-                    ${question.question_type !== 'essay' ? `
-                        <div class="form-group">
-                            <label class="form-label">Image/Media URL (optional)</label>
-                            <input type="url" id="questionMediaUrl" class="form-input" value="${question.media_url || ''}" placeholder="https://...">
-                        </div>
-                    ` : ''}
+                    <div class="form-group">
+                        <label class="form-label">Image/Media URL (optional)</label>
+                        <input type="url" id="questionMediaUrl" class="form-input" value="${question.media_url || ''}" placeholder="https://...">
+                    </div>
                 </div>
             `;
 
@@ -344,9 +341,6 @@
                     break;
                 case 'shortanswer':
                     editorBodyHtml = this.renderShortAnswerEditor(question);
-                    break;
-                case 'essay':
-                    editorBodyHtml = this.renderEssayEditor(question);
                     break;
                 case 'matching':
                     editorBodyHtml = this.renderMatchingEditor(question);
@@ -507,16 +501,6 @@
             `;
         },
 
-        // Essay Editor
-        renderEssayEditor: function (question) {
-            return `
-                <div class="form-group">
-                    <label class="form-label">Guidelines for Students</label>
-                    <textarea id="essayGuidelines" class="form-textarea" rows="3" placeholder="Optional: Provide guidelines or rubric for essay response">${question.correct_answer || ''}</textarea>
-                    <p class="form-hint">Essay questions require manual grading by teacher</p>
-                </div>
-            `;
-        },
 
         // Matching Editor
         renderMatchingEditor: function (question) {
@@ -837,9 +821,6 @@
                     correctAnswer = answers.length === 1 ? answers[0] : answers;
                     break;
 
-                case 'essay':
-                    correctAnswer = document.getElementById('essayGuidelines')?.value.trim() || '';
-                    break;
 
                 case 'matching':
                     const leftItems = Array.from(document.querySelectorAll('.pair-left')).map(el => el.value.trim());

@@ -376,46 +376,6 @@
     color: var(--text-tertiary);
 }
 
-/* Essay */
-.answer-textarea {
-    width: 100%;
-    padding: var(--spacing-lg);
-    border: 2px solid var(--border);
-    border-radius: var(--radius-lg);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-size: 1.05rem;
-    font-family: inherit;
-    resize: vertical;
-    line-height: 1.8;
-    transition: var(--transition-fast);
-    min-height: 200px;
-}
-
-.answer-textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15);
-    background: white;
-}
-
-.answer-textarea::placeholder {
-    color: var(--text-tertiary);
-}
-
-.essay-hint {
-    margin-top: var(--spacing-md);
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: rgba(66, 153, 225, 0.1);
-    border-radius: var(--radius-md);
-    border-left: 3px solid var(--info);
-}
-
 /* Fill in Blanks */
 .blanks-list {
     display: flex;

@@ -412,9 +412,6 @@
                 case 'shortanswer':
                     return this.renderShortAnswer(question, existingAnswer);
 
-                case 'essay':
-                    return this.renderEssay(question, existingAnswer);
-
                 case 'fillblanks':
                     return this.renderFillBlanks(question, existingAnswer);
 
@@ -520,18 +517,6 @@
             `;
         },
 
-        // Render essay
-        renderEssay: function (question, existingAnswer) {
-            return `
-                <textarea
-                    class="answer-textarea"
-                    id="answer_${question.id}"
-                    rows="10"
-                    placeholder="Write your essay here..."
-                >${existingAnswer || ''}</textarea>
-                <div class="essay-hint">This will be graded manually by your teacher.</div>
-            `;
-        },
 
         // Render fill in blanks
         renderFillBlanks: function (question, existingAnswer) {
@@ -700,7 +685,6 @@
                     break;
 
                 case 'shortanswer':
-                case 'essay':
                     const input = document.getElementById(`answer_${question.id}`);
                     answer = input ? input.value.trim() : '';
                     break;

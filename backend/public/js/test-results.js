@@ -110,7 +110,7 @@
             const percentage = parseFloat(this.attempt.percentage);
             const answers = this.attempt.answers || {};
 
-            // Check if there are any ungraded questions (essay questions)
+            // Check if there are any ungraded questions
             const hasUngradedQuestions = Object.values(answers).some(a => a.is_correct === null);
 
             const passed = percentage >= this.attempt.passing_score;
@@ -162,7 +162,7 @@
                 const answer = answers[question.id];
                 const isCorrect = answer?.is_correct === true;
                 const isWrong = answer?.is_correct === false;
-                const isManual = answer?.is_correct === null; // Essay needs manual grading
+                const isManual = answer?.is_correct === null;
 
                 // Apply filter
                 if (this.currentFilter === 'correct' && !isCorrect) return;
@@ -170,7 +170,7 @@
 
                 const statusClass = isCorrect ? 'correct' : (isWrong ? 'incorrect' : 'manual');
                 const statusIcon = isCorrect ? '✓' : (isWrong ? '✗' : '⏳');
-                const statusText = isCorrect ? 'Correct' : (isWrong ? 'Incorrect' : 'Manual Grading');
+                const statusText = isCorrect ? 'Correct' : (isWrong ? 'Incorrect' : 'Pending Review');
 
                 html += `
                     <div class="question-review-card ${statusClass}">
@@ -219,9 +219,6 @@
 
                 case 'shortanswer':
                     return this.renderShortAnswer(question, studentAnswer, isCorrect);
-
-                case 'essay':
-                    return this.renderEssayAnswer(studentAnswer);
 
                 case 'fillblanks':
                     return this.renderFillBlanksAnswer(question, studentAnswer, isCorrect);
@@ -312,23 +309,6 @@
             `;
         },
 
-        // Render essay answer
-        renderEssayAnswer: function (studentAnswer) {
-            return `
-                <div class="answer-text-display">
-                    <div class="answer-label">Your Essay:</div>
-                    <div class="essay-content">${studentAnswer || '<em>Not answered</em>'}</div>
-                </div>
-                <div class="manual-grading-notice">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                    This essay will be graded manually by your teacher.
-                </div>
-            `;
-        },
 
         // Render fill blanks answer
         renderFillBlanksAnswer: function (question, studentAnswer, isCorrect) {

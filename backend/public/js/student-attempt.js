@@ -168,9 +168,6 @@
                 case 'shortanswer':
                     return this.renderShortAnswer(question, studentAnswer, answer.is_correct);
 
-                case 'essay':
-                    return this.renderEssayAnswer(studentAnswer);
-
                 case 'fillblanks':
                     return this.renderFillBlanksAnswer(question, studentAnswer, answer.is_correct);
 
@@ -260,23 +257,6 @@
             `;
         },
 
-        // Render essay answer
-        renderEssayAnswer: function (studentAnswer) {
-            return `
-                <div class="answer-text-display">
-                    <div class="answer-label">Student Essay:</div>
-                    <div class="essay-content">${studentAnswer || '<em>Not answered</em>'}</div>
-                </div>
-                <div class="manual-grading-notice">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                    This essay requires manual grading.
-                </div>
-            `;
-        },
 
         // Render fill blanks answer
         renderFillBlanksAnswer: function (question, studentAnswer, isCorrect) {

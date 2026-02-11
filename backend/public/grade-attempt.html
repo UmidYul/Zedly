@@ -9,88 +9,26 @@
     <link rel="stylesheet" href="/css/test-results.css">
     <link rel="stylesheet" href="/css/grading.css">
 </head>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="0; url=/dashboard.html">
+    <title>Page Removed - Zedly</title>
+    <link rel="stylesheet" href="/css/main.css">
+</head>
 
 <body>
-    <!-- Header -->
-    <div class="results-header">
-        <div class="results-header-content">
-            <button class="btn-back" onclick="window.location.href='/grading.html'">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-                Back to Queue
-            </button>
-            <h1 class="results-title" id="resultsTitle">Grade Attempt</h1>
-        </div>
+    <div class="results-container" style="padding: 48px; text-align: center;">
+        <h1>Page removed</h1>
+        <p>This page is no longer available.</p>
+        <button class="btn btn-primary" onclick="window.location.href='/dashboard.html'">Go to Dashboard</button>
     </div>
-
-    <!-- Main Container -->
-    <div class="results-container">
-        <!-- Loading State -->
-        <div id="loadingState" class="loading-state">
-            <div class="spinner-large"></div>
-            <p>Loading attempt...</p>
-        </div>
-
-        <!-- Results Content -->
-        <div id="resultsContent" class="results-content" style="display: none;">
-
-            <!-- Summary Card -->
-            <div class="summary-card">
-                <div class="summary-header">
-                    <h2>Attempt Information</h2>
-                </div>
-
-                <div class="summary-footer">
-                    <div class="test-info-item">
-                        <strong>Student:</strong> <span id="studentName">-</span>
-                    </div>
-                    <div class="test-info-item">
-                        <strong>Test:</strong> <span id="testName">-</span>
-                    </div>
-                    <div class="test-info-item">
-                        <strong>Submitted:</strong> <span id="testDate">-</span>
-                    </div>
-                    <div class="test-info-item">
-                        <strong>Current Score:</strong> <span id="currentScore">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Questions for Grading -->
-            <div class="questions-review">
-                <div class="review-header">
-                    <h2>Essay Questions</h2>
-                </div>
-
-                <div id="questionsContainer">
-                    <!-- Essay questions will be rendered here -->
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Error State -->
-        <div id="errorState" class="error-state" style="display: none;">
-            <div class="error-icon">❌</div>
-            <h3>Failed to load attempt</h3>
-            <p id="errorMessage">An error occurred while loading the attempt.</p>
-            <button class="btn btn-primary" onclick="window.location.href='/grading.html'">
-                Back to Queue
-            </button>
-        </div>
-    </div>
-
-    <!-- Save Notification -->
-    <div class="save-notification" id="saveNotification">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <span>Grade saved successfully</span>
-    </div>
-
-    <script src="/js/auth-interceptor.js"></script>
-    <script src="/js/grade-attempt.js"></script>
+    <script>
+        window.location.href = '/dashboard.html';
+    </script>
 </body>
 
 </html>

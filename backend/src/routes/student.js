@@ -695,10 +695,6 @@ router.put('/attempts/:id/submit', async (req, res) => {
                         isCorrect = String(studentAnswer) === String(correctAnswer);
                         break;
 
-                    case 'essay':
-                        // Essays need manual grading
-                        isCorrect = null;
-                        break;
                 }
 
                 if (isCorrect === true) {
