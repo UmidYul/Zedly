@@ -385,8 +385,8 @@
                 manager: currentUser && currentUser.role === 'student' ? 'StudentTestsManager' : 'TestsManager'
             },
             'assignments': { src: '/js/assignments.js', manager: 'AssignmentsManager' },
-            'career': { src: '/js/career.js', manager: 'CareerManager' },
-            'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' }
+            'import': { src: '/js/import-export.js', manager: 'ImportExportManager' },
+            'export': { src: '/js/import-export.js', manager: 'ImportExportManager' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -511,6 +511,69 @@
                         </svg>
                         <p>No school administrators yet. Click "Add School Admin" to get started.</p>
                     </div>
+                </div>
+            `;
+        }
+
+        // Import Users (School Admin)
+        if (page === 'import') {
+            if (role !== 'school_admin') {
+                return `
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Import</h2>
+                        </div>
+                        <p style="color: var(--text-secondary);">This section is only available for School Admin.</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title" data-i18n="import.title">Импорт пользователей</h1>
+                    <p class="page-subtitle" data-i18n="import.subtitle">Загрузите Excel-файл для массового добавления пользователей</p>
+                </div>
+                <div class="dashboard-section import-card">
+                    <div class="section-header">
+                        <h2 class="section-title" data-i18n="import.uploadTitle">Загрузка файла</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-secondary" id="downloadTemplateBtn" data-i18n="import.downloadTemplate">Скачать шаблон</button>
+                        </div>
+                    </div>
+                    <div class="import-body">
+                        <input type="file" id="importFile" accept=".xlsx,.xls" />
+                        <button class="btn btn-primary" id="startImportBtn" data-i18n="import.start">Начать импорт</button>
+                    </div>
+                    <p class="import-hint" data-i18n="import.hint">Поддерживаемые колонки: first_name, last_name, role, email, phone, username, class_name, academic_year, roll_number</p>
+                </div>
+                <div class="dashboard-section import-results" id="importResults"></div>
+            `;
+        }
+
+        // Export Users (School Admin)
+        if (page === 'export') {
+            if (role !== 'school_admin') {
+                return `
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Export</h2>
+                        </div>
+                        <p style="color: var(--text-secondary);">This section is only available for School Admin.</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title" data-i18n="export.title">Экспорт данных</h1>
+                    <p class="page-subtitle" data-i18n="export.subtitle">Скачайте Excel-отчеты для анализа и архивации</p>
+                </div>
+                <div class="dashboard-section export-card">
+                    <div class="section-header">
+                        <h2 class="section-title" data-i18n="export.usersTitle">Экспорт пользователей</h2>
+                    </div>
+                    <p class="export-hint" data-i18n="export.usersHint">Файл содержит пользователей школы, классы и номера в журнале.</p>
+                    <button class="btn btn-primary" id="exportUsersBtn" data-i18n="export.downloadUsers">Скачать пользователей</button>
                 </div>
             `;
         }

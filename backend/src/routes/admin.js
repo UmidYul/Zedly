@@ -28,6 +28,22 @@ const upload = multer({
 router.use(authenticate);
 router.use(authorize('school_admin'));
 
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel'
+        ];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Please upload an Excel file.'));
+        }
+    }
+});
+
 /**
  * GET /api/admin/users
  * Get all users in school
@@ -446,6 +462,251 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to delete user'
+        });
+    }
+});
+
+/**
+ * ========================================
+ * IMPORT / EXPORT USERS
+ * ========================================
+ */
+
+/**
+ * GET /api/admin/import/template/users
+ * Download Excel template for user import
+ */
+router.get('/import/template/users', async (req, res) => {
+    try {
+        const templateRows = [
+            {
+                first_name: 'Иван',
+                last_name: 'Иванов',
+                role: 'student',
+                email: 'ivan@example.com',
+                phone: '+998901234567',
+                username: '',
+                class_name: '9A',
+                academic_year: '2024-2025',
+                roll_number: '1'
+            }
+        ];
+
+        const sheet = XLSX.utils.json_to_sheet(templateRows, {
+            header: ['first_name', 'last_name', 'role', 'email', 'phone', 'username', 'class_name', 'academic_year', 'roll_number']
+        });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, sheet, 'users');
+
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename="users_import_template.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Download import template error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to generate template'
+        });
+    }
+});
+
+/**
+ * POST /api/admin/import/users
+ * Import users from Excel
+ */
+router.post('/import/users', upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No file uploaded'
+            });
+        }
+
+        const schoolId = req.user.school_id;
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+        const results = {
+            imported: 0,
+            created: [],
+            errors: []
+        };
+
+        for (let i = 0; i < rows.length; i++) {
+            const rowNumber = i + 2; // header row + 1
+            const mapped = mapImportRow(rows[i]);
+
+            if (!mapped) {
+                continue;
+            }
+
+            try {
+                const validationError = validateImportRow(mapped);
+                if (validationError) {
+                    results.errors.push({ row: rowNumber, message: validationError });
+                    continue;
+                }
+
+                const role = normalizeRole(mapped.role);
+                if (!role) {
+                    results.errors.push({ row: rowNumber, message: 'Invalid role' });
+                    continue;
+                }
+
+                let username = mapped.username ? mapped.username.trim() : '';
+                if (!username) {
+                    const baseUsername = normalizeUsername(mapped.first_name, mapped.last_name);
+                    username = await generateUniqueUsername(baseUsername);
+                }
+
+                const usernameCheck = await query(
+                    'SELECT id FROM users WHERE username = $1',
+                    [username]
+                );
+
+                if (usernameCheck.rows.length > 0) {
+                    results.errors.push({ row: rowNumber, message: `Username already exists: ${username}` });
+                    continue;
+                }
+
+                const otpPassword = generateOTP();
+                const passwordHash = await bcrypt.hash(otpPassword, 10);
+
+                const userResult = await query(
+                    `INSERT INTO users (
+                        school_id, role, username, password_hash,
+                        first_name, last_name, email, phone,
+                        is_active
+                    )
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+                     RETURNING id, username, role, first_name, last_name, email`,
+                    [
+                        schoolId,
+                        role,
+                        username,
+                        passwordHash,
+                        mapped.first_name.trim(),
+                        mapped.last_name.trim(),
+                        mapped.email || null,
+                        mapped.phone || null
+                    ]
+                );
+
+                const userId = userResult.rows[0].id;
+
+                if (role === 'student' && mapped.class_name) {
+                    const classResult = await findClassByName(
+                        schoolId,
+                        mapped.class_name,
+                        mapped.academic_year
+                    );
+
+                    if (!classResult) {
+                        results.errors.push({ row: rowNumber, message: `Class not found: ${mapped.class_name}` });
+                    } else {
+                        await query(
+                            `INSERT INTO class_students (class_id, student_id, roll_number, is_active)
+                             VALUES ($1, $2, $3, true)
+                             ON CONFLICT (class_id, student_id) DO NOTHING`,
+                            [classResult.id, userId, mapped.roll_number || null]
+                        );
+                    }
+                }
+
+                await query(
+                    `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+                     VALUES ($1, $2, $3, $4, $5)`,
+                    [req.user.id, 'import', 'user', userId, { username, role }]
+                );
+
+                results.imported += 1;
+                results.created.push({
+                    id: userId,
+                    username,
+                    role,
+                    otp_password: otpPassword
+                });
+            } catch (rowError) {
+                console.error('Import row error:', rowError);
+                results.errors.push({ row: rowNumber, message: 'Failed to import row' });
+            }
+        }
+
+        res.json({
+            message: 'Import completed',
+            ...results
+        });
+    } catch (error) {
+        console.error('Import users error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to import users'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/export/users
+ * Export users to Excel
+ */
+router.get('/export/users', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+
+        const result = await query(
+            `SELECT
+                u.id,
+                u.username,
+                u.role,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.phone,
+                STRING_AGG(DISTINCT c.name, ', ') as class_name,
+                STRING_AGG(DISTINCT c.academic_year, ', ') as academic_year,
+                STRING_AGG(DISTINCT cs.roll_number::text, ', ') as roll_number
+             FROM users u
+             LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
+             LEFT JOIN classes c ON c.id = cs.class_id
+             WHERE u.school_id = $1
+             GROUP BY u.id
+             ORDER BY u.last_name ASC, u.first_name ASC`,
+            [schoolId]
+        );
+
+        const exportRows = result.rows.map(row => ({
+            username: row.username,
+            role: row.role,
+            first_name: row.first_name,
+            last_name: row.last_name,
+            email: row.email || '',
+            phone: row.phone || '',
+            class_name: row.class_name || '',
+            academic_year: row.academic_year || '',
+            roll_number: row.roll_number || ''
+        }));
+
+        const sheet = XLSX.utils.json_to_sheet(exportRows, {
+            header: ['username', 'role', 'first_name', 'last_name', 'email', 'phone', 'class_name', 'academic_year', 'roll_number']
+        });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, sheet, 'users');
+
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename="users_export.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Export users error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to export users'
         });
     }
 });
@@ -1245,6 +1506,126 @@ function generateOTP() {
     return otp;
 }
 
+<<<<<<< HEAD
+function mapImportRow(row) {
+    if (!row || typeof row !== 'object') return null;
+    const mapped = {};
+    Object.entries(row).forEach(([key, value]) => {
+        const normalized = normalizeHeader(key);
+        const field = IMPORT_HEADER_MAP[normalized];
+        if (field) {
+            mapped[field] = typeof value === 'string' ? value.trim() : value;
+        }
+    });
+
+    const hasValues = Object.values(mapped).some(val => String(val || '').trim() !== '');
+    return hasValues ? mapped : null;
+}
+
+function validateImportRow(row) {
+    if (!row.first_name || !row.last_name || !row.role) {
+        return 'Missing required fields (first_name, last_name, role)';
+    }
+    return null;
+}
+
+function normalizeHeader(header) {
+    return String(header)
+        .trim()
+        .toLowerCase()
+        .replace(/[\s_]+/g, '');
+}
+
+function normalizeRole(role) {
+    const value = String(role || '').trim().toLowerCase();
+    const roleMap = {
+        student: 'student',
+        ученик: 'student',
+        учащийся: 'student',
+        teacher: 'teacher',
+        учитель: 'teacher',
+        преподаватель: 'teacher',
+        schooladmin: 'school_admin',
+        school_admin: 'school_admin',
+        админ: 'school_admin',
+        администратор: 'school_admin',
+        администраторшколы: 'school_admin'
+    };
+    return roleMap[value] || null;
+}
+
+function normalizeUsername(firstName, lastName) {
+    const base = `${firstName || ''}.${lastName || ''}`
+        .toLowerCase()
+        .replace(/[^a-z0-9.]/g, '')
+        .replace(/\.+/g, '.')
+        .replace(/^\.|\.$/g, '');
+
+    if (base) return base;
+    return `user${Math.floor(Math.random() * 9000) + 1000}`;
+}
+
+async function generateUniqueUsername(baseUsername) {
+    let candidate = baseUsername;
+    let counter = 1;
+
+    while (true) {
+        const exists = await query('SELECT id FROM users WHERE username = $1', [candidate]);
+        if (exists.rows.length === 0) return candidate;
+
+        candidate = `${baseUsername}${counter}`;
+        counter += 1;
+
+        if (counter > 9999) {
+            candidate = `user${Date.now().toString().slice(-6)}`;
+        }
+    }
+}
+
+async function findClassByName(schoolId, className, academicYear) {
+    if (!className) return null;
+
+    if (academicYear) {
+        const result = await query(
+            `SELECT id FROM classes
+             WHERE school_id = $1 AND LOWER(name) = LOWER($2) AND academic_year = $3
+             LIMIT 1`,
+            [schoolId, className.trim(), academicYear.trim()]
+        );
+        return result.rows[0] || null;
+    }
+
+    const result = await query(
+        `SELECT id FROM classes
+         WHERE school_id = $1 AND LOWER(name) = LOWER($2)
+         ORDER BY academic_year DESC
+         LIMIT 1`,
+        [schoolId, className.trim()]
+    );
+    return result.rows[0] || null;
+}
+
+const IMPORT_HEADER_MAP = {
+    firstname: 'first_name',
+    lastname: 'last_name',
+    role: 'role',
+    email: 'email',
+    phone: 'phone',
+    username: 'username',
+    classname: 'class_name',
+    academicyear: 'academic_year',
+    rollnumber: 'roll_number',
+    имя: 'first_name',
+    фамилия: 'last_name',
+    роль: 'role',
+    телефон: 'phone',
+    логин: 'username',
+    класс: 'class_name',
+    учебныйгод: 'academic_year',
+    номер: 'roll_number',
+    номерпоклассу: 'roll_number'
+};
+=======
 /**
  * POST /api/admin/users/import
  * Import users from Excel file
@@ -1660,5 +2041,6 @@ router.get('/dashboard/overview', async (req, res) => {
         });
     }
 });
+>>>>>>> a509053811dbd497ec2d8c8aac9c17ea11cafc11
 
 module.exports = router;
