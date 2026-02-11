@@ -983,12 +983,7 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
  */
 router.get('/classes', async (req, res) => {
     try {
-        console.log('=== GET /classes DEBUG ===');
-        console.log('req.user:', req.user);
-        console.log('req.user.school_id:', req.user.school_id);
 
-        const { page = 1, limit = 10, search = '', grade = 'all' } = req.query;
-        const offset = (page - 1) * limit;
         const schoolId = req.user.school_id;
 
         // Build WHERE clause

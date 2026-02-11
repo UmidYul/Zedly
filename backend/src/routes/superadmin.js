@@ -1257,4 +1257,195 @@ router.get('/dashboard/overview', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/superadmin/comparison
+ * Get school comparison data
+ */
+router.get('/comparison', async (req, res) => {
+    try {
+        const { metric = 'avg_score', period = 'month' } = req.query;
+
+        // Calculate date range based on period
+        let dateFilter = '';
+        const now = new Date();
+        let startDate;
+        switch (period) {
+            case 'week':
+                startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case 'month':
+                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                break;
+            case 'quarter':
+                startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                break;
+            case 'year':
+                startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                break;
+            default:
+                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        }
+
+        const schoolNameExpr = await getSchoolNameExpr();
+        const testColumns = await getTableColumns('tests');
+        const attemptColumns = await getTableColumns('test_attempts');
+
+        // Determine score expression
+        let scoreExpr = attemptColumns.has('percentage') ? 'ta.percentage'
+            : attemptColumns.has('score') && attemptColumns.has('max_score')
+                ? '(ta.score::float / NULLIF(ta.max_score, 0) * 100)'
+                : 'NULL';
+
+        // Determine completion filter
+        let completedFilter = 'true';
+        if (attemptColumns.has('status')) completedFilter = "ta.status = 'completed'";
+        else if (attemptColumns.has('is_completed')) completedFilter = 'ta.is_completed = true';
+        else if (attemptColumns.has('submitted_at')) completedFilter = 'ta.submitted_at IS NOT NULL';
+
+        // Date column for filtering
+        let dateColumn = attemptColumns.has('submitted_at') ? 'ta.submitted_at'
+            : attemptColumns.has('completed_at') ? 'ta.completed_at'
+                : 'ta.created_at';
+
+        let schools = [];
+        let summary = {};
+
+        if (metric === 'avg_score') {
+            // Average score comparison - only if we have score data
+            if (scoreExpr !== 'NULL') {
+                const result = await query(`
+                    SELECT 
+                        s.id,
+                        ${schoolNameExpr} as name,
+                        COUNT(DISTINCT ta.id) as total_attempts,
+                        COUNT(DISTINCT CASE WHEN ${completedFilter} THEN ta.id END) as completed_attempts,
+                        AVG(CASE WHEN ${completedFilter} THEN ${scoreExpr} END)::numeric(5,2) as avg_score
+                    FROM schools s
+                    LEFT JOIN tests t ON t.school_id = s.id
+                    LEFT JOIN test_assignments tass ON tass.test_id = t.id
+                    LEFT JOIN test_attempts ta ON ta.assignment_id = tass.id
+                        AND ${dateColumn} >= $1
+                    WHERE s.is_active = true
+                    GROUP BY s.id, ${schoolNameExpr}
+                    ORDER BY avg_score DESC NULLS LAST
+                `, [startDate]);
+
+                schools = result.rows.map(row => ({
+                    id: row.id,
+                    name: row.name,
+                    value: parseFloat(row.avg_score) || 0,
+                    attempts: parseInt(row.completed_attempts) || 0
+                }));
+
+                const totalScore = schools.reduce((sum, s) => sum + s.value, 0);
+                summary = {
+                    top_performer: schools[0]?.name || 'N/A',
+                    average: schools.length > 0 ? (totalScore / schools.length).toFixed(2) : 0,
+                    total_attempts: schools.reduce((sum, s) => sum + s.attempts, 0)
+                };
+            }
+        } else if (metric === 'test_completion') {
+            // Test completion rate
+            const result = await query(`
+                SELECT 
+                    s.id,
+                    ${schoolNameExpr} as name,
+                    COUNT(DISTINCT ta.id) as total_attempts,
+                    COUNT(DISTINCT CASE WHEN ${completedFilter} THEN ta.id END) as completed_attempts,
+                    CASE 
+                        WHEN COUNT(DISTINCT ta.id) > 0 
+                        THEN (COUNT(DISTINCT CASE WHEN ${completedFilter} THEN ta.id END)::float / COUNT(DISTINCT ta.id) * 100)
+                        ELSE 0 
+                    END::numeric(5,2) as completion_rate
+                FROM schools s
+                LEFT JOIN tests t ON t.school_id = s.id
+                LEFT JOIN test_assignments tass ON tass.test_id = t.id
+                LEFT JOIN test_attempts ta ON ta.assignment_id = tass.id
+                    AND ${dateColumn} >= $1
+                WHERE s.is_active = true
+                GROUP BY s.id, ${schoolNameExpr}
+                ORDER BY completion_rate DESC
+            `, [startDate]);
+
+            schools = result.rows.map(row => ({
+                id: row.id,
+                name: row.name,
+                value: parseFloat(row.completion_rate) || 0,
+                total: parseInt(row.total_attempts) || 0,
+                completed: parseInt(row.completed_attempts) || 0
+            }));
+
+            const totalRate = schools.reduce((sum, s) => sum + s.value, 0);
+            summary = {
+                top_performer: schools[0]?.name || 'N/A',
+                average: schools.length > 0 ? (totalRate / schools.length).toFixed(2) : 0,
+                total_tests: schools.reduce((sum, s) => sum + s.total, 0)
+            };
+        } else if (metric === 'student_count') {
+            // Student count
+            const result = await query(`
+                SELECT 
+                    s.id,
+                    ${schoolNameExpr} as name,
+                    COUNT(DISTINCT u.id) as student_count
+                FROM schools s
+                LEFT JOIN users u ON u.school_id = s.id AND u.role = 'student'
+                WHERE s.is_active = true
+                GROUP BY s.id, ${schoolNameExpr}
+                ORDER BY student_count DESC
+            `);
+
+            schools = result.rows.map(row => ({
+                id: row.id,
+                name: row.name,
+                value: parseInt(row.student_count) || 0
+            }));
+
+            summary = {
+                top_performer: schools[0]?.name || 'N/A',
+                total: schools.reduce((sum, s) => sum + s.value, 0),
+                average: schools.length > 0 ? Math.round(schools.reduce((sum, s) => sum + s.value, 0) / schools.length) : 0
+            };
+        } else if (metric === 'teacher_count') {
+            // Teacher count
+            const result = await query(`
+                SELECT 
+                    s.id,
+                    ${schoolNameExpr} as name,
+                    COUNT(DISTINCT u.id) as teacher_count
+                FROM schools s
+                LEFT JOIN users u ON u.school_id = s.id AND u.role = 'teacher'
+                WHERE s.is_active = true
+                GROUP BY s.id, ${schoolNameExpr}
+                ORDER BY teacher_count DESC
+            `);
+
+            schools = result.rows.map(row => ({
+                id: row.id,
+                name: row.name,
+                value: parseInt(row.teacher_count) || 0
+            }));
+
+            summary = {
+                top_performer: schools[0]?.name || 'N/A',
+                total: schools.reduce((sum, s) => sum + s.value, 0),
+                average: schools.length > 0 ? Math.round(schools.reduce((sum, s) => sum + s.value, 0) / schools.length) : 0
+            };
+        }
+
+        res.json({
+            metric,
+            period,
+            schools,
+            summary
+        });
+    } catch (error) {
+        console.error('School comparison error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch school comparison data'
+        });
+    }
+});
+
 module.exports = router;
