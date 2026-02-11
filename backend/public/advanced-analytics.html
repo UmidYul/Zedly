@@ -791,159 +791,164 @@
                         ❌ Ошибка: ${error.message}
                     </td></tr>
                 `;
-                const ctx = document.getElementById('comparisonChart');
-                if (comparisonChart) {
-                    comparisonChart.destroy();
+            }
+        }
+
+        // Render comparison chart and table
+        function renderComparison(data, type) {
+            const ctx = document.getElementById('comparisonChart');
+            if (comparisonChart) {
+                comparisonChart.destroy();
+            }
+
+            const labels = data.map(item => {
+                if (type === 'classes') return item.name;
+                if (type === 'subjects') return item.name_ru;
+                if (type === 'students') return `${item.first_name} ${item.last_name}`;
+                return '';
+            });
+
+            const scores = data.map(item => parseFloat(item.avg_score) || 0);
+
+            comparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Средний балл (%)',
+                        data: scores,
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Update table
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = data.map(item => {
+                const score = parseFloat(item.avg_score) || 0;
+                const name = type === 'classes' ? item.name :
+                    type === 'subjects' ? item.name_ru :
+                        `${item.first_name} ${item.last_name}`;
+
+                return `
+                <tr>
+                    <td>${name}</td>
+                    <td>${item.attempt_count || item.total_attempts || 0}</td>
+                    <td>${score.toFixed(1)}%</td>
+                    <td>${parseFloat(item.min_score || 0).toFixed(1)}%</td>
+                    <td>${parseFloat(item.max_score || 0).toFixed(1)}%</td>
+                    <td>
+                        <div class="score-bar">
+                            <div class="score-bar-fill">
+                                <div class="score-bar-value" style="width: ${score}%"></div>
+                            </div>
+                            <span class="score-text">${score.toFixed(0)}%</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        // Load trends
+        async function loadTrends() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    window.location.href = '/login.html';
+                    return;
                 }
 
-                const labels = data.map(item => {
-                    if (type === 'classes') return item.name;
-                    if (type === 'subjects') return item.name_ru;
-                    if (type === 'students') return `${item.first_name} ${item.last_name}`;
-                    return '';
+                const response = await fetch(`${API_URL}/analytics/school/overview?period=${currentFilters.period}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
 
-                const scores = data.map(item => parseFloat(item.avg_score) || 0);
+                if (response.status === 401) {
+                    localStorage.removeItem('access_token');
+                    window.location.href = '/login.html';
+                    return;
+                }
 
-                comparisonChart = new Chart(ctx, {
-                    type: 'bar',
+                if (!response.ok) {
+                    throw new Error('Failed to load trends');
+                }
+
+                const data = await response.json();
+
+                // Render trends chart
+                const ctx = document.getElementById('trendsChart');
+                if (trendsChart) {
+                    trendsChart.destroy();
+                }
+
+                const labels = data.recent_activity.map(item => new Date(item.date).toLocaleDateString('ru-RU'));
+                const attempts = data.recent_activity.map(item => parseInt(item.attempts));
+                const scores = data.recent_activity.map(item => parseFloat(item.avg_score));
+
+                trendsChart = new Chart(ctx, {
+                    type: 'line',
                     data: {
                         labels: labels,
-                        datasets: [{
-                            label: 'Средний балл (%)',
-                            data: scores,
-                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            borderWidth: 2
-                        }]
+                        datasets: [
+                            {
+                                label: 'Попытки',
+                                data: attempts,
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                yAxisID: 'y',
+                            },
+                            {
+                                label: 'Средний балл (%)',
+                                data: scores,
+                                borderColor: 'rgba(34, 197, 94, 1)',
+                                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                yAxisID: 'y1',
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
                         scales: {
                             y: {
-                                beginAtZero: true,
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                grid: {
+                                    drawOnChartArea: false,
+                                },
                                 max: 100
-                            }
+                            },
                         }
                     }
                 });
 
-                // Update table
-                const tbody = document.getElementById('comparisonTableBody');
-                tbody.innerHTML = data.map(item => {
-                    const score = parseFloat(item.avg_score) || 0;
-                    const name = type === 'classes' ? item.name :
-                        type === 'subjects' ? item.name_ru :
-                            `${item.first_name} ${item.last_name}`;
-
-                    return `
-                    <tr>
-                        <td>${name}</td>
-                        <td>${item.attempt_count || item.total_attempts || 0}</td>
-                        <td>${score.toFixed(1)}%</td>
-                        <td>${parseFloat(item.min_score || 0).toFixed(1)}%</td>
-                        <td>${parseFloat(item.max_score || 0).toFixed(1)}%</td>
-                        <td>
-                            <div class="score-bar">
-                                <div class="score-bar-fill">
-                                    <div class="score-bar-value" style="width: ${score}%"></div>
-                                </div>
-                                <span class="score-text">${score.toFixed(0)}%</span>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                }).join('');
-            }
-
-            // Load trends
-            async function loadTrends() {
-                try {
-                    const token = localStorage.getItem('access_token');
-                    if (!token) {
-                        window.location.href = '/login.html';
-                        return;
-                    }
-
-                    const response = await fetch(`${API_URL}/analytics/school/overview?period=${currentFilters.period}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-
-                    if (response.status === 401) {
-                        localStorage.removeItem('access_token');
-                        window.location.href = '/login.html';
-                        return;
-                    }
-
-                    if (!response.ok) {
-                        throw new Error('Failed to load trends');
-                    }
-
-                    const data = await response.json();
-
-                    // Render trends chart
-                    const ctx = document.getElementById('trendsChart');
-                    if (trendsChart) {
-                        trendsChart.destroy();
-                    }
-
-                    const labels = data.recent_activity.map(item => new Date(item.date).toLocaleDateString('ru-RU'));
-                    const attempts = data.recent_activity.map(item => parseInt(item.attempts));
-                    const scores = data.recent_activity.map(item => parseFloat(item.avg_score));
-
-                    trendsChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [
-                                {
-                                    label: 'Попытки',
-                                    data: attempts,
-                                    borderColor: 'rgba(59, 130, 246, 1)',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                    yAxisID: 'y',
-                                },
-                                {
-                                    label: 'Средний балл (%)',
-                                    data: scores,
-                                    borderColor: 'rgba(34, 197, 94, 1)',
-                                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                                    yAxisID: 'y1',
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: {
-                                mode: 'index',
-                                intersect: false,
-                            },
-                            scales: {
-                                y: {
-                                    type: 'linear',
-                                    display: true,
-                                    position: 'left',
-                                },
-                                y1: {
-                                    type: 'linear',
-                                    display: true,
-                                    position: 'right',
-                                    grid: {
-                                        drawOnChartArea: false,
-                                    },
-                                    max: 100
-                                },
-                            }
-                        }
-                    });
-
-                    // Top classes
-                    const topClassesList = document.getElementById('topClassesList');
-                    topClassesList.innerHTML = data.top_classes.slice(0, 5).map((item, index) => `
+                // Top classes
+                const topClassesList = document.getElementById('topClassesList');
+                topClassesList.innerHTML = data.top_classes.slice(0, 5).map((item, index) => `
                     <div style="padding: 10px; border-bottom: 1px solid var(--border-color);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 600;">${index + 1}. ${item.name}</span>
@@ -955,10 +960,10 @@
                     </div>
                 `).join('');
 
-                    // Needs attention (lowest scores)
-                    const needsAttention = [...data.top_classes].sort((a, b) => a.avg_score - b.avg_score).slice(0, 5);
-                    const needsAttentionList = document.getElementById('needsAttentionList');
-                    needsAttentionList.innerHTML = needsAttention.map(item => `
+                // Needs attention (lowest scores)
+                const needsAttention = [...data.top_classes].sort((a, b) => a.avg_score - b.avg_score).slice(0, 5);
+                const needsAttentionList = document.getElementById('needsAttentionList');
+                needsAttentionList.innerHTML = needsAttention.map(item => `
                     <div style="padding: 10px; border-bottom: 1px solid var(--border-color);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 600;">${item.name}</span>
@@ -970,76 +975,76 @@
                     </div>
                 `).join('');
 
-                } catch (error) {
-                    console.error('Trends error:', error);
-                }
+            } catch (error) {
+                console.error('Trends error:', error);
             }
+        }
 
-            // Load subjects
-            async function loadSubjects() {
-                try {
-                    const token = localStorage.getItem('access_token');
-                    if (!token) {
-                        window.location.href = '/login.html';
-                        return;
+        // Load subjects
+        async function loadSubjects() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_URL}/analytics/school/overview`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
                     }
+                });
 
-                    const response = await fetch(`${API_URL}/analytics/school/overview`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
+                if (response.status === 401) {
+                    localStorage.removeItem('access_token');
+                    window.location.href = '/login.html';
+                    return;
+                }
 
-                    if (response.status === 401) {
-                        localStorage.removeItem('access_token');
-                        window.location.href = '/login.html';
-                        return;
-                    }
+                if (!response.ok) {
+                    throw new Error('Failed to load subjects');
+                }
 
-                    if (!response.ok) {
-                        throw new Error('Failed to load subjects');
-                    }
+                const data = await response.json();
 
-                    const data = await response.json();
+                // Render subjects chart
+                const ctx = document.getElementById('subjectsChart');
+                if (subjectsChart) {
+                    subjectsChart.destroy();
+                }
 
-                    // Render subjects chart
-                    const ctx = document.getElementById('subjectsChart');
-                    if (subjectsChart) {
-                        subjectsChart.destroy();
-                    }
+                const subjects = data.subject_performance;
+                const labels = subjects.map(s => s.name_ru);
+                const scores = subjects.map(s => parseFloat(s.avg_score) || 0);
 
-                    const subjects = data.subject_performance;
-                    const labels = subjects.map(s => s.name_ru);
-                    const scores = subjects.map(s => parseFloat(s.avg_score) || 0);
-
-                    subjectsChart = new Chart(ctx, {
-                        type: 'horizontalBar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Средний балл (%)',
-                                data: scores,
-                                backgroundColor: 'rgba(139, 92, 246, 0.8)',
-                                borderColor: 'rgba(139, 92, 246, 1)',
-                                borderWidth: 2
-                            }]
-                        },
-                        options: {
-                            indexAxis: 'y',
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: {
-                                    beginAtZero: true,
-                                    max: 100
-                                }
+                subjectsChart = new Chart(ctx, {
+                    type: 'horizontalBar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Средний балл (%)',
+                            data: scores,
+                            backgroundColor: 'rgba(139, 92, 246, 0.8)',
+                            borderColor: 'rgba(139, 92, 246, 1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100
                             }
                         }
-                    });
+                    }
+                });
 
-                    // Update subjects table
-                    const tbody = document.getElementById('subjectsTableBody');
-                    tbody.innerHTML = subjects.map(item => `
+                // Update subjects table
+                const tbody = document.getElementById('subjectsTableBody');
+                tbody.innerHTML = subjects.map(item => `
                     <tr>
                         <td>${item.name_ru}</td>
                         <td>${item.test_count || 0}</td>
@@ -1049,69 +1054,69 @@
                     </tr>
                 `).join('');
 
-                } catch (error) {
-                    console.error('Subjects error:', error);
-                }
+            } catch (error) {
+                console.error('Subjects error:', error);
             }
+        }
 
-            // Export data
-            async function exportData() {
-                try {
-                    const token = localStorage.getItem('access_token');
-                    const response = await fetch(`${API_URL}/analytics/export/school`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-
-                    if (!response.ok) throw new Error('Export failed');
-
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `school_analytics_${Date.now()}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                } catch (error) {
-                    console.error('Export error:', error);
-                    alert('Ошибка при экспорте данных');
-                }
-            }
-
-            // Initialize
-            document.addEventListener('DOMContentLoaded', async () => {
-                i18n.init();
-
-                // Load subjects for filter
-                try {
-                    const token = localStorage.getItem('access_token');
-                    const response = await fetch(`${API_URL}/admin/subjects`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        const select = document.getElementById('subjectFilter');
-                        data.subjects.forEach(subject => {
-                            const option = document.createElement('option');
-                            option.value = subject.id;
-                            option.textContent = subject.name_ru;
-                            select.appendChild(option);
-                        });
+        // Export data
+        async function exportData() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_URL}/analytics/export/school`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
                     }
-                } catch (error) {
-                    console.error('Failed to load subjects:', error);
-                }
+                });
 
-                // Load initial data
-                await loadOverview();
-                await loadHeatmap();
-            });
+                if (!response.ok) throw new Error('Export failed');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `school_analytics_${Date.now()}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Ошибка при экспорте данных');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            i18n.init();
+
+            // Load subjects for filter
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_URL}/admin/subjects`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const select = document.getElementById('subjectFilter');
+                    data.subjects.forEach(subject => {
+                        const option = document.createElement('option');
+                        option.value = subject.id;
+                        option.textContent = subject.name_ru;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load subjects:', error);
+            }
+
+            // Load initial data
+            await loadOverview();
+            await loadHeatmap();
+        });
     </script>
 </body>
 
