@@ -1018,7 +1018,7 @@
                 const scores = subjects.map(s => parseFloat(s.avg_score) || 0);
 
                 subjectsChart = new Chart(ctx, {
-                    type: 'horizontalBar',
+                    type: 'bar',
                     data: {
                         labels: labels,
                         datasets: [{
