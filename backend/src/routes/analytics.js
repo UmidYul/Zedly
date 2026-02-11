@@ -29,6 +29,55 @@ async function getSubjectNameExpressions() {
     };
 }
 
+async function getAttemptExpressions(alias = 'ta') {
+    const columnsResult = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'test_attempts'
+    `);
+    const columns = new Set(columnsResult.rows.map((row) => row.column_name));
+
+    const col = (name) => (columns.has(name) ? `${alias}.${name}` : null);
+
+    const scorePercent = col('score_percentage') || col('percentage');
+    const score = col('score');
+    const maxScore = col('max_score');
+    let scoreExpr = 'NULL';
+    if (scorePercent) {
+        scoreExpr = scorePercent;
+    } else if (score && maxScore) {
+        scoreExpr = `CASE WHEN ${maxScore} IS NOT NULL AND ${maxScore} > 0 THEN (${score} / ${maxScore} * 100) ELSE ${score} END`;
+    } else if (score) {
+        scoreExpr = score;
+    }
+
+    const timeExpr = col('time_spent') || col('time_spent_seconds') || col('duration_seconds') || 'NULL';
+
+    const completedAt = col('completed_at') || col('submitted_at') || col('graded_at') || col('created_at') || 'NULL';
+
+    let completedFilter = 'TRUE';
+    if (columns.has('status')) {
+        completedFilter = `${alias}.status = 'completed'`;
+    } else if (columns.has('is_completed')) {
+        completedFilter = `${alias}.is_completed = true`;
+    } else if (completedAt !== 'NULL') {
+        completedFilter = `${completedAt} IS NOT NULL`;
+    }
+
+    const passedCase = columns.has('passed')
+        ? `CASE WHEN ${alias}.passed = true THEN 1 ELSE 0 END`
+        : 'NULL';
+
+    return {
+        score: scoreExpr,
+        timeSpent: timeExpr,
+        completedAt,
+        completedFilter,
+        passedCase
+    };
+}
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -47,6 +96,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
         const schoolId = req.user.school_id;
         const { period = '30' } = req.query; // days
         const { nameRu, nameUz } = await getSubjectNameExpressions();
+        const attempt = await getAttemptExpressions();
 
         // Overall statistics
         const overallStats = await query(`
@@ -56,21 +106,22 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
                 (SELECT COUNT(*) FROM classes WHERE school_id = $1) as total_classes,
                 (SELECT COUNT(*) FROM subjects WHERE school_id = $1) as total_subjects,
                 (SELECT COUNT(*) FROM tests WHERE school_id = $1) as total_tests,
-                (SELECT COUNT(*) FROM test_attempts WHERE school_id = $1 AND status = 'completed') as total_attempts,
-                (SELECT AVG(score_percentage) FROM test_attempts WHERE school_id = $1 AND status = 'completed') as average_score
+                (SELECT COUNT(*) FROM test_attempts ta JOIN tests t ON t.id = ta.test_id WHERE t.school_id = $1 AND ${attempt.completedFilter}) as total_attempts,
+                (SELECT AVG(${attempt.score}) FROM test_attempts ta JOIN tests t ON t.id = ta.test_id WHERE t.school_id = $1 AND ${attempt.completedFilter}) as average_score
         `, [schoolId]);
 
         // Recent activity (last N days)
         const recentActivity = await query(`
             SELECT
-                DATE(created_at) as date,
+                                DATE(${attempt.completedAt}) as date,
                 COUNT(*) as attempts,
-                AVG(score_percentage) as avg_score
-            FROM test_attempts
-            WHERE school_id = $1 
-              AND status = 'completed'
-              AND created_at > CURRENT_DATE - INTERVAL '${period} days'
-            GROUP BY DATE(created_at)
+                                AVG(${attempt.score}) as avg_score
+            FROM test_attempts ta
+            JOIN tests t ON t.id = ta.test_id
+            WHERE t.school_id = $1 
+                            AND ${attempt.completedFilter}
+                            AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '${period} days'
+                        GROUP BY DATE(${attempt.completedAt})
             ORDER BY date DESC
         `, [schoolId]);
 
@@ -82,11 +133,11 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
                 c.grade_level,
                 COUNT(DISTINCT ta.student_id) as student_count,
                 COUNT(ta.id) as total_attempts,
-                AVG(ta.score_percentage) as avg_score,
-                SUM(CASE WHEN ta.passed = true THEN 1 ELSE 0 END)::float / NULLIF(COUNT(ta.id), 0) * 100 as pass_rate
+                AVG(${attempt.score}) as avg_score,
+                SUM(${attempt.passedCase})::float / NULLIF(COUNT(ta.id), 0) * 100 as pass_rate
             FROM classes c
             LEFT JOIN class_students cs ON cs.class_id = c.id
-            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ta.status = 'completed'
+            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
             WHERE c.school_id = $1
             GROUP BY c.id, c.name, c.grade_level
             HAVING COUNT(ta.id) > 0
@@ -102,12 +153,12 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
                 ${nameUz} as name_uz,
                 COUNT(DISTINCT t.id) as test_count,
                 COUNT(ta.id) as attempt_count,
-                AVG(ta.score_percentage) as avg_score,
-                MIN(ta.score_percentage) as min_score,
-                MAX(ta.score_percentage) as max_score
+                AVG(${attempt.score}) as avg_score,
+                MIN(${attempt.score}) as min_score,
+                MAX(${attempt.score}) as max_score
             FROM subjects s
             JOIN tests t ON t.subject_id = s.id
-            LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.status = 'completed'
+            LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
             WHERE s.school_id = $1
             GROUP BY s.id, ${nameRu}, ${nameUz}
             ORDER BY avg_score DESC
@@ -137,6 +188,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
         const schoolId = req.user.school_id;
         const { grade_level, period = '90' } = req.query;
         const { nameRu } = await getSubjectNameExpressions();
+        const attempt = await getAttemptExpressions();
 
         let gradeFilter = '';
         const params = [schoolId];
@@ -150,9 +202,9 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
         const heatmapData = await query(`
             SELECT
                 ${nameRu} as subject,
-                EXTRACT(WEEK FROM ta.completed_at) as week,
-                DATE_TRUNC('week', ta.completed_at) as week_start,
-                AVG(ta.score_percentage) as avg_score,
+                                EXTRACT(WEEK FROM ${attempt.completedAt}) as week,
+                                DATE_TRUNC('week', ${attempt.completedAt}) as week_start,
+                                AVG(${attempt.score}) as avg_score,
                 COUNT(ta.id) as attempt_count
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
@@ -160,11 +212,11 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
             JOIN users u ON u.id = ta.student_id
             JOIN class_students cs ON cs.student_id = u.id
             JOIN classes c ON c.id = cs.class_id
-            WHERE ta.school_id = $1
-              AND ta.status = 'completed'
-              AND ta.completed_at > CURRENT_DATE - INTERVAL '${period} days'
+                        WHERE t.school_id = $1
+                            AND ${attempt.completedFilter}
+                            AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '${period} days'
               ${gradeFilter}
-                        GROUP BY ${nameRu}, EXTRACT(WEEK FROM ta.completed_at), DATE_TRUNC('week', ta.completed_at)
+                        GROUP BY ${nameRu}, EXTRACT(WEEK FROM ${attempt.completedAt}), DATE_TRUNC('week', ${attempt.completedAt})
             ORDER BY week_start DESC, subject
         `, params);
 
@@ -191,6 +243,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
         const schoolId = req.user.school_id;
         const { type = 'classes', subject_id } = req.query;
         const { nameRu, nameUz } = await getSubjectNameExpressions();
+        const attempt = await getAttemptExpressions();
 
         let comparisonData;
 
@@ -204,14 +257,14 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                     ${nameRu} as subject,
                     COUNT(DISTINCT cs.student_id) as student_count,
                     COUNT(ta.id) as total_attempts,
-                    AVG(ta.score_percentage) as avg_score,
-                    STDDEV(ta.score_percentage) as score_stddev,
-                    MIN(ta.score_percentage) as min_score,
-                    MAX(ta.score_percentage) as max_score,
-                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ta.score_percentage) as median_score
+                    AVG(${attempt.score}) as avg_score,
+                    STDDEV(${attempt.score}) as score_stddev,
+                    MIN(${attempt.score}) as min_score,
+                    MAX(${attempt.score}) as max_score,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${attempt.score}) as median_score
                 FROM classes c
                 JOIN class_students cs ON cs.class_id = c.id
-                LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ta.status = 'completed'
+                LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
                 LEFT JOIN tests t ON t.id = ta.test_id
                 LEFT JOIN subjects s ON s.id = t.subject_id
                 WHERE c.school_id = $1
@@ -228,15 +281,15 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                     ${nameUz} as name_uz,
                     COUNT(DISTINCT t.id) as test_count,
                     COUNT(ta.id) as attempt_count,
-                    AVG(ta.score_percentage) as avg_score,
-                    STDDEV(ta.score_percentage) as score_stddev,
-                    MIN(ta.score_percentage) as min_score,
-                    MAX(ta.score_percentage) as max_score,
-                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ta.score_percentage) as median_score,
-                    AVG(ta.time_spent) / 60 as avg_time_minutes
+                    AVG(${attempt.score}) as avg_score,
+                    STDDEV(${attempt.score}) as score_stddev,
+                    MIN(${attempt.score}) as min_score,
+                    MAX(${attempt.score}) as max_score,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${attempt.score}) as median_score,
+                    AVG(${attempt.timeSpent}) / 60 as avg_time_minutes
                 FROM subjects s
                 LEFT JOIN tests t ON t.subject_id = s.id
-                LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.status = 'completed'
+                LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
                 WHERE s.school_id = $1
                 GROUP BY s.id, ${nameRu}, ${nameUz}
                 HAVING COUNT(ta.id) > 0
@@ -251,16 +304,16 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                     u.last_name,
                     c.name as class_name,
                     COUNT(ta.id) as total_attempts,
-                    AVG(ta.score_percentage) as avg_score,
-                    STDDEV(ta.score_percentage) as score_stddev,
-                    MIN(ta.score_percentage) as min_score,
-                    MAX(ta.score_percentage) as max_score,
-                    SUM(CASE WHEN ta.passed = true THEN 1 ELSE 0 END)::float / NULLIF(COUNT(ta.id), 0) * 100 as pass_rate,
-                    AVG(ta.time_spent) / 60 as avg_time_minutes
+                    AVG(${attempt.score}) as avg_score,
+                    STDDEV(${attempt.score}) as score_stddev,
+                    MIN(${attempt.score}) as min_score,
+                    MAX(${attempt.score}) as max_score,
+                    SUM(${attempt.passedCase})::float / NULLIF(COUNT(ta.id), 0) * 100 as pass_rate,
+                    AVG(${attempt.timeSpent}) / 60 as avg_time_minutes
                 FROM users u
                 JOIN class_students cs ON cs.student_id = u.id
                 JOIN classes c ON c.id = cs.class_id
-                LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ta.status = 'completed'
+                LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
                 WHERE u.school_id = $1 AND u.role = 'student'
                   ${subject_id ? 'AND EXISTS (SELECT 1 FROM tests t WHERE t.id = ta.test_id AND t.subject_id = $2)' : ''}
                 GROUP BY u.id, u.first_name, u.last_name, c.name
@@ -292,6 +345,7 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
         const { id } = req.params;
         const schoolId = req.user.school_id;
         const { nameRu } = await getSubjectNameExpressions();
+        const attempt = await getAttemptExpressions();
 
         // Verify access
         const classCheck = await query(
@@ -316,12 +370,12 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
                 u.last_name,
                 ${nameRu} as subject,
                 COUNT(ta.id) as attempts,
-                AVG(ta.score_percentage) as avg_score,
-                MAX(ta.score_percentage) as best_score,
-                SUM(CASE WHEN ta.passed = true THEN 1 ELSE 0 END) as passed_count
+                AVG(${attempt.score}) as avg_score,
+                MAX(${attempt.score}) as best_score,
+                SUM(${attempt.passedCase}) as passed_count
             FROM users u
             JOIN class_students cs ON cs.student_id = u.id
-            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ta.status = 'completed'
+            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
             LEFT JOIN tests t ON t.id = ta.test_id
             LEFT JOIN subjects s ON s.id = t.subject_id
             WHERE cs.class_id = $1
@@ -334,16 +388,16 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
             SELECT
                 ${nameRu} as subject,
                 COUNT(DISTINCT ta.id) as total_attempts,
-                AVG(ta.score_percentage) as avg_score,
-                STDDEV(ta.score_percentage) as score_stddev,
-                MIN(ta.score_percentage) as min_score,
-                MAX(ta.score_percentage) as max_score,
+                AVG(${attempt.score}) as avg_score,
+                STDDEV(${attempt.score}) as score_stddev,
+                MIN(${attempt.score}) as min_score,
+                MAX(${attempt.score}) as max_score,
                 COUNT(DISTINCT ta.student_id) as students_participated
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
             JOIN class_students cs ON cs.student_id = ta.student_id
-            WHERE cs.class_id = $1 AND ta.status = 'completed'
+            WHERE cs.class_id = $1 AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             ORDER BY avg_score DESC
         `, [id]);
@@ -351,14 +405,14 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
         // Time-based progress
         const progressOverTime = await query(`
             SELECT
-                DATE_TRUNC('week', ta.completed_at) as week,
-                AVG(ta.score_percentage) as avg_score,
+                                DATE_TRUNC('week', ${attempt.completedAt}) as week,
+                                AVG(${attempt.score}) as avg_score,
                 COUNT(ta.id) as attempts
             FROM test_attempts ta
             JOIN class_students cs ON cs.student_id = ta.student_id
-            WHERE cs.class_id = $1 AND ta.status = 'completed'
-              AND ta.completed_at > CURRENT_DATE - INTERVAL '90 days'
-            GROUP BY DATE_TRUNC('week', ta.completed_at)
+                        WHERE cs.class_id = $1 AND ${attempt.completedFilter}
+                            AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '90 days'
+                        GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
             ORDER BY week
         `, [id]);
 
@@ -369,11 +423,11 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
                 u.first_name,
                 u.last_name,
                 COUNT(ta.id) as total_attempts,
-                AVG(ta.score_percentage) as avg_score,
-                RANK() OVER (ORDER BY AVG(ta.score_percentage) DESC) as rank
+                AVG(${attempt.score}) as avg_score,
+                RANK() OVER (ORDER BY AVG(${attempt.score}) DESC) as rank
             FROM users u
             JOIN class_students cs ON cs.student_id = u.id
-            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ta.status = 'completed'
+            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
             WHERE cs.class_id = $1
             GROUP BY u.id, u.first_name, u.last_name
             HAVING COUNT(ta.id) > 0
@@ -405,6 +459,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const { id } = req.params;
         const schoolId = req.user.school_id;
         const { nameRu } = await getSubjectNameExpressions();
+        const attempt = await getAttemptExpressions();
 
         // If student, can only view own report
         if (req.user.role === 'student' && req.user.id !== parseInt(id)) {
@@ -436,13 +491,13 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const overallStats = await query(`
             SELECT
                 COUNT(*) as total_attempts,
-                AVG(score_percentage) as avg_score,
-                MIN(score_percentage) as min_score,
-                MAX(score_percentage) as max_score,
-                SUM(CASE WHEN passed = true THEN 1 ELSE 0 END) as passed_count,
-                AVG(time_spent) / 60 as avg_time_minutes
-            FROM test_attempts
-            WHERE student_id = $1 AND status = 'completed'
+                AVG(${attempt.score}) as avg_score,
+                MIN(${attempt.score}) as min_score,
+                MAX(${attempt.score}) as max_score,
+                SUM(${attempt.passedCase}) as passed_count,
+                AVG(${attempt.timeSpent}) / 60 as avg_time_minutes
+            FROM test_attempts ta
+            WHERE ta.student_id = $1 AND ${attempt.completedFilter}
         `, [id]);
 
         // Performance by subject
@@ -450,14 +505,14 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             SELECT
                 ${nameRu} as subject,
                 COUNT(ta.id) as attempts,
-                AVG(ta.score_percentage) as avg_score,
-                MAX(ta.score_percentage) as best_score,
-                MIN(ta.score_percentage) as worst_score,
-                SUM(CASE WHEN ta.passed = true THEN 1 ELSE 0 END)::float / NULLIF(COUNT(ta.id), 0) * 100 as pass_rate
+                AVG(${attempt.score}) as avg_score,
+                MAX(${attempt.score}) as best_score,
+                MIN(${attempt.score}) as worst_score,
+                SUM(${attempt.passedCase})::float / NULLIF(COUNT(ta.id), 0) * 100 as pass_rate
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
-            WHERE ta.student_id = $1 AND ta.status = 'completed'
+            WHERE ta.student_id = $1 AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             ORDER BY avg_score DESC
         `, [id]);
@@ -465,13 +520,13 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         // Progress over time
         const progress = await query(`
             SELECT
-                DATE_TRUNC('week', completed_at) as week,
-                AVG(score_percentage) as avg_score,
+                                DATE_TRUNC('week', ${attempt.completedAt}) as week,
+                                AVG(${attempt.score}) as avg_score,
                 COUNT(*) as attempts
-            FROM test_attempts
-            WHERE student_id = $1 AND status = 'completed'
-              AND completed_at > CURRENT_DATE - INTERVAL '90 days'
-            GROUP BY DATE_TRUNC('week', completed_at)
+                        FROM test_attempts ta
+                        WHERE ta.student_id = $1 AND ${attempt.completedFilter}
+                            AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '90 days'
+                        GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
             ORDER BY week
         `, [id]);
 
@@ -479,11 +534,11 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const strengths = await query(`
             SELECT
                 ${nameRu} as subject,
-                AVG(ta.score_percentage) as avg_score
+                AVG(${attempt.score}) as avg_score
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
-            WHERE ta.student_id = $1 AND ta.status = 'completed'
+            WHERE ta.student_id = $1 AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             HAVING COUNT(*) >= 3
             ORDER BY avg_score DESC
@@ -493,11 +548,11 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const weaknesses = await query(`
             SELECT
                 ${nameRu} as subject,
-                AVG(ta.score_percentage) as avg_score
+                AVG(${attempt.score}) as avg_score
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
-            WHERE ta.student_id = $1 AND ta.status = 'completed'
+            WHERE ta.student_id = $1 AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             HAVING COUNT(*) >= 3
             ORDER BY avg_score ASC
@@ -516,10 +571,10 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             student_scores AS (
                 SELECT
                     ta.student_id,
-                    AVG(ta.score_percentage) as avg_score
+                    AVG(${attempt.score}) as avg_score
                 FROM test_attempts ta
                 WHERE ta.student_id IN (SELECT student_id FROM class_students)
-                  AND ta.status = 'completed'
+                  AND ${attempt.completedFilter}
                 GROUP BY ta.student_id
             )
             SELECT
@@ -555,6 +610,7 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
     try {
         const schoolId = req.user.school_id;
         const { nameRu } = await getSubjectNameExpressions();
+        const attempt = await getAttemptExpressions();
 
         // Get comprehensive data
         const studentsData = await query(`
@@ -562,14 +618,14 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
                 u.first_name, u.last_name,
                 c.name as class,
                 COUNT(ta.id) as total_attempts,
-                AVG(ta.score_percentage) as avg_score,
-                MAX(ta.score_percentage) as best_score,
-                MIN(ta.score_percentage) as worst_score,
-                SUM(CASE WHEN ta.passed THEN 1 ELSE 0 END) as passed_tests
+                AVG(${attempt.score}) as avg_score,
+                MAX(${attempt.score}) as best_score,
+                MIN(${attempt.score}) as worst_score,
+                SUM(${attempt.passedCase}) as passed_tests
             FROM users u
             JOIN class_students cs ON cs.student_id = u.id
             JOIN classes c ON c.id = cs.class_id
-            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ta.status = 'completed'
+            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
             WHERE u.school_id = $1 AND u.role = 'student'
             GROUP BY u.id, u.first_name, u.last_name, c.name
             ORDER BY c.name, u.last_name, u.first_name
@@ -580,10 +636,10 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
                 c.name,
                 c.grade_level,
                 COUNT(DISTINCT cs.student_id) as students,
-                AVG(ta.score_percentage) as avg_score
+                AVG(${attempt.score}) as avg_score
             FROM classes c
             LEFT JOIN class_students cs ON cs.class_id = c.id
-            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ta.status = 'completed'
+            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
             WHERE c.school_id = $1
             GROUP BY c.id, c.name, c.grade_level
             ORDER BY c.grade_level, c.name
@@ -594,10 +650,10 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
                 ${nameRu} as subject,
                 COUNT(DISTINCT t.id) as tests,
                 COUNT(ta.id) as attempts,
-                AVG(ta.score_percentage) as avg_score
+                AVG(${attempt.score}) as avg_score
             FROM subjects s
             LEFT JOIN tests t ON t.subject_id = s.id
-            LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.status = 'completed'
+            LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
             WHERE s.school_id = $1
             GROUP BY ${nameRu}
             ORDER BY subject
