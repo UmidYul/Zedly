@@ -333,10 +333,10 @@
             if (statsData) {
                 // Set page content with API data
                 const titles = {
-                    superadmin: { title: 'Админ Панель', subtitle: 'Управление системой и контроль' },
-                    school_admin: { title: 'Админ Панель', subtitle: 'Управление школой' },
-                    teacher: { title: 'Панель Учителя', subtitle: 'Тесты и аналитика' },
-                    student: { title: 'Панель Ученика', subtitle: 'Обучение и результаты' }
+                    superadmin: { title: i18n.t('dashboard.role.superadmin.title'), subtitle: i18n.t('dashboard.role.superadmin.subtitle') },
+                    school_admin: { title: i18n.t('dashboard.role.school_admin.title'), subtitle: i18n.t('dashboard.role.school_admin.subtitle') },
+                    teacher: { title: i18n.t('dashboard.role.teacher.title'), subtitle: i18n.t('dashboard.role.teacher.subtitle') },
+                    student: { title: i18n.t('dashboard.role.student.title'), subtitle: i18n.t('dashboard.role.student.subtitle') }
                 };
 
                 const roleTitle = titles[currentUser.role] || titles.student;
