@@ -221,46 +221,6 @@
                 }
             }
 
-            // Predefined colors
-            const colors = [
-                '#4A90E2', '#E94C4C', '#50C878', '#F59E0B',
-                '#8B5CF6', '#EC4899', '#06B6D4', '#10B981',
-                '#F97316', '#6366F1', '#84CC16', '#EF4444'
-            ];
-
-            const colorSection = isEdit
-                ? `
-                                <div class="form-group">
-                                    <label class="form-label">Color</label>
-                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                                        ${colors.map(color => `
-                                            <label style="cursor: pointer;">
-                                                <input
-                                                    type="radio"
-                                                    name="color"
-                                                    value="${color}"
-                                                    ${(subject?.color === color || (!subject && color === '#4A90E2')) ? 'checked' : ''}
-                                                    style="display: none;"
-                                                />
-                                                <div style="
-                                                    width: 40px;
-                                                    height: 40px;
-                                                    border-radius: 8px;
-                                                    background: ${color};
-                                                    border: 3px solid transparent;
-                                                    transition: all 0.2s;
-                                                " class="color-option"></div>
-                                            </label>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                `
-                : `
-                                <div class="form-group">
-                                    <label class="form-label">Color</label>
-                                    <div class="text-secondary" style="margin-top: 6px;">Color will be assigned автоматически.</div>
-                                </div>
-                `;
 
             // Create modal HTML
             const modalHtml = `
@@ -310,7 +270,6 @@
                                     </div>
                                 </div>
 
-                                ${colorSection}
 
                                 <div class="form-group">
                                     <label class="form-label">Description</label>
@@ -353,15 +312,6 @@
                     </div>
                 </div>
 
-                <style>
-                    .color-option {
-                        cursor: pointer;
-                    }
-                    input[type="radio"]:checked + .color-option {
-                        border-color: var(--text-primary) !important;
-                        box-shadow: 0 0 0 1px var(--bg-secondary), 0 0 0 3px var(--text-primary);
-                    }
-                </style>
             `;
 
             // Add modal to body
@@ -407,7 +357,6 @@
             const data = {
                 name: formData.get('name').trim(),
                 code: formData.get('code').trim().toUpperCase(),
-                color: subjectId ? formData.get('color') : null,
                 description: formData.get('description')?.trim() || null
             };
 

@@ -133,6 +133,11 @@
     transition: all 0.2s ease;
 }
 
+.form-input option {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+}
+
 .form-input:focus,
 .form-textarea:focus {
     outline: none;
@@ -701,19 +706,28 @@
 .teacher-assignment {
     margin-bottom: var(--spacing-lg);
     padding: var(--spacing-lg);
-    background: var(--bg-primary);
-    border: 2px solid var(--border);
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
 }
 
 .assignment-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1.6fr auto;
     gap: var(--spacing-md);
-    align-items: flex-start;
+    align-items: start;
 }
 
 .assignment-row .form-group {
     margin-bottom: 0;
+}
+
+.assignment-row .form-input {
+    background: var(--bg-primary);
+}
+
+.assignment-row select[multiple].form-input {
+    min-height: 110px;
 }
 
 .flex-1 {
@@ -731,8 +745,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid var(--error);
-    background: white;
+    border: 1px solid var(--error);
+    background: transparent;
     color: var(--error);
     border-radius: var(--radius-md);
     cursor: pointer;
@@ -743,6 +757,10 @@
 .btn-remove:hover {
     background: var(--error);
     color: white;
+}
+
+.assignment-add-btn {
+    margin-bottom: var(--spacing-lg);
 }
 
 .btn-sm {

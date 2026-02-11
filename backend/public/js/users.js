@@ -333,7 +333,7 @@
                                         <!-- Assignments will be added here dynamically -->
                                     </div>
 
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="UsersManager.addTeacherAssignment()">
+                                    <button type="button" class="btn btn-outline btn-sm assignment-add-btn" onclick="UsersManager.addTeacherAssignment()">
                                         + Add Subject & Classes
                                     </button>
                                 </div>
@@ -694,13 +694,16 @@
         assignmentCounter: 0,
 
         // Toggle teacher fields visibility
-        toggleTeacherFields: function (role) {
+        toggleTeacherFields: async function (role) {
             const teacherFields = document.getElementById('teacherFields');
             if (role === 'teacher') {
                 teacherFields.style.display = 'block';
-                if (!this.subjects.length) {
-                    this.loadSubjectsAndClasses();
+                if (!this.subjects.length || !this.classes.length) {
+                    await this.loadSubjectsAndClasses();
                 }
+
+                this.refreshTeacherAssignmentsOptions();
+
                 // Add one assignment by default if none exist
                 const container = document.getElementById('teacherAssignments');
                 if (!container.children.length) {
@@ -736,6 +739,47 @@
             } catch (error) {
                 console.error('Load subjects/classes error:', error);
             }
+        },
+
+        refreshTeacherAssignmentsOptions: function () {
+            const container = document.getElementById('teacherAssignments');
+            if (!container) return;
+
+            const assignmentDivs = container.querySelectorAll('.teacher-assignment');
+            if (!assignmentDivs.length) return;
+
+            const subjectOptions = this.subjects.map(s =>
+                `<option value="${s.id}">${s.name}</option>`
+            ).join('');
+
+            const classOptions = this.classes.map(c =>
+                `<option value="${c.id}">${c.name} (Grade ${c.grade_level})</option>`
+            ).join('');
+
+            assignmentDivs.forEach(div => {
+                const subjectSelect = div.querySelector('select[name^="subject_"]');
+                const classSelect = div.querySelector('select[name^="classes_"]');
+
+                const selectedSubject = subjectSelect?.value || '';
+                const selectedClasses = classSelect
+                    ? Array.from(classSelect.selectedOptions).map(opt => opt.value)
+                    : [];
+
+                if (subjectSelect) {
+                    subjectSelect.innerHTML = `<option value="">Select subject</option>${subjectOptions}`;
+                    subjectSelect.value = selectedSubject;
+                }
+
+                if (classSelect) {
+                    classSelect.innerHTML = classOptions;
+                    selectedClasses.forEach(value => {
+                        const option = classSelect.querySelector(`option[value="${value}"]`);
+                        if (option) {
+                            option.selected = true;
+                        }
+                    });
+                }
+            });
         },
 
         // Add new teacher assignment row
