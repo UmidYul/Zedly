@@ -234,7 +234,7 @@ router.get('/assignments', async (req, res) => {
         const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
         const isActiveColumn = pickColumn(assignmentColumns, ['is_active', 'active'], null);
         const classStudentActiveFilter = classStudentColumns.has('is_active')
-            ? 'AND cs.is_active = true'
+            ? 'AND class_students.is_active = true'
             : '';
         const questionCountExpr = await getQuestionCountExpr();
 
