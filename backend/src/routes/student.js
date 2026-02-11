@@ -146,7 +146,7 @@ function buildCareerRecommendations(topInterests) {
         },
         'искусство': {
             ru: ['Музыка', 'ИЗО', 'Театр'],
-            uz: ['Musiqa', 'Tasviriy san'at', 'Teatr']
+            uz: ['Musiqa', "Tasviriy san'at", 'Teatr']
         },
         'технологии': {
             ru: ['Информатика', 'Технология', 'Робототехника'],
@@ -170,7 +170,7 @@ function buildCareerRecommendations(topInterests) {
         },
         "san'at": {
             ru: ['Музыка', 'ИЗО', 'Театр'],
-            uz: ['Musiqa', 'Tasviriy san'at', 'Teatr']
+            uz: ['Musiqa', "Tasviriy san'at", 'Teatr']
         },
         "texnologiya": {
             ru: ['Информатика', 'Технология', 'Робототехника'],
