@@ -24,6 +24,36 @@
             --shadow-color: rgba(0, 0, 0, 0.1);
         }
 
+        [data-theme="dark"] {
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --bg-primary: #1f2937;
+            --bg-secondary: #111827;
+            --card-bg: #1f2937;
+            --border-color: #374151;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] body {
+            background: var(--bg-secondary);
+        }
+
+        [data-theme="dark"] .heatmap-header {
+            background: linear-gradient(135deg, #374151, #1f2937);
+        }
+
+        [data-theme="dark"] .heatmap-cell {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="dark"] .btn-back {
+            background: var(--card-bg);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: var(--bg-secondary);
+        }
+
         body {
             background: var(--bg-secondary);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -42,7 +72,53 @@
             margin-bottom: 30px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .page-header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            box-shadow: 0 2px 4px var(--shadow-color);
+            white-space: nowrap;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary-color);
+            background: var(--bg-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow-color);
+        }
+
+        .theme-toggle:active {
+            transform: translateY(0);
+        }
+
+        .theme-icon {
+            font-size: 20px;
+            line-height: 1;
+            transition: transform 0.3s;
+        }
+
+        .theme-toggle:hover .theme-icon {
+            transform: rotate(180deg);
         }
 
         .page-header h1 {
@@ -622,6 +698,17 @@
                 gap: 15px;
             }
 
+            .page-header-left {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+
+            .theme-toggle {
+                width: 100%;
+                justify-content: center;
+            }
+
             .page-header h1 {
                 font-size: 24px;
             }
@@ -720,10 +807,16 @@
     <div class="analytics-container">
         <!-- Header -->
         <div class="page-header">
-            <button class="btn-back" onclick="window.history.back()">
-                <span>←</span> <span data-i18n="back">Назад</span>
+            <div class="page-header-left">
+                <button class="btn-back" onclick="window.history.back()">
+                    <span>←</span> <span data-i18n="back">Назад</span>
+                </button>
+                <h1 data-i18n="advanced_analytics">📊 Расширенная аналитика</h1>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+                <span class="theme-icon" id="themeIcon">🌙</span>
+                <span id="themeText">Тёмная тема</span>
             </button>
-            <h1 data-i18n="advanced_analytics">📊 Расширенная аналитика</h1>
         </div>
 
         <!-- Filters -->
@@ -1488,12 +1581,78 @@
             }
         }
 
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            updateThemeButton(newTheme);
+            updateChartColors(newTheme);
+        }
+
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+
+            if (theme === 'dark') {
+                icon.textContent = '☀️';
+                text.textContent = 'Светлая тема';
+            } else {
+                icon.textContent = '🌙';
+                text.textContent = 'Тёмная тема';
+            }
+        }
+
+        function updateChartColors(theme) {
+            // Update Chart.js defaults for theme
+            if (Chart) {
+                const textColor = theme === 'dark' ? '#f9fafb' : '#1f2937';
+                const gridColor = theme === 'dark' ? '#374151' : '#e5e7eb';
+
+                Chart.defaults.color = textColor;
+                Chart.defaults.borderColor = gridColor;
+
+                // Recreate charts if they exist
+                if (comparisonChart) {
+                    comparisonChart.options.scales.x.grid.color = gridColor;
+                    comparisonChart.options.scales.y.grid.color = gridColor;
+                    comparisonChart.update();
+                }
+                if (trendsChart) {
+                    trendsChart.options.scales.y.grid.color = gridColor;
+                    trendsChart.options.scales.y1.grid.color = gridColor;
+                    trendsChart.update();
+                }
+                if (subjectsChart) {
+                    subjectsChart.options.scales.x.grid.color = gridColor;
+                    subjectsChart.options.scales.y.grid.color = gridColor;
+                    subjectsChart.update();
+                }
+            }
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+            updateChartColors(savedTheme);
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            // Load theme
+            loadTheme();
+
             // Load subjects for filter
             try {
                 const token = localStorage.getItem('access_token');
-                const response = await fetch(`${API_URL}/admin/subjects`, {
+                // Use limit=1000 to get all subjects without pagination
+                const response = await fetch(`${API_URL}/admin/subjects?limit=1000`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1502,13 +1661,24 @@
                 if (response.ok) {
                     const data = await response.json();
                     const select = document.getElementById('subjectFilter');
-                    data.subjects.forEach(subject => {
+
+                    // Check if data is array or object with subjects property
+                    const subjects = Array.isArray(data) ? data : (data.subjects || []);
+
+                    console.log('Loaded subjects:', subjects);
+
+                    subjects.forEach(subject => {
                         const option = document.createElement('option');
                         option.value = subject.id;
-                        option.textContent = subject.name_ru;
+                        // Support both name_ru and name fields
+                        option.textContent = subject.name_ru || subject.name || 'Unnamed';
                         select.appendChild(option);
                     });
-                }
+
+                    console.log('Total subjects added:', subjects.length);
+                } else {
+                    console.error('Failed to load subjects, status:', response.status);
+                } \n
             } catch (error) {
                 console.error('Failed to load subjects:', error);
             }
