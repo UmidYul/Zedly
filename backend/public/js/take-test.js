@@ -411,6 +411,8 @@
         renderAnswerInput: function (question) {
             const existingAnswer = this.answers[question.id];
 
+            console.log('Rendering question type:', question.question_type, 'Question:', question);
+
             switch (question.question_type) {
                 case 'singlechoice':
                     return this.renderSingleChoice(question, existingAnswer);
@@ -425,6 +427,9 @@
                     return this.renderShortAnswer(question, existingAnswer);
 
                 case 'fillblanks':
+                case 'fill_blanks':
+                case 'fill_in_blank':
+                case 'fill_in_blanks':
                     return this.renderFillBlanks(question, existingAnswer);
 
                 case 'ordering':
@@ -437,7 +442,8 @@
                     return this.renderImageBased(question, existingAnswer);
 
                 default:
-                    return '<p>Unsupported question type</p>';
+                    console.error('Unsupported question type:', question.question_type);
+                    return `<p>Unsupported question type: ${question.question_type}</p>`;
             }
         },
 
@@ -532,11 +538,25 @@
 
         // Render fill in blanks
         renderFillBlanks: function (question, existingAnswer) {
-            const blanksCount = (question.question_text.match(/___/g) || []).length;
-            const answers = Array.isArray(existingAnswer) ? existingAnswer : new Array(blanksCount).fill('');
-            let html = '<div class="blanks-list">';
+            console.log('renderFillBlanks called for question:', question.id);
+            console.log('Question text:', question.question_text);
 
-            for (let i = 0; i < blanksCount; i++) {
+            // Support multiple blank formats: ___, [blank], {blank}, ____
+            let blanksCount = (question.question_text.match(/___+/g) || []).length;
+            
+            // If no ___ found, try alternative formats
+            if (blanksCount === 0) {
+                blanksCount = (question.question_text.match(/\[blank\]/gi) || []).length;
+            }
+            if (blanksCount === 0) {
+                blanksCount = (question.question_text.match(/\{blank\}/gi) || []).length;
+            }
+            
+            console.log('Blanks count:', blanksCount);
+            
+            if (blanksCount === 0) {
+                return '<p class="error-message">No blanks found in question. Use ___ (three underscores) to indicate blanks.</p>';
+            }
                 html += `
                     <div class="blank-item">
                         <label>Blank ${i + 1}:</label>
@@ -554,6 +574,7 @@
             }
 
             html += '</div>';
+            console.log('Generated HTML length:', html.length);
             return html;
         },
 
