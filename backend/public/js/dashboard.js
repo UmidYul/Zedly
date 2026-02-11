@@ -351,7 +351,7 @@
                         <div class="section-header">
                             <h2 class="section-title">Recent Activity</h2>
                         </div>
-                        <p style="color: var(--text-secondary);">Content coming soon...</p>
+                        ${buildRecentActivity(currentUser.role, statsData)}
                     </div>
                 `;
                 return;
@@ -385,7 +385,9 @@
             },
             'assignments': { src: '/js/assignments.js', manager: 'AssignmentsManager' },
             'import': { src: '/js/import-export.js', manager: 'ImportExportManager' },
-            'export': { src: '/js/import-export.js', manager: 'ImportExportManager' }
+            'export': { src: '/js/import-export.js', manager: 'ImportExportManager' },
+            'progress': { src: '/js/student-progress.js', manager: 'StudentProgress' },
+            'leaderboard': { src: '/js/student-leaderboard.js', manager: 'StudentLeaderboard' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -865,6 +867,55 @@
             `;
         }
 
+        if (page === 'progress' && role === 'student') {
+            return `
+                <div class="page-toolbar">
+                    <div class="toolbar-right">
+                        <button class="btn btn-outline" id="studentProgressRefresh">Refresh</button>
+                    </div>
+                </div>
+                <div class="stats-grid" id="studentProgressStats"></div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Progress Trend</h2>
+                    </div>
+                    <div id="studentProgressTrend"></div>
+                </div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">By Subject</h2>
+                    </div>
+                    <div id="studentProgressSubjects"></div>
+                </div>
+            `;
+        }
+
+        if (page === 'leaderboard' && role === 'student') {
+            return `
+                <div class="page-toolbar">
+                    <div class="toolbar-filters">
+                        <select id="leaderboardScope" class="filter-select">
+                            <option value="class">Class</option>
+                            <option value="school">School</option>
+                            <option value="subject">Subject</option>
+                        </select>
+                        <select id="leaderboardClass" class="filter-select" style="display: none;"></select>
+                        <select id="leaderboardSubject" class="filter-select" style="display: none;"></select>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-outline" id="leaderboardRefresh">Refresh</button>
+                    </div>
+                </div>
+                <div class="stats-grid" id="leaderboardStats"></div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Leaderboard</h2>
+                    </div>
+                    <div id="leaderboardTable"></div>
+                </div>
+            `;
+        }
+
         // Career Orientation (Student)
         if (page === 'career' && role === 'student') {
             return `
@@ -1077,6 +1128,66 @@
         }
 
         return rounded.toFixed(1);
+    }
+
+    function formatDateTime(value) {
+        if (!value) {
+            return '-';
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return '-';
+        }
+        return date.toLocaleString();
+    }
+
+    function buildRecentActivity(role, data) {
+        const items = data?.recent_activity || [];
+        if (!items.length) {
+            return '<p style="color: var(--text-secondary);">No recent activity yet.</p>';
+        }
+
+        const typeLabels = {
+            attempt: 'Attempt',
+            assignment: 'Assignment',
+            test: 'Test',
+            user: 'User'
+        };
+
+        const rows = items.map((item) => {
+            const type = typeLabels[item.type] || item.type || 'Activity';
+            const score = item.percentage !== undefined && item.percentage !== null
+                ? `${formatPercent(item.percentage)}%`
+                : '-';
+            return `
+                <tr>
+                    <td>${type}</td>
+                    <td>${item.title || '-'}</td>
+                    <td>${item.subtitle || '-'}</td>
+                    <td>${score}</td>
+                    <td>${formatDateTime(item.date)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        return `
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Details</th>
+                            <th>Score</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
     }
 
     // Build stat cards from API data

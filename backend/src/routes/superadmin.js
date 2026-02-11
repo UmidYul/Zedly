@@ -8,6 +8,32 @@ const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications')
 router.use(authenticate);
 router.use(authorize('superadmin'));
 
+const COLUMN_CACHE = {};
+
+async function getTableColumns(tableName) {
+    if (COLUMN_CACHE[tableName]) {
+        return COLUMN_CACHE[tableName];
+    }
+
+    const result = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = $1
+    `, [tableName]);
+    const columns = new Set(result.rows.map(row => row.column_name));
+    COLUMN_CACHE[tableName] = columns;
+    return columns;
+}
+
+function pickColumn(columns, candidates, fallback = null) {
+    for (const candidate of candidates) {
+        if (columns.has(candidate)) {
+            return candidate;
+        }
+    }
+    return fallback;
+}
+
 async function getCareerInterestSchema() {
     const result = await query(`
         SELECT column_name
@@ -31,6 +57,25 @@ async function getCareerInterestSchema() {
         color: columns.has('color') ? 'ci.color' : "'#4A90E2'",
         subjects: columns.has('subjects') ? 'ci.subjects' : 'NULL'
     };
+}
+
+async function getSchoolNameExpr() {
+    const result = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'schools'
+    `);
+    const columns = new Set(result.rows.map(row => row.column_name));
+    if (columns.has('name')) {
+        return 's.name';
+    }
+    if (columns.has('name_ru')) {
+        return 's.name_ru';
+    }
+    if (columns.has('name_uz')) {
+        return 's.name_uz';
+    }
+    return 's.id::text';
 }
 
 function buildCareerInterestPayload(body, columns) {
@@ -999,7 +1044,7 @@ router.get('/dashboard/stats', async (req, res) => {
 router.get('/dashboard/overview', async (req, res) => {
     try {
         // Count schools
-        const schoolsResult = await query('SELECT COUNT(*) as count FROM school');
+        const schoolsResult = await query('SELECT COUNT(*) as count FROM schools');
         const schoolCount = parseInt(schoolsResult.rows[0]?.count || 0);
 
         // Count users by role
@@ -1014,7 +1059,7 @@ router.get('/dashboard/overview', async (req, res) => {
         });
 
         // Count total tests
-        const testsResult = await query('SELECT COUNT(*) as count FROM test');
+        const testsResult = await query('SELECT COUNT(*) as count FROM tests');
         const testCount = parseInt(testsResult.rows[0]?.count || 0);
 
         // Get average score across all attempts
@@ -1051,24 +1096,75 @@ router.get('/dashboard/overview', async (req, res) => {
         `);
         const careerTestsCompleted = parseInt(careerResult.rows[0]?.count || 0);
 
+        const testColumns = await getTableColumns('tests');
+        const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
+        const testTeacherColumn = pickColumn(testColumns, ['teacher_id', 'created_by', 'creator_id'], null);
+
         // Get top schools by average test score
+        const schoolNameExpr = await getSchoolNameExpr();
         const topSchoolsResult = await query(`
             SELECT 
                 s.id,
-                s.name,
+                ${schoolNameExpr} as school_name,
                 COUNT(DISTINCT tatt.id) as attempts,
                 ${scoreExpr !== 'NULL' ? `AVG(${scoreExpr})::int` : '0'}::int as avg_score
             FROM test_attempts tatt
             INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
-            INNER JOIN test t ON t.id = ta.test_id
-            INNER JOIN users u ON u.id = t.created_by
-            INNER JOIN school s ON s.id = u.school_id
+            INNER JOIN tests t ON t.id = ta.test_id
+            INNER JOIN schools s ON s.id = t.school_id
             ${completedFilter !== 'false' ? `WHERE ${completedFilter}` : ''}
-            GROUP BY s.id, s.name
+            GROUP BY s.id, ${schoolNameExpr}
             ORDER BY avg_score DESC
             LIMIT 5
         `);
         const topSchools = topSchoolsResult.rows || [];
+
+        const recentAttemptsResult = await query(`
+            SELECT
+                tatt.id,
+                ${completedFilter !== 'false' ? 'tatt.submitted_at' : 'tatt.created_at'} as completed_at,
+                t.${testTitleColumn} as test_title,
+                CONCAT(u.first_name, ' ', u.last_name) as student_name,
+                ${scoreExpr !== 'NULL' ? `${scoreExpr}::float` : 'NULL'} as percentage
+            FROM test_attempts tatt
+            JOIN tests t ON t.id = tatt.test_id
+            JOIN users u ON u.id = tatt.student_id
+            WHERE ${completedFilter}
+            ORDER BY ${completedFilter !== 'false' ? 'tatt.submitted_at' : 'tatt.created_at'} DESC
+            LIMIT 5
+        `);
+
+        const recentTestsResult = await query(`
+            SELECT
+                t.id,
+                t.${testTitleColumn} as test_title,
+                t.created_at,
+                ${testTeacherColumn ? `CONCAT(u.first_name, ' ', u.last_name) as teacher_name` : "'' as teacher_name"}
+            FROM tests t
+            ${testTeacherColumn ? `LEFT JOIN users u ON u.id = t.${testTeacherColumn}` : ''}
+            ORDER BY t.created_at DESC
+            LIMIT 5
+        `);
+
+        const activity = [];
+        recentAttemptsResult.rows.forEach(row => {
+            activity.push({
+                type: 'attempt',
+                title: row.test_title,
+                subtitle: row.student_name,
+                percentage: row.percentage,
+                date: row.completed_at
+            });
+        });
+        recentTestsResult.rows.forEach(row => {
+            activity.push({
+                type: 'test',
+                title: row.test_title,
+                subtitle: row.teacher_name || 'Teacher',
+                date: row.created_at
+            });
+        });
+        activity.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.json({
             stats: {
@@ -1079,8 +1175,9 @@ router.get('/dashboard/overview', async (req, res) => {
                 avg_score: Math.round(avgScore),
                 career_tests_completed: careerTestsCompleted
             },
+            recent_activity: activity.slice(0, 8),
             top_schools: topSchools.map(row => ({
-                school_name: row.name,
+                school_name: row.school_name,
                 attempts: parseInt(row.attempts),
                 avg_score: row.avg_score || 0
             }))

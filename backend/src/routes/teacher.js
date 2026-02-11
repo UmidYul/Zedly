@@ -189,6 +189,46 @@ router.get('/dashboard/overview', async (req, res) => {
             [teacherId]
         );
 
+        const recentAttempts = await query(
+            `SELECT
+                att.id,
+                ${attempt.completedAt} as completed_at,
+                t.title as test_title,
+                c.name as class_name,
+                CONCAT(u.first_name, ' ', u.last_name) as student_name,
+                ${attempt.score}::float as percentage
+             FROM test_attempts att
+             JOIN test_assignments ta ON ta.id = att.assignment_id
+             JOIN tests t ON t.id = ta.test_id
+             JOIN classes c ON c.id = ta.class_id
+             JOIN users u ON u.id = att.student_id
+             WHERE ta.assigned_by = $1 AND ${attempt.completedFilter}
+             ORDER BY ${attempt.completedAt} DESC
+             LIMIT 5`,
+            [teacherId]
+        );
+
+        const activity = [];
+        recentAssignments.rows.forEach(row => {
+            activity.push({
+                type: 'assignment',
+                title: row.test_title,
+                subtitle: row.class_name,
+                percentage: row.avg_percentage,
+                date: row.end_date
+            });
+        });
+        recentAttempts.rows.forEach(row => {
+            activity.push({
+                type: 'attempt',
+                title: row.test_title,
+                subtitle: `${row.student_name} · ${row.class_name}`,
+                percentage: row.percentage,
+                date: row.completed_at
+            });
+        });
+        activity.sort((a, b) => new Date(b.date) - new Date(a.date));
+
         res.json({
             stats: {
                 tests_created: parseInt(testsResult.rows[0].total || 0),
@@ -197,7 +237,8 @@ router.get('/dashboard/overview', async (req, res) => {
                 student_count: parseInt(studentsResult.rows[0].total || 0),
                 avg_percentage: avgScoreResult.rows[0]?.avg_percentage
             },
-            recent_assignments: recentAssignments.rows
+            recent_assignments: recentAssignments.rows,
+            recent_activity: activity.slice(0, 8)
         });
     } catch (error) {
         console.error('Teacher dashboard overview error:', error);

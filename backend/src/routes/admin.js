@@ -28,6 +28,193 @@ const upload = multer({
 router.use(authenticate);
 router.use(authorize('school_admin'));
 
+const COLUMN_CACHE = {};
+
+async function getTableColumns(tableName) {
+    if (COLUMN_CACHE[tableName]) {
+        return COLUMN_CACHE[tableName];
+    }
+
+    const result = await query(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1`,
+        [tableName]
+    );
+
+    const columns = new Set(result.rows.map(row => row.column_name));
+    COLUMN_CACHE[tableName] = columns;
+    return columns;
+}
+
+function pickColumn(columns, candidates, fallback = null) {
+    for (const candidate of candidates) {
+        if (columns.has(candidate)) {
+            return candidate;
+        }
+    }
+    return fallback;
+}
+
+async function getAttemptOverviewExpressions(alias = 'att') {
+    const result = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'test_attempts'
+    `);
+    const columns = new Set(result.rows.map((row) => row.column_name));
+    const col = (name) => (columns.has(name) ? `${alias}.${name}` : null);
+
+    const percent = col('percentage') || col('score_percentage');
+    const score = col('score');
+    const maxScore = col('max_score');
+    let scoreExpr = 'NULL';
+    if (percent) {
+        scoreExpr = percent;
+    } else if (score && maxScore) {
+        scoreExpr = `(${score}::float / NULLIF(${maxScore}, 0) * 100)`;
+    } else if (score) {
+        scoreExpr = score;
+    }
+
+    const completedAt = col('submitted_at') || col('completed_at') || col('graded_at') || col('created_at') || 'NULL';
+
+    let completedFilter = 'false';
+    if (columns.has('status')) {
+        completedFilter = `${alias}.status = 'completed'`;
+    } else if (columns.has('is_completed')) {
+        completedFilter = `${alias}.is_completed = true`;
+    } else if (completedAt !== 'NULL') {
+        completedFilter = `${completedAt} IS NOT NULL`;
+    }
+
+    return { scoreExpr, completedAt, completedFilter };
+}
+
+/**
+ * GET /api/admin/dashboard/overview
+ * Get school admin dashboard overview
+ */
+router.get('/dashboard/overview', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const attempt = await getAttemptOverviewExpressions();
+        const testColumns = await getTableColumns('tests');
+        const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
+        const testTeacherColumn = pickColumn(testColumns, ['teacher_id', 'created_by', 'creator_id'], null);
+
+        const studentsResult = await query(
+            `SELECT COUNT(*) as count
+             FROM users
+             WHERE school_id = $1 AND role = 'student' AND is_active = true`,
+            [schoolId]
+        );
+
+        const teachersResult = await query(
+            `SELECT COUNT(*) as count
+             FROM users
+             WHERE school_id = $1 AND role = 'teacher' AND is_active = true`,
+            [schoolId]
+        );
+
+        const classesResult = await query(
+            `SELECT COUNT(*) as count
+             FROM classes
+             WHERE school_id = $1`,
+            [schoolId]
+        );
+
+        const testsResult = await query(
+            `SELECT COUNT(*) as count
+             FROM tests
+             WHERE school_id = $1`,
+            [schoolId]
+        );
+
+        let avgScore = 0;
+        if (attempt.scoreExpr !== 'NULL') {
+            const avgScoreResult = await query(
+                `SELECT AVG(${attempt.scoreExpr})::float as avg
+                 FROM test_attempts att
+                 JOIN tests t ON t.id = att.test_id
+                 WHERE t.school_id = $1 AND ${attempt.completedFilter}`,
+                [schoolId]
+            );
+            avgScore = parseFloat(avgScoreResult.rows[0]?.avg || 0);
+        }
+
+        const recentAttemptsResult = await query(
+            `SELECT
+                att.id,
+                ${attempt.completedAt} as completed_at,
+                t.${testTitleColumn} as test_title,
+                c.name as class_name,
+                CONCAT(u.first_name, ' ', u.last_name) as student_name,
+                ${attempt.scoreExpr}::float as percentage
+             FROM test_attempts att
+             JOIN tests t ON t.id = att.test_id
+             JOIN test_assignments ta ON ta.id = att.assignment_id
+             JOIN classes c ON c.id = ta.class_id
+             JOIN users u ON u.id = att.student_id
+             WHERE t.school_id = $1 AND ${attempt.completedFilter}
+             ORDER BY ${attempt.completedAt} DESC
+             LIMIT 5`,
+            [schoolId]
+        );
+
+        const recentTestsResult = await query(
+            `SELECT
+                t.id,
+                t.${testTitleColumn} as test_title,
+                t.created_at,
+                ${testTeacherColumn ? `CONCAT(u.first_name, ' ', u.last_name) as teacher_name` : "'' as teacher_name"}
+             FROM tests t
+             ${testTeacherColumn ? `LEFT JOIN users u ON u.id = t.${testTeacherColumn}` : ''}
+             WHERE t.school_id = $1
+             ORDER BY t.created_at DESC
+             LIMIT 5`,
+            [schoolId]
+        );
+
+        const activity = [];
+        recentAttemptsResult.rows.forEach(row => {
+            activity.push({
+                type: 'attempt',
+                title: row.test_title,
+                subtitle: `${row.student_name} · ${row.class_name}`,
+                percentage: row.percentage,
+                date: row.completed_at
+            });
+        });
+        recentTestsResult.rows.forEach(row => {
+            activity.push({
+                type: 'test',
+                title: row.test_title,
+                subtitle: row.teacher_name || 'Teacher',
+                date: row.created_at
+            });
+        });
+        activity.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        res.json({
+            stats: {
+                students: parseInt(studentsResult.rows[0]?.count || 0),
+                teachers: parseInt(teachersResult.rows[0]?.count || 0),
+                classes: parseInt(classesResult.rows[0]?.count || 0),
+                tests: parseInt(testsResult.rows[0]?.count || 0),
+                avg_score: avgScore
+            },
+            recent_activity: activity.slice(0, 8)
+        });
+    } catch (error) {
+        console.error('Admin dashboard overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch dashboard overview'
+        });
+    }
+});
+
 /**
  * GET /api/admin/users
  * Get all users in school

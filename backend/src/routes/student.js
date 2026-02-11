@@ -108,6 +108,37 @@ async function getCareerResultsColumns() {
     };
 }
 
+async function getAttemptStatsExpressions(alias = 'att') {
+    const columnsResult = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'test_attempts'
+    `);
+    const columns = new Set(columnsResult.rows.map(row => row.column_name));
+
+    const col = (name) => (columns.has(name) ? `${alias}.${name}` : null);
+    const scorePercent = col('percentage') || col('score_percentage');
+    const score = col('score');
+    const maxScore = col('max_score');
+    let scoreExpr = 'NULL';
+    if (scorePercent) {
+        scoreExpr = scorePercent;
+    } else if (score && maxScore) {
+        scoreExpr = `(${score}::float / NULLIF(${maxScore}, 0) * 100)`;
+    } else if (score) {
+        scoreExpr = score;
+    }
+
+    const completedAt = col('submitted_at') || col('completed_at') || col('graded_at') || col('created_at') || 'NULL';
+
+    let completedFilter = 'false';
+    if (columns.has('status')) completedFilter = `${alias}.status = 'completed'`;
+    else if (columns.has('is_completed')) completedFilter = `${alias}.is_completed = true`;
+    else if (completedAt !== 'NULL') completedFilter = `${completedAt} IS NOT NULL`;
+
+    return { scoreExpr, completedFilter, completedAt };
+}
+
 function buildCareerQuestions(interests) {
     const questions = [];
 
@@ -848,6 +879,310 @@ router.get('/results', async (req, res) => {
 });
 
 /**
+ * GET /api/student/classes
+ * Get student's active classes for filtering
+ */
+router.get('/classes', async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const classStudentColumns = await getTableColumns('class_students');
+        const classColumns = await getTableColumns('classes');
+        const gradeColumn = pickColumn(classColumns, ['grade_level', 'grade'], null);
+        const academicYearColumn = pickColumn(classColumns, ['academic_year'], null);
+        const classStudentActiveFilter = classStudentColumns.has('is_active')
+            ? 'AND cs.is_active = true'
+            : '';
+
+        const result = await query(
+            `SELECT c.id,
+                c.name,
+                ${gradeColumn ? `c.${gradeColumn}` : 'NULL'} as grade_level,
+                ${academicYearColumn ? `c.${academicYearColumn}` : 'NULL'} as academic_year
+             FROM classes c
+             JOIN class_students cs ON cs.class_id = c.id
+             WHERE cs.student_id = $1 ${classStudentActiveFilter}
+             ORDER BY c.name ASC`,
+            [studentId]
+        );
+
+        res.json({ classes: result.rows });
+    } catch (error) {
+        console.error('Get student classes error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch classes'
+        });
+    }
+});
+
+/**
+ * GET /api/student/subjects
+ * Get subjects from student's assigned tests
+ */
+router.get('/subjects', async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const subjectColumns = await getTableColumns('subjects');
+        const classStudentColumns = await getTableColumns('class_students');
+        const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
+        const classStudentActiveFilter = classStudentColumns.has('is_active')
+            ? 'AND cs.is_active = true'
+            : '';
+
+        const result = await query(
+            `SELECT DISTINCT s.id,
+                s.${subjectNameColumn} as name,
+                s.color
+             FROM test_assignments ta
+             JOIN tests t ON t.id = ta.test_id
+             JOIN class_students cs ON cs.class_id = ta.class_id
+             JOIN subjects s ON s.id = t.subject_id
+             WHERE cs.student_id = $1 ${classStudentActiveFilter}
+             ORDER BY s.${subjectNameColumn} ASC`,
+            [studentId]
+        );
+
+        res.json({ subjects: result.rows });
+    } catch (error) {
+        console.error('Get student subjects error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch subjects'
+        });
+    }
+});
+
+/**
+ * GET /api/student/progress/overview
+ * Progress overview for student dashboard
+ */
+router.get('/progress/overview', async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const classStudentColumns = await getTableColumns('class_students');
+        const classStudentActiveFilter = classStudentColumns.has('is_active')
+            ? 'AND cs.is_active = true'
+            : '';
+        const subjectColumns = await getTableColumns('subjects');
+        const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
+        const attempt = await getAttemptStatsExpressions();
+
+        const testsAssignedResult = await query(`
+            SELECT COUNT(DISTINCT ta.id) as count
+            FROM test_assignments ta
+            INNER JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 ${classStudentActiveFilter}
+        `, [studentId]);
+        const testsAssigned = parseInt(testsAssignedResult.rows[0]?.count || 0);
+
+        const testsCompletedResult = await query(`
+            SELECT COUNT(DISTINCT att.id) as count
+            FROM test_attempts att
+            INNER JOIN test_assignments ta ON ta.id = att.assignment_id
+            INNER JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 ${classStudentActiveFilter} AND ${attempt.completedFilter}
+        `, [studentId]);
+        const testsCompleted = parseInt(testsCompletedResult.rows[0]?.count || 0);
+
+        let avgScore = 0;
+        if (attempt.scoreExpr !== 'NULL') {
+            const avgScoreResult = await query(`
+                SELECT AVG(${attempt.scoreExpr})::float as avg
+                FROM test_attempts att
+                WHERE att.student_id = $1 AND ${attempt.completedFilter}
+            `, [studentId]);
+            avgScore = parseFloat(avgScoreResult.rows[0]?.avg || 0);
+        }
+
+        const trendResult = await query(`
+            SELECT
+                DATE_TRUNC('week', ${attempt.completedAt}) as period,
+                COUNT(*) as attempts,
+                AVG(${attempt.scoreExpr})::float as avg_score
+            FROM test_attempts att
+            WHERE att.student_id = $1 AND ${attempt.completedFilter}
+              AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '56 days'
+            GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
+            ORDER BY period ASC
+        `, [studentId]);
+
+        const subjectResult = await query(`
+            SELECT
+                s.id,
+                s.${subjectNameColumn} as subject_name,
+                s.color as subject_color,
+                COUNT(att.id) as attempts,
+                AVG(${attempt.scoreExpr})::float as avg_score
+            FROM test_attempts att
+            JOIN tests t ON t.id = att.test_id
+            LEFT JOIN subjects s ON s.id = t.subject_id
+            WHERE att.student_id = $1 AND ${attempt.completedFilter}
+            GROUP BY s.id, s.${subjectNameColumn}, s.color
+            ORDER BY avg_score DESC NULLS LAST
+        `, [studentId]);
+
+        const completionRate = testsAssigned > 0
+            ? Math.round((testsCompleted / testsAssigned) * 100)
+            : 0;
+
+        res.json({
+            stats: {
+                tests_assigned: testsAssigned,
+                tests_completed: testsCompleted,
+                completion_rate: completionRate,
+                avg_score: avgScore
+            },
+            trend: trendResult.rows.map(row => ({
+                period: row.period,
+                attempts: parseInt(row.attempts || 0),
+                avg_score: parseFloat(row.avg_score || 0)
+            })),
+            subjects: subjectResult.rows.map(row => ({
+                subject_id: row.id,
+                subject_name: row.subject_name,
+                subject_color: row.subject_color,
+                attempts: parseInt(row.attempts || 0),
+                avg_score: parseFloat(row.avg_score || 0)
+            }))
+        });
+    } catch (error) {
+        console.error('Get student progress overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch progress overview'
+        });
+    }
+});
+
+/**
+ * GET /api/student/leaderboard
+ * Get leaderboard for class, school, or subject
+ */
+router.get('/leaderboard', async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { scope = 'class', subject_id, class_id } = req.query;
+        const attempt = await getAttemptStatsExpressions();
+
+        let joinClause = '';
+        let whereClause = "u.role = 'student' AND u.is_active = true";
+        const params = [];
+
+        if (scope === 'class') {
+            const classStudentColumns = await getTableColumns('class_students');
+            const classStudentActiveFilter = classStudentColumns.has('is_active')
+                ? 'AND cs.is_active = true'
+                : '';
+
+            let classId = class_id;
+            if (!classId) {
+                const classResult = await query(
+                    `SELECT class_id FROM class_students cs
+                     WHERE cs.student_id = $1 ${classStudentActiveFilter}
+                     ORDER BY cs.class_id ASC
+                     LIMIT 1`,
+                    [studentId]
+                );
+                classId = classResult.rows[0]?.class_id;
+            }
+
+            if (!classId) {
+                return res.json({ scope, leaderboard: [], user_rank: null });
+            }
+
+            params.push(classId);
+            joinClause = `JOIN class_students cs ON cs.student_id = u.id AND cs.class_id = $1 ${classStudentActiveFilter}`;
+        } else if (scope === 'school') {
+            params.push(req.user.school_id);
+            whereClause += ' AND u.school_id = $1';
+        } else if (scope === 'subject') {
+            if (!subject_id) {
+                return res.status(400).json({
+                    error: 'validation_error',
+                    message: 'subject_id is required for subject leaderboard'
+                });
+            }
+            params.push(req.user.school_id, subject_id);
+            joinClause = `JOIN tests t ON t.id = att.test_id AND t.subject_id = $2`;
+            whereClause += ' AND u.school_id = $1';
+        } else {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid leaderboard scope'
+            });
+        }
+
+        const leaderboardQuery = `
+            WITH leaderboard AS (
+                SELECT
+                    u.id,
+                    u.first_name,
+                    u.last_name,
+                    u.username,
+                    COUNT(att.id) as attempts,
+                    AVG(${attempt.scoreExpr})::float as avg_score
+                FROM users u
+                LEFT JOIN test_attempts att ON att.student_id = u.id AND ${attempt.completedFilter}
+                ${joinClause}
+                WHERE ${whereClause}
+                GROUP BY u.id, u.first_name, u.last_name, u.username
+                HAVING COUNT(att.id) > 0
+            )
+            SELECT
+                *,
+                RANK() OVER (ORDER BY avg_score DESC NULLS LAST, attempts DESC) as rank
+            FROM leaderboard
+            ORDER BY rank
+            LIMIT 50
+        `;
+
+        const leaderboardResult = await query(leaderboardQuery, params);
+
+        const rankResult = await query(
+            `WITH leaderboard AS (
+                SELECT
+                    u.id,
+                    COUNT(att.id) as attempts,
+                    AVG(${attempt.scoreExpr})::float as avg_score
+                FROM users u
+                LEFT JOIN test_attempts att ON att.student_id = u.id AND ${attempt.completedFilter}
+                ${joinClause}
+                WHERE ${whereClause}
+                GROUP BY u.id
+                HAVING COUNT(att.id) > 0
+            )
+            SELECT rank
+            FROM (
+                SELECT id, RANK() OVER (ORDER BY avg_score DESC NULLS LAST, attempts DESC) as rank
+                FROM leaderboard
+            ) ranked
+            WHERE id = $${params.length + 1}
+            LIMIT 1`,
+            [...params, studentId]
+        );
+
+        res.json({
+            scope,
+            leaderboard: leaderboardResult.rows.map(row => ({
+                id: row.id,
+                name: `${row.first_name} ${row.last_name}`.trim(),
+                username: row.username,
+                attempts: parseInt(row.attempts || 0),
+                avg_score: parseFloat(row.avg_score || 0),
+                rank: parseInt(row.rank || 0)
+            })),
+            user_rank: rankResult.rows[0]?.rank || null
+        });
+    } catch (error) {
+        console.error('Get student leaderboard error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch leaderboard'
+        });
+    }
+});
+
+/**
  * GET /api/student/career/interests
  * Get career interests list
  */
@@ -1167,6 +1502,9 @@ router.get('/dashboard/overview', async (req, res) => {
 
         const testColumns = await getTableColumns('tests');
         const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
+        const assignmentColumns = await getTableColumns('test_assignments');
+        const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
+        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
         const classStudentColumns = await getTableColumns('class_students');
         const classStudentActiveFilter = classStudentColumns.has('is_active')
             ? 'AND cs.is_active = true'
@@ -1256,6 +1594,45 @@ router.get('/dashboard/overview', async (req, res) => {
         `, [studentId]);
         const recentAttempts = recentResult.rows || [];
 
+        const assignmentResult = await query(`
+            SELECT
+                ta.id,
+                t.${testTitleColumn} as test_title,
+                c.name as class_name,
+                ${startDateColumn ? `ta.${startDateColumn}` : 'NULL'} as start_date,
+                ${endDateColumn ? `ta.${endDateColumn}` : 'NULL'} as end_date,
+                ta.created_at
+            FROM test_assignments ta
+            JOIN tests t ON t.id = ta.test_id
+            JOIN classes c ON c.id = ta.class_id
+            JOIN class_students cs ON cs.class_id = ta.class_id
+            WHERE cs.student_id = $1 ${classStudentActiveFilter}
+            ORDER BY ta.created_at DESC
+            LIMIT 5
+        `, [studentId]);
+
+        const recentAssignments = assignmentResult.rows || [];
+
+        const activity = [];
+        recentAttempts.forEach(row => {
+            activity.push({
+                type: 'attempt',
+                title: row.title,
+                subtitle: row.class_name,
+                percentage: row.percentage || 0,
+                date: row.submitted_at
+            });
+        });
+        recentAssignments.forEach(row => {
+            activity.push({
+                type: 'assignment',
+                title: row.test_title,
+                subtitle: row.class_name,
+                date: row.created_at
+            });
+        });
+        activity.sort((a, b) => new Date(b.date) - new Date(a.date));
+
         res.json({
             stats: {
                 tests_assigned: testsAssigned,
@@ -1268,7 +1645,8 @@ router.get('/dashboard/overview', async (req, res) => {
                 class_name: row.class_name,
                 percentage: row.percentage || 0,
                 submitted_at: row.submitted_at
-            }))
+            })),
+            recent_activity: activity.slice(0, 8)
         });
     } catch (error) {
         console.error('Student dashboard overview error:', error);

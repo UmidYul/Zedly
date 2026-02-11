@@ -1,9 +1,5 @@
-// Manual Grading Queue Manager
+// Page removed
 (function () {
     'use strict';
-    // Page removed
-    (function () {
-        'use strict';
-        window.location.href = '/dashboard.html';
-    })();
-// Initialize
+    window.location.href = '/dashboard.html';
+})();
