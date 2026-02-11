@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
+const { notifyNewTest } = require('../utils/notifications');
 
 // All routes require teacher or school_admin role
 router.use(authenticate);
@@ -897,6 +898,43 @@ router.post('/assignments', async (req, res) => {
              VALUES ($1, $2, $3, $4, $5)`,
             [teacherId, 'create', 'test_assignment', result.rows[0].id, { test_id, class_id }]
         );
+
+        // Send notifications to students in the class
+        try {
+            // Get test info and students
+            const testInfo = await query(
+                `SELECT t.id, t.title, t.duration_minutes as time_limit, s.name_ru as subject_name
+                 FROM tests t
+                 JOIN subjects s ON s.id = t.subject_id
+                 WHERE t.id = $1`,
+                [test_id]
+            );
+
+            const studentsResult = await query(
+                `SELECT u.id, u.first_name, u.last_name, u.email, u.telegram_id, u.settings
+                 FROM users u
+                 JOIN class_students cs ON cs.student_id = u.id
+                 WHERE cs.class_id = $1 AND u.is_active = true`,
+                [class_id]
+            );
+
+            const test = testInfo.rows[0];
+            const language = req.query.lang || 'ru';
+
+            // Send notifications to each student
+            for (const student of studentsResult.rows) {
+                if (student.email || student.telegram_id) {
+                    // Use student's preferred language if available
+                    const studentLang = (student.settings && student.settings.language) || language;
+                    notifyNewTest(student, test, studentLang).catch(err => {
+                        console.error('Notification error for student:', student.id, err);
+                    });
+                }
+            }
+        } catch (notifyError) {
+            console.error('Notification error:', notifyError);
+            // Don't fail the request if notifications fail
+        }
 
         res.status(201).json({
             message: 'Assignment created successfully',

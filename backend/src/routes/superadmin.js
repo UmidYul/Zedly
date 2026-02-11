@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
+const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications');
 
 // All routes require superadmin role
 router.use(authenticate);
@@ -501,6 +502,16 @@ router.post('/schools/:schoolId/admins', async (req, res) => {
             ]
         );
 
+        // Send notification to new admin
+        const newAdmin = result.rows[0];
+        if (newAdmin.email || newAdmin.telegram_id) {
+            try {
+                await notifyNewUser(newAdmin, finalPassword, req.query.lang || 'ru');
+            } catch (notifyError) {
+                console.error('Notification error:', notifyError);
+            }
+        }
+
         const response = {
             message: 'School administrator created successfully',
             admin: result.rows[0]
@@ -627,13 +638,22 @@ router.post('/schools/:schoolId/admins/:id/reset-password', async (req, res) => 
                 'reset_password',
                 'user',
                 id,
-                { 
+                {
                     username: admin.username,
                     role: 'school_admin',
                     reset_by: req.user.username
                 }
             ]
         );
+
+        // Send notification about password reset
+        if (admin.email || admin.telegram_id) {
+            try {
+                await notifyPasswordReset({ ...admin, telegram_id: admin.telegram_id }, otp, req.query.lang || 'ru');
+            } catch (notifyError) {
+                console.error('Notification error:', notifyError);
+            }
+        }
 
         res.json({
             message: 'Password reset successfully',

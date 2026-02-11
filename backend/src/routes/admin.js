@@ -1,8 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const multer = require('multer');
+const XLSX = require('xlsx');
 const { query } = require('../config/database');
 const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
+const { notifyNewUser } = require('../utils/notifications');
+
+// Configure multer for file uploads
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        // Accept only Excel files
+        if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+            file.mimetype === 'application/vnd.ms-excel') {
+            cb(null, true);
+        } else {
+            cb(new Error('Only Excel files are allowed'));
+        }
+    }
+});
 
 // All routes require school_admin role
 router.use(authenticate);
@@ -214,6 +234,16 @@ router.post('/users', async (req, res) => {
                 { username: username.trim(), role }
             ]
         );
+
+        // Send notification to new user
+        const newUser = result.rows[0];
+        if (newUser.email || newUser.telegram_id) {
+            try {
+                await notifyNewUser(newUser, finalPassword, req.query.lang || 'ru');
+            } catch (notifyError) {
+                console.error('Notification error:', notifyError);
+            }
+        }
 
         res.status(201).json({
             message: 'User created successfully',
@@ -474,12 +504,22 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
                 'reset_password',
                 'user',
                 id,
-                { 
+                {
                     username: user.username,
                     reset_by: req.user.username
                 }
             ]
         );
+
+        // Send notification about password reset
+        if (user.email || user.telegram_id) {
+            try {
+                const { notifyPasswordReset } = require('../utils/notifications');
+                await notifyPasswordReset({ ...user, telegram_id: user.telegram_id }, otp, req.query.lang || 'ru');
+            } catch (notifyError) {
+                console.error('Notification error:', notifyError);
+            }
+        }
 
         res.json({
             message: 'Password reset successfully',
@@ -1204,5 +1244,319 @@ function generateOTP() {
     }
     return otp;
 }
+
+/**
+ * POST /api/admin/users/import
+ * Import users from Excel file
+ * 
+ * Excel format:
+ * | role | first_name | last_name | email | phone | telegram_id | class_name |
+ * 
+ * role: student, teacher, school_admin
+ * class_name: только для студентов (необязательно)
+ */
+router.post('/users/import', upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No file uploaded'
+            });
+        }
+
+        const schoolId = req.user.school_id;
+        const workbook = XLSX.read(req.file.buffer);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+
+        if (data.length === 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Excel file is empty'
+            });
+        }
+
+        const results = {
+            success: [],
+            errors: [],
+            total: data.length
+        };
+
+        // Process each row
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            const rowNumber = i + 2; // Excel row number (1 = header)
+
+            try {
+                // Validate required fields
+                if (!row.role || !row.first_name || !row.last_name) {
+                    results.errors.push({
+                        row: rowNumber,
+                        error: 'Missing required fields (role, first_name, last_name)'
+                    });
+                    continue;
+                }
+
+                // Validate role
+                const validRoles = ['student', 'teacher', 'school_admin'];
+                if (!validRoles.includes(row.role)) {
+                    results.errors.push({
+                        row: rowNumber,
+                        error: `Invalid role: ${row.role}`
+                    });
+                    continue;
+                }
+
+                // Generate username from first and last name
+                const baseUsername = `${row.first_name.toLowerCase().trim()}${row.last_name.toLowerCase().trim()[0]}`;
+                let username = baseUsername;
+                let counter = 1;
+
+                // Check if username exists and increment
+                while (true) {
+                    const existing = await query(
+                        'SELECT id FROM users WHERE username = $1',
+                        [username]
+                    );
+
+                    if (existing.rows.length === 0) break;
+                    username = `${baseUsername}${counter++}`;
+                }
+
+                // Generate OTP password
+                const password = generateOTP();
+                const passwordHash = await bcrypt.hash(password, 10);
+
+                // Insert user
+                const userResult = await query(
+                    `INSERT INTO users (
+                        school_id, role, username, password_hash,
+                        first_name, last_name, email, phone, telegram_id,
+                        is_active, must_change_password
+                    )
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, true)
+                     RETURNING id, username, role, first_name, last_name, email`,
+                    [
+                        schoolId,
+                        row.role,
+                        username,
+                        passwordHash,
+                        row.first_name.trim(),
+                        row.last_name.trim(),
+                        row.email || null,
+                        row.phone || null,
+                        row.telegram_id || null
+                    ]
+                );
+
+                const user = userResult.rows[0];
+                const userId = user.id;
+
+                // If student and class_name provided, add to class
+                if (row.role === 'student' && row.class_name) {
+                    const classResult = await query(
+                        'SELECT id FROM classes WHERE school_id = $1 AND name = $2',
+                        [schoolId, row.class_name.trim()]
+                    );
+
+                    if (classResult.rows.length > 0) {
+                        await query(
+                            `INSERT INTO class_students (class_id, student_id)
+                             VALUES ($1, $2)
+                             ON CONFLICT (class_id, student_id) DO NOTHING`,
+                            [classResult.rows[0].id, userId]
+                        );
+                    }
+                }
+
+                // Send notification
+                if (user.email || user.telegram_id) {
+                    try {
+                        await notifyNewUser(user, password, req.query.lang || 'ru');
+                    } catch (notifyError) {
+                        console.error('Notification error:', notifyError);
+                    }
+                }
+
+                // Log action
+                await query(
+                    `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+                     VALUES ($1, $2, $3, $4, $5)`,
+                    [
+                        req.user.id,
+                        'create',
+                        'user',
+                        userId,
+                        { username, role: row.role, source: 'excel_import' }
+                    ]
+                );
+
+                results.success.push({
+                    row: rowNumber,
+                    username,
+                    password,
+                    name: `${row.first_name} ${row.last_name}`
+                });
+
+            } catch (error) {
+                console.error(`Error processing row ${rowNumber}:`, error);
+                results.errors.push({
+                    row: rowNumber,
+                    error: error.message
+                });
+            }
+        }
+
+        res.json({
+            message: 'Import completed',
+            results: {
+                total: results.total,
+                success: results.success.length,
+                errors: results.errors.length,
+                details: results
+            }
+        });
+
+    } catch (error) {
+        console.error('Import error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: error.message || 'Failed to import users'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/users/export
+ * Export users to Excel
+ */
+router.get('/users/export', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const { role = 'all' } = req.query;
+
+        // Build WHERE clause
+        let whereClause = 'WHERE school_id = $1';
+        const params = [schoolId];
+
+        if (role !== 'all') {
+            params.push(role);
+            whereClause += ` AND role = $2`;
+        }
+
+        // Get users
+        const result = await query(
+            `SELECT
+                role, username, first_name, last_name, email, phone,
+                telegram_id, is_active, created_at, last_login,
+                (SELECT string_agg(c.name, ', ')
+                 FROM class_students cs
+                 JOIN classes c ON c.id = cs.class_id
+                 WHERE cs.student_id = users.id) as classes
+             FROM users
+             ${whereClause}
+             ORDER BY role, last_name, first_name`,
+            params
+        );
+
+        // Create workbook
+        const worksheet = XLSX.utils.json_to_sheet(result.rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+
+        // Generate buffer
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        // Set headers
+        res.setHeader('Content-Disposition', `attachment; filename=users_export_${Date.now()}.xlsx`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('Export error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to export users'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/users/template
+ * Download Excel template for import
+ */
+router.get('/users/template', (req, res) => {
+    try {
+        // Create template data
+        const templateData = [
+            {
+                role: 'student',
+                first_name: 'Иван',
+                last_name: 'Иванов',
+                email: 'ivan@example.com',
+                phone: '+998901234567',
+                telegram_id: '@ivanov',
+                class_name: '9A'
+            },
+            {
+                role: 'teacher',
+                first_name: 'Мария',
+                last_name: 'Петрова',
+                email: 'maria@example.com',
+                phone: '+998901234568',
+                telegram_id: '@petrova',
+                class_name: ''
+            }
+        ];
+
+        // Create workbook
+        const worksheet = XLSX.utils.json_to_sheet(templateData);
+
+        // Set column widths
+        worksheet['!cols'] = [
+            { wch: 15 },  // role
+            { wch: 20 },  // first_name
+            { wch: 20 },  // last_name
+            { wch: 30 },  // email
+            { wch: 20 },  // phone
+            { wch: 20 },  // telegram_id
+            { wch: 15 }   // class_name
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+
+        // Add instructions sheet
+        const instructions = [
+            { field: 'role', required: 'Yes', description: 'student, teacher, или school_admin' },
+            { field: 'first_name', required: 'Yes', description: 'Имя пользователя' },
+            { field: 'last_name', required: 'Yes', description: 'Фамилия пользователя' },
+            { field: 'email', required: 'No', description: 'Email для уведомлений' },
+            { field: 'phone', required: 'No', description: 'Номер телефона' },
+            { field: 'telegram_id', required: 'No', description: 'Telegram ID (@username или chat_id)' },
+            { field: 'class_name', required: 'No', description: 'Название класса (только для студентов)' }
+        ];
+        const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
+        XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
+
+        // Generate buffer
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        // Set headers
+        res.setHeader('Content-Disposition', 'attachment; filename=users_import_template.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('Template error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to generate template'
+        });
+    }
+});
 
 module.exports = router;

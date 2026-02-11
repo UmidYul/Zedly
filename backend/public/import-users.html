@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Импорт пользователей - ZEDLY</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/tables.css">
+    <style>
+        .import-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .import-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px var(--shadow-color);
+            margin-bottom: 20px;
+        }
+
+        .import-card h2 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .import-card p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: var(--primary-color);
+            background: var(--primary-color-alpha);
+        }
+
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .file-info.show {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .file-info-icon {
+            font-size: 32px;
+            color: var(--success-color);
+        }
+
+        .file-info-details {
+            flex: 1;
+        }
+
+        .file-info-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .file-info-size {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-download {
+            background: var(--success-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .btn-download:hover {
+            opacity: 0.9;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .progress-bar.show {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .results-card {
+            display: none;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+
+        .results-card.show {
+            display: block;
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: var(--bg-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .stat-item.success .stat-value {
+            color: var(--success-color);
+        }
+
+        .stat-item.error .stat-value {
+            color: var(--error-color);
+        }
+
+        .results-details {
+            margin-top: 20px;
+        }
+
+        .result-section {
+            margin-bottom: 20px;
+        }
+
+        .result-section h3 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .result-list {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item-success {
+            color: var(--success-color);
+        }
+
+        .result-item-error {
+            color: var(--error-color);
+        }
+
+        .password-display {
+            font-family: monospace;
+            background: var(--bg-primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid var(--primary-color);
+            color: var(--text-primary);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--warning-color);
+            color: var(--text-primary);
+        }
+
+        .instructions {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .instructions h3 {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+        }
+
+        .instructions ol {
+            color: var(--text-secondary);
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="import-container">
+        <!-- Header -->
+        <div class="page-header">
+            <button class="btn-back" onclick="window.history.back()">
+                <span>←</span> <span data-i18n="back">Назад</span>
+            </button>
+            <h1 data-i18n="import_users_title">Импорт пользователей</h1>
+        </div>
+
+        <!-- Info Alert -->
+        <div class="alert alert-info">
+            <strong data-i18n="import_info_title">ℹ️ Информация:</strong>
+            <span data-i18n="import_info_text">
+                Вы можете импортировать несколько пользователей одновременно из Excel файла.
+                Каждый пользователь получит автоматически сгенерированный логин и временный пароль.
+            </span>
+        </div>
+
+        <!-- Step 1: Download Template -->
+        <div class="import-card">
+            <h2>
+                <span>1️⃣</span>
+                <span data-i18n="step1_title">Скачайте шаблон</span>
+            </h2>
+            <p data-i18n="step1_description">
+                Загрузите Excel шаблон с примерами и инструкциями для заполнения
+            </p>
+            <a href="#" class="btn-download" id="downloadTemplate">
+                <span>📥</span>
+                <span data-i18n="download_template">Скачать шаблон Excel</span>
+            </a>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions">
+            <h3 data-i18n="instructions_title">📋 Инструкции по заполнению</h3>
+            <ol>
+                <li data-i18n="instruction1">Откройте скачанный шаблон в Excel или Google Sheets</li>
+                <li data-i18n="instruction2">Заполните данные пользователей (role, first_name, last_name обязательны)
+                </li>
+                <li data-i18n="instruction3">Для студентов можно указать class_name для автоматического добавления в
+                    класс</li>
+                <li data-i18n="instruction4">Email и Telegram ID опциональны, но рекомендуются для уведомлений</li>
+                <li data-i18n="instruction5">Сохраните файл и загрузите его ниже</li>
+            </ol>
+        </div>
+
+        <!-- Step 2: Upload File -->
+        <div class="import-card">
+            <h2>
+                <span>2️⃣</span>
+                <span data-i18n="step2_title">Загрузите файл</span>
+            </h2>
+            <p data-i18n="step2_description">
+                Перетащите файл сюда или кликните для выбора
+            </p>
+
+            <div class="upload-zone" id="uploadZone">
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+                <div class="upload-icon">📄</div>
+                <div>
+                    <strong data-i18n="upload_zone_text">Кликните или перетащите Excel файл</strong>
+                    <br>
+                    <span data-i18n="upload_zone_hint" style="color: var(--text-secondary);">
+                        Поддерживаются файлы .xlsx (максимум 5MB)
+                    </span>
+                </div>
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <div class="file-info-icon">✅</div>
+                <div class="file-info-details">
+                    <div class="file-info-name" id="fileName"></div>
+                    <div class="file-info-size" id="fileSize"></div>
+                </div>
+                <button class="btn-secondary" id="removeFile">
+                    <span data-i18n="remove">Удалить</span>
+                </button>
+            </div>
+
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" id="uploadBtn" disabled>
+                    <span data-i18n="start_import">Начать импорт</span>
+                </button>
+                <button class="btn-secondary" id="cancelBtn" style="display: none;">
+                    <span data-i18n="cancel">Отмена</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results-card" id="resultsCard">
+            <h2 data-i18n="import_results">📊 Результаты импорта</h2>
+
+            <div class="result-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-label" data-i18n="total">Всего</div>
+                </div>
+                <div class="stat-item success">
+                    <div class="stat-value" id="successCount">0</div>
+                    <div class="stat-label" data-i18n="success">Успешно</div>
+                </div>
+                <div class="stat-item error">
+                    <div class="stat-value" id="errorCount">0</div>
+                    <div class="stat-label" data-i18n="errors">Ошибки</div>
+                </div>
+            </div>
+
+            <div class="results-details">
+                <!-- Success section -->
+                <div class="result-section" id="successSection" style="display: none;">
+                    <h3 data-i18n="success_list">✅ Успешно добавлены</h3>
+                    <div class="result-list" id="successList"></div>
+                </div>
+
+                <!-- Error section -->
+                <div class="result-section" id="errorSection" style="display: none;">
+                    <h3 data-i18n="error_list">❌ Ошибки</h3>
+                    <div class="result-list" id="errorList"></div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="location.reload()">
+                    <span data-i18n="import_more">Импортировать еще</span>
+                </button>
+                <a href="dashboard.html" class="btn-secondary">
+                    <span data-i18n="back_to_dashboard">Вернуться в панель</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/i18n.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth-interceptor.js"></script>
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let selectedFile = null;
+
+        // Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const removeFileBtn = document.getElementById('removeFile');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const resultsCard = document.getElementById('resultsCard');
+        const downloadTemplateBtn = document.getElementById('downloadTemplate');
+
+        // Download template
+        downloadTemplateBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_URL}/admin/users/template`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to download template');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'users_import_template.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Ошибка при скачивании шаблона');
+            }
+        });
+
+        // Upload zone click
+        uploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Handle file selection
+        function handleFileSelect(file) {
+            // Validate file type
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                alert('Пожалуйста, выберите Excel файл (.xlsx или .xls)');
+                return;
+            }
+
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Файл слишком большой. Максимальный размер: 5MB');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('show');
+            uploadBtn.disabled = false;
+        }
+
+        // Remove file
+        removeFileBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInfo.classList.remove('show');
+            uploadBtn.disabled = true;
+            fileInput.value = '';
+        });
+
+        // Upload and import
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            // Get current language
+            const lang = localStorage.getItem('lang') || 'ru';
+
+            try {
+                uploadBtn.disabled = true;
+                progressBar.classList.add('show');
+                progressFill.style.width = '0%';
+
+                // Simulate progress
+                const progressInterval = setInterval(() => {
+                    const currentWidth = parseFloat(progressFill.style.width);
+                    if (currentWidth < 90) {
+                        progressFill.style.width = (currentWidth + 10) + '%';
+                    }
+                }, 200);
+
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_URL}/admin/users/import?lang=${lang}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Import failed');
+                }
+
+                const result = await response.json();
+                displayResults(result.results);
+
+            } catch (error) {
+                console.error('Import error:', error);
+                alert('Ошибка при импорте: ' + error.message);
+                progressBar.classList.remove('show');
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // Display results
+        function displayResults(results) {
+            progressBar.classList.remove('show');
+            resultsCard.classList.add('show');
+
+            document.getElementById('totalCount').textContent = results.total;
+            document.getElementById('successCount').textContent = results.success;
+            document.getElementById('errorCount').textContent = results.errors;
+
+            // Display success list
+            if (results.details.success.length > 0) {
+                const successSection = document.getElementById('successSection');
+                const successList = document.getElementById('successList');
+                successSection.style.display = 'block';
+                successList.innerHTML = results.details.success.map(item => `
+                    <div class="result-item">
+                        <strong>${item.name}</strong> — 
+                        Логин: <span class="password-display">${item.username}</span>
+                        Пароль: <span class="password-display">${item.password}</span>
+                    </div>
+                `).join('');
+            }
+
+            // Display error list
+            if (results.details.errors.length > 0) {
+                const errorSection = document.getElementById('errorSection');
+                const errorList = document.getElementById('errorList');
+                errorSection.style.display = 'block';
+                errorList.innerHTML = results.details.errors.map(item => `
+                    <div class="result-item result-item-error">
+                        Строка ${item.row}: ${item.error}
+                    </div>
+                `).join('');
+            }
+
+            // Scroll to results
+            resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Initialize i18n
+        document.addEventListener('DOMContentLoaded', () => {
+            i18n.init();
+        });
+    </script>
+</body>
+
+</html>
