@@ -100,7 +100,7 @@ async function getAttemptExpressions(alias = 'ta') {
 
     const passedCase = columns.has('passed')
         ? `CASE WHEN ${alias}.passed = true THEN 1 ELSE 0 END`
-        : 'NULL';
+        : '0';
 
     return {
         score: scoreExpr,
