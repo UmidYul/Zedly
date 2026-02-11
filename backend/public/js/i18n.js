@@ -281,7 +281,7 @@
             'careerAdmin.create': 'Создать',
             'careerAdmin.saveError': 'Не удалось сохранить',
             'careerAdmin.deleteError': 'Не удалось удалить',
-            'careerAdmin.confirmDelete': 'Удалить направление?'
+            'careerAdmin.confirmDelete': 'Удалить направление?',
             // Teacher Analytics
             'teacherAnalytics.title': 'Мои классы - ZEDLY',
             'teacherAnalytics.myClasses': 'Мои классы',
