@@ -1003,6 +1003,20 @@
         }
     }
 
+    function formatPercent(value) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) {
+            return '0';
+        }
+
+        const rounded = Math.round(num * 10) / 10;
+        if (Number.isInteger(rounded)) {
+            return String(rounded);
+        }
+
+        return rounded.toFixed(1);
+    }
+
     // Build stat cards from API data
     function buildStatsCards(role, data) {
         if (!data || !data.stats) {
@@ -1017,27 +1031,27 @@
                 { icon: 'building', label: 'Schools', value: stats.schools },
                 { icon: 'users', label: 'Students', value: stats.students },
                 { icon: 'clipboard', label: 'Tests', value: stats.tests },
-                { icon: 'star', label: 'Avg Score', value: `${stats.avg_score}%` }
+                { icon: 'star', label: 'Avg Score', value: `${formatPercent(stats.avg_score)}%` }
             );
         } else if (role === 'school_admin') {
             cards.push(
                 { icon: 'users', label: 'Students', value: stats.students },
                 { icon: 'class', label: 'Classes', value: stats.classes },
                 { icon: 'clipboard', label: 'Tests', value: stats.tests },
-                { icon: 'star', label: 'Avg Score', value: `${stats.avg_score}%` }
+                { icon: 'star', label: 'Avg Score', value: `${formatPercent(stats.avg_score)}%` }
             );
         } else if (role === 'teacher') {
             cards.push(
                 { icon: 'clipboard', label: 'Tests Created', value: stats.tests_created },
                 { icon: 'users', label: 'Students', value: stats.student_count },
                 { icon: 'clipboard', label: 'Assignments', value: stats.assignments_total },
-                { icon: 'star', label: 'Avg Score', value: `${stats.avg_percentage}%` }
+                { icon: 'star', label: 'Avg Score', value: `${formatPercent(stats.avg_percentage)}%` }
             );
         } else if (role === 'student') {
             cards.push(
                 { icon: 'clipboard', label: 'Tests Assigned', value: stats.tests_assigned },
                 { icon: 'star', label: 'Tests Completed', value: stats.tests_completed },
-                { icon: 'trophy', label: 'Avg Score', value: `${stats.avg_score}%` },
+                { icon: 'trophy', label: 'Avg Score', value: `${formatPercent(stats.avg_score)}%` },
                 { icon: 'target', label: 'Career Test', value: stats.career_test_completed ? 'Done' : 'Pending' }
             );
         }
