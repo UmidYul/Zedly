@@ -4,6 +4,31 @@ const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const XLSX = require('xlsx');
 
+async function getSubjectNameExpressions() {
+    const nameRuResult = await query(`
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                    AND table_name = 'subjects'
+                    AND column_name = 'name_ru'
+                LIMIT 1
+        `);
+
+    const nameUzResult = await query(`
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                    AND table_name = 'subjects'
+                    AND column_name = 'name_uz'
+                LIMIT 1
+        `);
+
+    return {
+        nameRu: nameRuResult.rowCount ? 's.name_ru' : 's.name',
+        nameUz: nameUzResult.rowCount ? 's.name_uz' : 's.name'
+    };
+}
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -21,6 +46,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
     try {
         const schoolId = req.user.school_id;
         const { period = '30' } = req.query; // days
+        const { nameRu, nameUz } = await getSubjectNameExpressions();
 
         // Overall statistics
         const overallStats = await query(`
@@ -72,8 +98,8 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
         const subjectPerformance = await query(`
             SELECT
                 s.id,
-                s.name_ru,
-                s.name_uz,
+                ${nameRu} as name_ru,
+                ${nameUz} as name_uz,
                 COUNT(DISTINCT t.id) as test_count,
                 COUNT(ta.id) as attempt_count,
                 AVG(ta.score_percentage) as avg_score,
@@ -83,7 +109,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
             JOIN tests t ON t.subject_id = s.id
             LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.status = 'completed'
             WHERE s.school_id = $1
-            GROUP BY s.id, s.name_ru, s.name_uz
+            GROUP BY s.id, ${nameRu}, ${nameUz}
             ORDER BY avg_score DESC
         `, [schoolId]);
 
@@ -110,6 +136,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
     try {
         const schoolId = req.user.school_id;
         const { grade_level, period = '90' } = req.query;
+        const { nameRu } = await getSubjectNameExpressions();
 
         let gradeFilter = '';
         const params = [schoolId];
@@ -122,7 +149,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
         // Get heatmap data: [subject, week, average_score]
         const heatmapData = await query(`
             SELECT
-                s.name_ru as subject,
+                ${nameRu} as subject,
                 EXTRACT(WEEK FROM ta.completed_at) as week,
                 DATE_TRUNC('week', ta.completed_at) as week_start,
                 AVG(ta.score_percentage) as avg_score,
@@ -137,7 +164,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
               AND ta.status = 'completed'
               AND ta.completed_at > CURRENT_DATE - INTERVAL '${period} days'
               ${gradeFilter}
-            GROUP BY s.name_ru, EXTRACT(WEEK FROM ta.completed_at), DATE_TRUNC('week', ta.completed_at)
+                        GROUP BY ${nameRu}, EXTRACT(WEEK FROM ta.completed_at), DATE_TRUNC('week', ta.completed_at)
             ORDER BY week_start DESC, subject
         `, params);
 
@@ -163,6 +190,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
     try {
         const schoolId = req.user.school_id;
         const { type = 'classes', subject_id } = req.query;
+        const { nameRu, nameUz } = await getSubjectNameExpressions();
 
         let comparisonData;
 
@@ -173,7 +201,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                     c.id,
                     c.name,
                     c.grade_level,
-                    s.name_ru as subject,
+                    ${nameRu} as subject,
                     COUNT(DISTINCT cs.student_id) as student_count,
                     COUNT(ta.id) as total_attempts,
                     AVG(ta.score_percentage) as avg_score,
@@ -188,7 +216,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 LEFT JOIN subjects s ON s.id = t.subject_id
                 WHERE c.school_id = $1
                   ${subject_id ? 'AND t.subject_id = $2' : ''}
-                GROUP BY c.id, c.name, c.grade_level, s.name_ru
+                GROUP BY c.id, c.name, c.grade_level, ${nameRu}
                 ORDER BY c.grade_level, c.name
             `, subject_id ? [schoolId, subject_id] : [schoolId]);
         } else if (type === 'subjects') {
@@ -196,8 +224,8 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
             comparisonData = await query(`
                 SELECT
                     s.id,
-                    s.name_ru,
-                    s.name_uz,
+                    ${nameRu} as name_ru,
+                    ${nameUz} as name_uz,
                     COUNT(DISTINCT t.id) as test_count,
                     COUNT(ta.id) as attempt_count,
                     AVG(ta.score_percentage) as avg_score,
@@ -210,7 +238,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 LEFT JOIN tests t ON t.subject_id = s.id
                 LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.status = 'completed'
                 WHERE s.school_id = $1
-                GROUP BY s.id, s.name_ru, s.name_uz
+                GROUP BY s.id, ${nameRu}, ${nameUz}
                 HAVING COUNT(ta.id) > 0
                 ORDER BY avg_score DESC
             `, [schoolId]);
@@ -263,6 +291,7 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
     try {
         const { id } = req.params;
         const schoolId = req.user.school_id;
+        const { nameRu } = await getSubjectNameExpressions();
 
         // Verify access
         const classCheck = await query(
@@ -285,7 +314,7 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
                 u.id as student_id,
                 u.first_name,
                 u.last_name,
-                s.name_ru as subject,
+                ${nameRu} as subject,
                 COUNT(ta.id) as attempts,
                 AVG(ta.score_percentage) as avg_score,
                 MAX(ta.score_percentage) as best_score,
@@ -296,14 +325,14 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
             LEFT JOIN tests t ON t.id = ta.test_id
             LEFT JOIN subjects s ON s.id = t.subject_id
             WHERE cs.class_id = $1
-            GROUP BY u.id, u.first_name, u.last_name, s.name_ru
-            ORDER BY u.last_name, u.first_name, s.name_ru
+            GROUP BY u.id, u.first_name, u.last_name, ${nameRu}
+            ORDER BY u.last_name, u.first_name, ${nameRu}
         `, [id]);
 
         // Subject breakdown for the class
         const subjectBreakdown = await query(`
             SELECT
-                s.name_ru as subject,
+                ${nameRu} as subject,
                 COUNT(DISTINCT ta.id) as total_attempts,
                 AVG(ta.score_percentage) as avg_score,
                 STDDEV(ta.score_percentage) as score_stddev,
@@ -315,7 +344,7 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
             JOIN subjects s ON s.id = t.subject_id
             JOIN class_students cs ON cs.student_id = ta.student_id
             WHERE cs.class_id = $1 AND ta.status = 'completed'
-            GROUP BY s.name_ru
+            GROUP BY ${nameRu}
             ORDER BY avg_score DESC
         `, [id]);
 
@@ -375,6 +404,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
     try {
         const { id } = req.params;
         const schoolId = req.user.school_id;
+        const { nameRu } = await getSubjectNameExpressions();
 
         // If student, can only view own report
         if (req.user.role === 'student' && req.user.id !== parseInt(id)) {
@@ -418,7 +448,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         // Performance by subject
         const subjectPerformance = await query(`
             SELECT
-                s.name_ru as subject,
+                ${nameRu} as subject,
                 COUNT(ta.id) as attempts,
                 AVG(ta.score_percentage) as avg_score,
                 MAX(ta.score_percentage) as best_score,
@@ -428,7 +458,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
             WHERE ta.student_id = $1 AND ta.status = 'completed'
-            GROUP BY s.name_ru
+            GROUP BY ${nameRu}
             ORDER BY avg_score DESC
         `, [id]);
 
@@ -448,13 +478,13 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         // Strengths and weaknesses (by subject)
         const strengths = await query(`
             SELECT
-                s.name_ru as subject,
+                ${nameRu} as subject,
                 AVG(ta.score_percentage) as avg_score
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
             WHERE ta.student_id = $1 AND ta.status = 'completed'
-            GROUP BY s.name_ru
+            GROUP BY ${nameRu}
             HAVING COUNT(*) >= 3
             ORDER BY avg_score DESC
             LIMIT 3
@@ -462,13 +492,13 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
 
         const weaknesses = await query(`
             SELECT
-                s.name_ru as subject,
+                ${nameRu} as subject,
                 AVG(ta.score_percentage) as avg_score
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
             WHERE ta.student_id = $1 AND ta.status = 'completed'
-            GROUP BY s.name_ru
+            GROUP BY ${nameRu}
             HAVING COUNT(*) >= 3
             ORDER BY avg_score ASC
             LIMIT 3
@@ -524,6 +554,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
 router.get('/export/school', authorize('school_admin', 'teacher'), async (req, res) => {
     try {
         const schoolId = req.user.school_id;
+        const { nameRu } = await getSubjectNameExpressions();
 
         // Get comprehensive data
         const studentsData = await query(`
@@ -560,7 +591,7 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
 
         const subjectsData = await query(`
             SELECT
-                s.name_ru as subject,
+                ${nameRu} as subject,
                 COUNT(DISTINCT t.id) as tests,
                 COUNT(ta.id) as attempts,
                 AVG(ta.score_percentage) as avg_score
@@ -568,8 +599,8 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
             LEFT JOIN tests t ON t.subject_id = s.id
             LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.status = 'completed'
             WHERE s.school_id = $1
-            GROUP BY s.name_ru
-            ORDER BY s.name_ru
+            GROUP BY ${nameRu}
+            ORDER BY subject
         `, [schoolId]);
 
         // Create workbook
