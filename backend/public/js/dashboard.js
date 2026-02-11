@@ -371,6 +371,7 @@
     async function loadPageScript(page) {
         const scriptMap = {
             'schools': { src: '/js/schools.js', manager: 'SchoolsManager' },
+            'school-admins': { src: '/js/school-admins.js', manager: 'SchoolAdminsManager' },
             'statistics': currentUser && currentUser.role === 'school_admin'
                 ? { src: '/js/school-admin-stats.js', manager: 'SchoolAdminStats' }
                 : { src: '/js/superadmin-stats.js', manager: 'SuperadminStats' },

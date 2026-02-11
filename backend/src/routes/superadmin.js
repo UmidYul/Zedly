@@ -505,6 +505,72 @@ router.delete('/schools/:id', async (req, res) => {
 });
 
 /**
+ * GET /api/superadmin/admins
+ * Get all school administrators across all schools
+ */
+router.get('/admins', async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '', school_id = 'all' } = req.query;
+        const offset = (page - 1) * limit;
+
+        // Build WHERE clause
+        let whereClause = "WHERE u.role = 'school_admin'";
+        const params = [];
+        let paramCount = 1;
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClause += ` AND (u.username ILIKE $${paramCount} OR u.first_name ILIKE $${paramCount} OR u.last_name ILIKE $${paramCount} OR u.email ILIKE $${paramCount})`;
+            paramCount++;
+        }
+
+        if (school_id !== 'all') {
+            params.push(school_id);
+            whereClause += ` AND u.school_id = $${paramCount}`;
+            paramCount++;
+        }
+
+        // Get total count
+        const countResult = await query(
+            `SELECT COUNT(*) FROM users u ${whereClause}`,
+            params
+        );
+        const total = parseInt(countResult.rows[0].count);
+
+        // Get admins with school info
+        params.push(limit, offset);
+        const result = await query(
+            `SELECT
+                u.id, u.username, u.first_name, u.last_name, u.email, u.phone,
+                u.telegram_id, u.is_active, u.last_login, u.created_at,
+                u.school_id, s.name as school_name
+             FROM users u
+             LEFT JOIN schools s ON u.school_id = s.id
+             ${whereClause}
+             ORDER BY u.created_at DESC
+             LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+            params
+        );
+
+        res.json({
+            admins: result.rows,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get all admins error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch school administrators'
+        });
+    }
+});
+
+/**
  * GET /api/superadmin/schools/:schoolId/admins
  * Get school administrators for a specific school
  */
