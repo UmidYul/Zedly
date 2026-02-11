@@ -171,7 +171,7 @@
                     `;
                 } else if (attemptsLeft > 0) {
                     actionButton = `
-                        <button class="btn btn-primary" onclick="StudentTestsManager.startTest(${assignment.id})">
+                        <button class="btn btn-primary" onclick="StudentTestsManager.startTest('${assignment.id}')">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
@@ -185,7 +185,7 @@
                 actionButton = `<button class="btn btn-outline" disabled>Starts ${this.formatDate(assignment.start_date)}</button>`;
             } else {
                 actionButton = `
-                    <button class="btn btn-outline" onclick="StudentTestsManager.viewResults(${assignment.id})">
+                    <button class="btn btn-outline" onclick="StudentTestsManager.viewResults('${assignment.id}')">
                         View Results
                     </button>
                 `;

@@ -101,10 +101,10 @@
                         </td>
                         <td>
                             <div class="table-actions">
-                                <button class="btn btn-outline" onclick="CareerAdminManager.editInterest(${interest.id})">
+                                <button class="btn btn-outline" onclick="CareerAdminManager.editInterest('${interest.id}')">
                                     ${t('careerAdmin.edit')}
                                 </button>
-                                <button class="btn btn-outline" onclick="CareerAdminManager.deleteInterest(${interest.id}, '${(interest.name_ru || '').replace(/'/g, "\\'")}')">
+                                <button class="btn btn-outline" onclick="CareerAdminManager.deleteInterest('${interest.id}', '${(interest.name_ru || '').replace(/'/g, "\\'")}')">
                                     ${t('careerAdmin.delete')}
                                 </button >
                             </div >

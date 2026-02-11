@@ -340,11 +340,11 @@
                     </td>
                     <td>
                         ${attempt.status === 'completed'
-                            ? `<button class="btn-view" onclick="viewResults(${attempt.id})">
+                            ? `<button class="btn-view" onclick="viewResults('${attempt.id}')">
                                 <span>👁️</span>
                                 <span data-i18n="studentHistory.viewResults">Результаты</span>
                                </button>`
-                            : `<button class="btn-continue" onclick="continueTest(${attempt.id})">
+                            : `<button class="btn-continue" onclick="continueTest('${attempt.id}')">
                                 <span>▶️</span>
                                 <span data-i18n="studentHistory.continue">Продолжить</span>
                                </button>`

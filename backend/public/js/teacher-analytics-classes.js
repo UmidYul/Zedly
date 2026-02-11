@@ -418,7 +418,7 @@
                     </td>
                     <td>${student.tests_completed || 0}</td>
                     <td>
-                        <button class="btn-view-profile" onclick="viewProfile(${student.id})">
+                        <button class="btn-view-profile" onclick="viewProfile('${student.id}')">
                             <span>👤</span>
                             <span data-i18n="users.viewProfile">Профиль</span>
                         </button>

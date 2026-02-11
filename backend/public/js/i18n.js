@@ -919,4 +919,9 @@
             return translations[lang][key] || key;
         }
     };
+
+    // Short alias for convenience
+    window.i18n = {
+        t: (key, lang) => window.ZedlyI18n.translate(key, lang)
+    };
 })();

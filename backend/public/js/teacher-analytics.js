@@ -243,7 +243,7 @@
                         <td>${completed}</td>
                         <td>${avg}</td>
                         <td>
-                            <button class="btn-icon" onclick="window.location.href='/teacher-results.html?assignment_id=${item.id}'" title="View Results">
+                            <button class="btn-icon" onclick="window.location.href='/teacher-results.html?assignment_id='+'${item.id}'" title="View Results">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
