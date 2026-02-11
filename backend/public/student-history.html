@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="studentHistory.title">Моя история - ZEDLY</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/tables.css">
+    <link rel="stylesheet" href="css/student-history.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="logo">
+                <h1>ZEDLY</h1>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+                <span class="icon">🌙</span>
+            </button>
+            <button class="lang-toggle" id="langToggle" aria-label="Toggle Language">
+                <span class="lang-text">RU</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- Navigation will be injected by dashboard.js -->
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-menu">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-role" id="userRole">Role</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" data-i18n="dashboard.logout">
+                    Выйти
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-wrapper">
+            <!-- Back Button -->
+            <div class="back-button-container">
+                <button class="back-btn" onclick="history.back()">
+                    <span>←</span>
+                    <span data-i18n="common.back">Назад</span>
+                </button>
+            </div>
+
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 data-i18n="studentHistory.myHistory">Моя история</h1>
+                <p data-i18n="studentHistory.subtitle">История попыток и аналитика успеваемости</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalAttempts">0</div>
+                        <div class="stat-label" data-i18n="studentHistory.totalAttempts">Всего попыток</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="completedTests">0</div>
+                        <div class="stat-label" data-i18n="studentHistory.completedTests">Завершено тестов</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="avgScore">0%</div>
+                        <div class="stat-label" data-i18n="studentHistory.avgScore">Средний балл</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="classRank">-</div>
+                        <div class="stat-label" data-i18n="studentHistory.classRank">Место в классе</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Chart -->
+            <div class="analytics-card">
+                <h2 class="card-title" data-i18n="studentHistory.performanceChart">График успеваемости</h2>
+                <p class="card-subtitle" data-i18n="studentHistory.performanceDesc">Средний балл по предметам</p>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- History Table -->
+            <div class="analytics-card">
+                <h2 class="card-title" data-i18n="studentHistory.historyTitle">История попыток</h2>
+
+                <!-- Filters -->
+                <div class="filters-section">
+                    <div class="filter-group">
+                        <label data-i18n="studentHistory.filterSubject">Предмет:</label>
+                        <select id="subjectFilter" class="form-select">
+                            <option value="" data-i18n="studentHistory.allSubjects">Все предметы</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label data-i18n="studentHistory.filterStatus">Статус:</label>
+                        <select id="statusFilter" class="form-select">
+                            <option value="" data-i18n="studentHistory.allStatuses">Все статусы</option>
+                            <option value="completed" data-i18n="studentHistory.completed">Завершено</option>
+                            <option value="in_progress" data-i18n="studentHistory.inProgress">В процессе</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label data-i18n="studentHistory.sortBy">Сортировка:</label>
+                        <select id="sortBy" class="form-select">
+                            <option value="date_desc" data-i18n="studentHistory.dateDesc">Сначала новые</option>
+                            <option value="date_asc" data-i18n="studentHistory.dateAsc">Сначала старые</option>
+                            <option value="score_desc" data-i18n="studentHistory.scoreDesc">По баллу (убыв.)</option>
+                            <option value="score_asc" data-i18n="studentHistory.scoreAsc">По баллу (возр.)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="studentHistory.testName">Название теста</th>
+                                <th data-i18n="studentHistory.subject">Предмет</th>
+                                <th data-i18n="studentHistory.date">Дата</th>
+                                <th data-i18n="studentHistory.score">Балл</th>
+                                <th data-i18n="studentHistory.status">Статус</th>
+                                <th data-i18n="studentHistory.actions">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="loading-spinner"></div>
+                                    <p data-i18n="common.loading">Загрузка...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/i18n.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth-interceptor.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/student-history.js"></script>
+</body>
+</html>

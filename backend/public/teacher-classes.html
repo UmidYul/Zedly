@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="teacherAnalytics.title">Мои классы - ZEDLY</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/tables.css">
+    <link rel="stylesheet" href="css/teacher-analytics-classes.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="logo">
+                <h1>ZEDLY</h1>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+                <span class="icon">🌙</span>
+            </button>
+            <button class="lang-toggle" id="langToggle" aria-label="Toggle Language">
+                <span class="lang-text">RU</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- Navigation will be injected by dashboard.js -->
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-menu">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-role" id="userRole">Role</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" data-i18n="dashboard.logout">
+                    Выйти
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-wrapper">
+            <!-- Back Button -->
+            <div class="back-button-container">
+                <button class="back-btn" onclick="history.back()">
+                    <span>←</span>
+                    <span data-i18n="common.back">Назад</span>
+                </button>
+            </div>
+
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 data-i18n="teacherAnalytics.myClasses">Мои классы</h1>
+                <p data-i18n="teacherAnalytics.subtitle">Подробная аналитика по классам и ученикам</p>
+            </div>
+
+            <!-- Class Selector & Subject Filter -->
+            <div class="filters-section">
+                <div class="filter-group">
+                    <label data-i18n="teacherAnalytics.selectClass">Выберите класс:</label>
+                    <select id="classFilter" class="form-select">
+                        <option value="" data-i18n="teacherAnalytics.allClasses">Все классы</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label data-i18n="teacherAnalytics.selectSubject">Выберите предмет:</label>
+                    <select id="subjectFilter" class="form-select">
+                        <option value="" data-i18n="teacherAnalytics.allSubjects">Все предметы</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Overall Class Performance Chart -->
+            <div class="analytics-card">
+                <h2 class="card-title" data-i18n="teacherAnalytics.overallPerformance">Общая успеваемость класса</h2>
+                <p class="card-subtitle" data-i18n="teacherAnalytics.performanceDesc">Средний балл по предметам</p>
+                <div class="chart-container">
+                    <canvas id="classPerformanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Performance by Topics/Modules -->
+            <div class="analytics-card">
+                <h2 class="card-title" data-i18n="teacherAnalytics.performanceByTopics">Успеваемость по темам</h2>
+                <p class="card-subtitle" data-i18n="teacherAnalytics.topicsDesc">Средний балл по темам выбранного предмета</p>
+                <div class="chart-container">
+                    <canvas id="topicsPerformanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Students Table -->
+            <div class="analytics-card">
+                <h2 class="card-title" data-i18n="teacherAnalytics.studentsList">Список учеников</h2>
+                
+                <!-- Search -->
+                <div class="table-controls">
+                    <input
+                        type="text"
+                        id="studentSearch"
+                        class="search-input"
+                        placeholder="Поиск учеников..."
+                        data-i18n-placeholder="teacherAnalytics.searchStudents"
+                    />
+                    <div class="table-info">
+                        <span data-i18n="teacherAnalytics.totalStudents">Всего учеников:</span>
+                        <strong id="totalStudents">0</strong>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="teacherAnalytics.rank">Место</th>
+                                <th data-i18n="teacherAnalytics.studentName">Имя ученика</th>
+                                <th data-i18n="teacherAnalytics.login">Логин</th>
+                                <th data-i18n="teacherAnalytics.avgScore">Средний балл</th>
+                                <th data-i18n="teacherAnalytics.testsCompleted">Тестов пройдено</th>
+                                <th data-i18n="teacherAnalytics.actions">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <!-- Data will be injected by JS -->
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="loading-spinner"></div>
+                                    <p data-i18n="common.loading">Загрузка...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination">
+                    <!-- Pagination will be injected by JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/i18n.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth-interceptor.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/teacher-analytics-classes.js"></script>
+</body>
+</html>

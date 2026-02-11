@@ -1,0 +1,347 @@
+/* Profile Styles */
+
+.back-button-container {
+    margin-bottom: 1.5rem;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateX(-4px);
+}
+
+/* Profile Header */
+.profile-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    color: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.profile-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 700;
+    backdrop-filter: blur(10px);
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+}
+
+.profile-header-info {
+    flex: 1;
+}
+
+.profile-name {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+}
+
+.profile-role {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0 0 0.25rem 0;
+}
+
+.profile-school {
+    font-size: 1rem;
+    opacity: 0.8;
+    margin: 0;
+}
+
+.profile-stats-mini {
+    display: flex;
+    gap: 2rem;
+}
+
+.stat-mini {
+    text-align: center;
+}
+
+.stat-mini-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-mini-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Profile Content Layout */
+.profile-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.profile-left,
+.profile-right {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Profile Cards */
+.profile-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-card .card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 1.5rem 0;
+    color: var(--text-primary);
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+/* Info Grid */
+.info-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    transition: background 0.3s ease;
+}
+
+.info-item:hover {
+    background: var(--bg-secondary);
+}
+
+.info-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.info-value {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.stat-item {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.stat-item:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+}
+
+.stat-item-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.stat-item-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.stat-item-sublabel {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    margin-top: 0.25rem;
+}
+
+/* Charts */
+#performanceChart,
+#careerRadarChart {
+    max-height: 300px;
+}
+
+/* No Data Message */
+.no-data {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* Badge for ranking */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+}
+
+.rank-badge.gold {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: white;
+}
+
+.rank-badge.silver {
+    background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
+    color: white;
+}
+
+.rank-badge.bronze {
+    background: linear-gradient(135deg, #CD7F32, #B87333);
+    color: white;
+}
+
+.rank-badge.default {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Loading State */
+.profile-card.loading {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .profile-content {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-stats-mini {
+        gap: 1rem;
+    }
+
+    .stat-mini-value {
+        font-size: 1.5rem;
+    }
+
+    .stat-mini-label {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .profile-avatar-large {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+    }
+
+    .profile-name {
+        font-size: 1.5rem;
+    }
+
+    .profile-role,
+    .profile-school {
+        font-size: 0.9rem;
+    }
+
+    .profile-stats-mini {
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .info-item {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-header {
+        padding: 1.5rem;
+    }
+
+    .profile-avatar-large {
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
+    }
+
+    .profile-name {
+        font-size: 1.25rem;
+    }
+
+    .profile-stats-mini {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .stat-mini-value {
+        font-size: 1.75rem;
+    }
+}

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="profile.title">Профиль - ZEDLY</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/tables.css">
+    <link rel="stylesheet" href="css/profile.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="logo">
+                <h1>ZEDLY</h1>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+                <span class="icon">🌙</span>
+            </button>
+            <button class="lang-toggle" id="langToggle" aria-label="Toggle Language">
+                <span class="lang-text">RU</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- Navigation will be injected by dashboard.js -->
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-menu">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-role" id="userRole">Role</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" data-i18n="dashboard.logout">
+                    Выйти
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-wrapper">
+            <!-- Back Button -->
+            <div class="back-button-container">
+                <button class="back-btn" onclick="history.back()">
+                    <span>←</span>
+                    <span data-i18n="common.back">Назад</span>
+                </button>
+            </div>
+
+            <!-- Profile Header -->
+            <div class="profile-header">
+                <div class="profile-avatar-large">
+                    <span id="profileAvatarText">U</span>
+                </div>
+                <div class="profile-header-info">
+                    <h1 class="profile-name" id="profileName">Имя Фамилия</h1>
+                    <p class="profile-role" id="profileRole">Роль</p>
+                    <p class="profile-school" id="profileSchool">Школа</p>
+                </div>
+                <div class="profile-stats-mini">
+                    <div class="stat-mini" id="statMini1">
+                        <div class="stat-mini-value">0</div>
+                        <div class="stat-mini-label" data-i18n="profile.stat1">Показатель 1</div>
+                    </div>
+                    <div class="stat-mini" id="statMini2">
+                        <div class="stat-mini-value">0</div>
+                        <div class="stat-mini-label" data-i18n="profile.stat2">Показатель 2</div>
+                    </div>
+                    <div class="stat-mini" id="statMini3">
+                        <div class="stat-mini-value">0</div>
+                        <div class="stat-mini-label" data-i18n="profile.stat3">Показатель 3</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Content -->
+            <div class="profile-content">
+                <!-- Left Column: Info -->
+                <div class="profile-left">
+                    <!-- Personal Information -->
+                    <div class="profile-card">
+                        <h2 class="card-title" data-i18n="profile.personalInfo">Личная информация</h2>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label" data-i18n="profile.username">Логин:</span>
+                                <span class="info-value" id="profileUsername">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label" data-i18n="profile.email">Email:</span>
+                                <span class="info-value" id="profileEmail">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label" data-i18n="profile.phone">Телефон:</span>
+                                <span class="info-value" id="profilePhone">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label" data-i18n="profile.dateOfBirth">Дата рождения:</span>
+                                <span class="info-value" id="profileDOB">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label" data-i18n="profile.gender">Пол:</span>
+                                <span class="info-value" id="profileGender">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label" data-i18n="profile.registered">Зарегистрирован:</span>
+                                <span class="info-value" id="profileCreatedAt">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label" data-i18n="profile.lastLogin">Последний вход:</span>
+                                <span class="info-value" id="profileLastLogin">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Role-Specific Info -->
+                    <div class="profile-card" id="roleSpecificCard" style="display: none;">
+                        <h2 class="card-title" id="roleSpecificTitle">Дополнительная информация</h2>
+                        <div class="info-grid" id="roleSpecificContent">
+                            <!-- Content will be injected based on role -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Stats & Charts -->
+                <div class="profile-right">
+                    <!-- Statistics Card -->
+                    <div class="profile-card" id="statsCard">
+                        <h2 class="card-title" data-i18n="profile.statistics">Статистика</h2>
+                        <div class="stats-grid" id="statsContent">
+                            <!-- Content will be injected based on role -->
+                        </div>
+                    </div>
+
+                    <!-- Charts (for Students & Teachers) -->
+                    <div class="profile-card" id="chartsCard" style="display: none;">
+                        <h2 class="card-title" data-i18n="profile.performance">Успеваемость</h2>
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+
+                    <!-- Career Test Results (for Students only) -->
+                    <div class="profile-card" id="careerTestCard" style="display: none;">
+                        <h2 class="card-title" data-i18n="profile.careerTest">Результаты профориентации</h2>
+                        <div id="careerTestContent">
+                            <p class="no-data" data-i18n="profile.noCareerTest">Тест не пройден</p>
+                        </div>
+                        <canvas id="careerRadarChart" style="display: none;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/i18n.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth-interceptor.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+</html>
