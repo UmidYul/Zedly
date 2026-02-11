@@ -525,6 +525,9 @@
 
         // Show admins modal
         showAdminsModal: function (schoolId, schoolName, admins) {
+            const escapedSchoolName = String(schoolName)
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '&quot;');
             let adminsHtml = '';
 
             if (admins.length === 0) {
@@ -581,7 +584,7 @@
                 <div class="modal-overlay" id="adminsModal">
                     <div class="modal modal-large">
                         <div class="modal-header">
-                            <h2 class="modal-title">School Administrators - ${schoolName}</h2>
+                            <h2 class="modal-title">School Administrators - ${escapedSchoolName}</h2>
                             <button class="modal-close" onclick="SchoolsManager.closeAdminsModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -596,7 +599,7 @@
                             <button type="button" class="btn btn-outline" onclick="SchoolsManager.closeAdminsModal()">
                                 Close
                             </button>
-                            <button type="button" class="btn btn-primary" onclick="SchoolsManager.showAdminModal(${schoolId}, '${schoolName}')">
+                            <button type="button" class="btn btn-primary" onclick="SchoolsManager.showAdminModal('${schoolId}', '${escapedSchoolName}')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -639,11 +642,14 @@
 
         // Show admin modal (create new admin)
         showAdminModal: function (schoolId, schoolName) {
+            const escapedSchoolName = String(schoolName)
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '&quot;');
             const modalHtml = `
                 <div class="modal-overlay" id="adminModal">
                     <div class="modal">
                         <div class="modal-header">
-                            <h2 class="modal-title">Add School Administrator - ${schoolName}</h2>
+                            <h2 class="modal-title">Add School Administrator - ${escapedSchoolName}</h2>
                             <button class="modal-close" onclick="SchoolsManager.closeAdminModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -652,7 +658,7 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <form id="adminForm" onsubmit="SchoolsManager.submitAdmin(event, ${schoolId}, '${schoolName}')">
+                            <form id="adminForm" onsubmit="SchoolsManager.submitAdmin(event, '${schoolId}', '${escapedSchoolName}')">
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
