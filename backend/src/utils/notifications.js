@@ -327,6 +327,7 @@ async function notifyNewUser(user, password, language = 'ru') {
 module.exports = {
     sendEmail,
     sendTelegram,
+    telegramBot,
     notifyNewTest,
     notifyPasswordReset,
     notifyNewUser
