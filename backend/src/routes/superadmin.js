@@ -845,10 +845,11 @@ router.post('/schools/:schoolId/admins/:id/reset-password', async (req, res) => 
              VALUES ($1, $2, $3, $4, $5)`,
             [
                 req.user.id,
-                'reset_password',
+                'update',
                 'user',
                 id,
                 {
+                    action_type: 'password_reset',
                     username: admin.username,
                     role: 'school_admin',
                     reset_by: req.user.username

@@ -932,10 +932,11 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
              VALUES ($1, $2, $3, $4, $5)`,
             [
                 req.user.id,
-                'reset_password',
+                'update',
                 'user',
                 id,
                 {
+                    action_type: 'password_reset',
                     username: user.username,
                     reset_by: req.user.username
                 }

@@ -338,10 +338,10 @@ router.post('/change-password', authenticate, async (req, res) => {
              VALUES ($1, $2, $3, $4, $5)`,
             [
                 req.user.id,
-                'change_password',
+                'update',
                 'user',
                 req.user.id,
-                { changed_by: 'self' }
+                { action_type: 'password_change', changed_by: 'self' }
             ]
         );
 
