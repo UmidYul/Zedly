@@ -557,7 +557,12 @@
             if (blanksCount === 0) {
                 return '<p class="error-message">No blanks found in question. Use ___ (three underscores) to indicate blanks.</p>';
             }
-            html += `
+
+            const answers = Array.isArray(existingAnswer) ? existingAnswer : new Array(blanksCount).fill('');
+            let html = '<div class="blanks-list">';
+
+            for (let i = 0; i < blanksCount; i++) {
+                html += `
                     <div class="blank-item">
                         <label>Blank ${i + 1}:</label>
                         <input
@@ -571,12 +576,12 @@
                         />
                     </div>
                 `;
-        }
+            }
 
             html += '</div>';
-        console.log('Generated HTML length:', html.length);
-        return html;
-    },
+            console.log('Generated HTML length:', html.length);
+            return html;
+        },
 
         // Escape HTML to prevent XSS
         escapeHtml: function (text) {
@@ -587,48 +592,48 @@
                 '"': '&quot;',
                 "'": '&#039;'
             };
-    return String(text).replace(/[&<>"']/g, m => map[m]);
-},
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        },
 
-    // Render ordering
-    renderOrdering: function (question, existingAnswer) {
-        const items = question.options || [];
-        const orderedItems = Array.isArray(existingAnswer) && existingAnswer.length > 0
-            ? existingAnswer
-            : items.map((_, i) => i);
+        // Render ordering
+        renderOrdering: function (question, existingAnswer) {
+            const items = question.options || [];
+            const orderedItems = Array.isArray(existingAnswer) && existingAnswer.length > 0
+                ? existingAnswer
+                : items.map((_, i) => i);
 
-        let html = '<div class="ordering-list" id="orderingList">';
+            let html = '<div class="ordering-list" id="orderingList">';
 
-        orderedItems.forEach((itemIndex, position) => {
-            html += `
+            orderedItems.forEach((itemIndex, position) => {
+                html += `
                     <div class="ordering-item" data-item-index="${itemIndex}" draggable="true">
                         <span class="drag-handle">⋮⋮</span>
                         <span class="item-number">${position + 1}.</span>
                         <span class="item-text">${items[itemIndex]}</span>
                     </div>
                 `;
-        });
+            });
 
-        html += '</div>';
-        html += '<div class="ordering-hint">Drag items to reorder them</div>';
+            html += '</div>';
+            html += '<div class="ordering-hint">Drag items to reorder them</div>';
 
-        // Add drag and drop listeners after rendering
-        setTimeout(() => this.initDragDrop(), 100);
+            // Add drag and drop listeners after rendering
+            setTimeout(() => this.initDragDrop(), 100);
 
-        return html;
-    },
+            return html;
+        },
 
-// Render matching
-renderMatching: function (question, existingAnswer) {
-    const pairs = question.options || [];
-    const leftItems = pairs.map(p => p.left);
-    const rightItems = pairs.map(p => p.right);
-    const matches = Array.isArray(existingAnswer) ? existingAnswer : new Array(pairs.length).fill(null);
+        // Render matching
+        renderMatching: function (question, existingAnswer) {
+            const pairs = question.options || [];
+            const leftItems = pairs.map(p => p.left);
+            const rightItems = pairs.map(p => p.right);
+            const matches = Array.isArray(existingAnswer) ? existingAnswer : new Array(pairs.length).fill(null);
 
-    let html = '<div class="matching-container">';
+            let html = '<div class="matching-container">';
 
-    pairs.forEach((pair, index) => {
-        html += `
+            pairs.forEach((pair, index) => {
+                html += `
                     <div class="matching-pair">
                         <div class="matching-left">${pair.left}</div>
                         <div class="matching-arrow">→</div>
@@ -640,196 +645,196 @@ renderMatching: function (question, existingAnswer) {
                         </select>
                     </div>
                 `;
-    });
-
-    html += '</div>';
-    return html;
-},
-
-// Render image-based
-renderImageBased: function (question, existingAnswer) {
-    return this.renderSingleChoice(question, existingAnswer);
-},
-
-// Initialize drag and drop for ordering questions
-initDragDrop: function () {
-    const list = document.getElementById('orderingList');
-    if (!list) return;
-
-    let draggedElement = null;
-
-    list.querySelectorAll('.ordering-item').forEach(item => {
-        item.addEventListener('dragstart', (e) => {
-            draggedElement = item;
-            item.classList.add('dragging');
-        });
-
-        item.addEventListener('dragend', () => {
-            item.classList.remove('dragging');
-        });
-
-        item.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            const afterElement = this.getDragAfterElement(list, e.clientY);
-            if (afterElement == null) {
-                list.appendChild(draggedElement);
-            } else {
-                list.insertBefore(draggedElement, afterElement);
-            }
-        });
-    });
-
-    // Update numbers after drag
-    list.addEventListener('dragend', () => {
-        list.querySelectorAll('.ordering-item').forEach((item, index) => {
-            item.querySelector('.item-number').textContent = `${index + 1}.`;
-        });
-    });
-},
-
-// Get element after drag position
-getDragAfterElement: function (container, y) {
-    const draggableElements = [...container.querySelectorAll('.ordering-item:not(.dragging)')];
-
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
-        }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
-},
-
-// Save current answer
-saveCurrentAnswer: function () {
-    const question = this.questions[this.currentQuestionIndex];
-
-    // Safety check
-    if (!question) {
-        console.warn('No question to save answer for');
-        return;
-    }
-
-    let answer = null;
-
-    switch (question.question_type) {
-        case 'singlechoice':
-        case 'truefalse':
-        case 'imagebased':
-            const radio = document.querySelector(`input[name="question_${question.id}"]:checked`);
-            answer = radio ? radio.value : null;
-            if (question.question_type === 'singlechoice' || question.question_type === 'imagebased') {
-                answer = answer !== null ? parseInt(answer) : null;
-            }
-            break;
-
-        case 'multiplechoice':
-            const checkboxes = document.querySelectorAll(`input[name="question_${question.id}"]:checked`);
-            answer = Array.from(checkboxes).map(cb => parseInt(cb.value));
-            break;
-
-        case 'shortanswer':
-            const input = document.getElementById(`answer_${question.id}`);
-            answer = input ? input.value.trim() : '';
-            break;
-
-        case 'fillblanks':
-            const blanks = document.querySelectorAll('.blank-input');
-            answer = Array.from(blanks).map(input => input.value.trim());
-            break;
-
-        case 'ordering':
-            const orderingItems = document.querySelectorAll('.ordering-item');
-            answer = Array.from(orderingItems).map(item => parseInt(item.dataset.itemIndex));
-            break;
-
-        case 'matching':
-            const selects = document.querySelectorAll('.matching-select');
-            answer = Array.from(selects).map(select => {
-                const value = select.value;
-                return value === '' ? null : parseInt(value);
             });
-            break;
-    }
 
-    this.answers[question.id] = answer;
-},
+            html += '</div>';
+            return html;
+        },
 
-// Confirm submit
-confirmSubmit: function () {
-    this.saveCurrentAnswer();
+        // Render image-based
+        renderImageBased: function (question, existingAnswer) {
+            return this.renderSingleChoice(question, existingAnswer);
+        },
 
-    const unanswered = this.questions.filter(q => !this.isQuestionAnswered(q.id)).length;
+        // Initialize drag and drop for ordering questions
+        initDragDrop: function () {
+            const list = document.getElementById('orderingList');
+            if (!list) return;
 
-    let message = 'Are you sure you want to submit your test?';
-    if (unanswered > 0) {
-        message += `\n\nYou have ${unanswered} unanswered question(s).`;
-    }
+            let draggedElement = null;
 
-    if (confirm(message)) {
-        this.submitTest();
-    }
-},
+            list.querySelectorAll('.ordering-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedElement = item;
+                    item.classList.add('dragging');
+                });
 
-// Auto-submit when time expires
-autoSubmit: function () {
-    this.saveCurrentAnswer();
-    alert('Time is up! Your test is being submitted automatically.');
-    this.submitTest();
-},
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                });
 
-// Submit test
-submitTest: async function () {
-    try {
-        // Clear intervals
-        clearInterval(this.timer);
-        clearInterval(this.autoSaveInterval);
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const afterElement = this.getDragAfterElement(list, e.clientY);
+                    if (afterElement == null) {
+                        list.appendChild(draggedElement);
+                    } else {
+                        list.insertBefore(draggedElement, afterElement);
+                    }
+                });
+            });
 
-        // Show loading
-        const submitBtn = document.getElementById('submitTestBtn');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner"></span> Submitting...';
+            // Update numbers after drag
+            list.addEventListener('dragend', () => {
+                list.querySelectorAll('.ordering-item').forEach((item, index) => {
+                    item.querySelector('.item-number').textContent = `${index + 1}.`;
+                });
+            });
+        },
 
-        const token = localStorage.getItem('access_token');
-        const response = await fetch(`/api/student/attempts/${this.attemptId}/submit`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                answers: this.answers,
-                tab_switches: this.tabSwitches,
-                copy_attempts: this.copyAttempts,
-                suspicious_activity: this.suspiciousActivity
-            })
-        });
+        // Get element after drag position
+        getDragAfterElement: function (container, y) {
+            const draggableElements = [...container.querySelectorAll('.ordering-item:not(.dragging)')];
 
-        const data = await response.json();
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
 
-        if (response.ok) {
-            // Show success and redirect
-            alert(`Test submitted successfully!\n\nYour score: ${data.score}/${data.max_score} (${data.percentage}%)\nStatus: ${data.passed ? 'Passed' : 'Not Passed'}`);
-            window.location.href = '/dashboard.html';
-        } else {
-            throw new Error(data.message || 'Failed to submit test');
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        },
+
+        // Save current answer
+        saveCurrentAnswer: function () {
+            const question = this.questions[this.currentQuestionIndex];
+
+            // Safety check
+            if (!question) {
+                console.warn('No question to save answer for');
+                return;
+            }
+
+            let answer = null;
+
+            switch (question.question_type) {
+                case 'singlechoice':
+                case 'truefalse':
+                case 'imagebased':
+                    const radio = document.querySelector(`input[name="question_${question.id}"]:checked`);
+                    answer = radio ? radio.value : null;
+                    if (question.question_type === 'singlechoice' || question.question_type === 'imagebased') {
+                        answer = answer !== null ? parseInt(answer) : null;
+                    }
+                    break;
+
+                case 'multiplechoice':
+                    const checkboxes = document.querySelectorAll(`input[name="question_${question.id}"]:checked`);
+                    answer = Array.from(checkboxes).map(cb => parseInt(cb.value));
+                    break;
+
+                case 'shortanswer':
+                    const input = document.getElementById(`answer_${question.id}`);
+                    answer = input ? input.value.trim() : '';
+                    break;
+
+                case 'fillblanks':
+                    const blanks = document.querySelectorAll('.blank-input');
+                    answer = Array.from(blanks).map(input => input.value.trim());
+                    break;
+
+                case 'ordering':
+                    const orderingItems = document.querySelectorAll('.ordering-item');
+                    answer = Array.from(orderingItems).map(item => parseInt(item.dataset.itemIndex));
+                    break;
+
+                case 'matching':
+                    const selects = document.querySelectorAll('.matching-select');
+                    answer = Array.from(selects).map(select => {
+                        const value = select.value;
+                        return value === '' ? null : parseInt(value);
+                    });
+                    break;
+            }
+
+            this.answers[question.id] = answer;
+        },
+
+        // Confirm submit
+        confirmSubmit: function () {
+            this.saveCurrentAnswer();
+
+            const unanswered = this.questions.filter(q => !this.isQuestionAnswered(q.id)).length;
+
+            let message = 'Are you sure you want to submit your test?';
+            if (unanswered > 0) {
+                message += `\n\nYou have ${unanswered} unanswered question(s).`;
+            }
+
+            if (confirm(message)) {
+                this.submitTest();
+            }
+        },
+
+        // Auto-submit when time expires
+        autoSubmit: function () {
+            this.saveCurrentAnswer();
+            alert('Time is up! Your test is being submitted automatically.');
+            this.submitTest();
+        },
+
+        // Submit test
+        submitTest: async function () {
+            try {
+                // Clear intervals
+                clearInterval(this.timer);
+                clearInterval(this.autoSaveInterval);
+
+                // Show loading
+                const submitBtn = document.getElementById('submitTestBtn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/student/attempts/${this.attemptId}/submit`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        answers: this.answers,
+                        tab_switches: this.tabSwitches,
+                        copy_attempts: this.copyAttempts,
+                        suspicious_activity: this.suspiciousActivity
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show success and redirect
+                    alert(`Test submitted successfully!\n\nYour score: ${data.score}/${data.max_score} (${data.percentage}%)\nStatus: ${data.passed ? 'Passed' : 'Not Passed'}`);
+                    window.location.href = '/dashboard.html';
+                } else {
+                    throw new Error(data.message || 'Failed to submit test');
+                }
+            } catch (error) {
+                console.error('Submit test error:', error);
+                alert('Failed to submit test. Please try again.');
+                window.location.reload();
+            }
         }
-    } catch (error) {
-        console.error('Submit test error:', error);
-        alert('Failed to submit test. Please try again.');
-        window.location.reload();
-    }
-}
     };
 
-// Expose to window for inline onclick handlers
-window.TestTaker = TestTaker;
+    // Expose to window for inline onclick handlers
+    window.TestTaker = TestTaker;
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-    TestTaker.init();
-});
-}) ();
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+        TestTaker.init();
+    });
+})();
