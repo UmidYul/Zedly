@@ -17,7 +17,7 @@ router.use(authenticate);
  * GET /api/analytics/school/overview
  * Get comprehensive school analytics
  */
-router.get('/school/overview', authorize('school_admin'), async (req, res) => {
+router.get('/school/overview', authorize('school_admin', 'teacher'), async (req, res) => {
     try {
         const schoolId = req.user.school_id;
         const { period = '30' } = req.query; // days
@@ -106,7 +106,7 @@ router.get('/school/overview', authorize('school_admin'), async (req, res) => {
  * GET /api/analytics/school/heatmap
  * Get heatmap data for student performance by subject and time
  */
-router.get('/school/heatmap', authorize('school_admin'), async (req, res) => {
+router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, res) => {
     try {
         const schoolId = req.user.school_id;
         const { grade_level, period = '90' } = req.query;
@@ -159,7 +159,7 @@ router.get('/school/heatmap', authorize('school_admin'), async (req, res) => {
  * GET /api/analytics/school/comparison
  * Compare performance across different dimensions
  */
-router.get('/school/comparison', authorize('school_admin'), async (req, res) => {
+router.get('/school/comparison', authorize('school_admin', 'teacher'), async (req, res) => {
     try {
         const schoolId = req.user.school_id;
         const { type = 'classes', subject_id } = req.query;
@@ -521,7 +521,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
  * GET /api/analytics/export/school
  * Export school analytics to Excel
  */
-router.get('/export/school', authorize('school_admin'), async (req, res) => {
+router.get('/export/school', authorize('school_admin', 'teacher'), async (req, res) => {
     try {
         const schoolId = req.user.school_id;
 
