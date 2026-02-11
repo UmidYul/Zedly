@@ -142,7 +142,7 @@
                                         <span>Track tab switches</span>
                                     </label>
                                     <label class="checkbox-label" style="margin-left: 16px;">
-                                        <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required ? 'checked' : ''}>
+                                        <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required !== false ? 'checked' : ''}>
                                         <span>Require fullscreen</span>
                                     </label>
                                 </div>

@@ -18,7 +18,7 @@
         proctoring: {
             blockCopyPaste: true,
             trackTabSwitches: true,
-            fullscreenRequired: false
+            fullscreenRequired: true
         },
         lastTabSwitchAt: 0,
 
@@ -94,7 +94,7 @@
                 this.proctoring = {
                     blockCopyPaste: this.attempt.block_copy_paste !== false,
                     trackTabSwitches: this.attempt.track_tab_switches !== false,
-                    fullscreenRequired: this.attempt.fullscreen_required === true
+                    fullscreenRequired: this.attempt.fullscreen_required !== false
                 };
                 this.tabSwitches = parseInt(this.attempt.tab_switches || 0, 10);
                 this.copyAttempts = parseInt(this.attempt.copy_attempts || 0, 10);
