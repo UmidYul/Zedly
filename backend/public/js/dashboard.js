@@ -46,6 +46,7 @@
                 section: 'dashboard.nav.analytics',
                 items: [
                     { icon: 'chart', label: 'dashboard.nav.statistics', id: 'statistics', href: '#statistics' },
+                    { icon: 'chart', label: 'Расширенная аналитика', id: 'advanced', href: '/advanced-analytics.html', external: true },
                     { icon: 'file', label: 'dashboard.nav.reports', id: 'reports', href: '#reports' }
                 ]
             },
@@ -71,6 +72,7 @@
                 section: 'dashboard.nav.analytics',
                 items: [
                     { icon: 'chart', label: 'dashboard.nav.results', id: 'results', href: '#results' },
+                    { icon: 'chart', label: 'Расширенная аналитика', id: 'advanced', href: '/advanced-analytics.html', external: true },
                     { icon: 'users', label: 'dashboard.nav.students', id: 'students', href: '#students' }
                 ]
             },

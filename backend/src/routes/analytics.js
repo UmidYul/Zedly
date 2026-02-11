@@ -187,15 +187,16 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
                 ${nameUz} as name_uz,
                 COUNT(DISTINCT t.id) as test_count,
                 COUNT(ta.id) as attempt_count,
-                AVG(${attempt.score}) as avg_score,
-                MIN(${attempt.score}) as min_score,
-                MAX(${attempt.score}) as max_score
+                COALESCE(AVG(${attempt.score}), 0) as avg_score,
+                COALESCE(MIN(${attempt.score}), 0) as min_score,
+                COALESCE(MAX(${attempt.score}), 0) as max_score,
+                COALESCE(AVG(EXTRACT(EPOCH FROM (${attempt.completedAt} - ta.started_at)) / 60), 0) as avg_time_minutes
             FROM subjects s
-            JOIN tests t ON t.subject_id = s.id
+            LEFT JOIN tests t ON t.subject_id = s.id AND t.school_id = $1
             LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
             WHERE s.school_id = $1
             GROUP BY s.id, ${nameRu}, ${nameUz}
-            ORDER BY avg_score DESC
+            ORDER BY test_count DESC, avg_score DESC
         `, [schoolId]);
 
         res.json({
