@@ -7,6 +7,45 @@ const { authenticate, authorize } = require('../middleware/auth');
 router.use(authenticate);
 router.use(authorize('student'));
 
+const COLUMN_CACHE = {};
+
+async function getTableColumns(tableName) {
+    if (COLUMN_CACHE[tableName]) {
+        return COLUMN_CACHE[tableName];
+    }
+
+    const result = await query(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1`,
+        [tableName]
+    );
+
+    const columns = new Set(result.rows.map(row => row.column_name));
+    COLUMN_CACHE[tableName] = columns;
+    return columns;
+}
+
+function pickColumn(columns, candidates, fallback = null) {
+    for (const candidate of candidates) {
+        if (columns.has(candidate)) {
+            return candidate;
+        }
+    }
+    return fallback;
+}
+
+async function tableExists(tableName) {
+    const result = await query(
+        `SELECT 1
+         FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = $1
+         LIMIT 1`,
+        [tableName]
+    );
+    return result.rows.length > 0;
+}
+
 async function getCareerInterestExpressions() {
     const columnsResult = await query(`
         SELECT column_name
@@ -164,6 +203,43 @@ router.get('/assignments', async (req, res) => {
         const { status = 'all' } = req.query;
         const studentId = req.user.id;
 
+        const testColumns = await getTableColumns('tests');
+        const subjectColumns = await getTableColumns('subjects');
+        const assignmentColumns = await getTableColumns('test_assignments');
+        const attemptColumns = await getTableColumns('test_attempts');
+        const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
+        const testDescriptionColumn = pickColumn(testColumns, ['description', 'description_ru', 'description_uz'], null);
+        const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
+        const subjectColorColumn = pickColumn(subjectColumns, ['color'], null);
+        const durationColumn = pickColumn(testColumns, ['duration_minutes', 'duration', 'time_limit'], null);
+        const passingScoreColumn = pickColumn(testColumns, ['passing_score', 'pass_score', 'min_score'], null);
+        const maxAttemptsColumn = pickColumn(testColumns, ['max_attempts', 'attempts_limit'], null);
+        const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
+        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
+        const isActiveColumn = pickColumn(assignmentColumns, ['is_active', 'active'], null);
+
+        const completedFilter = attemptColumns.has('status')
+            ? "status = 'completed'"
+            : attemptColumns.has('is_completed')
+                ? 'is_completed = true'
+                : attemptColumns.has('submitted_at')
+                    ? 'submitted_at IS NOT NULL'
+                    : 'false';
+
+        const incompleteFilter = attemptColumns.has('status')
+            ? "status != 'completed'"
+            : attemptColumns.has('is_completed')
+                ? 'is_completed = false'
+                : attemptColumns.has('submitted_at')
+                    ? 'submitted_at IS NULL'
+                    : 'true';
+
+        const bestScoreExpr = attemptColumns.has('percentage')
+            ? 'percentage'
+            : attemptColumns.has('score') && attemptColumns.has('max_score')
+                ? '(score::float / NULLIF(max_score, 0) * 100)'
+                : 'NULL';
+
         // Get student's classes
         const classesResult = await query(
             'SELECT class_id FROM class_students WHERE student_id = $1 AND is_active = true',
@@ -177,35 +253,47 @@ router.get('/assignments', async (req, res) => {
         const classIds = classesResult.rows.map(row => row.class_id);
 
         // Build WHERE clause
-        let whereClause = `WHERE ta.class_id = ANY($1) AND ta.is_active = true`;
+        let whereClause = `WHERE ta.class_id = ANY($1)`;
         const params = [classIds];
 
-        if (status === 'active') {
-            whereClause += ` AND ta.start_date <= CURRENT_TIMESTAMP AND ta.end_date > CURRENT_TIMESTAMP`;
-        } else if (status === 'upcoming') {
-            whereClause += ` AND ta.start_date > CURRENT_TIMESTAMP`;
-        } else if (status === 'completed') {
-            whereClause += ` AND ta.end_date < CURRENT_TIMESTAMP`;
+        if (isActiveColumn) {
+            whereClause += ` AND ta.${isActiveColumn} = true`;
+        }
+
+        if (status === 'active' && startDateColumn && endDateColumn) {
+            whereClause += ` AND ta.${startDateColumn} <= CURRENT_TIMESTAMP AND ta.${endDateColumn} > CURRENT_TIMESTAMP`;
+        } else if (status === 'upcoming' && startDateColumn) {
+            whereClause += ` AND ta.${startDateColumn} > CURRENT_TIMESTAMP`;
+        } else if (status === 'completed' && endDateColumn) {
+            whereClause += ` AND ta.${endDateColumn} < CURRENT_TIMESTAMP`;
         }
 
         // Get assignments with test info and student's attempts
         const result = await query(
             `SELECT
-                ta.id, ta.test_id, ta.class_id, ta.start_date, ta.end_date,
-                t.title as test_title, t.description as test_description,
-                t.duration_minutes, t.passing_score, t.max_attempts,
+                ta.id,
+                ta.test_id,
+                ta.class_id,
+                ${startDateColumn ? `ta.${startDateColumn}` : 'NULL'} as start_date,
+                ${endDateColumn ? `ta.${endDateColumn}` : 'NULL'} as end_date,
+                t.${testTitleColumn} as test_title,
+                ${testDescriptionColumn ? `t.${testDescriptionColumn}` : 'NULL'} as test_description,
+                ${durationColumn ? `t.${durationColumn}` : 'NULL'} as duration_minutes,
+                ${passingScoreColumn ? `t.${passingScoreColumn}` : 'NULL'} as passing_score,
+                ${maxAttemptsColumn ? `t.${maxAttemptsColumn}` : 'NULL'} as max_attempts,
                 c.name as class_name,
-                s.name as subject_name, s.color as subject_color,
+                s.${subjectNameColumn} as subject_name,
+                ${subjectColorColumn ? `s.${subjectColorColumn}` : 'NULL'} as subject_color,
                 (SELECT COUNT(*) FROM test_questions WHERE test_id = t.id) as question_count,
                 (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2) as attempts_made,
-                (SELECT MAX(percentage) FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND is_completed = true) as best_score,
-                (SELECT id FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND is_completed = false ORDER BY started_at DESC LIMIT 1) as ongoing_attempt_id,
+                (SELECT MAX(${bestScoreExpr}) FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND ${completedFilter}) as best_score,
+                (SELECT id FROM test_attempts WHERE assignment_id = ta.id AND student_id = $2 AND ${incompleteFilter} ORDER BY started_at DESC LIMIT 1) as ongoing_attempt_id,
                 (
                     SELECT CASE WHEN EXISTS (
                         SELECT 1 FROM test_attempts att
                         WHERE att.assignment_id = ta.id
                         AND att.student_id = $2
-                        AND att.is_completed = true
+                        AND ${completedFilter}
                         AND EXISTS (
                             SELECT 1 FROM jsonb_each(att.answers) AS answer_entry
                             WHERE (answer_entry.value->>'is_correct')::text = 'null'
@@ -217,7 +305,7 @@ router.get('/assignments', async (req, res) => {
              JOIN classes c ON ta.class_id = c.id
              LEFT JOIN subjects s ON t.subject_id = s.id
              ${whereClause}
-             ORDER BY ta.end_date ASC`,
+             ORDER BY ${endDateColumn ? `ta.${endDateColumn}` : 'ta.id'} ASC`,
             [...params, studentId]
         );
 
@@ -240,6 +328,19 @@ router.get('/assignments/:id', async (req, res) => {
         const { id } = req.params;
         const studentId = req.user.id;
 
+        const testColumns = await getTableColumns('tests');
+        const subjectColumns = await getTableColumns('subjects');
+        const assignmentColumns = await getTableColumns('test_assignments');
+        const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
+        const testDescriptionColumn = pickColumn(testColumns, ['description', 'description_ru', 'description_uz'], null);
+        const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
+        const subjectColorColumn = pickColumn(subjectColumns, ['color'], null);
+        const durationColumn = pickColumn(testColumns, ['duration_minutes', 'duration', 'time_limit'], null);
+        const passingScoreColumn = pickColumn(testColumns, ['passing_score', 'pass_score', 'min_score'], null);
+        const maxAttemptsColumn = pickColumn(testColumns, ['max_attempts', 'attempts_limit'], null);
+        const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
+        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
+
         // Verify student has access to this assignment
         const accessCheck = await query(
             `SELECT 1 FROM test_assignments ta
@@ -258,10 +359,17 @@ router.get('/assignments/:id', async (req, res) => {
         // Get assignment details
         const assignmentResult = await query(
             `SELECT
-                ta.*, t.title as test_title, t.description as test_description,
-                t.duration_minutes, t.passing_score, t.max_attempts,
+                ta.*,
+                ${startDateColumn ? `ta.${startDateColumn}` : 'NULL'} as start_date,
+                ${endDateColumn ? `ta.${endDateColumn}` : 'NULL'} as end_date,
+                t.${testTitleColumn} as test_title,
+                ${testDescriptionColumn ? `t.${testDescriptionColumn}` : 'NULL'} as test_description,
+                ${durationColumn ? `t.${durationColumn}` : 'NULL'} as duration_minutes,
+                ${passingScoreColumn ? `t.${passingScoreColumn}` : 'NULL'} as passing_score,
+                ${maxAttemptsColumn ? `t.${maxAttemptsColumn}` : 'NULL'} as max_attempts,
                 c.name as class_name,
-                s.name as subject_name, s.color as subject_color,
+                s.${subjectNameColumn} as subject_name,
+                ${subjectColorColumn ? `s.${subjectColorColumn}` : 'NULL'} as subject_color,
                 (SELECT COUNT(*) FROM test_questions WHERE test_id = t.id) as question_count
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
@@ -1034,7 +1142,10 @@ function shuffleQuestions(questions) {
 // Student Dashboard Overview
 router.get('/dashboard/overview', async (req, res) => {
     try {
-        const studentId = req.user.user_id;
+        const studentId = req.user.id;
+
+        const testColumns = await getTableColumns('tests');
+        const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
 
         // Get tests assigned to student's classes
         const testsAssignedResult = await query(`
@@ -1085,18 +1196,21 @@ router.get('/dashboard/overview', async (req, res) => {
         const avgScore = avgScoreResult.rows[0]?.avg || 0;
 
         // Get career test completion
-        const careerResult = await query(`
-            SELECT COUNT(*) as count
-            FROM student_career_results
-            WHERE student_id = $1
-        `, [studentId]);
-        const careerTestCompleted = parseInt(careerResult.rows[0]?.count || 0) > 0;
+        let careerTestCompleted = false;
+        if (await tableExists('student_career_results')) {
+            const careerResult = await query(`
+                SELECT COUNT(*) as count
+                FROM student_career_results
+                WHERE student_id = $1
+            `, [studentId]);
+            careerTestCompleted = parseInt(careerResult.rows[0]?.count || 0) > 0;
+        }
 
         // Get recent test attempts (last 5)
         const recentResult = await query(`
             SELECT 
                 t.id,
-                t.title,
+                t.${testTitleColumn} as title,
                 c.name as class_name,
                 ${columns.has('percentage') ? 'tatt.percentage'
                 : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)::int'
@@ -1106,8 +1220,8 @@ router.get('/dashboard/overview', async (req, res) => {
                     : 'NULL'}::timestamp as submitted_at
             FROM test_attempts tatt
             INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
-            INNER JOIN test t ON t.id = ta.test_id
-            INNER JOIN class c ON c.id = ta.class_id
+            INNER JOIN tests t ON t.id = ta.test_id
+            INNER JOIN classes c ON c.id = ta.class_id
             INNER JOIN class_students cs ON cs.class_id = ta.class_id
             WHERE cs.student_id = $1 AND cs.is_active = true AND ${completedFilter}
             ORDER BY ${columns.has('submitted_at') ? 'tatt.submitted_at'
