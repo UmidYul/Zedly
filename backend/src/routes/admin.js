@@ -1351,7 +1351,7 @@ router.get('/subjects', async (req, res) => {
 
         if (search) {
             params.push(`%${search}%`);
-            whereClause += ` AND (name ILIKE $${paramCount} OR code ILIKE $${paramCount})`;
+            whereClause += ` AND (name_ru ILIKE $${paramCount} OR name_uz ILIKE $${paramCount} OR name ILIKE $${paramCount} OR code ILIKE $${paramCount})`;
             paramCount++;
         }
 
@@ -1365,10 +1365,10 @@ router.get('/subjects', async (req, res) => {
         // Get subjects
         params.push(limit, offset);
         const result = await query(
-            `SELECT id, name, code, color, description, is_active, created_at
+            `SELECT id, name_ru, name_uz, name, code, color, description, is_active, created_at
              FROM subjects
              ${whereClause}
-             ORDER BY name ASC
+             ORDER BY name_ru ASC, name ASC
              LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
             params
         );
