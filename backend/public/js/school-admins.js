@@ -240,8 +240,7 @@ const SchoolAdminsManager = (function () {
         const addAdminBtn = document.getElementById('addAdminBtn');
         if (addAdminBtn) {
             addAdminBtn.addEventListener('click', () => {
-                // Redirect to schools page where they can add admins
-                window.location.hash = '#schools';
+                showAddAdminModal();
             });
         }
 
@@ -370,13 +369,267 @@ const SchoolAdminsManager = (function () {
         return [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
     }
 
+    // Show add admin modal
+    function showAddAdminModal() {
+        if (currentSchoolFilter === 'all') {
+            alert('Please select a specific school from the filter dropdown first.');
+            return;
+        }
+
+        const selectedSchool = schools.find(s => s.id === currentSchoolFilter);
+        if (!selectedSchool) {
+            alert('Selected school not found');
+            return;
+        }
+
+        const modalHtml = `
+            <div class="modal-overlay" id="addAdminModal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Add School Administrator - ${selectedSchool.name}</h2>
+                        <button class="modal-close" onclick="SchoolAdminsManager.closeAddAdminModal()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addAdminForm" onsubmit="SchoolAdminsManager.submitNewAdmin(event, '${selectedSchool.id}', '${selectedSchool.name}')">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        First Name <span class="required">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        name="first_name"
+                                        required
+                                        placeholder="Иван"
+                                    />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        Last Name <span class="required">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        name="last_name"
+                                        required
+                                        placeholder="Петров"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        Username <span class="required">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        name="username"
+                                        required
+                                        placeholder="ivan.petrov"
+                                    />
+                                    <span class="form-hint">Только латинские буквы, цифры и точки</span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Password (Optional)</label>
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        name="password"
+                                        placeholder="Leave empty to auto-generate"
+                                    />
+                                    <span class="form-hint">Auto-generated 8-character password will be shown after creation</span>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Email</label>
+                                    <input
+                                        type="email"
+                                        class="form-input"
+                                        name="email"
+                                        placeholder="admin@example.uz"
+                                    />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Phone</label>
+                                    <input
+                                        type="tel"
+                                        class="form-input"
+                                        name="phone"
+                                        placeholder="+998901234567"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Telegram ID</label>
+                                <input
+                                    type="text"
+                                    class="form-input"
+                                    name="telegram_id"
+                                    placeholder="123456789"
+                                />
+                                <span class="form-hint">For Telegram notifications</span>
+                            </div>
+
+                            <div id="addFormAlert" class="hidden"></div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="SchoolAdminsManager.closeAddAdminModal()">
+                            Cancel
+                        </button>
+                        <button type="submit" form="addAdminForm" class="btn btn-primary" id="submitNewAdminBtn">
+                            Create Administrator
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Close on overlay click
+        document.getElementById('addAdminModal').addEventListener('click', (e) => {
+            if (e.target.id === 'addAdminModal') {
+                closeAddAdminModal();
+            }
+        });
+
+        // Close on Escape key
+        const handleEscapeKey = (e) => {
+            if (e.key === 'Escape') {
+                closeAddAdminModal();
+            }
+        };
+        document.addEventListener('keydown', handleEscapeKey);
+
+        // Store handler for cleanup
+        const modal = document.getElementById('addAdminModal');
+        modal._handleEscapeKey = handleEscapeKey;
+    }
+
+    // Close add admin modal
+    function closeAddAdminModal() {
+        const modal = document.getElementById('addAdminModal');
+        if (modal) {
+            if (modal._handleEscapeKey) {
+                document.removeEventListener('keydown', modal._handleEscapeKey);
+            }
+            modal.remove();
+        }
+    }
+
+    // Submit new admin form
+    async function submitNewAdmin(event, schoolId, schoolName) {
+        event.preventDefault();
+
+        const form = event.target;
+        const submitBtn = document.getElementById('submitNewAdminBtn');
+        const formAlert = document.getElementById('addFormAlert');
+
+        // Get form data
+        const formData = new FormData(form);
+        const data = {
+            first_name: formData.get('first_name')?.trim(),
+            last_name: formData.get('last_name')?.trim(),
+            username: formData.get('username')?.trim(),
+            email: formData.get('email')?.trim() || null,
+            phone: formData.get('phone')?.trim() || null,
+            telegram_id: formData.get('telegram_id')?.trim() || null,
+            password: formData.get('password')?.trim() || null
+        };
+
+        // Validation
+        if (!data.first_name || !data.last_name || !data.username) {
+            formAlert.className = 'alert alert-error';
+            formAlert.textContent = 'Please fill all required fields';
+            return;
+        }
+
+        // Show loading
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+        formAlert.className = 'hidden';
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`/api/superadmin/schools/${schoolId}/admins`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Show success with OTP password if generated
+                if (result.otp_password) {
+                    formAlert.className = 'alert alert-success';
+                    formAlert.innerHTML = `
+                        <strong>Administrator created successfully!</strong><br>
+                        <strong>Generated Password:</strong> <code style="background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; font-size: 1.1em;">${result.otp_password}</code><br>
+                        <small>Please save this password - it won't be shown again!</small>
+                    `;
+
+                    // Change button to "Close"
+                    submitBtn.textContent = 'Close';
+                    submitBtn.onclick = () => {
+                        closeAddAdminModal();
+                        loadAdmins(); // Reload admins list
+                    };
+                } else {
+                    formAlert.className = 'alert alert-success';
+                    formAlert.textContent = result.message;
+
+                    // Reload admins list and close modal
+                    setTimeout(() => {
+                        closeAddAdminModal();
+                        loadAdmins();
+                    }, 1000);
+                }
+            } else {
+                // Show error
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = result.message || 'An error occurred';
+            }
+        } catch (error) {
+            console.error('Submit admin error:', error);
+            formAlert.className = 'alert alert-error';
+            formAlert.textContent = 'Network error. Please try again.';
+        } finally {
+            if (!formAlert.classList.contains('alert-success') || !formAlert.innerHTML.includes('Generated Password')) {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+            }
+        }
+    }
+
     // Public API
     return {
         init,
         goToPage,
         editAdmin,
         resetPassword,
-        deleteAdmin
+        deleteAdmin,
+        showAddAdminModal,
+        closeAddAdminModal,
+        submitNewAdmin
     };
 })();
 
