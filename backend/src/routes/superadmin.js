@@ -8,6 +8,106 @@ const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications')
 router.use(authenticate);
 router.use(authorize('superadmin'));
 
+async function getCareerInterestSchema() {
+    const result = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'career_interests'
+    `);
+    const columns = new Set(result.rows.map((row) => row.column_name));
+
+    return {
+        columns,
+        nameRu: columns.has('name_ru') ? 'ci.name_ru' : 'ci.name',
+        nameUz: columns.has('name_uz') ? 'ci.name_uz' : 'ci.name',
+        descriptionRu: columns.has('description_ru')
+            ? 'ci.description_ru'
+            : (columns.has('description') ? 'ci.description' : 'NULL'),
+        descriptionUz: columns.has('description_uz')
+            ? 'ci.description_uz'
+            : (columns.has('description') ? 'ci.description' : 'NULL'),
+        icon: columns.has('icon') ? 'ci.icon' : 'NULL',
+        color: columns.has('color') ? 'ci.color' : "'#4A90E2'",
+        subjects: columns.has('subjects') ? 'ci.subjects' : 'NULL'
+    };
+}
+
+function buildCareerInterestPayload(body, columns) {
+    const nameRu = body.name_ru || body.name_uz || body.name || '';
+    const nameUz = body.name_uz || body.name_ru || body.name || '';
+    const descriptionRu = body.description_ru || body.description_uz || body.description || null;
+    const descriptionUz = body.description_uz || body.description_ru || body.description || null;
+    const icon = body.icon || null;
+    const color = body.color || null;
+    const subjects = Array.isArray(body.subjects) ? body.subjects : null;
+
+    if (!nameRu && !nameUz) {
+        return { error: 'Название интереса обязательно' };
+    }
+
+    const updates = [];
+    const columnsList = [];
+    const params = [];
+    let index = 1;
+
+    if (columns.has('name_ru')) {
+        params.push(nameRu);
+        updates.push(`name_ru = $${index++}`);
+        columnsList.push('name_ru');
+    }
+
+    if (columns.has('name_uz')) {
+        params.push(nameUz);
+        updates.push(`name_uz = $${index++}`);
+        columnsList.push('name_uz');
+    }
+
+    if (columns.has('name')) {
+        params.push(nameRu || nameUz);
+        updates.push(`name = $${index++}`);
+        columnsList.push('name');
+    }
+
+    if (columns.has('description_ru')) {
+        params.push(descriptionRu);
+        updates.push(`description_ru = $${index++}`);
+        columnsList.push('description_ru');
+    }
+
+    if (columns.has('description_uz')) {
+        params.push(descriptionUz);
+        updates.push(`description_uz = $${index++}`);
+        columnsList.push('description_uz');
+    }
+
+    if (columns.has('description')) {
+        params.push(descriptionRu || descriptionUz);
+        updates.push(`description = $${index++}`);
+        columnsList.push('description');
+    }
+
+    if (columns.has('icon')) {
+        params.push(icon);
+        updates.push(`icon = $${index++}`);
+        columnsList.push('icon');
+    }
+
+    if (columns.has('color')) {
+        params.push(color);
+        updates.push(`color = $${index++}`);
+        columnsList.push('color');
+    }
+
+    if (columns.has('subjects')) {
+        params.push(subjects);
+        updates.push(`subjects = $${index++}`);
+        columnsList.push('subjects');
+    }
+
+    return { updates, params, columnsList };
+}
+
 /**
  * GET /api/superadmin/schools
  * Get all schools
@@ -677,6 +777,170 @@ router.post('/schools/:schoolId/admins/:id/reset-password', async (req, res) => 
  * GET /api/superadmin/dashboard/stats
  * Get dashboard statistics for superadmin
  */
+/**
+ * GET /api/superadmin/career/interests
+ * Get career interests
+ */
+router.get('/career/interests', async (req, res) => {
+    try {
+        const { search = '' } = req.query;
+        const schema = await getCareerInterestSchema();
+
+        let whereClause = 'WHERE 1=1';
+        const params = [];
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClause += ` AND (${schema.nameRu} ILIKE $1 OR ${schema.nameUz} ILIKE $1)`;
+        }
+
+        const result = await query(`
+            SELECT
+                ci.id,
+                ${schema.nameRu} as name_ru,
+                ${schema.nameUz} as name_uz,
+                COALESCE(${schema.descriptionRu}, '') as description_ru,
+                COALESCE(${schema.descriptionUz}, '') as description_uz,
+                ${schema.icon} as icon,
+                COALESCE(${schema.color}, '#4A90E2') as color,
+                ${schema.subjects} as subjects
+            FROM career_interests ci
+            ${whereClause}
+            ORDER BY ci.id
+        `, params);
+
+        res.json({ interests: result.rows });
+    } catch (error) {
+        console.error('Get career interests error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch career interests'
+        });
+    }
+});
+
+/**
+ * POST /api/superadmin/career/interests
+ * Create career interest
+ */
+router.post('/career/interests', async (req, res) => {
+    try {
+        const schema = await getCareerInterestSchema();
+        const payload = buildCareerInterestPayload(req.body, schema.columns);
+
+        if (payload.error) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: payload.error
+            });
+        }
+
+        const columns = payload.columnsList;
+        if (!columns.length) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No valid fields provided'
+            });
+        }
+
+        const placeholders = columns.map((_, index) => `$${index + 1}`);
+        const insertResult = await query(
+            `INSERT INTO career_interests (${columns.join(', ')})
+             VALUES (${placeholders.join(', ')})
+             RETURNING id`,
+            payload.params
+        );
+
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'create', 'career_interest', insertResult.rows[0].id, { name: req.body.name_ru || req.body.name_uz }]
+        );
+
+        res.status(201).json({ message: 'Career interest created' });
+    } catch (error) {
+        console.error('Create career interest error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to create career interest'
+        });
+    }
+});
+
+/**
+ * PUT /api/superadmin/career/interests/:id
+ * Update career interest
+ */
+router.put('/career/interests/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const schema = await getCareerInterestSchema();
+        const payload = buildCareerInterestPayload(req.body, schema.columns);
+
+        if (payload.error) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: payload.error
+            });
+        }
+
+        if (!payload.updates.length) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No fields to update'
+            });
+        }
+
+        payload.params.push(id);
+        await query(
+            `UPDATE career_interests
+             SET ${payload.updates.join(', ')}
+             WHERE id = $${payload.params.length}`,
+            payload.params
+        );
+
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'update', 'career_interest', id, { name: req.body.name_ru || req.body.name_uz }]
+        );
+
+        res.json({ message: 'Career interest updated' });
+    } catch (error) {
+        console.error('Update career interest error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to update career interest'
+        });
+    }
+});
+
+/**
+ * DELETE /api/superadmin/career/interests/:id
+ * Delete career interest
+ */
+router.delete('/career/interests/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await query('DELETE FROM career_interests WHERE id = $1', [id]);
+
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [req.user.id, 'delete', 'career_interest', id, {}]
+        );
+
+        res.json({ message: 'Career interest deleted' });
+    } catch (error) {
+        console.error('Delete career interest error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to delete career interest'
+        });
+    }
+});
+
 router.get('/dashboard/stats', async (req, res) => {
     try {
         const stats = {};

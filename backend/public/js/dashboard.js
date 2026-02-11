@@ -27,7 +27,8 @@
                 section: 'dashboard.nav.system',
                 items: [
                     { icon: 'settings', label: 'dashboard.nav.settings', id: 'settings', href: '#settings' },
-                    { icon: 'shield', label: 'dashboard.nav.audit', id: 'audit', href: '#audit' }
+                    { icon: 'shield', label: 'dashboard.nav.audit', id: 'audit', href: '#audit' },
+                    { icon: 'target', label: 'dashboard.nav.careerAdmin', id: 'career-admin', href: '#career-admin' }
                 ]
             }
         ],
@@ -351,7 +352,8 @@
                 manager: currentUser && currentUser.role === 'student' ? 'StudentTestsManager' : 'TestsManager'
             },
             'assignments': { src: '/js/assignments.js', manager: 'AssignmentsManager' },
-            'career': { src: '/js/career.js', manager: 'CareerManager' }
+            'career': { src: '/js/career.js', manager: 'CareerManager' },
+            'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -838,6 +840,37 @@
                     </div>
                 </div>
                 <div id="assignmentsContainer"></div>
+            `;
+        }
+
+        // Career Interests Management (SuperAdmin)
+        if (page === 'career-admin' && role === 'superadmin') {
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title" data-i18n="careerAdmin.title">Профориентация</h1>
+                    <p class="page-subtitle" data-i18n="careerAdmin.subtitle">Управление направлениями и описаниями</p>
+                </div>
+                <div class="page-toolbar">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="careerAdminSearch"
+                            class="search-input"
+                            placeholder="Search interests..."
+                            data-i18n-placeholder="careerAdmin.search"
+                        />
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-primary" id="addCareerInterestBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span data-i18n="careerAdmin.add">Добавить направление</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="careerInterestsContainer"></div>
             `;
         }
 

@@ -199,6 +199,30 @@
     color: var(--text-secondary);
 }
 
+.career-admin-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.career-admin-sub {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.career-color {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+}
+
+.table-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
 .dashboard-header {
     background: var(--bg-header);
     backdrop-filter: blur(20px);
