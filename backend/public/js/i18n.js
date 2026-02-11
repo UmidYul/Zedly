@@ -629,7 +629,7 @@
             'careerAdmin.create': 'Yaratish',
             'careerAdmin.saveError': 'Saqlashda xatolik',
             'careerAdmin.deleteError': 'O\'chirishda xatolik',
-            'careerAdmin.confirmDelete': 'Yo\'nalish o\'chirilsinmi?'
+            'careerAdmin.confirmDelete': 'Yo\'nalish o\'chirilsinmi?',
             // Teacher Analytics
             'teacherAnalytics.title': 'Mening sinflarim - ZEDLY',
             'teacherAnalytics.myClasses': 'Mening sinflarim',
