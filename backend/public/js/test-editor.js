@@ -1012,7 +1012,7 @@
 
             const testData = {
                 title,
-                subject_id: parseInt(subject_id),
+                subject_id,
                 description,
                 duration_minutes,
                 passing_score,

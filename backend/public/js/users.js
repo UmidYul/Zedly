@@ -593,7 +593,7 @@
         },
 
         // Reset user password
-        resetPassword: async function(userId, userName) {
+        resetPassword: async function (userId, userName) {
             if (!confirm(window.ZedlyI18n.translate('users.confirmResetPassword', { name: userName }))) {
                 return;
             }
@@ -634,7 +634,7 @@
         },
 
         // Show OTP modal
-        showOTPModal: function(userName, otp) {
+        showOTPModal: function (userName, otp) {
             const modalHTML = `
                 <div class="modal-overlay" id="otpModal">
                     <div class="modal-content">
@@ -664,7 +664,7 @@
         },
 
         // Close OTP modal
-        closeOTPModal: function() {
+        closeOTPModal: function () {
             const modal = document.getElementById('otpModal');
             if (modal) {
                 modal.remove();
@@ -672,7 +672,7 @@
         },
 
         // Copy OTP to clipboard
-        copyOTP: function(otp) {
+        copyOTP: function (otp) {
             navigator.clipboard.writeText(otp).then(() => {
                 alert(window.ZedlyI18n.translate('users.passwordCopied'));
             }).catch(err => {
@@ -694,7 +694,7 @@
         assignmentCounter: 0,
 
         // Toggle teacher fields visibility
-        toggleTeacherFields: function(role) {
+        toggleTeacherFields: function (role) {
             const teacherFields = document.getElementById('teacherFields');
             if (role === 'teacher') {
                 teacherFields.style.display = 'block';
@@ -712,7 +712,7 @@
         },
 
         // Load subjects and classes
-        loadSubjectsAndClasses: async function() {
+        loadSubjectsAndClasses: async function () {
             try {
                 const token = localStorage.getItem('access_token');
 
@@ -739,7 +739,7 @@
         },
 
         // Add new teacher assignment row
-        addTeacherAssignment: function() {
+        addTeacherAssignment: function () {
             const container = document.getElementById('teacherAssignments');
             const assignmentId = this.assignmentCounter++;
 
@@ -782,7 +782,7 @@
         },
 
         // Remove teacher assignment row
-        removeTeacherAssignment: function(assignmentId) {
+        removeTeacherAssignment: function (assignmentId) {
             const assignment = document.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
             if (assignment) {
                 assignment.remove();
@@ -790,7 +790,7 @@
         },
 
         // Get teacher assignments from form
-        getTeacherAssignments: function() {
+        getTeacherAssignments: function () {
             const assignments = [];
             const container = document.getElementById('teacherAssignments');
             const assignmentDivs = container.querySelectorAll('.teacher-assignment');
@@ -799,11 +799,11 @@
                 const id = div.dataset.id;
                 const subjectId = div.querySelector(`[name="subject_${id}"]`)?.value;
                 const classesSelect = div.querySelector(`[name="classes_${id}"]`);
-                const classIds = classesSelect ? Array.from(classesSelect.selectedOptions).map(opt => parseInt(opt.value)) : [];
+                const classIds = classesSelect ? Array.from(classesSelect.selectedOptions).map(opt => opt.value) : [];
 
                 if (subjectId && classIds.length > 0) {
                     assignments.push({
-                        subject_id: parseInt(subjectId),
+                        subject_id: subjectId,
                         class_ids: classIds
                     });
                 }

@@ -503,7 +503,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const attempt = await getAttemptExpressions();
 
         // If student, can only view own report
-        if (req.user.role === 'student' && req.user.id !== parseInt(id)) {
+        if (req.user.role === 'student' && req.user.id !== id) {
             return res.status(403).json({
                 error: 'forbidden',
                 message: 'Access denied'
