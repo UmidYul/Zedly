@@ -96,7 +96,6 @@
                             <tr>
                                 <th>Code</th>
                                 <th>Subject Name</th>
-                                <th>Color</th>
                                 <th>Description</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -119,12 +118,6 @@
                         </td>
                         <td>
                             <div class="user-name">${subject.name}</div>
-                        </td>
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 24px; height: 24px; border-radius: 4px; background: ${subject.color};"></div>
-                                <span class="text-secondary">${subject.color}</span>
-                            </div>
                         </td>
                         <td>${description}</td>
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
