@@ -127,11 +127,11 @@
     // Initialize dashboard
     async function initDashboard() {
         console.log('🔐 Checking authentication...');
-        
+
         // Check authentication
         const token = localStorage.getItem('access_token');
         console.log('Access token exists:', !!token);
-        
+
         if (!token) {
             console.log('❌ No access token found, redirecting to login');
             redirectToLogin();
@@ -169,13 +169,13 @@
                 // Update UI (with error handling for each step)
                 console.log('📝 Updating user info...');
                 updateUserInfo();
-                
+
                 console.log('🧭 Rendering navigation...');
                 renderNavigation();
-                
+
                 console.log('📄 Loading dashboard content...');
                 loadDashboardContent();
-                
+
                 console.log('✅ Dashboard fully loaded');
             } catch (uiError) {
                 console.error('⚠️ UI update error (non-critical):', uiError);
@@ -311,7 +311,7 @@
     // Load specific page content
     async function loadPageContent(page) {
         const content = document.getElementById('dashboardContent');
-        
+
         if (!content) {
             console.warn('⚠️ dashboardContent element not found');
             return;
@@ -350,7 +350,8 @@
                 src: currentUser && currentUser.role === 'student' ? '/js/student-tests.js' : '/js/tests.js',
                 manager: currentUser && currentUser.role === 'student' ? 'StudentTestsManager' : 'TestsManager'
             },
-            'assignments': { src: '/js/assignments.js', manager: 'AssignmentsManager' }
+            'assignments': { src: '/js/assignments.js', manager: 'AssignmentsManager' },
+            'career': { src: '/js/career.js', manager: 'CareerManager' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -767,6 +768,42 @@
             `;
         }
 
+        // Career Orientation (Student)
+        if (page === 'career' && role === 'student') {
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title" data-i18n="career.title">Профориентация</h1>
+                    <p class="page-subtitle" data-i18n="career.subtitle">Тест интересов и рекомендации по предметам</p>
+                </div>
+                <div class="career-grid">
+                    <div class="card career-card">
+                        <div class="career-card-header">
+                            <h2 data-i18n="career.testTitle">Тест интересов</h2>
+                            <p class="career-hint" data-i18n="career.testHint">Оцените утверждения по шкале от 1 до 5</p>
+                        </div>
+                        <form id="careerTestForm">
+                            <div id="careerQuestions" class="career-questions"></div>
+                            <div class="career-actions">
+                                <button class="btn btn-primary" type="submit" id="careerSubmitBtn" data-i18n="career.submit">Пройти тест</button>
+                                <span id="careerFormStatus" class="career-status"></span>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card career-card">
+                        <div class="career-card-header">
+                            <h2 data-i18n="career.resultsTitle">Результаты</h2>
+                            <p class="career-hint" data-i18n="career.resultsHint">Ваши сильные интересы и рекомендации</p>
+                        </div>
+                        <div id="careerResultsEmpty" class="empty-state">
+                            <p data-i18n="career.noResults">Пока нет результатов. Пройдите тест.</p>
+                        </div>
+                        <canvas id="careerRadarChart" class="career-radar" style="display: none;"></canvas>
+                        <div id="careerRecommendations" class="career-recommendations"></div>
+                    </div>
+                </div>
+            `;
+        }
+
         // Test Assignments Management (Teacher)
         if (page === 'assignments') {
             return `
@@ -837,9 +874,9 @@
                 teacher: { title: 'Панель Учителя', subtitle: 'Тесты и аналитика' },
                 student: { title: 'Панель Ученика', subtitle: 'Обучение и результаты' }
             };
-            
+
             const roleTitle = titles[role] || titles.student;
-            
+
             return `
                 <div class="page-header-section">
                     <h1 class="page-main-title">${roleTitle.title}</h1>
@@ -918,7 +955,7 @@
         const refreshToken = localStorage.getItem('refresh_token');
         console.log('🔄 Attempting to refresh token...');
         console.log('Refresh token exists:', !!refreshToken);
-        
+
         if (!refreshToken) {
             console.log('❌ No refresh token, redirecting to login');
             redirectToLogin();

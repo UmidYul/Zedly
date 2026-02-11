@@ -1,8 +1,9 @@
 // Profile Page JavaScript
-(function() {
+(function () {
     'use strict';
 
     const API_URL = '/api';
+    const i18n = window.ZedlyI18n || { translate: (key) => key };
     let currentUser = null;
     let profileUserId = null; // ID of the profile being viewed
     let performanceChart = null;
@@ -15,7 +16,7 @@
         try {
             // Get current user
             currentUser = await fetchCurrentUser();
-            
+
             // Get user ID from URL params (if viewing another user's profile)
             const urlParams = new URLSearchParams(window.location.search);
             profileUserId = urlParams.get('id') || currentUser.id;
@@ -79,7 +80,7 @@
     async function loadProfileData() {
         try {
             const isOwnProfile = profileUserId === currentUser.id || profileUserId === String(currentUser.id);
-            
+
             let profileData;
             if (isOwnProfile) {
                 // Use /me endpoint for own profile
@@ -102,7 +103,7 @@
 
     // Fetch user profile by ID
     async function fetchUserProfile(userId) {
-        const endpoint = currentUser.role === 'super_admin' 
+        const endpoint = currentUser.role === 'super_admin'
             ? `${API_URL}/superadmin/users/${userId}`
             : `${API_URL}/admin/users/${userId}`;
 
@@ -128,7 +129,7 @@
         // Header
         document.getElementById('profileName').textContent = `${user.first_name} ${user.last_name}`;
         document.getElementById('profileRole').textContent = getRoleDisplayName(user.role);
-        
+
         if (user.school_name) {
             document.getElementById('profileSchool').textContent = user.school_name;
             document.getElementById('profileSchool').style.display = 'block';
@@ -209,9 +210,63 @@
 
             // Career test results
             document.getElementById('careerTestCard').style.display = 'block';
-            // TODO: Load career test results when implemented
+            await loadCareerResults(isOwnProfile);
         } catch (error) {
             console.error('Error loading student data:', error);
+        }
+    }
+
+    async function loadCareerResults(isOwnProfile) {
+        const content = document.getElementById('careerTestContent');
+        const emptyState = content?.querySelector('.no-data');
+
+        if (!isOwnProfile || currentUser.role !== 'student') {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/student/career/results`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch career results');
+            }
+
+            const data = await response.json();
+            if (!data.result) {
+                return;
+            }
+
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+
+            const lang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+            const labels = data.result.interests.map((interest) => (lang === 'uz' ? interest.name_uz : interest.name_ru));
+            const values = data.result.interests.map((interest) => interest.score);
+            const topInterests = [...data.result.interests]
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 3)
+                .map((interest) => (lang === 'uz' ? interest.name_uz : interest.name_ru));
+
+            renderCareerRadarChart({ labels, values });
+
+            const recommended = data.result.recommended_subjects || {};
+            const recommendedList = Array.isArray(recommended)
+                ? recommended
+                : (lang === 'uz' ? recommended.uz : recommended.ru) || [];
+
+            content.innerHTML = `
+                <div class="career-summary">
+                    <p><strong>${i18n.translate('profile.careerTopInterests')}</strong></p>
+                    <p>${topInterests.join(', ')}</p>
+                    <p><strong>${i18n.translate('profile.careerRecommendations')}</strong></p>
+                    ${recommendedList.length
+                    ? `<ul>${recommendedList.map((item) => `<li>${item}</li>`).join('')}</ul>`
+                    : `<p>${i18n.translate('profile.noCareerRecommendations')}</p>`
+                }
+                </div>
+            `;
+        } catch (error) {
+            console.error('Career results error:', error);
         }
     }
 
@@ -227,7 +282,7 @@
 
             // Role-specific info (subjects & classes)
             const roleSpecificData = [];
-            
+
             if (user.subjects) {
                 roleSpecificData.push({
                     label: i18n.translate('profile.subjects'),
@@ -377,7 +432,7 @@
     // Render performance chart
     function renderPerformanceChart(data) {
         const ctx = document.getElementById('performanceChart');
-        
+
         if (performanceChart) {
             performanceChart.destroy();
         }
@@ -420,7 +475,7 @@
     // Render career radar chart
     function renderCareerRadarChart(data) {
         const ctx = document.getElementById('careerRadarChart');
-        
+
         if (careerChart) {
             careerChart.destroy();
         }
