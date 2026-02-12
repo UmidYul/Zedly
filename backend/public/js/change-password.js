@@ -23,11 +23,13 @@
         uppercase: { element: document.getElementById('req-uppercase'), test: (pwd) => /[A-Z]/.test(pwd) },
         lowercase: { element: document.getElementById('req-lowercase'), test: (pwd) => /[a-z]/.test(pwd) },
         number: { element: document.getElementById('req-number'), test: (pwd) => /[0-9]/.test(pwd) },
-        match: { element: document.getElementById('req-match'), test: () => {
-            const newPwd = newPasswordInput.value;
-            const confirmPwd = confirmPasswordInput.value;
-            return newPwd && confirmPwd && newPwd === confirmPwd;
-        }}
+        match: {
+            element: document.getElementById('req-match'), test: () => {
+                const newPwd = newPasswordInput.value;
+                const confirmPwd = confirmPasswordInput.value;
+                return newPwd && confirmPwd && newPwd === confirmPwd;
+            }
+        }
     };
 
     // Check icon SVG
@@ -48,7 +50,7 @@
     function updateRequirement(key) {
         const req = requirements[key];
         const met = req.test(newPasswordInput.value);
-        
+
         if (met) {
             req.element.classList.add('met');
             req.element.querySelector('svg').outerHTML = checkIcon;
@@ -61,25 +63,28 @@
     // Validate all requirements
     function validatePassword() {
         Object.keys(requirements).forEach(key => updateRequirement(key));
-        
-        // Check if all requirements are met
-        const allMet = Object.keys(requirements).every(key => requirements[key].test(newPasswordInput.value));
+        // Check if all requirements are met (match uses both fields)
+        const allMet =
+            requirements.length.test(newPasswordInput.value) &&
+            requirements.uppercase.test(newPasswordInput.value) &&
+            requirements.lowercase.test(newPasswordInput.value) &&
+            requirements.number.test(newPasswordInput.value) &&
+            requirements.match.test();
         submitBtn.disabled = !allMet;
-        
         return allMet;
     }
 
     // Listen to password input changes
     newPasswordInput.addEventListener('input', validatePassword);
-    confirmPasswordInput.addEventListener('input', () => updateRequirement('match'));
+    confirmPasswordInput.addEventListener('input', validatePassword);
 
     // Form submission
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         // Hide previous errors
         errorMessage.style.display = 'none';
-        
+
         // Validate
         if (!validatePassword()) {
             showError('Пожалуйста, убедитесь, что все требования выполнены');
@@ -118,13 +123,13 @@
                 // Store new tokens
                 localStorage.setItem('token', data.access_token);
                 localStorage.setItem('refresh_token', data.refresh_token);
-                
+
                 // Remove temp token
                 localStorage.removeItem('temp_token');
-                
+
                 // Show success message
                 showSuccess('Пароль успешно изменен! Перенаправление...');
-                
+
                 // Redirect to dashboard after 1 second
                 setTimeout(() => {
                     window.location.href = '/dashboard.html';
@@ -133,14 +138,14 @@
                 // Show error
                 const errorMsg = data.message || 'Не удалось изменить пароль';
                 showError(errorMsg);
-                
+
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Изменить пароль';
             }
         } catch (error) {
             console.error('Change password error:', error);
             showError('Произошла ошибка. Пожалуйста, попробуйте снова.');
-            
+
             submitBtn.disabled = false;
             submitBtn.textContent = 'Изменить пароль';
         }
