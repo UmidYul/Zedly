@@ -344,7 +344,20 @@ router.get('/users/:id', enforceSchoolIsolation, async (req, res) => {
             });
         }
 
-        res.json({ user: result.rows[0] });
+        const user = result.rows[0];
+
+        if (user.role === 'teacher') {
+            const assignmentsResult = await query(
+                `SELECT subject_id, array_agg(class_id) as class_ids
+                 FROM teacher_class_subjects
+                 WHERE teacher_id = $1
+                 GROUP BY subject_id`,
+                [id]
+            );
+            user.teacher_assignments = assignmentsResult.rows || [];
+        }
+
+        res.json({ user });
     } catch (error) {
         console.error('Get user error:', error);
         res.status(500).json({

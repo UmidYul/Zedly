@@ -468,7 +468,10 @@
             document.body.insertAdjacentHTML('beforeend', modalHtml);
 
             // Initialize role-specific fields
-            this.toggleRoleFields(user?.role || '');
+            await this.toggleRoleFields(user?.role || '');
+            if (user?.role === 'teacher') {
+                this.renderTeacherAssignments(user?.teacher_assignments || []);
+            }
 
             // Close on overlay click
             document.getElementById('userModal').addEventListener('click', (e) => {
@@ -814,152 +817,67 @@
                 const subjectSelect = div.querySelector('select[name^="subject_"]');
                 const classList = div.querySelector('.multi-choice-list');
 
-                // Always re-render all subject options and re-select previous
-                const selectedSubject = subjectSelect?.value || '';
-                const selectedClasses = classList
-                    ? Array.from(classList.querySelectorAll('input[type="checkbox"]:checked')).map(input => input.value)
-                    : [];
-
                 if (subjectSelect) {
-                    subjectSelect.innerHTML = `<option value="">Select subject</option>${subjectOptions}`;
-                    subjectSelect.value = selectedSubject;
-
-                    // При изменении предмета — фильтруем классы
                     subjectSelect.onchange = async () => {
                         await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value);
                     };
                 }
-
-                // Изначально фильтруем классы по выбранному предмету
-                await window.UsersManager.updateAssignmentClasses(div, selectedSubject, selectedClasses);
             });
         },
 
-        // Фильтрует классы по предмету для конкретного assignment
-        updateAssignmentClasses: async function (div, subjectId, preselectClassIds = []) {
-            const classList = div.querySelector('.multi-choice-list');
-            if (!classList) return;
-            if (!subjectId) {
-                classList.innerHTML = '';
+        renderTeacherAssignments: function (assignments = []) {
+            const container = document.getElementById('teacherAssignments');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!assignments.length) {
+                this.addTeacherAssignment();
                 return;
             }
-            try {
-                const token = localStorage.getItem('access_token');
-                const role = this.getCurrentRole();
-                const isTeacher = role === 'teacher';
-                const endpoint = isTeacher
-                    ? `/api/teacher/classes?subject_id=${subjectId}`
-                    : `/api/admin/classes?page=1&limit=1000&search=&grade=all`;
-                const response = await fetch(endpoint, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    const listHtml = data.classes.map(c => {
-                        const checked = preselectClassIds.includes(String(c.id)) ? 'checked' : '';
-                        return `
-                            <label class="multi-choice-option">
-                                <input type="checkbox" name="classes_${div.dataset.id}" value="${c.id}" ${checked}>
-                                <span>${c.name} (Grade ${c.grade_level})</span>
-                            </label>
-                        `;
-                    }).join('');
-                    classList.innerHTML = listHtml || '<div class="form-hint">No classes available</div>';
-                } else {
-                    classList.innerHTML = '';
-                }
-            } catch (error) {
-                classList.innerHTML = '';
-            }
-        },
-
-        // Add new teacher assignment row
-        addTeacherAssignment: function () {
-            const container = document.getElementById('teacherAssignments');
-            const assignmentId = this.assignmentCounter++;
-
-            const subjectOptions = this.subjects.map(s =>
-                `<option value="${s.id}">${s.name}</option>`
-            ).join('');
-
-            const html = `
-                <div class="teacher-assignment" data-id="${assignmentId}">
-                    <div class="assignment-row">
-                        <div class="form-group flex-1">
-                            <label class="form-label">Subject</label>
-                            <select class="form-input" name="subject_${assignmentId}" required>
-                                <option value="">Select subject</option>
-                                ${subjectOptions}
-                            </select>
-                        </div>
-                        <div class="form-group flex-2">
-                            <label class="form-label">Classes</label>
-                            <div class="multi-choice-list" data-name="classes_${assignmentId}"></div>
-                            <span class="form-hint">Select one or more classes</span>
-                        </div>
-                        <button type="button" class="btn-remove" onclick="UsersManager.removeTeacherAssignment(${assignmentId})" title="Remove">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            container.insertAdjacentHTML('beforeend', html);
-
-            // Инициализировать динамическую фильтрацию классов по предмету
-            const div = container.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
-            const subjectSelect = div.querySelector('select[name^="subject_"]');
-            const classList = div.querySelector('.multi-choice-list');
-            if (subjectSelect) {
-                subjectSelect.onchange = async () => {
-                    await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value);
-                };
-            }
-            // Пустой список классов до выбора предмета
-            if (classList) classList.innerHTML = '';
-        },
-
-        // Remove teacher assignment row
-        removeTeacherAssignment: function (assignmentId) {
-            const assignment = document.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
-            if (assignment) {
-                assignment.remove();
-            }
-        },
-
-        // Get teacher assignments from form
-        getTeacherAssignments: function () {
-            const assignments = [];
-            const container = document.getElementById('teacherAssignments');
-            const assignmentDivs = container.querySelectorAll('.teacher-assignment');
-
-            assignmentDivs.forEach(div => {
-                const id = div.dataset.id;
-                const subjectId = div.querySelector(`[name="subject_${id}"]`)?.value;
-                // For checkboxes, collect all checked values
-                const checkedBoxes = div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`);
-                const classIds = Array.from(checkedBoxes).map(cb => cb.value);
-
-                if (subjectId && classIds.length > 0) {
-                    assignments.push({
-                        subject_id: subjectId,
-                        class_ids: classIds
-                    });
-                }
+            assignments.forEach(item => {
+                const subjectId = item.subject_id || '';
+                const classIds = Array.isArray(item.class_ids) ? item.class_ids.map(String) : [];
+                this.addTeacherAssignment(subjectId, classIds);
             });
-
-            return assignments;
         },
 
-        // Show OTP password modal after user creation
-        showOtpModal: function (otp) {
-            // Remove existing OTP modal if present
-            const existing = document.getElementById('otpModal');
-            if (existing) existing.remove();
-            const html = `
+            // Remove teacher assignment row
+            removeTeacherAssignment: function (assignmentId) {
+                const assignment = document.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
+                if (assignment) {
+                    assignment.remove();
+                }
+            },
+
+            // Get teacher assignments from form
+            getTeacherAssignments: function () {
+                const assignments = [];
+                const container = document.getElementById('teacherAssignments');
+                const assignmentDivs = container.querySelectorAll('.teacher-assignment');
+
+                assignmentDivs.forEach(div => {
+                    const id = div.dataset.id;
+                    const subjectId = div.querySelector(`[name="subject_${id}"]`)?.value;
+                    // For checkboxes, collect all checked values
+                    const checkedBoxes = div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`);
+                    const classIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+                    if (subjectId && classIds.length > 0) {
+                        assignments.push({
+                            subject_id: subjectId,
+                            class_ids: classIds
+                        });
+                    }
+                });
+
+                return assignments;
+            },
+
+            // Show OTP password modal after user creation
+            showOtpModal: function (otp) {
+                // Remove existing OTP modal if present
+                const existing = document.getElementById('otpModal');
+                if (existing) existing.remove();
+                const html = `
                 <div class="modal-overlay" id="otpModal">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -976,12 +894,12 @@
                     </div>
                 </div>
             `;
-            document.body.insertAdjacentHTML('beforeend', html);
-            document.getElementById('closeOtpModalBtn').onclick = () => {
-                document.getElementById('otpModal').remove();
-                this.loadUsers();
-            };
-        }
-    };
-})();
+                document.body.insertAdjacentHTML('beforeend', html);
+                document.getElementById('closeOtpModalBtn').onclick = () => {
+                    document.getElementById('otpModal').remove();
+                    this.loadUsers();
+                };
+            }
+        };
+    }) ();
 
