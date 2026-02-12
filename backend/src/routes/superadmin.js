@@ -4,7 +4,7 @@ const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 
 const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications');
-const { getTableColumns, pickColumn } = require('../utils/db');
+const { getTableColumns, pickColumn, getSchoolNameExpr } = require('../utils/db');
 
 // All routes require superadmin role
 router.use(authenticate);

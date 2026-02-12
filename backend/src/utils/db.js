@@ -28,5 +28,18 @@ function pickColumn(columns, candidates, fallback = null) {
 module.exports = {
     getTableColumns,
     pickColumn,
-    COLUMN_CACHE
+    COLUMN_CACHE,
+    getSchoolNameExpr
 };
+
+// Returns the best SQL expression for the school name column
+async function getSchoolNameExpr() {
+    const { query } = require('../config/database');
+    const result = await query(
+        `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'schools'`
+    );
+    const columns = new Set(result.rows.map(row => row.column_name));
+    if (columns.has('name_ru')) return 's.name_ru';
+    if (columns.has('name_uz')) return 's.name_uz';
+    return 's.name';
+}
