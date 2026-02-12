@@ -34,8 +34,6 @@ async function updateCareerTest(req, res) {
     if (typeof school_id !== 'string') {
         school_id = String(school_id);
     }
-    console.log(school_id, typeof school_id);
-
     try {
         const result = await db.query(
             'UPDATE career_tests SET title_ru = $1, title_uz = $2, description_ru = $3, description_uz = $4, updated_at = NOW() WHERE id = $5 AND school_id = $6 RETURNING *',
@@ -91,6 +89,8 @@ async function getCareerTests(req, res) {
     if (typeof school_id !== 'string') {
         school_id = String(school_id);
     }
+    console.log(school_id, typeof school_id);
+
     try {
         const result = await db.query(
             'SELECT * FROM career_tests WHERE school_id = $1 ORDER BY created_at DESC',
