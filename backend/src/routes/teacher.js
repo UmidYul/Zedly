@@ -551,14 +551,18 @@ router.delete('/tests/:id', async (req, res) => {
  */
 router.get('/subjects', async (req, res) => {
     try {
+        const teacherId = req.user.id;
         const schoolId = req.user.school_id;
 
+        // Only return subjects this teacher is assigned to teach
         const result = await query(
-            `SELECT id, name, code, color
-             FROM subjects
-             WHERE school_id = $1 AND is_active = true
-             ORDER BY name ASC`,
-            [schoolId]
+            `SELECT s.id, s.name, s.code, s.color
+             FROM teacher_class_subjects tcs
+             JOIN subjects s ON tcs.subject_id = s.id
+             WHERE tcs.teacher_id = $1 AND s.school_id = $2 AND s.is_active = true
+             GROUP BY s.id, s.name, s.code, s.color
+             ORDER BY s.name ASC`,
+            [teacherId, schoolId]
         );
 
         res.json({ subjects: result.rows });
