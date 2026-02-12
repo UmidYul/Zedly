@@ -207,6 +207,7 @@
 .tabs {
     display: flex;
     gap: var(--spacing-sm);
+    margin-bottom: 20px;
 }
 
 .tab {
