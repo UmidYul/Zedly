@@ -1156,6 +1156,67 @@ router.get('/classes/:id', enforceSchoolIsolation, async (req, res) => {
 });
 
 /**
+ * GET /api/admin/classes/:id/subjects
+ * Get subjects and assigned teachers for a class
+ */
+router.get('/classes/:id/subjects', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await query(
+            `SELECT
+                s.id as subject_id,
+                COALESCE(s.name_ru, s.name, s.name_uz) as subject_name,
+                CONCAT(u.first_name, ' ', u.last_name) as teacher_name
+             FROM teacher_class_subjects tcs
+             JOIN subjects s ON tcs.subject_id = s.id
+             LEFT JOIN users u ON tcs.teacher_id = u.id
+             WHERE tcs.class_id = $1
+             ORDER BY subject_name ASC`,
+            [id]
+        );
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Get class subjects error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch class subjects'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/classes/:id/students
+ * Get students in a class
+ */
+router.get('/classes/:id/students', enforceSchoolIsolation, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await query(
+            `SELECT
+                u.id,
+                CONCAT(u.first_name, ' ', u.last_name) as name,
+                u.username as login
+             FROM class_students cs
+             JOIN users u ON cs.student_id = u.id
+             WHERE cs.class_id = $1 AND cs.is_active = true
+             ORDER BY cs.roll_number ASC`,
+            [id]
+        );
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Get class students error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch class students'
+        });
+    }
+});
+
+/**
  * POST /api/admin/classes
  * Create new class
  */
