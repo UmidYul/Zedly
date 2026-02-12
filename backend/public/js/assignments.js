@@ -567,6 +567,11 @@
             const form = event.target;
             const submitBtn = document.getElementById('submitBtn');
             const formAlert = document.getElementById('formAlert');
+            const toIso = (value) => {
+                if (!value) return value;
+                const d = new Date(value);
+                return isNaN(d) ? value : d.toISOString();
+            };
 
             // Get form data
             const formData = new FormData(form);
@@ -577,8 +582,8 @@
                 data.class_id = formData.get('class_id');
             }
 
-            data.start_date = formData.get('start_date');
-            data.end_date = formData.get('end_date');
+            data.start_date = toIso(formData.get('start_date'));
+            data.end_date = toIso(formData.get('end_date'));
 
             if (assignmentId) {
                 data.is_active = formData.get('is_active') === 'on';
