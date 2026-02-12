@@ -64,54 +64,243 @@ async function publishCareerTest(req, res) {
     }
 }
 async function getCareerTests(req, res) {
-    // Stub: get tests for school
-    res.json({ message: 'Stub: getCareerTests', tests: [] });
+    // Проверка school_id
+    if (!req.user.school_id) {
+        return res.status(403).json({ error: 'Access denied: school_id required' });
+    }
+    // Audit log: просмотр тестов
+    await db.query('INSERT INTO audit_career (action, admin_id, details) VALUES ($1, $2, $3)', ['view_tests', req.user.id, 'Просмотр тестов']);
+    // Получить все тесты своей школы с локализацией
+    const { school_id } = req.user;
+    const { lang } = req.query; // lang=ru или lang=uz
+    try {
+        const result = await db.query(
+            'SELECT * FROM career_tests WHERE school_id = $1 ORDER BY created_at DESC',
+            [school_id]
+        );
+        const tests = result.rows.map(test => ({
+            id: test.id,
+            title: lang === 'uz' ? test.title_uz : test.title_ru,
+            description: lang === 'uz' ? test.description_uz : test.description_ru,
+            ...test
+        }));
+        res.json({ tests });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
 async function getCareerResults(req, res) {
-    // Stub: get student results
-    res.json({ message: 'Stub: getCareerResults', results: [] });
+    // Проверка school_id
+    if (!req.user.school_id) {
+        return res.status(403).json({ error: 'Access denied: school_id required' });
+    }
+    // Audit log: просмотр результатов
+    await db.query('INSERT INTO audit_career (action, admin_id, details) VALUES ($1, $2, $3)', ['view_results', req.user.id, 'Просмотр результатов']);
+    // Получить результаты учеников своей школы
+    const { school_id } = req.user;
+    try {
+        const result = await db.query(
+            `SELECT ca.*, ct.title_ru, ct.title_uz, ct.description_ru, ct.description_uz
+             FROM career_answers ca
+             JOIN career_tests ct ON ca.test_id = ct.id
+             WHERE ct.school_id = $1
+             ORDER BY ca.created_at DESC`,
+            [school_id]
+        );
+        res.json({ results: result.rows });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
 async function getCareerStats(req, res) {
-    // Stub: aggregated stats
-    res.json({ message: 'Stub: getCareerStats', stats: {} });
+    // Проверка school_id
+    if (!req.user.school_id) {
+        return res.status(403).json({ error: 'Access denied: school_id required' });
+    }
+    // Audit log: просмотр статистики
+    await db.query('INSERT INTO audit_career (action, admin_id, details) VALUES ($1, $2, $3)', ['view_stats', req.user.id, 'Просмотр статистики']);
+    // Аналитика по классам и популярным сферам
+    const { school_id } = req.user;
+    try {
+        // Получить распределение интересов по классам
+        const classStats = await db.query(
+            `SELECT ca.student_id, ca.domain_scores, s.class_name
+             FROM career_answers ca
+             JOIN students s ON ca.student_id = s.id
+             JOIN career_tests ct ON ca.test_id = ct.id
+             WHERE ct.school_id = $1`,
+            [school_id]
+        );
+        // Подсчитать топ-сферы по школе
+        const domainTotals = {};
+        classStats.rows.forEach(row => {
+            const scores = row.domain_scores;
+            if (scores) {
+                Object.entries(scores).forEach(([domain, value]) => {
+                    domainTotals[domain] = (domainTotals[domain] || 0) + value;
+                });
+            }
+        });
+        const sortedDomains = Object.entries(domainTotals).sort((a, b) => b[1] - a[1]);
+        const topDomains = sortedDomains.slice(0, 3).map(([name, value]) => ({ name, value }));
+        res.json({
+            classStats: classStats.rows,
+            topDomains
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
 
 // --- Student ---
 async function getAvailableCareerTests(req, res) {
-    // Stub: get available tests for student
-    res.json({ message: 'Stub: getAvailableCareerTests', tests: [] });
+    // Проверка school_id
+    if (!req.user.school_id) {
+        return res.status(403).json({ error: 'Access denied: school_id required' });
+    }
+    // Audit log: просмотр доступных тестов
+    await db.query('INSERT INTO audit_career (action, student_id, details) VALUES ($1, $2, $3)', ['view_available', req.user.id, 'Просмотр доступных тестов']);
+    // Получить опубликованные тесты для студента с локализацией
+    const { school_id } = req.user;
+    const { lang } = req.query;
+    try {
+        const result = await db.query(
+            'SELECT * FROM career_tests WHERE school_id = $1 AND is_published = TRUE ORDER BY created_at DESC',
+            [school_id]
+        );
+        const tests = result.rows.map(test => ({
+            id: test.id,
+            title: lang === 'uz' ? test.title_uz : test.title_ru,
+            description: lang === 'uz' ? test.description_uz : test.description_ru,
+            ...test
+        }));
+        res.json({ tests });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
 async function attemptCareerTest(req, res) {
+    // Проверка school_id
+    if (!req.user.school_id) {
+        return res.status(403).json({ error: 'Access denied: school_id required' });
+    }
     // RBAC: только Student своей школы
-    const { id: student_id } = req.user;
+    const { id: student_id, school_id } = req.user;
     const { testId } = req.params;
     const { answers } = req.body;
     try {
-        // TODO: расчет баллов по сферам, radar chart
-        // Сохраняем результат
-        const domain_scores = {}; // stub
-        const radar_json = {}; // stub
+        // Проверка: тест принадлежит школе и опубликован
+        const testRes = await db.query('SELECT * FROM career_tests WHERE id = $1 AND school_id = $2 AND is_published = TRUE', [testId, school_id]);
+        if (testRes.rows.length === 0) {
+            return res.status(403).json({ error: 'Access denied or test not found' });
+        }
+        // Проверка: есть ли уже результат
+        const historyRes = await db.query('SELECT * FROM career_answers WHERE student_id = $1 AND test_id = $2', [student_id, testId]);
+        if (historyRes.rows.length > 0) {
+            return res.status(403).json({ error: 'Retake not allowed. Contact school admin.' });
+        }
+        // --- Расчет баллов по сферам ---
+        // answers: [{question_id, value, domains: [{name, weight}], ...}]
+        const domains = [
+            'IT', 'Медицина', 'Инженерия', 'Экономика', 'Искусство', 'Гуманитарные', 'Право', 'Образование', 'Наука'
+        ];
+        const domain_scores = {};
+        domains.forEach(d => domain_scores[d] = 0);
+        answers.forEach(ans => {
+            if (ans.domains && Array.isArray(ans.domains)) {
+                ans.domains.forEach(dom => {
+                    // value: 1 (Да/Согласен/Очень похоже), 0.5 (Иногда/Частично/Не уверен), 0 (Нет/Не про меня/Не согласен)
+                    domain_scores[dom.name] += (ans.value * dom.weight);
+                });
+            }
+        });
+        // --- Radar chart JSON ---
+        const radar_json = {
+            labels: domains,
+            data: domains.map(d => domain_scores[d]),
+        };
+        // --- Топ-3 сферы и рекомендации ---
+        const sortedDomains = Object.entries(domain_scores).sort((a, b) => b[1] - a[1]);
+        const top3 = sortedDomains.slice(0, 3).map(([name, score]) => ({ name, score }));
+        const domainToSubjects = {
+            'IT': ['Информатика', 'Алгебра', 'Физика'],
+            'Медицина': ['Биология', 'Химия'],
+            'Инженерия': ['Физика', 'Математика'],
+            'Экономика': ['Математика', 'Обществознание'],
+            'Искусство': ['Литература', 'Изобразительное искусство'],
+            'Гуманитарные': ['История', 'Литература'],
+            'Право': ['Обществознание', 'История'],
+            'Образование': ['Педагогика', 'Психология'],
+            'Наука': ['Физика', 'Химия', 'Математика']
+        };
+        const recommendations = top3.map(({ name }) => ({
+            domain: name,
+            subjects: domainToSubjects[name] || []
+        }));
+        // --- Сохраняем результат ---
         const result = await db.query(
             'INSERT INTO career_answers (student_id, test_id, answers, domain_scores, radar_json) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [student_id, testId, answers, domain_scores, radar_json]
+            [student_id, testId, JSON.stringify(answers), JSON.stringify(domain_scores), JSON.stringify(radar_json)]
         );
         // Audit log
         await db.query('INSERT INTO audit_career (action, student_id, test_id, details) VALUES ($1, $2, $3, $4)',
             ['attempt', student_id, testId, 'Прохождение теста']);
-        res.status(201).json({ result: result.rows[0] });
+        res.status(201).json({
+            result: result.rows[0],
+            radar: radar_json,
+            top3,
+            recommendations
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 }
 async function getMyCareerResult(req, res) {
-    // Stub: get student's own result
-    res.json({ message: 'Stub: getMyCareerResult', testId: req.params.testId, result: {} });
+    // Проверка school_id
+    if (!req.user.school_id) {
+        return res.status(403).json({ error: 'Access denied: school_id required' });
+    }
+    // Audit log: просмотр своего результата
+    await db.query('INSERT INTO audit_career (action, student_id, details) VALUES ($1, $2, $3)', ['view_my_result', req.user.id, 'Просмотр своего результата']);
+    // Получить результат студента по тесту с локализацией
+    const { id: student_id } = req.user;
+    const testId = req.params.testId;
+    const { lang } = req.query;
+    try {
+        const result = await db.query(
+            'SELECT ca.*, ct.title_ru, ct.title_uz, ct.description_ru, ct.description_uz FROM career_answers ca JOIN career_tests ct ON ca.test_id = ct.id WHERE ca.student_id = $1 AND ca.test_id = $2 ORDER BY ca.created_at DESC LIMIT 1',
+            [student_id, testId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Result not found' });
+        }
+        const row = result.rows[0];
+        res.json({
+            result: {
+                ...row,
+                title: lang === 'uz' ? row.title_uz : row.title_ru,
+                description: lang === 'uz' ? row.description_uz : row.description_ru
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
 
 // --- SuperAdmin ---
 async function getGlobalCareerStats(req, res) {
-    // Stub: global stats for SuperAdmin
-    res.json({ message: 'Stub: getGlobalCareerStats', stats: {} });
+    // Глобальная статистика по всем тестам
+    try {
+        const result = await db.query(
+            `SELECT test_id, COUNT(*) as attempts, AVG((answers->>'score')::float) as avg_score
+             FROM career_answers
+             GROUP BY test_id`,
+            []
+        );
+        res.json({ stats: result.rows });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
 
 module.exports = {
