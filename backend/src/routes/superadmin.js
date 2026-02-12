@@ -1,5 +1,12 @@
-// --- Career Analytics for SuperAdmin ---
+const express = require('express');
+const router = express.Router();
+const { query } = require('../config/database');
+const { authenticate, authorize } = require('../middleware/auth');
+const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications');
+const { getTableColumns, pickColumn, getSchoolNameExpr } = require('../utils/db');
 const { getGlobalCareerStats } = require('./careerHandlers');
+
+// All routes require superadmin role
 
 /**
  * GET /api/superadmin/career/analytics
@@ -9,15 +16,6 @@ router.get('/career/analytics', async (req, res) => {
     // Optionally, you can add more advanced analytics here later
     return getGlobalCareerStats(req, res);
 });
-const express = require('express');
-const router = express.Router();
-const { query } = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
-
-const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications');
-const { getTableColumns, pickColumn, getSchoolNameExpr } = require('../utils/db');
-
-// All routes require superadmin role
 router.use(authenticate);
 router.use(authorize('superadmin'));
 
