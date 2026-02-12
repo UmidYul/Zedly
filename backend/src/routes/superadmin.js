@@ -885,24 +885,34 @@ router.post('/schools/:schoolId/admins/:id/reset-password', async (req, res) => 
 });
 
 /**
- * GET /api/superadmin/dashboard/stats
- * Get dashboard statistics for superadmin
+ * PUT /api/superadmin/career/interests/:id
+ * Update career interest
  */
-                message: 'No fields to update'
-            });
+router.put('/career/interests/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const columns = await getTableColumns('career_interests');
+        const payload = buildCareerInterestPayload(req.body, columns);
+
+        if (payload.error) {
+            return res.status(400).json({ error: 'validation_error', message: payload.error });
+        }
+
+        if (!payload.updates || payload.updates.length === 0) {
+            return res.status(400).json({ error: 'no_fields', message: 'No fields to update' });
         }
 
         payload.params.push(id);
         await query(
             `UPDATE career_interests
-             SET ${payload.updates.join(', ')}
-             WHERE id = $${payload.params.length}`,
+                SET ${payload.updates.join(', ')}
+                WHERE id = $${payload.params.length}`,
             payload.params
         );
 
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
-             VALUES ($1, $2, $3, $4, $5)`,
+                VALUES ($1, $2, $3, $4, $5)`,
             [req.user.id, 'update', 'career_interest', id, { name: req.body.name_ru || req.body.name_uz }]
         );
 
