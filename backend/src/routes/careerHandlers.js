@@ -142,10 +142,11 @@ async function getCareerStats(req, res) {
     try {
         // Получить распределение интересов по классам
         const classStats = await db.query(
-            `SELECT ca.student_id, ca.domain_scores, s.class_name
+            `SELECT ca.student_id, ca.domain_scores, c.name AS class_name
              FROM career_answers ca
-             JOIN students s ON ca.student_id = s.id
              JOIN career_tests ct ON ca.test_id = ct.id
+             LEFT JOIN class_students cs ON ca.student_id = cs.student_id
+             LEFT JOIN classes c ON cs.class_id = c.id
              WHERE ct.school_id = $1`,
             [school_id]
         );
