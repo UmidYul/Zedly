@@ -4,6 +4,30 @@ const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { telegramBot, sendTelegram } = require('../utils/notifications');
 
+const USERS_COLUMNS_CACHE = {
+    loaded: false,
+    hasSettings: false,
+    hasUpdatedAt: false
+};
+
+async function loadUsersColumns() {
+    if (USERS_COLUMNS_CACHE.loaded) {
+        return USERS_COLUMNS_CACHE;
+    }
+
+    const columnsResult = await query(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = 'users'`
+    );
+
+    const columns = new Set(columnsResult.rows.map((row) => row.column_name));
+    USERS_COLUMNS_CACHE.loaded = true;
+    USERS_COLUMNS_CACHE.hasSettings = columns.has('settings');
+    USERS_COLUMNS_CACHE.hasUpdatedAt = columns.has('updated_at');
+    return USERS_COLUMNS_CACHE;
+}
+
 const ROLE_EVENT_MAP = {
     student: [
         { key: 'new_test', label: 'Новый тест', description: 'Когда учитель назначает вам новый тест' },
@@ -55,8 +79,9 @@ function normalizePreferences(role, incoming) {
 }
 
 async function getCurrentUserTelegramState(userId) {
+    const columns = await loadUsersColumns();
     const result = await query(
-        `SELECT id, username, role, telegram_id, settings
+        `SELECT id, username, role, telegram_id, ${columns.hasSettings ? 'settings' : 'NULL::jsonb AS settings'}
          FROM users
          WHERE id = $1`,
         [userId]
@@ -148,18 +173,46 @@ router.post('/me/connect', authenticate, async (req, res) => {
             telegram_notifications: normalizedPrefs
         };
 
-        await query(
-            `UPDATE users
-             SET telegram_id = $1,
-                 settings = $2,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $3`,
-            [String(telegram_id).trim(), updatedSettings, req.user.id]
-        );
+        const columns = await loadUsersColumns();
+        const trimmedTelegramId = String(telegram_id).trim();
+
+        if (columns.hasSettings && columns.hasUpdatedAt) {
+            await query(
+                `UPDATE users
+                 SET telegram_id = $1,
+                     settings = $2,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $3`,
+                [trimmedTelegramId, updatedSettings, req.user.id]
+            );
+        } else if (columns.hasSettings) {
+            await query(
+                `UPDATE users
+                 SET telegram_id = $1,
+                     settings = $2
+                 WHERE id = $3`,
+                [trimmedTelegramId, updatedSettings, req.user.id]
+            );
+        } else if (columns.hasUpdatedAt) {
+            await query(
+                `UPDATE users
+                 SET telegram_id = $1,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $2`,
+                [trimmedTelegramId, req.user.id]
+            );
+        } else {
+            await query(
+                `UPDATE users
+                 SET telegram_id = $1
+                 WHERE id = $2`,
+                [trimmedTelegramId, req.user.id]
+            );
+        }
 
         res.json({
             message: 'Telegram connected successfully',
-            telegram_id: String(telegram_id).trim(),
+            telegram_id: trimmedTelegramId,
             preferences: normalizedPrefs
         });
     } catch (error) {
@@ -192,13 +245,30 @@ router.put('/me/preferences', authenticate, async (req, res) => {
             telegram_notifications: normalizedPrefs
         };
 
-        await query(
-            `UPDATE users
-             SET settings = $1,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $2`,
-            [updatedSettings, req.user.id]
-        );
+        const columns = await loadUsersColumns();
+        if (!columns.hasSettings) {
+            return res.status(501).json({
+                error: 'schema_error',
+                message: 'User settings column is not available in this database schema'
+            });
+        }
+
+        if (columns.hasUpdatedAt) {
+            await query(
+                `UPDATE users
+                 SET settings = $1,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $2`,
+                [updatedSettings, req.user.id]
+            );
+        } else {
+            await query(
+                `UPDATE users
+                 SET settings = $1
+                 WHERE id = $2`,
+                [updatedSettings, req.user.id]
+            );
+        }
 
         res.json({
             message: 'Telegram preferences updated',
@@ -219,13 +289,23 @@ router.put('/me/preferences', authenticate, async (req, res) => {
  */
 router.delete('/me/disconnect', authenticate, async (req, res) => {
     try {
-        await query(
-            `UPDATE users
-             SET telegram_id = NULL,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $1`,
-            [req.user.id]
-        );
+        const columns = await loadUsersColumns();
+        if (columns.hasUpdatedAt) {
+            await query(
+                `UPDATE users
+                 SET telegram_id = NULL,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $1`,
+                [req.user.id]
+            );
+        } else {
+            await query(
+                `UPDATE users
+                 SET telegram_id = NULL
+                 WHERE id = $1`,
+                [req.user.id]
+            );
+        }
 
         res.json({
             message: 'Telegram disconnected successfully'
