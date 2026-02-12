@@ -4,6 +4,7 @@
 
     let currentUser = null;
     let teacherHasHomeroom = false;
+    let currentPageId = 'overview';
 
     // Navigation items for each role
     const navigationConfig = {
@@ -272,10 +273,16 @@
 
         sidebarNav.innerHTML = html;
 
-        // Set first item as active
-        const firstItem = sidebarNav.querySelector('.nav-item');
-        if (firstItem) {
-            firstItem.classList.add('active');
+        // Restore active state for current page
+        const currentItem = sidebarNav.querySelector(`.nav-item[data-page="${currentPageId}"]`);
+        if (currentItem) {
+            currentItem.classList.add('active');
+        } else {
+            const firstItem = sidebarNav.querySelector('.nav-item');
+            if (firstItem) {
+                firstItem.classList.add('active');
+                currentPageId = firstItem.dataset.page || 'overview';
+            }
         }
 
         // Add click handlers
@@ -348,6 +355,7 @@
     // Load specific page content
     async function loadPageContent(page) {
         const content = document.getElementById('dashboardContent');
+        currentPageId = page || currentPageId;
 
         if (!content) {
             console.warn('⚠️ dashboardContent element not found');
@@ -1816,11 +1824,13 @@
         const langButtons = document.querySelectorAll('.lang-btn');
         langButtons.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Wait for i18n to update, then re-render navigation
-                setTimeout(() => {
+                // Wait for i18n to update, then re-render navigation and current page content
+                setTimeout(async () => {
                     if (currentUser) {
                         renderNavigation();
+                        await loadPageContent(currentPageId || 'overview');
                     }
+                    refreshTranslations();
                 }, 100);
             });
         });
@@ -1828,4 +1838,3 @@
         console.log('Dashboard initialized ✓');
     });
 })();
-
