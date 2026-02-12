@@ -150,15 +150,17 @@
                 const teacherName = cls.homeroom_teacher_name || '<span class="text-secondary">Not assigned</span>';
 
                 html += `
-                    <tr>
-                        <td>
-                            <div class="user-name">${cls.name}</div>
-                        </td>
-                        <td>${cls.grade_level} класс</td>
-                        <td>${cls.academic_year}</td>
-                        <td>${teacherName}</td>
-                        <td>${cls.student_count || 0} students</td>
-                `;
+                        <tr>
+                            <td>
+                                <div class="user-name">
+                                    <a href="class-details.html?id=${cls.id}" class="class-link">${cls.name}</a>
+                                </div>
+                            </td>
+                            <td>${cls.grade_level} класс</td>
+                            <td>${cls.academic_year}</td>
+                            <td>${teacherName}</td>
+                            <td>${cls.student_count || 0} students</td>
+                    `;
 
                 if (this.userRole === 'school_admin') {
                     html += `

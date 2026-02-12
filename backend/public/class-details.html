@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация о классе</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/tables.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="logo">
+            <h1>ZEDLY</h1>
+        </div>
+    </header>
+    <main class="main-content">
+        <div class="content-wrapper">
+            <div class="back-button-container">
+                <button class="back-btn" onclick="history.back()">← Назад</button>
+            </div>
+            <div class="page-header">
+                <h1 id="className">Класс</h1>
+                <p id="classInfo">...</p>
+            </div>
+            <section class="subjects-section">
+                <h2>Предметы и учителя</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Предмет</th>
+                            <th>Учитель</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subjectsTableBody">
+                        <!-- JS will fill -->
+                    </tbody>
+                </table>
+            </section>
+            <section class="students-section">
+                <h2>Список учеников</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Имя</th>
+                            <th>Логин</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody">
+                        <!-- JS will fill -->
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
+    <script src="js/class-details.js"></script>
+</body>
+
+</html>
