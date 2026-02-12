@@ -559,7 +559,7 @@
                     formAlert.className = 'alert alert-error';
                     formAlert.textContent = result.message || 'An error occurred';
                 }
-                // Show OTP password modal
+                // Show OTP password modal (moved out of try block)
                 showOtpModal: function (otp) {
                     // Remove existing OTP modal if present
                     const existing = document.getElementById('otpModal');
