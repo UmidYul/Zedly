@@ -423,6 +423,15 @@ router.post('/users', async (req, res) => {
                 }
             }
         }
+        // If student, save class assignment
+        if (role === 'student' && req.body.student_class_id) {
+            await query(
+                `INSERT INTO class_students (class_id, student_id, is_active)
+                 VALUES ($1, $2, true)
+                 ON CONFLICT (class_id, student_id) DO NOTHING`,
+                [req.body.student_class_id, userId]
+            );
+        }
 
         // Log action
         await query(

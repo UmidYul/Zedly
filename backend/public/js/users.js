@@ -247,6 +247,15 @@
                 }
             }
 
+            // Prepare class options for students
+            let classOptionsHtml = '';
+            if (!this.classes || !this.classes.length) {
+                await this.loadSubjectsAndClasses();
+            }
+            if (this.classes && this.classes.length) {
+                classOptionsHtml = this.classes.map(c => `<option value="${c.id}">${c.name} (Grade ${c.grade_level})</option>`).join('');
+            }
+
             // Create modal HTML
             const modalHtml = `
                 <div class="modal-overlay" id="userModal">
@@ -313,11 +322,22 @@
                                         <label class="form-label">
                                             Role <span class="required">*</span>
                                         </label>
-                                        <select class="form-input" name="role" required onchange="UsersManager.toggleTeacherFields(this.value)">
+                                        <select class="form-input" name="role" id="userRoleSelect" required onchange="UsersManager.toggleRoleFields(this.value)">
                                             <option value="">Select role</option>
                                             <option value="school_admin" ${user?.role === 'school_admin' ? 'selected' : ''}>School Admin</option>
                                             <option value="teacher" ${user?.role === 'teacher' ? 'selected' : ''}>Teacher</option>
                                             <option value="student" ${user?.role === 'student' ? 'selected' : ''}>Student</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Student-specific fields -->
+                                <div id="studentFields" style="display: none;">
+                                    <div class="form-group">
+                                        <label class="form-label">Class <span class="required">*</span></label>
+                                        <select class="form-input" name="student_class_id" id="studentClassSelect" required>
+                                            <option value="">Select class</option>
+                                            ${classOptionsHtml}
                                         </select>
                                     </div>
                                 </div>
@@ -420,12 +440,11 @@
             `;
 
             // Add modal to body
+
             document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-            // Initialize teacher fields if role is teacher
-            if (user?.role === 'teacher') {
-                this.toggleTeacherFields('teacher');
-            }
+            // Initialize role-specific fields
+            this.toggleRoleFields(user?.role || '');
 
             // Close on overlay click
             document.getElementById('userModal').addEventListener('click', (e) => {
@@ -473,6 +492,10 @@
                 phone: formData.get('phone')?.trim() || null,
                 telegram_id: formData.get('telegram_id')?.trim() || null
             };
+            // Add student_class_id if student
+            if (data.role === 'student') {
+                data.student_class_id = formData.get('student_class_id');
+            }
 
             // Add teacher assignments if role is teacher
             if (data.role === 'teacher') {
@@ -693,24 +716,29 @@
         classes: [],
         assignmentCounter: 0,
 
-        // Toggle teacher fields visibility
-        toggleTeacherFields: async function (role) {
+        // Toggle teacher/student fields visibility
+        toggleRoleFields: async function (role) {
             const teacherFields = document.getElementById('teacherFields');
+            const studentFields = document.getElementById('studentFields');
             if (role === 'teacher') {
                 teacherFields.style.display = 'block';
+                studentFields.style.display = 'none';
                 if (!this.subjects.length || !this.classes.length) {
                     await this.loadSubjectsAndClasses();
                 }
-
                 this.refreshTeacherAssignmentsOptions();
-
                 // Add one assignment by default if none exist
                 const container = document.getElementById('teacherAssignments');
                 if (!container.children.length) {
                     this.addTeacherAssignment();
                 }
+            } else if (role === 'student') {
+                teacherFields.style.display = 'none';
+                studentFields.style.display = 'block';
+                // Optionally, set class select value if editing
             } else {
                 teacherFields.style.display = 'none';
+                studentFields.style.display = 'none';
             }
         },
 
