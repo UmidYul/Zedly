@@ -301,7 +301,7 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <form id="classForm" onsubmit="return ClassesManager.submitClass(event, ${classId})">
+                            <form id="classForm" onsubmit="return ClassesManager.submitClass(event, ${classId ? `'${classId}'` : 'null'})">
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
