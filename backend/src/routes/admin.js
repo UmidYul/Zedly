@@ -1,3 +1,21 @@
+// --- Career Analytics and Tests for SchoolAdmin ---
+const { getCareerStats, getCareerTests } = require('./careerHandlers');
+
+/**
+ * GET /api/admin/career/analytics
+ * Career analytics for SchoolAdmin
+ */
+router.get('/career/analytics', async (req, res) => {
+    return getCareerStats(req, res);
+});
+
+/**
+ * GET /api/admin/career/tests
+ * Career tests for SchoolAdmin
+ */
+router.get('/career/tests', async (req, res) => {
+    return getCareerTests(req, res);
+});
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
