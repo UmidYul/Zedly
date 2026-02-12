@@ -451,22 +451,22 @@
 
     // Get page content (placeholder - will be replaced with actual components)
     function getPageContent(page) {
-                // Career Results (SuperAdmin, read-only)
-                if (page === 'career-results' && role === 'superadmin') {
-                    return `
-                        <div class="page-header-section">
-                            <h1 class="page-main-title" data-i18n="career.resultsTitle">Профориентация: Результаты</h1>
-                            <p class="page-subtitle" data-i18n="career.resultsSubtitle">Просмотр результатов профориентации по школам, классам и ученикам</p>
-                        </div>
-                        <div class="dashboard-section">
-                            <div class="section-header">
-                                <h2 class="section-title" data-i18n="career.resultsAnalytics">Аналитика и результаты</h2>
-                            </div>
-                            <div id="careerResultsAnalytics"></div>
-                        </div>
-                    `;
-                }
         const role = currentUser?.role || 'student';
+        // Career Results (SuperAdmin, read-only)
+        if (page === 'career-results' && role === 'superadmin') {
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title" data-i18n="career.resultsTitle">Профориентация: Результаты</h1>
+                    <p class="page-subtitle" data-i18n="career.resultsSubtitle">Просмотр результатов профориентации по школам, классам и ученикам</p>
+                </div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title" data-i18n="career.resultsAnalytics">Аналитика и результаты</h2>
+                    </div>
+                    <div id="careerResultsAnalytics"></div>
+                </div>
+            `;
+        }
 
         // Schools Management (SuperAdmin)
         if (page === 'schools') {
