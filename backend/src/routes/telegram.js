@@ -40,7 +40,7 @@ function createLinkToken(userId) {
     const expiresAtMs = Date.now() + TELEGRAM_LINK_TTL_MS;
     const expiresAtSec = Math.floor(expiresAtMs / 1000);
     const nonce = crypto.randomBytes(4).toString('hex');
-    const payload = `${userId}.${expiresAtSec}.${nonce}`;
+    const payload = `${userId}-${expiresAtSec}-${nonce}`;
     const signature = crypto
         .createHmac('sha256', getTelegramLinkSecret())
         .update(payload)
@@ -48,7 +48,7 @@ function createLinkToken(userId) {
         .slice(0, 12);
 
     return {
-        token: `${payload}.${signature}`,
+        token: `${payload}-${signature}`,
         expiresAt: expiresAtMs
     };
 }
@@ -63,7 +63,7 @@ function verifyLinkToken(token) {
         return { valid: false, reason: 'used' };
     }
 
-    const parts = cleanToken.split('.');
+    const parts = cleanToken.split('-');
     if (parts.length !== 4) {
         return { valid: false, reason: 'invalid' };
     }
@@ -73,7 +73,7 @@ function verifyLinkToken(token) {
         return { valid: false, reason: 'invalid' };
     }
 
-    const payload = `${userIdRaw}.${expiresAtRaw}.${nonce}`;
+    const payload = `${userIdRaw}-${expiresAtRaw}-${nonce}`;
     const expectedSignature = crypto
         .createHmac('sha256', getTelegramLinkSecret())
         .update(payload)

@@ -213,7 +213,7 @@
                             </div>
                             <p class="telegram-help">
                                 Подключение выполняется автоматически через бота ${botName}.<br>
-                                Нажмите кнопку ниже, откройте чат и отправьте <code>/start</code>.
+                                Нажмите кнопку ниже и в Telegram нажмите системную кнопку <code>START</code> (не вводите <code>/start</code> вручную).
                             </p>
                             <div class="telegram-actions-row" style="margin-bottom: 12px;">
                                 <button class="btn btn-primary" id="tgLinkBtn" ${state.link_flow_supported ? '' : 'disabled'}>
