@@ -71,8 +71,12 @@ async function getCareerTests(req, res) {
     // Audit log: просмотр тестов
     await db.query('INSERT INTO audit_career (action, admin_id, details) VALUES ($1, $2, $3)', ['view_tests', req.user.id, 'Просмотр тестов']);
     // Получить все тесты своей школы с локализацией
-    const { school_id } = req.user;
+    let { school_id } = req.user;
     const { lang } = req.query; // lang=ru или lang=uz
+    // Привести school_id к строке (UUID)
+    if (typeof school_id !== 'string') {
+        school_id = String(school_id);
+    }
     try {
         const result = await db.query(
             'SELECT * FROM career_tests WHERE school_id = $1 ORDER BY created_at DESC',
