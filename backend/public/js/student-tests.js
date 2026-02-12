@@ -6,6 +6,11 @@
         currentTab: 'available', // available, completed
         assignments: [],
 
+        // Safely serialize values for inline onclick handlers
+        toJsArg: function (value) {
+            return JSON.stringify(String(value ?? ''));
+        },
+
         // Initialize student tests page
         init: function () {
             this.setupEventListeners();
@@ -162,7 +167,7 @@
             if (status === 'active') {
                 if (hasOngoing) {
                     actionButton = `
-                        <button class="btn btn-primary" onclick="StudentTestsManager.continueTest(${assignment.ongoing_attempt_id})">
+                        <button class="btn btn-primary" onclick="StudentTestsManager.continueTest(${this.toJsArg(assignment.ongoing_attempt_id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
@@ -171,7 +176,7 @@
                     `;
                 } else if (attemptsLeft > 0) {
                     actionButton = `
-                        <button class="btn btn-primary" onclick="StudentTestsManager.startTest('${assignment.id}')">
+                        <button class="btn btn-primary" onclick="StudentTestsManager.startTest(${this.toJsArg(assignment.id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
@@ -185,7 +190,7 @@
                 actionButton = `<button class="btn btn-outline" disabled>Starts ${this.formatDate(assignment.start_date)}</button>`;
             } else {
                 actionButton = `
-                    <button class="btn btn-outline" onclick="StudentTestsManager.viewResults('${assignment.id}')">
+                    <button class="btn btn-outline" onclick="StudentTestsManager.viewResults(${this.toJsArg(assignment.id)})">
                         View Results
                     </button>
                 `;
@@ -406,7 +411,7 @@
                             <span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="StudentTestsManager.viewAttemptDetails(${result.attempt_id})" title="View Details">
+                            <button class="btn-icon" onclick="StudentTestsManager.viewAttemptDetails(${this.toJsArg(result.attempt_id)})" title="View Details">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
