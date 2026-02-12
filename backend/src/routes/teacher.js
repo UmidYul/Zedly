@@ -2,6 +2,7 @@
  * GET /api/teacher/classes
  * Get classes for current teacher, optionally filtered by subject_id
  */
+
 router.get('/classes', async (req, res) => {
     try {
         const teacherId = req.user.id;
