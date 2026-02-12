@@ -79,6 +79,14 @@
         const canvas = document.getElementById('subjectChart');
         if (!canvas || !window.Chart) return;
 
+        if (!items || items.length === 0) {
+            if (state.chart) {
+                state.chart.destroy();
+                state.chart = null;
+            }
+            return;
+        }
+
         const labels = (items || []).map(item => item.subject_name || 'Предмет');
         const values = (items || []).map(item => Math.round(Number(item.avg_score || 0) * 10) / 10);
 
@@ -268,6 +276,16 @@
 
     async function init() {
         try {
+            const root = document.getElementById('myClassPage');
+            if (!root) return;
+
+            if (state.chart) {
+                state.chart.destroy();
+                state.chart = null;
+            }
+            state.students = [];
+            state.classes = [];
+            state.activeClassId = null;
             state.classes = await loadHomeroomClasses();
             if (!state.classes.length) {
                 showElement('emptyState', true);
@@ -330,5 +348,5 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    window.MyClassPage = { init };
 })();

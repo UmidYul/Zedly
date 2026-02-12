@@ -68,7 +68,7 @@
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'assignment', label: 'dashboard.nav.assignments', id: 'assignments', href: '#assignments' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
-                    { icon: 'users', label: 'dashboard.nav.myClass', id: 'my-class', href: '/my-class.html' }
+                    { icon: 'users', label: 'dashboard.nav.myClass', id: 'my-class', href: '#my-class' }
                 ]
             },
             {
@@ -431,7 +431,8 @@
             'progress': { src: '/js/student-progress.js', manager: 'StudentProgress' },
             'leaderboard': { src: '/js/student-leaderboard.js', manager: 'StudentLeaderboard' },
             'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
-            'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' }
+            'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' },
+            'my-class': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -445,32 +446,41 @@
                 console.error(`Failed to initialize ${scriptInfo.manager}:`, error);
             }
             return;
-        }
+        }        const sources = Array.isArray(scriptInfo.src) ? scriptInfo.src : [scriptInfo.src];
 
-        // Load script dynamically
-        return new Promise((resolve, reject) => {
+        const loadScript = (src) => new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[src="${src}"]`);
+            if (existing) {
+                resolve();
+                return;
+            }
+
             const script = document.createElement('script');
-            script.src = scriptInfo.src;
+            script.src = src;
             script.onload = () => {
-                console.log(`✓ Loaded: ${scriptInfo.src}`);
-                // Initialize manager after script loads
-                try {
-                    if (window[scriptInfo.manager]) {
-                        window[scriptInfo.manager].init();
-                        console.log(`✓ Initialized: ${scriptInfo.manager}`);
-                    } else {
-                        console.error(`Manager ${scriptInfo.manager} not found after loading script`);
-                    }
-                } catch (error) {
-                    console.error(`Failed to initialize ${scriptInfo.manager}:`, error);
-                }
+                console.log(`✓ Loaded: ${src}`);
                 resolve();
             };
             script.onerror = () => {
-                console.error(`Failed to load script: ${scriptInfo.src}`);
+                console.error(`Failed to load script: ${src}`);
                 reject();
             };
             document.head.appendChild(script);
+        });
+
+        return sources.reduce((promise, src) => {
+            return promise.then(() => loadScript(src));
+        }, Promise.resolve()).then(() => {
+            try {
+                if (window[scriptInfo.manager]) {
+                    window[scriptInfo.manager].init();
+                    console.log(`✓ Initialized: ${scriptInfo.manager}`);
+                } else if (scriptInfo.manager) {
+                    console.error(`Manager ${scriptInfo.manager} not found after loading script`);
+                }
+            } catch (error) {
+                console.error(`Failed to initialize ${scriptInfo.manager}:`, error);
+            }
         });
     }
 
@@ -489,6 +499,112 @@
                         <h2 class="section-title" data-i18n="career.resultsAnalytics">Аналитика и результаты</h2>
                     </div>
                     <div id="careerResultsAnalytics"></div>
+                </div>
+            `;
+        }
+
+        if (page === 'my-class' && role === 'teacher') {
+            return `
+                <div class="my-class-page" id="myClassPage">
+                    <section class="my-class-hero" id="heroCard">
+                        <div class="hero-info">
+                            <p class="hero-label">Мой класс</p>
+                            <div class="class-select-row hidden" id="classSelectRow">
+                                <label for="classSelect">Класс</label>
+                                <select id="classSelect" class="class-select"></select>
+                            </div>
+                            <h1 id="className">Загрузка...</h1>
+                            <p id="classMeta">Подготовка данных</p>
+                        </div>
+                        <div class="hero-metrics">
+                            <div class="metric">
+                                <div class="metric-label">Учеников</div>
+                                <div class="metric-value" id="studentCount">0</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Назначений</div>
+                                <div class="metric-value" id="assignmentCount">0</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Активные</div>
+                                <div class="metric-value" id="activeAssignments">0</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Средний балл</div>
+                                <div class="metric-value" id="avgScore">0%</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-section my-class-card" id="analyticsCard">
+                        <div class="section-header">
+                            <div>
+                                <h2 class="section-title">Предметная успеваемость</h2>
+                                <p class="page-subtitle">Средний результат по предметам вашего класса</p>
+                            </div>
+                        </div>
+                        <div class="chart-wrap">
+                            <canvas id="subjectChart" height="120"></canvas>
+                        </div>
+                        <div class="subject-performance" id="subjectPerformance">
+                            <div class="empty-state">Данных пока нет</div>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-section my-class-card" id="studentsCard">
+                        <div class="section-header">
+                            <div>
+                                <h2 class="section-title">Ученики класса</h2>
+                                <p class="page-subtitle">Управляйте доступом и паролями учеников</p>
+                            </div>
+                            <div class="table-controls">
+                                <input class="search-input" id="studentSearch" type="text" placeholder="Поиск по имени или логину">
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Имя</th>
+                                        <th>Логин</th>
+                                        <th>Тестов пройдено</th>
+                                        <th>Средний балл</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentsTableBody">
+                                    <tr>
+                                        <td colspan="5" class="empty-row">Загрузка...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-section my-class-card hidden" id="emptyState">
+                        <div class="empty-state">
+                            <h2>Класс не назначен</h2>
+                            <p>Пока у вас нет класса в качестве классного руководителя.</p>
+                        </div>
+                    </section>
+
+                    <div class="modal-overlay hidden" id="passwordModal">
+                        <div class="modal">
+                            <div class="modal-header">
+                                <h3>Временный пароль</h3>
+                                <button class="modal-close" type="button" id="modalClose">×</button>
+                            </div>
+                            <div class="modal-body">
+                                <p id="modalStudentName">Пароль для ученика</p>
+                                <div class="password-box" id="modalPassword">—</div>
+                                <p class="modal-hint">Передайте пароль ученику и попросите сменить его после входа.</p>
+                            </div>
+                            <div class="modal-actions">
+                                <button class="btn btn-outline" type="button" id="modalCopy">Скопировать</button>
+                                <button class="btn btn-primary" type="button" id="modalOk">Готово</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
         }
@@ -1710,3 +1826,4 @@
         console.log('Dashboard initialized ✓');
     });
 })();
+

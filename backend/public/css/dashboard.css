@@ -860,3 +860,317 @@
         box-shadow: var(--shadow-lg);
     }
 }
+
+/* ==============================================
+   My Class (Dashboard Page)
+   ============================================== */
+
+.my-class-page {
+    display: grid;
+    gap: var(--spacing-xl);
+}
+
+.my-class-hero {
+    background:
+        radial-gradient(circle at 90% 8%, rgba(80, 227, 194, 0.2), transparent 40%),
+        radial-gradient(circle at 12% 12%, rgba(74, 144, 226, 0.25), transparent 50%),
+        var(--surface-card);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-strong);
+    padding: var(--spacing-xl);
+    display: flex;
+    gap: var(--spacing-xl);
+    justify-content: space-between;
+    align-items: center;
+}
+
+.my-class-hero .hero-info {
+    max-width: 640px;
+}
+
+.my-class-hero .hero-label {
+    margin: 0 0 var(--spacing-sm);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+}
+
+.my-class-hero h1 {
+    margin: 0 0 var(--spacing-xs);
+    font-size: clamp(1.6rem, 2.4vw, 2.4rem);
+}
+
+.my-class-hero #classMeta {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.my-class-hero .hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: var(--spacing-sm);
+    min-width: 320px;
+}
+
+.my-class-hero .metric {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 0.85rem 1rem;
+    text-align: center;
+}
+
+.my-class-hero .metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+}
+
+.my-class-hero .metric-value {
+    margin-top: 0.4rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.my-class-page .class-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.my-class-page .class-select-row label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+}
+
+.my-class-page .class-select {
+    min-width: 220px;
+    padding: 0.55rem 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.my-class-page .class-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.my-class-page .chart-wrap {
+    padding: 0.5rem 0.25rem 1rem;
+    height: 220px;
+}
+
+.my-class-page .chart-wrap canvas {
+    width: 100% !important;
+}
+
+.my-class-page .subject-performance {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.my-class-page .subject-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.my-class-page .subject-name {
+    font-weight: 600;
+}
+
+.my-class-page .subject-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    margin-top: 0.35rem;
+}
+
+.my-class-page .subject-bar span {
+    display: block;
+    height: 100%;
+    background: var(--gradient-primary);
+}
+
+.my-class-page .subject-score {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.my-class-page .table-controls {
+    display: flex;
+    align-items: center;
+}
+
+.my-class-page .search-input {
+    min-width: 240px;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.my-class-page .search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.my-class-page .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+}
+
+.my-class-page .data-table {
+    background: transparent;
+    border-radius: 0;
+}
+
+.my-class-page .data-table th {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-tertiary);
+}
+
+.my-class-page .action-btn {
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(239, 83, 80, 0.4);
+    background: rgba(239, 83, 80, 0.12);
+    color: #fca5a5;
+    font-weight: 600;
+    transition: var(--transition-fast);
+}
+
+.my-class-page .action-btn:hover {
+    border-color: var(--danger);
+    color: #fff;
+    background: rgba(239, 83, 80, 0.24);
+}
+
+.my-class-page .empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-secondary);
+}
+
+.my-class-page .empty-state h2 {
+    margin-bottom: 0.5rem;
+}
+
+.my-class-page .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 11, 20, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 200;
+}
+
+.my-class-page .modal {
+    width: min(480px, 95vw);
+    background: var(--surface-card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    padding: 1.5rem;
+}
+
+.my-class-page .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.my-class-page .modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.my-class-page .modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.my-class-page .modal-body p {
+    margin: 0 0 0.75rem;
+    color: var(--text-secondary);
+}
+
+.my-class-page .password-box {
+    background: rgba(74, 144, 226, 0.12);
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    border-radius: var(--radius-lg);
+    padding: 0.75rem 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-align: center;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.my-class-page .modal-hint {
+    font-size: 0.9rem;
+    color: var(--text-tertiary);
+}
+
+.my-class-page .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+@media (max-width: 960px) {
+    .my-class-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .my-class-hero .hero-metrics {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .my-class-hero {
+        padding: var(--spacing-lg);
+    }
+
+    .my-class-hero .hero-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .my-class-page .search-input {
+        width: 100%;
+    }
+
+    .my-class-page .modal-actions {
+        flex-direction: column;
+    }
+}
