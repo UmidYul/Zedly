@@ -258,6 +258,12 @@ function initTelegramStartListener() {
     telegramBot.onText(/^\/start(?:@\w+)?(?:\s+.*)?$/i, async (msg) => {
         const startToken = extractStartTokenFromMessage(msg);
         const chatId = msg.chat.id;
+        console.log('Telegram /start received', {
+            chat_id: chatId,
+            text: msg.text,
+            token_present: !!startToken,
+            token_length: startToken ? startToken.length : 0
+        });
 
         try {
             if (!startToken) {
@@ -270,6 +276,7 @@ function initTelegramStartListener() {
 
             const result = await connectTelegramByToken(chatId, startToken);
             if (!result.ok) {
+                console.log('Telegram link connect failed', { chat_id: chatId, reason: result.reason });
                 const reasonMessage = {
                     expired: 'Ссылка для подключения устарела. Вернитесь в кабинет и нажмите кнопку подключения заново.',
                     invalid: 'Неверная ссылка подключения. Запустите привязку заново из кабинета.',
@@ -280,6 +287,8 @@ function initTelegramStartListener() {
                 await sendTelegram(chatId, reasonMessage[result.reason] || 'Не удалось завершить привязку. Попробуйте снова из кабинета.');
                 return;
             }
+
+            console.log('Telegram link connected', { chat_id: chatId, username: result.username, role: result.role });
 
             await sendTelegram(
                 chatId,
@@ -368,6 +377,7 @@ router.get('/me/status', authenticate, async (req, res) => {
  */
 router.post('/me/link/start', authenticate, async (req, res) => {
     try {
+        console.log('Telegram link start requested', { user_id: req.user.id });
         if (!telegramBot) {
             return res.status(400).json({
                 error: 'not_configured',

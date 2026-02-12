@@ -112,6 +112,9 @@
     }
 
     async function startTelegramLinkFlow() {
+        // Open popup synchronously to avoid browser popup blocking after async await
+        const popup = window.open('about:blank', '_blank', 'noopener,noreferrer');
+
         try {
             const response = await fetch('/api/telegram/me/link/start', {
                 method: 'POST'
@@ -121,14 +124,22 @@
                 throw new Error(data.message || 'Не удалось начать подключение');
             }
 
-            window.open(data.link, '_blank', 'noopener,noreferrer');
+            if (popup && !popup.closed) {
+                popup.location.href = data.link;
+            } else {
+                // Fallback when popup is blocked
+                window.location.href = data.link;
+            }
             startStatusPolling();
 
             const statusText = document.getElementById('tgLinkStatusText');
             if (statusText) {
-                statusText.textContent = 'Ожидаем команду /start в Telegram...';
+                statusText.innerHTML = `Ожидаем команду /start в Telegram...<br><a class="telegram-link" href="${data.link}" target="_blank" rel="noopener noreferrer">Если бот не открылся, нажмите здесь</a>`;
             }
         } catch (error) {
+            if (popup && !popup.closed) {
+                popup.close();
+            }
             console.error('Start Telegram link flow error:', error);
             await showMessage(error.message, 'Ошибка');
         }
