@@ -589,6 +589,45 @@ router.get('/subjects', async (req, res) => {
 });
 
 /**
+ * GET /api/teacher/classes-by-subject
+ * Get classes taught by teacher for a specific subject
+ */
+router.get('/classes-by-subject', async (req, res) => {
+    try {
+        const { subject_id } = req.query;
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+
+        if (!subject_id) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'subject_id is required'
+            });
+        }
+
+        const result = await query(
+            `SELECT DISTINCT c.id, c.name, c.grade_level, c.academic_year
+             FROM classes c
+             JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             WHERE c.school_id = $1
+               AND c.is_active = true
+               AND tcs.teacher_id = $2
+               AND tcs.subject_id = $3
+             ORDER BY c.grade_level ASC, c.name ASC`,
+            [schoolId, teacherId, subject_id]
+        );
+
+        res.json({ classes: result.rows });
+    } catch (error) {
+        console.error('Get classes by subject error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch classes'
+        });
+    }
+});
+
+/**
  * ========================================
  * CLASSES MANAGEMENT
  * ========================================

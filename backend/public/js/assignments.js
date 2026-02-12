@@ -8,6 +8,7 @@
         searchTerm: '',
         classFilter: 'all',
         statusFilter: 'all',
+        subjectClassesCache: {},
 
         // Initialize assignments page
         init: function () {
@@ -326,9 +327,8 @@
                 }
             }
 
-            // Load tests and classes for dropdowns
+            // Load tests for dropdown
             let testsList = [];
-            let classesList = [];
 
             try {
                 const token = localStorage.getItem('access_token');
@@ -342,14 +342,6 @@
                     testsList = data.tests;
                 }
 
-                // Load classes
-                const classesResponse = await fetch('/api/teacher/classes?limit=100', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (classesResponse.ok) {
-                    const data = await classesResponse.json();
-                    classesList = data.classes;
-                }
             } catch (error) {
                 console.error('Load data error:', error);
             }
@@ -388,7 +380,7 @@
                                     <select class="form-input" name="test_id" required ${isEdit ? 'disabled' : ''}>
                                         <option value="">Select test</option>
                                         ${testsList.map(test =>
-                `<option value="${test.id}" ${assignmentData?.test_id === test.id ? 'selected' : ''}>${test.title} (${test.subject_name})</option>`
+                `<option value="${test.id}" data-subject-id="${test.subject_id || ''}" ${assignmentData?.test_id === test.id ? 'selected' : ''}>${test.title} (${test.subject_name})</option>`
             ).join('')}
                                     </select>
                                 </div>
@@ -399,9 +391,7 @@
                                     </label>
                                     <select class="form-input" name="class_id" required ${isEdit ? 'disabled' : ''}>
                                         <option value="">Select class</option>
-                                        ${classesList.map(cls =>
-                `<option value="${cls.id}" ${assignmentData?.class_id === cls.id ? 'selected' : ''}>${cls.name} - ${cls.grade_level} класс</option>`
-            ).join('')}
+                                        
                                     </select>
                                 </div>
                                 ` : `
@@ -473,6 +463,71 @@
 
             // Add modal to body
             document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            if (!isEdit) {
+                const testSelect = document.querySelector('#assignmentForm select[name="test_id"]');
+                const classSelect = document.querySelector('#assignmentForm select[name="class_id"]');
+
+                const setClassOptions = (classes = []) => {
+                    if (!classSelect) return;
+                    if (!classes.length) {
+                        classSelect.innerHTML = `<option value="">No classes available</option>`;
+                        return;
+                    }
+                    classSelect.innerHTML = `
+                        <option value="">Select class</option>
+                        ${classes.map(cls =>
+                            `<option value="${cls.id}">${cls.name} - ${cls.grade_level} класс</option>`
+                        ).join('')}
+                    `;
+                };
+
+                const loadClassesForSubject = async (subjectId) => {
+                    if (!subjectId) {
+                        if (classSelect) {
+                            classSelect.innerHTML = `<option value="">Select test first</option>`;
+                        }
+                        return;
+                    }
+
+                    if (this.subjectClassesCache[subjectId]) {
+                        setClassOptions(this.subjectClassesCache[subjectId]);
+                        return;
+                    }
+
+                    try {
+                        const token = localStorage.getItem('access_token');
+                        const response = await fetch(`/api/teacher/classes-by-subject?subject_id=${encodeURIComponent(subjectId)}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            const classes = data.classes || [];
+                            this.subjectClassesCache[subjectId] = classes;
+                            setClassOptions(classes);
+                        } else {
+                            setClassOptions([]);
+                        }
+                    } catch (error) {
+                        console.error('Load classes by subject error:', error);
+                        setClassOptions([]);
+                    }
+                };
+
+                if (testSelect) {
+                    testSelect.addEventListener('change', () => {
+                        const subjectId = testSelect.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
+                        loadClassesForSubject(subjectId);
+                    });
+                }
+
+                const initialSubjectId = testSelect?.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
+                if (!initialSubjectId) {
+                    if (classSelect) classSelect.innerHTML = `<option value="">Select test first</option>`;
+                } else {
+                    loadClassesForSubject(initialSubjectId);
+                }
+            }
 
             // Close on overlay click
             document.getElementById('assignmentModal').addEventListener('click', (e) => {
@@ -783,3 +838,5 @@
         }
     };
 })();
+
+
