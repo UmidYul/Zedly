@@ -727,6 +727,17 @@
         classes: [],
         assignmentCounter: 0,
 
+        getCurrentRole: function () {
+            try {
+                const userStr = localStorage.getItem('user');
+                if (!userStr) return null;
+                const user = JSON.parse(userStr);
+                return user.role || null;
+            } catch (error) {
+                return null;
+            }
+        },
+
         // Toggle teacher/student fields visibility
         toggleRoleFields: async function (role) {
             const teacherFields = document.getElementById('teacherFields');
@@ -761,9 +772,11 @@
         loadSubjectsAndClasses: async function () {
             try {
                 const token = localStorage.getItem('access_token');
+                const role = this.getCurrentRole();
+                const isTeacher = role === 'teacher';
 
-                // Для учителей — только назначенные предметы
-                const subjectsResponse = await fetch('/api/teacher/subjects', {
+                const subjectsEndpoint = isTeacher ? '/api/teacher/subjects' : '/api/admin/subjects?page=1&limit=1000';
+                const subjectsResponse = await fetch(subjectsEndpoint, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (subjectsResponse.ok) {
@@ -771,13 +784,17 @@
                     this.subjects = subjectsData.subjects || [];
                 }
 
-                // Классы по-прежнему через admin
-                const classesResponse = await fetch('/api/admin/classes?page=1&limit=1000&search=&grade=all', {
+                const classesEndpoint = isTeacher
+                    ? '/api/teacher/classes?page=1&limit=1000&search=&grade=all'
+                    : '/api/admin/classes?page=1&limit=1000&search=&grade=all';
+                const classesResponse = await fetch(classesEndpoint, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (classesResponse.ok) {
                     const classesData = await classesResponse.json();
                     this.classes = classesData.classes || [];
+                }
+            }
                 }
             } catch (error) {
                 console.error('Load subjects/classes error:', error);
@@ -830,7 +847,12 @@
             }
             try {
                 const token = localStorage.getItem('access_token');
-                const response = await fetch(`/api/teacher/classes?subject_id=${subjectId}`, {
+                const role = this.getCurrentRole();
+                const isTeacher = role === 'teacher';
+                const endpoint = isTeacher
+                    ? `/api/teacher/classes?subject_id=${subjectId}`
+                    : `/api/admin/classes?page=1&limit=1000&search=&grade=all`;
+                const response = await fetch(endpoint, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
