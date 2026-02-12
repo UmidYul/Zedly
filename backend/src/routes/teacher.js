@@ -1,3 +1,36 @@
+/**
+ * GET /api/teacher/classes
+ * Get classes for current teacher, optionally filtered by subject_id
+ */
+router.get('/classes', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+        const { subject_id } = req.query;
+
+        let queryStr = `
+            SELECT c.id, c.name, c.grade_level
+            FROM teacher_class_subjects tcs
+            JOIN classes c ON tcs.class_id = c.id
+            WHERE tcs.teacher_id = $1 AND c.school_id = $2 AND c.is_active = true
+        `;
+        const params = [teacherId, schoolId];
+        if (subject_id) {
+            queryStr += ' AND tcs.subject_id = $3';
+            params.push(subject_id);
+        }
+        queryStr += ' GROUP BY c.id, c.name, c.grade_level ORDER BY c.grade_level DESC, c.name ASC';
+
+        const result = await query(queryStr, params);
+        res.json({ classes: result.rows });
+    } catch (error) {
+        console.error('Get teacher classes error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch classes'
+        });
+    }
+});
 const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');

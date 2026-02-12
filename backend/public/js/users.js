@@ -795,15 +795,11 @@
                 `<option value="${s.id}">${s.name}</option>`
             ).join('');
 
-            const classOptions = this.classes.map(c =>
-                `<option value="${c.id}">${c.name} (Grade ${c.grade_level})</option>`
-            ).join('');
-
-            assignmentDivs.forEach(div => {
+            assignmentDivs.forEach(async div => {
                 const subjectSelect = div.querySelector('select[name^="subject_"]');
                 const classSelect = div.querySelector('select[name^="classes_"]');
 
-                // Always re-render all class options and re-select previous
+                // Always re-render all subject options and re-select previous
                 const selectedSubject = subjectSelect?.value || '';
                 const selectedClasses = classSelect
                     ? Array.from(classSelect.selectedOptions).map(opt => opt.value)
@@ -812,19 +808,50 @@
                 if (subjectSelect) {
                     subjectSelect.innerHTML = `<option value="">Select subject</option>${subjectOptions}`;
                     subjectSelect.value = selectedSubject;
+
+                    // При изменении предмета — фильтруем классы
+                    subjectSelect.onchange = async () => {
+                        await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value);
+                    };
                 }
 
-                if (classSelect) {
+                // Изначально фильтруем классы по выбранному предмету
+                await window.UsersManager.updateAssignmentClasses(div, selectedSubject, selectedClasses);
+            });
+        },
+
+        // Фильтрует классы по предмету для конкретного assignment
+        updateAssignmentClasses: async function (div, subjectId, preselectClassIds = []) {
+            const classSelect = div.querySelector('select[name^="classes_"]');
+            if (!classSelect) return;
+            if (!subjectId) {
+                classSelect.innerHTML = '';
+                return;
+            }
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/teacher/classes?subject_id=${subjectId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const classOptions = data.classes.map(c =>
+                        `<option value="${c.id}">${c.name} (Grade ${c.grade_level})</option>`
+                    ).join('');
                     classSelect.innerHTML = classOptions;
-                    // Always re-select all previously selected classes
-                    selectedClasses.forEach(value => {
+                    // Проставить выбранные классы, если есть
+                    preselectClassIds.forEach(value => {
                         const option = classSelect.querySelector(`option[value="${value}"]`);
                         if (option) {
                             option.selected = true;
                         }
                     });
+                } else {
+                    classSelect.innerHTML = '';
                 }
-            });
+            } catch (error) {
+                classSelect.innerHTML = '';
+            }
         },
 
         // Add new teacher assignment row
