@@ -24,6 +24,8 @@
         beforeUnloadHandler: null,
         allowPageLeave: false,
         shuffledOptionOrder: {},
+        fullscreenChangeHandler: null,
+        fullscreenGateBound: false,
 
         notify: function (message, options) {
             if (window.ZedlyDialog?.alert) {
@@ -45,6 +47,12 @@
             this.allowPageLeave = true;
             if (this.beforeUnloadHandler) {
                 window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            }
+            if (this.fullscreenChangeHandler) {
+                document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
+                document.removeEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+                document.removeEventListener('mozfullscreenchange', this.fullscreenChangeHandler);
+                document.removeEventListener('MSFullscreenChange', this.fullscreenChangeHandler);
             }
             window.location.href = url;
         },
@@ -217,14 +225,7 @@
             }
 
             if (this.proctoring.fullscreenRequired) {
-                this.requestFullscreen();
-                document.addEventListener('fullscreenchange', () => {
-                    if (!document.fullscreenElement && !this.attempt.is_completed) {
-                        this.recordSuspiciousActivity('fullscreen_exit', {});
-                        this.showProctoringNotice('Fullscreen is required. Please return to fullscreen.');
-                        this.requestFullscreen();
-                    }
-                });
+                this.initFullscreenEnforcement();
             }
         },
 
@@ -247,16 +248,90 @@
             });
         },
 
-        requestFullscreen: function () {
+        isFullscreenActive: function () {
+            return Boolean(
+                document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.mozFullScreenElement ||
+                document.msFullscreenElement
+            );
+        },
+
+        requestFullscreen: async function () {
             const root = document.documentElement;
-            if (!root.requestFullscreen) {
+            const request = root.requestFullscreen ||
+                root.webkitRequestFullscreen ||
+                root.mozRequestFullScreen ||
+                root.msRequestFullscreen;
+
+            if (!request || this.isFullscreenActive()) {
                 return;
             }
-            if (!document.fullscreenElement) {
-                root.requestFullscreen().catch(() => {
-                    this.showProctoringNotice('Please enable fullscreen to continue this test.');
-                });
+
+            try {
+                await request.call(root);
+            } catch (error) {
+                this.showProctoringNotice('Please enable fullscreen to continue this test.');
             }
+        },
+
+        ensureFullscreenGate: function () {
+            let gate = document.getElementById('fullscreenGate');
+            if (!gate) {
+                gate = document.createElement('div');
+                gate.id = 'fullscreenGate';
+                gate.className = 'fullscreen-gate';
+                gate.innerHTML = `
+                    <div class="fullscreen-gate-card">
+                        <h3>Fullscreen Required</h3>
+                        <p>This test requires fullscreen mode.</p>
+                        <button type="button" class="btn btn-primary" id="fullscreenGateBtn">Enter Fullscreen</button>
+                    </div>
+                `;
+                document.body.appendChild(gate);
+            }
+
+            if (!this.fullscreenGateBound) {
+                const button = document.getElementById('fullscreenGateBtn');
+                if (button) {
+                    button.addEventListener('click', async () => {
+                        await this.requestFullscreen();
+                        this.updateFullscreenGate();
+                    });
+                }
+                this.fullscreenGateBound = true;
+            }
+        },
+
+        updateFullscreenGate: function () {
+            const gate = document.getElementById('fullscreenGate');
+            if (!gate) return;
+
+            const shouldBlock = this.proctoring.fullscreenRequired && !this.isFullscreenActive() && this.attempt && !this.attempt.is_completed;
+            gate.classList.toggle('show', shouldBlock);
+        },
+
+        initFullscreenEnforcement: function () {
+            this.ensureFullscreenGate();
+            this.updateFullscreenGate();
+
+            if (!this.fullscreenChangeHandler) {
+                this.fullscreenChangeHandler = () => {
+                    if (!this.isFullscreenActive() && this.attempt && !this.attempt.is_completed) {
+                        this.recordSuspiciousActivity('fullscreen_exit', {});
+                        this.showProctoringNotice('Fullscreen is required. Please return to fullscreen.');
+                    }
+                    this.updateFullscreenGate();
+                };
+            }
+
+            document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+            document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+            document.addEventListener('mozfullscreenchange', this.fullscreenChangeHandler);
+            document.addEventListener('MSFullscreenChange', this.fullscreenChangeHandler);
+
+            // Best-effort request after init; if blocked by browser, gate button handles user gesture.
+            this.requestFullscreen();
         },
 
         showProctoringNotice: function (message) {

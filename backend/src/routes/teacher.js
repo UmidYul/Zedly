@@ -1,6 +1,9 @@
 
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const bcrypt = require('bcrypt');
@@ -55,6 +58,54 @@ async function getAttemptOverviewExpressions(alias = 'att') {
 // All routes require teacher or school_admin role
 router.use(authenticate);
 router.use(authorize('teacher', 'school_admin'));
+
+const questionUploadsDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'questions');
+if (!fs.existsSync(questionUploadsDir)) {
+    fs.mkdirSync(questionUploadsDir, { recursive: true });
+}
+
+const questionImageUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, questionUploadsDir),
+        filename: (req, file, cb) => {
+            const ext = path.extname(file.originalname || '').toLowerCase() || '.png';
+            cb(null, `question_${Date.now()}_${Math.round(Math.random() * 1e9)}${ext}`);
+        }
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+            return cb(new Error('Only image files are allowed'));
+        }
+        cb(null, true);
+    }
+});
+
+/**
+ * POST /api/teacher/upload/question-image
+ * Upload image for image-based question
+ */
+router.post('/upload/question-image', questionImageUpload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No image uploaded'
+            });
+        }
+
+        res.status(201).json({
+            message: 'Image uploaded successfully',
+            url: `/uploads/questions/${req.file.filename}`
+        });
+    } catch (error) {
+        console.error('Question image upload error:', error);
+        res.status(400).json({
+            error: 'upload_error',
+            message: error.message || 'Failed to upload image'
+        });
+    }
+});
 
 /**
  * ========================================

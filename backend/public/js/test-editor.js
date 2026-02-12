@@ -606,7 +606,16 @@
                 <div class="form-group">
                     <label class="form-label">Question Image URL <span class="required">*</span></label>
                     <input type="url" id="imageUrl" class="form-input" value="${question.media_url || ''}" placeholder="https://..." required>
-                    ${question.media_url ? `<img src="${question.media_url}" alt="Preview" style="max-width: 100%; max-height: 300px; margin-top: 10px; border-radius: 8px;">` : ''}
+                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
+                        <input type="file" id="imageFileInput" accept="image/*" class="form-input" style="max-width: 320px;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="TestEditor.uploadImageForQuestion()">
+                            Upload Image
+                        </button>
+                        <span id="imageUploadStatus" style="font-size: 12px; color: var(--text-secondary);"></span>
+                    </div>
+                    <div id="imagePreviewWrap" style="margin-top: 10px;">
+                        ${question.media_url ? `<img id="imagePreview" src="${question.media_url}" alt="Preview" style="max-width: 100%; max-height: 300px; border-radius: 8px;">` : '<img id="imagePreview" src="" alt="Preview" style="display:none; max-width: 100%; max-height: 300px; border-radius: 8px;">'}
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Answer Type</label>
@@ -619,6 +628,50 @@
                     ${this.renderSingleChoiceEditor(question)}
                 </div>
             `;
+        },
+
+        uploadImageForQuestion: async function () {
+            const fileInput = document.getElementById('imageFileInput');
+            const imageUrlInput = document.getElementById('imageUrl');
+            const status = document.getElementById('imageUploadStatus');
+            const preview = document.getElementById('imagePreview');
+
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                alert('Please choose an image file first');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                if (status) status.textContent = 'Uploading...';
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/teacher/upload/question-image', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to upload image');
+                }
+
+                if (imageUrlInput) imageUrlInput.value = data.url;
+                if (preview) {
+                    preview.src = data.url;
+                    preview.style.display = 'block';
+                }
+                if (status) status.textContent = 'Uploaded successfully';
+            } catch (error) {
+                console.error('Question image upload error:', error);
+                if (status) status.textContent = '';
+                alert(error.message || 'Failed to upload image');
+            }
         },
 
         // Helper methods for dynamic options/answers/pairs/items
