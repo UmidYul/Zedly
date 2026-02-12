@@ -91,75 +91,78 @@ const CareerAdminManager = {
         CareerAdminManager._removeQuestion = idx => { questions.splice(idx, 1); renderQuestions(); };
         modal.querySelector('#addCareerQuestionBtn').onclick = () => {
             questions.push({
-                question_text_ru: '', question_text_uz: '', options_raw: '[{"text_ru":"Да","text_uz":"Ha","value":1},{"text_ru":"Нет","text_uz":"Yo'q","value":0}]' });
+                question_text_ru: '',
+                question_text_uz: '',
+                options_raw: '[{"text_ru":"Да","text_uz":"Ha","value":1},{"text_ru":"Нет","text_uz":"Yo'q","value":0}]'
+            });
             renderQuestions();
+        };
+        renderQuestions();
+        modal.querySelector('#createCareerTestForm').onsubmit = async function (e) {
+            e.preventDefault();
+            // Собрать данные
+            const form = e.target;
+            const test = {
+                title_ru: form.title_ru.value,
+                title_uz: form.title_uz.value,
+                description_ru: form.description_ru.value,
+                description_uz: form.description_uz.value,
+                questions: questions.map((q, i) => ({
+                    question_text_ru: q.question_text_ru,
+                    question_text_uz: q.question_text_uz,
+                    options: JSON.parse(q.options_raw || '[]'),
+                    order_number: i + 1
+                }))
             };
-            renderQuestions();
-            modal.querySelector('#createCareerTestForm').onsubmit = async function (e) {
-                e.preventDefault();
-                // Собрать данные
-                const form = e.target;
-                const test = {
-                    title_ru: form.title_ru.value,
-                    title_uz: form.title_uz.value,
-                    description_ru: form.description_ru.value,
-                    description_uz: form.description_uz.value,
-                    questions: questions.map((q, i) => ({
-                        question_text_ru: q.question_text_ru,
-                        question_text_uz: q.question_text_uz,
-                        options: JSON.parse(q.options_raw || '[]'),
-                        order_number: i + 1
-                    }))
-                };
-                try {
-                    const res = await fetch('/api/admin/career/tests', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-                        },
-                        body: JSON.stringify(test)
-                    });
-                    if (!res.ok) throw new Error('Ошибка создания теста');
-                    modal.remove();
-                    CareerAdminManager.loadTests();
-                } catch (err) {
-                    alert('Ошибка: ' + err.message);
-                }
-            };
-        },
-
-            editTest(id) {
-            alert('Окно редактирования теста: ' + id);
-        },
-
-        deleteTest(id) {
-            if (confirm('Удалить тест?')) {
-                // TODO: API call to delete
-                alert('Тест удалён (реализовать API)');
+            try {
+                const res = await fetch('/api/admin/career/tests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify(test)
+                });
+                if (!res.ok) throw new Error('Ошибка создания теста');
+                modal.remove();
+                CareerAdminManager.loadTests();
+            } catch (err) {
+                alert('Ошибка: ' + err.message);
             }
-        },
+        };
+    },
+
+    editTest(id) {
+        alert('Окно редактирования теста: ' + id);
+    },
+
+    deleteTest(id) {
+        if (confirm('Удалить тест?')) {
+            // TODO: API call to delete
+            alert('Тест удалён (реализовать API)');
+        }
+    },
 
     async loadAnalytics() {
-            const analytics = document.getElementById('careerAnalytics');
-            if (!analytics) return;
-            analytics.innerHTML = '<div class="spinner"></div>';
-            try {
-                const res = await fetch('/api/admin/career/analytics', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                });
-                if (!res.ok) throw new Error('Failed to load analytics');
-                const data = await res.json();
-                analytics.innerHTML = CareerAdminManager.renderAnalytics(data);
-            } catch (e) {
-                analytics.innerHTML = `<p style="color: var(--danger);">Ошибка загрузки аналитики</p>`;
-            }
-        },
-
-        renderAnalytics(data) {
-            // Placeholder: implement Chart.js analytics rendering
-            return `<div>Аналитика профориентации (реализовать графики и таблицы)</div>`;
+        const analytics = document.getElementById('careerAnalytics');
+        if (!analytics) return;
+        analytics.innerHTML = '<div class="spinner"></div>';
+        try {
+            const res = await fetch('/api/admin/career/analytics', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+            });
+            if (!res.ok) throw new Error('Failed to load analytics');
+            const data = await res.json();
+            analytics.innerHTML = CareerAdminManager.renderAnalytics(data);
+        } catch (e) {
+            analytics.innerHTML = `<p style="color: var(--danger);">Ошибка загрузки аналитики</p>`;
         }
-    };
+    },
 
-    window.CareerAdminManager = CareerAdminManager;
+    renderAnalytics(data) {
+        // Placeholder: implement Chart.js analytics rendering
+        return `<div>Аналитика профориентации (реализовать графики и таблицы)</div>`;
+    }
+};
+
+window.CareerAdminManager = CareerAdminManager;
