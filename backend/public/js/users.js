@@ -730,6 +730,82 @@
         classes: [],
         assignmentCounter: 0,
 
+        addTeacherAssignment: function (subjectId = '', classIds = []) {
+            const container = document.getElementById('teacherAssignments');
+            if (!container) return;
+
+            this.assignmentCounter += 1;
+            const id = `assign_${this.assignmentCounter}`;
+
+            const subjectOptions = this.subjects.map(s =>
+                `<option value="${s.id}">${s.name}</option>`
+            ).join('');
+
+            const div = document.createElement('div');
+            div.className = 'teacher-assignment';
+            div.dataset.id = id;
+            div.innerHTML = `
+                <div class="assignment-row">
+                    <div class="assignment-col">
+                        <label class="form-label">Subject</label>
+                        <select class="form-input" name="subject_${id}">
+                            <option value="">Select subject</option>
+                            ${subjectOptions}
+                        </select>
+                    </div>
+                    <div class="assignment-col">
+                        <label class="form-label">Classes</label>
+                        <div class="multi-choice-list" data-empty="Select one or more classes"></div>
+                    </div>
+                    <button type="button" class="assignment-remove-btn" onclick="UsersManager.removeTeacherAssignment('${id}')" title="Remove">
+                        &times;
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+
+            const subjectSelect = div.querySelector(`select[name="subject_${id}"]`);
+            if (subjectSelect) {
+                if (subjectId) subjectSelect.value = subjectId;
+                subjectSelect.onchange = async () => {
+                    await this.updateAssignmentClasses(div, subjectSelect.value);
+                };
+            }
+
+            if (subjectId) {
+                this.updateAssignmentClasses(div, subjectId, classIds);
+            }
+        },
+
+        updateAssignmentClasses: function (assignmentDiv, subjectId, preselected = []) {
+            const classList = assignmentDiv.querySelector('.multi-choice-list');
+            if (!classList) return;
+
+            classList.innerHTML = '';
+
+            if (!subjectId) {
+                classList.innerHTML = `<div class="multi-choice-empty">Select one or more classes</div>`;
+                return;
+            }
+
+            if (!this.classes.length) {
+                classList.innerHTML = `<div class="multi-choice-empty">No classes available</div>`;
+                return;
+            }
+
+            const id = assignmentDiv.dataset.id;
+            classList.innerHTML = this.classes.map(cls => {
+                const label = `${cls.name} (Grade ${cls.grade_level})`;
+                const checked = preselected.includes(String(cls.id)) ? 'checked' : '';
+                return `
+                    <label class="multi-choice-item">
+                        <input type="checkbox" name="classes_${id}" value="${cls.id}" ${checked}>
+                        <span>${label}</span>
+                    </label>
+                `;
+            }).join('');
+        },
+
         getCurrentRole: function () {
             try {
                 const userStr = localStorage.getItem('user');
@@ -840,37 +916,37 @@
             });
         },
 
-            // Remove teacher assignment row
-            removeTeacherAssignment: function (assignmentId) {
-                const assignment = document.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
-                if (assignment) {
-                    assignment.remove();
+        // Remove teacher assignment row
+        removeTeacherAssignment: function (assignmentId) {
+            const assignment = document.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
+            if (assignment) {
+                assignment.remove();
+            }
+        },
+
+        // Get teacher assignments from form
+        getTeacherAssignments: function () {
+            const assignments = [];
+            const container = document.getElementById('teacherAssignments');
+            const assignmentDivs = container.querySelectorAll('.teacher-assignment');
+
+            assignmentDivs.forEach(div => {
+                const id = div.dataset.id;
+                const subjectId = div.querySelector(`[name="subject_${id}"]`)?.value;
+                // For checkboxes, collect all checked values
+                const checkedBoxes = div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`);
+                const classIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+                if (subjectId && classIds.length > 0) {
+                    assignments.push({
+                        subject_id: subjectId,
+                        class_ids: classIds
+                    });
                 }
-            },
+            });
 
-            // Get teacher assignments from form
-            getTeacherAssignments: function () {
-                const assignments = [];
-                const container = document.getElementById('teacherAssignments');
-                const assignmentDivs = container.querySelectorAll('.teacher-assignment');
-
-                assignmentDivs.forEach(div => {
-                    const id = div.dataset.id;
-                    const subjectId = div.querySelector(`[name="subject_${id}"]`)?.value;
-                    // For checkboxes, collect all checked values
-                    const checkedBoxes = div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`);
-                    const classIds = Array.from(checkedBoxes).map(cb => cb.value);
-
-                    if (subjectId && classIds.length > 0) {
-                        assignments.push({
-                            subject_id: subjectId,
-                            class_ids: classIds
-                        });
-                    }
-                });
-
-                return assignments;
-            },
+            return assignments;
+        },
 
             // Show OTP password modal after user creation
             showOtpModal: function (otp) {
