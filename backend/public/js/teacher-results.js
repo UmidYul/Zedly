@@ -10,7 +10,8 @@
 
         // Safely serialize values for inline onclick handlers
         toJsArg: function (value) {
-            return JSON.stringify(String(value ?? ''));
+            const str = String(value ?? '');
+            return `'${str.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
         },
 
         // Initialize results viewer
