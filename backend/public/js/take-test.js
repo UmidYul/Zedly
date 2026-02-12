@@ -21,6 +21,8 @@
             fullscreenRequired: true
         },
         lastTabSwitchAt: 0,
+        beforeUnloadHandler: null,
+        allowPageLeave: false,
 
         notify: function (message, options) {
             if (window.ZedlyDialog?.alert) {
@@ -37,6 +39,15 @@
             return Promise.resolve(confirm(message));
         },
 
+        // Disable unsaved-changes prompt and navigate away
+        leavePage: function (url) {
+            this.allowPageLeave = true;
+            if (this.beforeUnloadHandler) {
+                window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            }
+            window.location.href = url;
+        },
+
         // Initialize test taking page
         init: async function () {
             // Get attempt ID from URL
@@ -45,7 +56,7 @@
 
             if (!this.attemptId) {
                 await this.notify('Invalid test attempt');
-                window.location.href = '/dashboard.html';
+                this.leavePage('/dashboard.html');
                 return;
             }
 
@@ -68,12 +79,13 @@
             this.renderQuestion();
 
             // Prevent accidental page leave
-            window.addEventListener('beforeunload', (e) => {
-                if (!this.attempt.is_completed) {
+            this.beforeUnloadHandler = (e) => {
+                if (!this.allowPageLeave && this.attempt && !this.attempt.is_completed) {
                     e.preventDefault();
                     e.returnValue = 'Your test progress will be saved, but are you sure you want to leave?';
                 }
-            });
+            };
+            window.addEventListener('beforeunload', this.beforeUnloadHandler);
         },
 
         // Load attempt and questions
@@ -95,14 +107,14 @@
                 this.questions = data.questions;
 
                 if (this.attempt.is_completed) {
-                    window.location.href = `/test-results.html?attempt_id=${this.attemptId}`;
+                    this.leavePage(`/test-results.html?attempt_id=${this.attemptId}`);
                     return;
                 }
 
                 // Validate questions exist
                 if (!this.questions || this.questions.length === 0) {
                     await this.notify('This test has no questions. Please contact your teacher.');
-                    window.location.href = '/dashboard.html';
+                    this.leavePage('/dashboard.html');
                     return;
                 }
 
@@ -147,7 +159,7 @@
             } catch (error) {
                 console.error('Load attempt error:', error);
                 await this.notify('Failed to load test. Redirecting to dashboard.');
-                window.location.href = '/dashboard.html';
+                this.leavePage('/dashboard.html');
             }
         },
 
@@ -390,7 +402,7 @@
                 console.error('Question not found at index:', this.currentQuestionIndex);
                 this.notify('Unable to load question. Returning to dashboard.')
                     .then(() => {
-                        window.location.href = '/dashboard.html';
+                        this.leavePage('/dashboard.html');
                     });
                 return;
             }
@@ -844,13 +856,17 @@
                         `Test submitted successfully!\n\nYour score: ${data.score}/${data.max_score} (${data.percentage}%)\nStatus: ${data.passed ? 'Passed' : 'Not Passed'}`,
                         { title: 'Test Submitted' }
                     );
-                    window.location.href = '/dashboard.html';
+                    this.leavePage('/dashboard.html');
                 } else {
                     throw new Error(data.message || 'Failed to submit test');
                 }
             } catch (error) {
                 console.error('Submit test error:', error);
                 await this.notify('Failed to submit test. Please try again.');
+                this.allowPageLeave = true;
+                if (this.beforeUnloadHandler) {
+                    window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+                }
                 window.location.reload();
             }
         }
