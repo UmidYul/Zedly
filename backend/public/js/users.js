@@ -294,7 +294,7 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <form id="userForm" onsubmit="UsersManager.submitUser(event, ${userId})">
+                            <form id="userForm" onsubmit="return UsersManager.submitUser(event, ${userId ? `'${userId}'` : 'null'})">
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
