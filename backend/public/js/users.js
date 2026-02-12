@@ -707,9 +707,11 @@
         toggleRoleFields: async function (role) {
             const teacherFields = document.getElementById('teacherFields');
             const studentFields = document.getElementById('studentFields');
+            const studentClassSelect = document.getElementById('studentClassSelect');
             if (role === 'teacher') {
                 teacherFields.style.display = 'block';
                 studentFields.style.display = 'none';
+                if (studentClassSelect) studentClassSelect.disabled = true;
                 if (!this.subjects.length || !this.classes.length) {
                     await this.loadSubjectsAndClasses();
                 }
@@ -722,10 +724,12 @@
             } else if (role === 'student') {
                 teacherFields.style.display = 'none';
                 studentFields.style.display = 'block';
+                if (studentClassSelect) studentClassSelect.disabled = false;
                 // Optionally, set class select value if editing
             } else {
                 teacherFields.style.display = 'none';
                 studentFields.style.display = 'none';
+                if (studentClassSelect) studentClassSelect.disabled = true;
             }
         },
 
