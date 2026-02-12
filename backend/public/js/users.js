@@ -794,8 +794,6 @@
                     const classesData = await classesResponse.json();
                     this.classes = classesData.classes || [];
                 }
-            }
-                }
             } catch (error) {
                 console.error('Load subjects/classes error:', error);
             }
