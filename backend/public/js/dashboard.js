@@ -12,7 +12,8 @@
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'building', label: 'dashboard.nav.schools', id: 'schools', href: '#schools' },
-                    { icon: 'users', label: 'School Admins', id: 'school-admins', href: '#school-admins' }
+                    { icon: 'users', label: 'School Admins', id: 'school-admins', href: '#school-admins' },
+                    { icon: 'target', label: 'dashboard.nav.careerResults', id: 'career-results', href: '#career-results' }
                 ]
             },
             {
@@ -27,8 +28,7 @@
                 section: 'dashboard.nav.system',
                 items: [
                     { icon: 'sliders', label: 'dashboard.nav.settings', id: 'settings', href: '#settings' },
-                    { icon: 'shield', label: 'dashboard.nav.audit', id: 'audit', href: '#audit' },
-                    { icon: 'target', label: 'dashboard.nav.careerAdmin', id: 'career-admin', href: '#career-admin' }
+                    { icon: 'shield', label: 'dashboard.nav.audit', id: 'audit', href: '#audit' }
                 ]
             }
         ],
@@ -39,7 +39,8 @@
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'users', label: 'dashboard.nav.users', id: 'users', href: '#users' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
-                    { icon: 'book', label: 'dashboard.nav.subjects', id: 'subjects', href: '#subjects' }
+                    { icon: 'book', label: 'dashboard.nav.subjects', id: 'subjects', href: '#subjects' },
+                    { icon: 'target', label: 'dashboard.nav.career', id: 'career-admin', href: '#career-admin' }
                 ]
             },
             {
@@ -403,7 +404,9 @@
             'import': { src: '/js/import-export.js', manager: 'ImportExportManager' },
             'export': { src: '/js/import-export.js', manager: 'ImportExportManager' },
             'progress': { src: '/js/student-progress.js', manager: 'StudentProgress' },
-            'leaderboard': { src: '/js/student-leaderboard.js', manager: 'StudentLeaderboard' }
+            'leaderboard': { src: '/js/student-leaderboard.js', manager: 'StudentLeaderboard' },
+            'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
+            'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -448,6 +451,21 @@
 
     // Get page content (placeholder - will be replaced with actual components)
     function getPageContent(page) {
+                // Career Results (SuperAdmin, read-only)
+                if (page === 'career-results' && role === 'superadmin') {
+                    return `
+                        <div class="page-header-section">
+                            <h1 class="page-main-title" data-i18n="career.resultsTitle">Профориентация: Результаты</h1>
+                            <p class="page-subtitle" data-i18n="career.resultsSubtitle">Просмотр результатов профориентации по школам, классам и ученикам</p>
+                        </div>
+                        <div class="dashboard-section">
+                            <div class="section-header">
+                                <h2 class="section-title" data-i18n="career.resultsAnalytics">Аналитика и результаты</h2>
+                            </div>
+                            <div id="careerResultsAnalytics"></div>
+                        </div>
+                    `;
+                }
         const role = currentUser?.role || 'student';
 
         // Schools Management (SuperAdmin)
@@ -1187,6 +1205,29 @@
             `;
         }
 
+        // Career Management (SchoolAdmin)
+        if (page === 'career-admin' && role === 'school_admin') {
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title" data-i18n="career.adminTitle">Профориентация: Управление тестами</h1>
+                    <p class="page-subtitle" data-i18n="career.adminSubtitle">Создавайте, редактируйте и анализируйте профориентационные тесты для вашей школы</p>
+                </div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title" data-i18n="career.tests">Тесты профориентации</h2>
+                        <button class="btn btn-primary" id="addCareerTestBtn" data-i18n="career.addTest">Создать тест</button>
+                    </div>
+                    <div id="careerTestsTable"></div>
+                </div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title" data-i18n="career.analytics">Аналитика и результаты</h2>
+                    </div>
+                    <div id="careerAnalytics"></div>
+                </div>
+            `;
+        }
+
         // Test Assignments Management (Teacher)
         if (page === 'assignments') {
             return `
@@ -1224,36 +1265,7 @@
             `;
         }
 
-        // Career Interests Management (SuperAdmin)
-        if (page === 'career-admin' && role === 'superadmin') {
-            return `
-                <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="careerAdmin.title">Профориентация</h1>
-                    <p class="page-subtitle" data-i18n="careerAdmin.subtitle">Управление направлениями и описаниями</p>
-                </div>
-                <div class="page-toolbar">
-                    <div class="search-box">
-                        <input
-                            type="text"
-                            id="careerAdminSearch"
-                            class="search-input"
-                            placeholder="Search interests..."
-                            data-i18n-placeholder="careerAdmin.search"
-                        />
-                    </div>
-                    <div class="toolbar-right">
-                        <button class="btn btn-primary" id="addCareerInterestBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            <span data-i18n="careerAdmin.add">Добавить направление</span>
-                        </button>
-                    </div>
-                </div>
-                <div id="careerInterestsContainer"></div>
-            `;
-        }
+        // Career Interests Management (SuperAdmin) — удалено по требованиям RBAC
 
         // Global Statistics (SuperAdmin) / School Statistics (School Admin)
         if (page === 'statistics') {
