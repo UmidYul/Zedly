@@ -73,31 +73,38 @@
 .test-container {
     max-width: 980px;
     margin: 0 auto;
-    padding: var(--spacing-xl);
+    padding: var(--spacing-xl) var(--spacing-xl) 230px;
     display: block;
     min-height: calc(100vh - 120px);
 }
 
 /* Question Navigation */
 .question-nav {
-    margin-top: var(--spacing-lg);
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: min(980px, calc(100vw - 24px));
     background: var(--surface-card);
-    border-top: 1px solid var(--border-light);
-    padding: var(--spacing-xl);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-md);
+    box-shadow: 0 -16px 32px rgba(0, 0, 0, 0.35);
+    z-index: 90;
 }
 
 .nav-header {
     border-bottom: 1px solid var(--border-light);
-    padding-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
 }
 
 .nav-header h3 {
-    font-size: 1.125rem;
+    font-size: 1rem;
     font-weight: 700;
-    margin: 0 0 var(--spacing-md) 0;
+    margin: 0 0 var(--spacing-sm) 0;
     color: var(--text-primary);
 }
 
@@ -134,8 +141,20 @@
 
 .nav-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
     gap: var(--spacing-sm);
+    max-height: 108px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.nav-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nav-grid::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 8px;
 }
 
 .nav-question {
@@ -667,6 +686,7 @@
 @media (max-width: 1024px) {
     .test-container {
         max-width: 100%;
+        padding-bottom: 250px;
     }
 }
 
@@ -690,6 +710,7 @@
     .test-container {
         padding: var(--spacing-md);
         gap: var(--spacing-md);
+        padding-bottom: 250px;
     }
 
     .question-card {
@@ -763,6 +784,11 @@
 
     .nav-grid {
         grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    }
+
+    .question-nav {
+        width: calc(100vw - 12px);
+        padding: var(--spacing-sm) var(--spacing-md);
     }
 
     .question-text {

@@ -23,6 +23,7 @@
         lastTabSwitchAt: 0,
         beforeUnloadHandler: null,
         allowPageLeave: false,
+        shuffledOptionOrder: {},
 
         notify: function (message, options) {
             if (window.ZedlyDialog?.alert) {
@@ -133,6 +134,9 @@
                 if (this.attempt.answers && typeof this.attempt.answers === 'object') {
                     this.answers = this.attempt.answers;
                 }
+
+                // Build deterministic shuffled option order per attempt/question
+                this.initOptionShuffle();
 
                 // Calculate end time
                 const startedAt = new Date(this.attempt.started_at);
@@ -479,16 +483,18 @@
         // Render single choice
         renderSingleChoice: function (question, existingAnswer) {
             const options = question.options || [];
+            const optionOrder = this.getOptionOrder(question);
             let html = '<div class="options-list">';
 
-            options.forEach((option, index) => {
-                const isChecked = existingAnswer === index;
+            optionOrder.forEach((originalIndex) => {
+                const option = options[originalIndex];
+                const isChecked = existingAnswer === originalIndex;
                 html += `
                     <label class="option-label">
                         <input
                             type="radio"
                             name="question_${question.id}"
-                            value="${index}"
+                            value="${originalIndex}"
                             ${isChecked ? 'checked' : ''}
                         />
                         <span>${option}</span>
@@ -503,17 +509,19 @@
         // Render multiple choice
         renderMultipleChoice: function (question, existingAnswer) {
             const options = question.options || [];
+            const optionOrder = this.getOptionOrder(question);
             const selectedOptions = Array.isArray(existingAnswer) ? existingAnswer : [];
             let html = '<div class="options-list">';
 
-            options.forEach((option, index) => {
-                const isChecked = selectedOptions.includes(index);
+            optionOrder.forEach((originalIndex) => {
+                const option = options[originalIndex];
+                const isChecked = selectedOptions.includes(originalIndex);
                 html += `
                     <label class="option-label">
                         <input
                             type="checkbox"
                             name="question_${question.id}"
-                            value="${index}"
+                            value="${originalIndex}"
                             ${isChecked ? 'checked' : ''}
                         />
                         <span>${option}</span>
@@ -683,6 +691,60 @@
         // Render image-based
         renderImageBased: function (question, existingAnswer) {
             return this.renderSingleChoice(question, existingAnswer);
+        },
+
+        // Deterministic shuffle helper so order stays stable for the same attempt/question
+        hashString: function (value) {
+            let hash = 2166136261;
+            const str = String(value || '');
+            for (let i = 0; i < str.length; i++) {
+                hash ^= str.charCodeAt(i);
+                hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+            }
+            return hash >>> 0;
+        },
+
+        seededRandom: function (seed) {
+            let s = seed >>> 0;
+            return function () {
+                s = (1664525 * s + 1013904223) >>> 0;
+                return s / 4294967296;
+            };
+        },
+
+        shuffleWithSeed: function (array, seed) {
+            const result = [...array];
+            const rnd = this.seededRandom(seed);
+            for (let i = result.length - 1; i > 0; i--) {
+                const j = Math.floor(rnd() * (i + 1));
+                [result[i], result[j]] = [result[j], result[i]];
+            }
+            return result;
+        },
+
+        initOptionShuffle: function () {
+            this.shuffledOptionOrder = {};
+            const attemptKey = String(this.attemptId || this.attempt?.id || '');
+
+            this.questions.forEach((question) => {
+                if (!question || !Array.isArray(question.options) || question.options.length <= 1) {
+                    return;
+                }
+
+                if (!['singlechoice', 'multiplechoice', 'imagebased'].includes(question.question_type)) {
+                    return;
+                }
+
+                const baseOrder = question.options.map((_, idx) => idx);
+                const seed = this.hashString(`${attemptKey}:${question.id}`);
+                this.shuffledOptionOrder[question.id] = this.shuffleWithSeed(baseOrder, seed);
+            });
+        },
+
+        getOptionOrder: function (question) {
+            const options = Array.isArray(question.options) ? question.options : [];
+            if (!options.length) return [];
+            return this.shuffledOptionOrder[question.id] || options.map((_, idx) => idx);
         },
 
         // Initialize drag and drop for ordering questions
