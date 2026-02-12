@@ -547,12 +547,10 @@ router.post('/attempts', async (req, res) => {
             [assignment.test_id]
         );
 
-        const questions = assignment.shuffle_questions
-            ? shuffleQuestions(questionsResult.rows)
-            : questionsResult.rows;
+        const baseQuestions = questionsResult.rows;
 
         // Calculate max score
-        const maxScore = questions.reduce((sum, q) => sum + parseFloat(q.marks), 0);
+        const maxScore = baseQuestions.reduce((sum, q) => sum + parseFloat(q.marks), 0);
 
         // Create new attempt
         const attemptResult = await query(
@@ -565,9 +563,14 @@ router.post('/attempts', async (req, res) => {
             [assignment.test_id, studentId, assignment_id, maxScore]
         );
 
+        const attemptId = attemptResult.rows[0].id;
+        const questions = assignment.shuffle_questions
+            ? shuffleQuestions(baseQuestions, attemptId)
+            : baseQuestions;
+
         res.status(201).json({
             message: 'Test attempt started',
-            attempt_id: attemptResult.rows[0].id,
+            attempt_id: attemptId,
             started_at: attemptResult.rows[0].started_at,
             duration_minutes: assignment.duration_minutes,
             questions: questions
@@ -622,7 +625,7 @@ router.get('/attempts/:id', async (req, res) => {
 
         const questionsResult = await query(questionsQuery, [attempt.test_id]);
         const questions = attempt.shuffle_questions && !attempt.is_completed
-            ? shuffleQuestions(questionsResult.rows)
+            ? shuffleQuestions(questionsResult.rows, attempt.id)
             : questionsResult.rows;
 
         res.json({
@@ -1534,10 +1537,29 @@ router.get('/career/results', async (req, res) => {
     }
 });
 
-function shuffleQuestions(questions) {
+function hashSeed(value) {
+    const str = String(value ?? '');
+    let hash = 0;
+    for (let i = 0; i < str.length; i += 1) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash) + 1;
+}
+
+function seededRandom(seed) {
+    let x = seed || 1;
+    return function next() {
+        x = (x * 1664525 + 1013904223) % 4294967296;
+        return x / 4294967296;
+    };
+}
+
+function shuffleQuestions(questions, seedValue) {
     const shuffled = [...questions];
+    const random = seededRandom(hashSeed(seedValue));
     for (let i = shuffled.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
