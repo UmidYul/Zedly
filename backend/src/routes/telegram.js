@@ -11,6 +11,7 @@ const USERS_COLUMNS_CACHE = {
     hasUpdatedAt: false
 };
 const TELEGRAM_LINK_TTL_MS = 15 * 60 * 1000;
+const pendingLinkTokens = new Map();
 const consumedLinkTokens = new Map();
 let telegramStartListenerInitialized = false;
 
@@ -32,24 +33,15 @@ async function loadUsersColumns() {
     return USERS_COLUMNS_CACHE;
 }
 
-function getTelegramLinkSecret() {
-    return process.env.TELEGRAM_LINK_SECRET || process.env.JWT_SECRET || 'zedly-telegram-link-secret';
-}
-
 function createLinkToken(userId) {
-    const expiresAtMs = Date.now() + TELEGRAM_LINK_TTL_MS;
-    const expiresAtSec = Math.floor(expiresAtMs / 1000);
-    const nonce = crypto.randomBytes(4).toString('hex');
-    const payload = `${userId}-${expiresAtSec}-${nonce}`;
-    const signature = crypto
-        .createHmac('sha256', getTelegramLinkSecret())
-        .update(payload)
-        .digest('hex')
-        .slice(0, 12);
+    const expiresAt = Date.now() + TELEGRAM_LINK_TTL_MS;
+    // 32-char URL-safe token (fits Telegram deep-link limit).
+    const token = crypto.randomBytes(24).toString('base64url');
+    pendingLinkTokens.set(token, { userId: String(userId), expiresAt });
 
     return {
-        token: `${payload}-${signature}`,
-        expiresAt: expiresAtMs
+        token,
+        expiresAt
     };
 }
 
@@ -63,41 +55,29 @@ function verifyLinkToken(token) {
         return { valid: false, reason: 'used' };
     }
 
-    const parts = cleanToken.split('-');
-    if (parts.length !== 4) {
+    const tokenData = pendingLinkTokens.get(cleanToken);
+    if (!tokenData) {
         return { valid: false, reason: 'invalid' };
     }
 
-    const [userIdRaw, expiresAtRaw, nonce, signatureRaw] = parts;
-    if (!/^\d+$/.test(userIdRaw) || !/^\d+$/.test(expiresAtRaw) || !/^[a-f0-9]{8}$/.test(nonce)) {
-        return { valid: false, reason: 'invalid' };
-    }
-
-    const payload = `${userIdRaw}-${expiresAtRaw}-${nonce}`;
-    const expectedSignature = crypto
-        .createHmac('sha256', getTelegramLinkSecret())
-        .update(payload)
-        .digest('hex')
-        .slice(0, 12);
-
-    const expectedBuffer = Buffer.from(expectedSignature);
-    const actualBuffer = Buffer.from(signatureRaw);
-    if (expectedBuffer.length !== actualBuffer.length || !crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
-        return { valid: false, reason: 'invalid' };
-    }
-
-    const expiresAtSec = Number(expiresAtRaw);
-    const expiresAt = expiresAtSec * 1000;
+    const expiresAt = Number(tokenData.expiresAt);
     if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
+        pendingLinkTokens.delete(cleanToken);
         return { valid: false, reason: 'expired' };
     }
 
-    return { valid: true, userId: Number(userIdRaw), expiresAt };
+    return { valid: true, userId: tokenData.userId, expiresAt };
 }
 
 function markTokenConsumed(token, expiresAt) {
+    pendingLinkTokens.delete(token);
     consumedLinkTokens.set(token, expiresAt);
     const now = Date.now();
+    for (const [savedToken, tokenData] of pendingLinkTokens.entries()) {
+        if (Number(tokenData.expiresAt) < now) {
+            pendingLinkTokens.delete(savedToken);
+        }
+    }
     for (const [savedToken, savedExp] of consumedLinkTokens.entries()) {
         if (savedExp < now - TELEGRAM_LINK_TTL_MS) {
             consumedLinkTokens.delete(savedToken);
