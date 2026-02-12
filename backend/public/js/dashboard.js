@@ -298,6 +298,26 @@
         }
     }
 
+    function isPageAvailableForCurrentUser(pageId) {
+        if (!currentUser || !navigationConfig[currentUser.role]) {
+            return pageId === 'overview';
+        }
+
+        return navigationConfig[currentUser.role].some((section) =>
+            section.items.some((item) => item.id === pageId)
+        );
+    }
+
+    function getRequestedPageFromUrl() {
+        const hashPage = (window.location.hash || '').replace('#', '').trim();
+        if (hashPage) {
+            return hashPage;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        return (params.get('page') || '').trim();
+    }
+
     async function checkTeacherHomeroom() {
         try {
             const response = await fetch('/api/teacher/homeroom-classes', {
@@ -336,6 +356,9 @@
 
         // Load content
         loadPageContent(page);
+        if (page) {
+            window.location.hash = page;
+        }
 
         // Close mobile menu
         closeMobileMenu();
@@ -348,8 +371,12 @@
             return;
         }
 
-        // Load overview page by default
-        loadPageContent('overview');
+        const requestedPage = getRequestedPageFromUrl();
+        const initialPage = requestedPage && isPageAvailableForCurrentUser(requestedPage)
+            ? requestedPage
+            : 'overview';
+
+        loadPageContent(initialPage);
     }
 
     // Load specific page content

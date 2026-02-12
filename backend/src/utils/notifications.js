@@ -93,25 +93,42 @@ async function sendTelegram(chatId, message, options = {}) {
     }
 }
 
-async function sendTelegramToTargets(userChatId, message, globalMessage) {
+async function sendTelegramToTargets(userChatId, message, globalMessage, options = {}) {
     const results = {
         user: false,
         global: false
     };
+    const userOptions = options.userOptions || {};
+    const globalOptions = options.globalOptions || {};
 
     if (userChatId) {
-        results.user = await sendTelegram(userChatId, message);
+        results.user = await sendTelegram(userChatId, message, userOptions);
     }
 
     const globalChatId = process.env.TELEGRAM_CHAT_ID;
     if (globalChatId) {
         const globalText = globalMessage || message;
         if (!userChatId || String(globalChatId) !== String(userChatId)) {
-            results.global = await sendTelegram(globalChatId, globalText);
+            results.global = await sendTelegram(globalChatId, globalText, globalOptions);
         }
     }
 
     return results;
+}
+
+function buildNewTestLink(test = {}) {
+    const appUrl = getAppUrl().replace(/\/$/, '');
+    const params = new URLSearchParams({ page: 'tests' });
+
+    if (test.assignment_id !== undefined && test.assignment_id !== null) {
+        params.set('assignment_id', String(test.assignment_id));
+    }
+
+    if (test.subject_id !== undefined && test.subject_id !== null) {
+        params.set('subject_id', String(test.subject_id));
+    }
+
+    return `${appUrl}/dashboard?${params.toString()}`;
 }
 
 function escapeHtml(value) {
@@ -280,6 +297,7 @@ async function notifyNewTest(user, test, language = 'ru') {
 
     const msg = messages[language] || messages.ru;
     const results = { email: false, telegram: false };
+    const testLink = buildNewTestLink(test);
 
     // Send email
     if (user.email) {
@@ -293,10 +311,20 @@ async function notifyNewTest(user, test, language = 'ru') {
 
     // Send Telegram (role-aware preferences)
     const userChatId = isTelegramEventEnabled(user, 'new_test') ? user.telegram_id : null;
+    const openButtonText = language === 'uz' ? 'Testni ochish' : 'Открыть тест';
     const telegramResults = await sendTelegramToTargets(
         userChatId,
         msg.telegram,
-        `🆕 <b>Новый тест назначен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n📚 ${test.title}`
+        `🆕 <b>Новый тест назначен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n📚 ${test.title}`,
+        {
+            userOptions: {
+                reply_markup: {
+                    inline_keyboard: [[
+                        { text: openButtonText, url: testLink }
+                    ]]
+                }
+            }
+        }
     );
     results.telegram = telegramResults.user || telegramResults.global;
 

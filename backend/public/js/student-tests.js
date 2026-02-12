@@ -7,6 +7,8 @@
         assignments: [],
         subjects: [],
         selectedSubjectId: null,
+        focusAssignmentId: null,
+        focusSubjectId: null,
 
         // Safely serialize values for inline onclick handlers
         toJsArg: function (value) {
@@ -31,6 +33,12 @@
 
         // Initialize student tests page
         init: function () {
+            const params = new URLSearchParams(window.location.search);
+            this.focusAssignmentId = params.get('assignment_id');
+            this.focusSubjectId = params.get('subject_id');
+            if (this.focusSubjectId) {
+                this.selectedSubjectId = String(this.focusSubjectId);
+            }
             this.setupEventListeners();
             this.loadAssignments();
         },
@@ -122,6 +130,13 @@
                 }
 
                 if (this.subjects.length > 0) {
+                    if (this.focusSubjectId) {
+                        const hasFocusSubject = this.subjects.some(subject => String(subject.id) === String(this.focusSubjectId));
+                        if (hasFocusSubject) {
+                            this.selectedSubjectId = String(this.focusSubjectId);
+                        }
+                    }
+
                     const hasSelected = this.subjects.some(subject => String(subject.id) === this.selectedSubjectId);
                     if (!hasSelected) {
                         this.selectedSubjectId = String(this.subjects[0].id);
@@ -277,6 +292,13 @@
 
             html += '</div>';
             container.innerHTML = html;
+
+            if (this.focusAssignmentId) {
+                const targetCard = container.querySelector(`[data-assignment-id="${this.focusAssignmentId}"]`);
+                if (targetCard) {
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         },
 
         getTestsWord: function (count) {
@@ -333,7 +355,7 @@
                     : 'Завершён';
 
             return `
-                <div class="test-card ${status}">
+                <div class="test-card ${status} ${String(assignment.id) === String(this.focusAssignmentId) ? 'focused' : ''}" data-assignment-id="${assignment.id}">
                     <div class="test-card-header">
                         <span class="status-badge status-${status}">${statusLabel}</span>
                     </div>

@@ -1373,7 +1373,7 @@ router.post('/assignments', async (req, res) => {
         try {
             // Get test info and students
             const testInfo = await query(
-                `SELECT t.id, t.title, t.duration_minutes as time_limit, s.name as subject_name
+                `SELECT t.id, t.title, t.duration_minutes as time_limit, t.subject_id, s.name as subject_name
                  FROM tests t
                  JOIN subjects s ON s.id = t.subject_id
                  WHERE t.id = $1`,
@@ -1388,7 +1388,10 @@ router.post('/assignments', async (req, res) => {
                 [class_id]
             );
 
-            const test = testInfo.rows[0];
+            const test = {
+                ...testInfo.rows[0],
+                assignment_id: result.rows[0].id
+            };
             const language = req.query.lang || 'ru';
 
             // Send notifications to each student
