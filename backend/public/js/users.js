@@ -812,34 +812,31 @@
                 `<option value="${s.id}">${s.name}</option>`
             ).join('');
 
-            const classOptions = this.classes.map(c =>
-                `<option value="${c.id}">${c.name} (Grade ${c.grade_level})</option>`
+            // Modern multiple-choice for classes (checkboxes)
+            const classCheckboxes = this.classes.map(c =>
+                `<label class="multi-choice-option"><input type="checkbox" name="classes_${assignmentId}" value="${c.id}"> ${c.name} (Grade ${c.grade_level})</label>`
             ).join('');
 
             const html = `
                 <div class="teacher-assignment" data-id="${assignmentId}">
-                    <div class="assignment-row">
-                        <div class="form-group flex-1">
-                            <label class="form-label">Subject</label>
-                            <select class="form-input" name="subject_${assignmentId}" required>
-                                <option value="">Select subject</option>
-                                ${subjectOptions}
-                            </select>
-                        </div>
-                        <div class="form-group flex-2">
-                            <label class="form-label">Classes</label>
-                            <select class="form-input" name="classes_${assignmentId}" multiple size="3" required>
-                                ${classOptions}
-                            </select>
-                            <span class="form-hint">Hold Ctrl/Cmd to select multiple</span>
-                        </div>
-                        <button type="button" class="btn-remove" onclick="UsersManager.removeTeacherAssignment(${assignmentId})" title="Remove">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
+                    <div class="form-group">
+                        <label class="form-label">Subject</label>
+                        <select class="form-input" name="subject_${assignmentId}" required>
+                            <option value="">Select subject</option>
+                            ${subjectOptions}
+                        </select>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Classes</label>
+                        <div class="multi-choice-list">${classCheckboxes}</div>
+                        <span class="form-hint">Select one or more classes</span>
+                    </div>
+                    <button type="button" class="btn-remove" onclick="UsersManager.removeTeacherAssignment(${assignmentId})" title="Remove">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
                 </div>
             `;
 
@@ -863,8 +860,9 @@
             assignmentDivs.forEach(div => {
                 const id = div.dataset.id;
                 const subjectId = div.querySelector(`[name="subject_${id}"]`)?.value;
-                const classesSelect = div.querySelector(`[name="classes_${id}"]`);
-                const classIds = classesSelect ? Array.from(classesSelect.selectedOptions).map(opt => opt.value) : [];
+                // For checkboxes, collect all checked values
+                const checkedBoxes = div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`);
+                const classIds = Array.from(checkedBoxes).map(cb => cb.value);
 
                 if (subjectId && classIds.length > 0) {
                     assignments.push({

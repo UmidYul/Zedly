@@ -1,3 +1,35 @@
+/* Modern multiple-choice for teacher assignment */
+.multi-choice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0.5rem 0 0.5rem 0;
+}
+
+.multi-choice-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+    background: none;
+    border-radius: var(--radius-sm);
+    padding: 0.1rem 0.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.multi-choice-option input[type="checkbox"] {
+    accent-color: var(--primary);
+    width: 1.1em;
+    height: 1.1em;
+    margin-right: 0.5em;
+}
+
+.multi-choice-option:hover {
+    background: var(--bg-tertiary);
+}
+
 /* ==============================================
    Teacher Assignment Section (Modern Styles)
    ============================================== */
