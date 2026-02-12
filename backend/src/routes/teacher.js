@@ -1069,7 +1069,7 @@ router.post('/students/:id/reset-password', async (req, res) => {
 
         const studentResult = await query(
             `SELECT
-                u.id, u.username, u.first_name, u.last_name, u.email, u.telegram_id
+                u.id, u.username, u.first_name, u.last_name, u.email, u.telegram_id, u.role, u.settings
              FROM class_students cs
              JOIN classes c ON c.id = cs.class_id
              JOIN users u ON u.id = cs.student_id
@@ -1381,7 +1381,7 @@ router.post('/assignments', async (req, res) => {
             );
 
             const studentsResult = await query(
-                `SELECT u.id, u.first_name, u.last_name, u.email, u.telegram_id, u.settings
+                `SELECT u.id, u.role, u.first_name, u.last_name, u.email, u.telegram_id, u.settings
                  FROM users u
                  JOIN class_students cs ON cs.student_id = u.id
                  WHERE cs.class_id = $1 AND u.is_active = true`,

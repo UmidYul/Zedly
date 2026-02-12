@@ -16,6 +16,9 @@ SMTP_PASS=your_app_password
 
 # Telegram конфигурация
 TELEGRAM_BOT_TOKEN=your_bot_token_from_botfather
+TELEGRAM_CHAT_ID=your_default_chat_id
+TELEGRAM_SECURITY_CHAT_ID=your_security_chat_id
+TELEGRAM_OPERATIONS_CHAT_ID=your_operations_chat_id
 
 # URL приложения (для ссылок в письмах)
 APP_URL=http://localhost:3000
@@ -63,6 +66,11 @@ POST /api/admin/users?lang=uz
 ```
 
 По умолчанию используется русский язык.
+
+### Маршрутизация Telegram по типу событий
+
+- `reset_password`, `delete` → `TELEGRAM_SECURITY_CHAT_ID` (или fallback `TELEGRAM_CHAT_ID`)
+- `create`, `update`, `import` → `TELEGRAM_OPERATIONS_CHAT_ID` (или fallback `TELEGRAM_CHAT_ID`)
 
 ---
 

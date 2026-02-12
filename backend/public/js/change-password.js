@@ -121,8 +121,9 @@
 
             if (response.ok) {
                 // Store new tokens
-                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('access_token', data.access_token);
                 localStorage.setItem('refresh_token', data.refresh_token);
+                localStorage.removeItem('token');
 
                 // Remove temp token
                 localStorage.removeItem('temp_token');
@@ -132,7 +133,7 @@
 
                 // Redirect to dashboard after 1 second
                 setTimeout(() => {
-                    window.location.href = '/dashboard.html';
+                    window.location.href = '/dashboard';
                 }, 1000);
             } else {
                 // Show error

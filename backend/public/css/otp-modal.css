@@ -41,6 +41,15 @@
     animation: slideUp 0.3s ease;
 }
 
+#tempPasswordModal .modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    width: 100%;
+    max-width: 560px;
+    animation: slideUp 0.3s ease;
+}
+
 #otpModal .modal-header {
     padding: var(--spacing-xl);
     border-bottom: 1px solid var(--border);
@@ -49,7 +58,21 @@
     justify-content: space-between;
 }
 
+#tempPasswordModal .modal-header {
+    padding: var(--spacing-xl);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 #otpModal .modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+#tempPasswordModal .modal-header h3 {
     margin: 0;
     font-size: 1.25rem;
     color: var(--text-primary);
@@ -71,7 +94,28 @@
     transition: all 0.2s;
 }
 
+#tempPasswordModal .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
 #otpModal .modal-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+#tempPasswordModal .modal-close:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
 }
@@ -80,9 +124,72 @@
     padding: var(--spacing-xl);
 }
 
+#tempPasswordModal .modal-body {
+    padding: var(--spacing-xl);
+}
+
 #otpModal .modal-body > p:first-child {
     margin-top: 0;
     color: var(--text-secondary);
+}
+
+#tempPasswordModal .modal-body > p:first-child {
+    margin-top: 0;
+    color: var(--text-secondary);
+}
+
+.otp-display-reset {
+    border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--border));
+    background:
+        linear-gradient(165deg, color-mix(in srgb, var(--primary) 10%, transparent), transparent 45%),
+        var(--bg-sidebar);
+    padding: var(--spacing-lg);
+    text-align: left;
+}
+
+.otp-label {
+    display: block;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.otp-field-wrap {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: stretch;
+}
+
+.otp-field {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 1.35rem;
+    letter-spacing: 0.2em;
+    padding: 0.7rem 0.9rem;
+}
+
+.otp-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+@media (max-width: 640px) {
+    .otp-field-wrap {
+        flex-direction: column;
+    }
+
+    .otp-field {
+        font-size: 1.15rem;
+        letter-spacing: 0.14em;
+    }
 }
 
 @keyframes slideUp {

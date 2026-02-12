@@ -32,6 +32,62 @@
             };
         },
 
+        confirmAction: async function (message, title = 'Подтверждение') {
+            if (window.ZedlyDialog?.confirm) {
+                return window.ZedlyDialog.confirm(message, { title });
+            }
+            return confirm(message);
+        },
+
+        showTempPasswordModal: function ({ title, subtitle, password, onClose }) {
+            const existing = document.getElementById('tempPasswordModal');
+            if (existing) existing.remove();
+
+            const html = `
+                <div class="modal-overlay" id="tempPasswordModal">
+                    <div class="modal-content temp-password-modal">
+                        <div class="modal-header">
+                            <h3>${title}</h3>
+                            <button class="modal-close" id="tempPasswordCloseBtn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>${subtitle}</p>
+                            <div class="otp-display otp-display-reset">
+                                <label class="otp-label">Временный пароль</label>
+                                <div class="otp-field-wrap">
+                                    <input class="otp-field" id="tempPasswordField" type="text" readonly value="${password}">
+                                    <button class="btn btn-primary" id="copyTempPasswordBtn">
+                                        ${window.ZedlyI18n?.translate('users.copyPassword') || 'Скопировать'}
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="warning-text">${window.ZedlyI18n?.translate('users.userMustChangePassword') || 'Пользователь должен сменить пароль при входе.'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', html);
+
+            const close = () => {
+                const modal = document.getElementById('tempPasswordModal');
+                if (modal) modal.remove();
+                if (typeof onClose === 'function') onClose();
+            };
+
+            document.getElementById('tempPasswordCloseBtn')?.addEventListener('click', close);
+            document.getElementById('tempPasswordModal')?.addEventListener('click', (e) => {
+                if (e.target.id === 'tempPasswordModal') close();
+            });
+            document.getElementById('copyTempPasswordBtn')?.addEventListener('click', () => this.copyTempPasswordFromModal());
+        },
+
+        copyTempPasswordFromModal: async function () {
+            const input = document.getElementById('tempPasswordField');
+            if (!input) return;
+            await this.copyOTP(input.value);
+        },
+
         // Initialize users page
         init: function () {
             this.currentPage = 1; // Reset to first page
@@ -605,7 +661,8 @@
 
         // Delete user
         deleteUser: async function (userId, userName) {
-            if (!confirm(`Are you sure you want to deactivate "${userName}"?`)) {
+            const confirmed = await this.confirmAction(`Are you sure you want to deactivate "${userName}"?`);
+            if (!confirmed) {
                 return;
             }
 
@@ -631,12 +688,13 @@
 
         // Reset user password
         resetPassword: async function (userId, userName) {
-            if (!confirm(window.ZedlyI18n.translate('users.confirmResetPassword', { name: userName }))) {
+            const confirmed = await this.confirmAction(window.ZedlyI18n.translate('users.confirmResetPassword', { name: userName }));
+            if (!confirmed) {
                 return;
             }
 
             try {
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem('access_token');
                 const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
                     method: 'POST',
                     headers: {
@@ -649,8 +707,11 @@
                     const data = await response.json();
                     const otp = data.tempPassword;
 
-                    // Show OTP modal
-                    this.showOTPModal(userName, otp);
+                    this.showTempPasswordModal({
+                        title: window.ZedlyI18n.translate('users.tempPassword'),
+                        subtitle: window.ZedlyI18n.translate('users.tempPasswordFor', { name: userName }),
+                        password: otp
+                    });
 
                     // Create notification
                     if (window.ZedlyNotifications) {
@@ -672,57 +733,51 @@
 
         // Show OTP modal
         showOTPModal: function (userName, otp) {
-            const modalHTML = `
-                <div class="modal-overlay" id="otpModal">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3>${window.ZedlyI18n.translate('users.tempPassword')}</h3>
-                            <button class="modal-close" onclick="UsersManager.closeOTPModal()">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <p>${window.ZedlyI18n.translate('users.tempPasswordFor', { name: userName })}</p>
-                            <div class="otp-display">
-                                <div class="otp-code" id="otpCode">${otp}</div>
-                                <button class="btn btn-primary" onclick="UsersManager.copyOTP('${otp}')">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                    </svg>
-                                    ${window.ZedlyI18n.translate('users.copyPassword')}
-                                </button>
-                            </div>
-                            <p class="warning-text">${window.ZedlyI18n.translate('users.userMustChangePassword')}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            this.showTempPasswordModal({
+                title: window.ZedlyI18n.translate('users.tempPassword'),
+                subtitle: window.ZedlyI18n.translate('users.tempPasswordFor', { name: userName }),
+                password: otp
+            });
         },
 
         // Close OTP modal
         closeOTPModal: function () {
-            const modal = document.getElementById('otpModal');
-            if (modal) {
-                modal.remove();
-            }
+            const modal = document.getElementById('tempPasswordModal') || document.getElementById('otpModal');
+            if (modal) modal.remove();
         },
 
         // Copy OTP to clipboard
-        copyOTP: function (otp) {
-            navigator.clipboard.writeText(otp).then(() => {
-                this.showAlertModal(window.ZedlyI18n.translate('users.passwordCopied'), 'Info');
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                // Fallback for older browsers
+        copyOTP: async function (otp) {
+            const value = String(otp || '').trim();
+            if (!value) return;
+
+            let copied = false;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(value);
+                    copied = true;
+                }
+            } catch (err) {
+                console.warn('Clipboard API failed, using fallback:', err);
+            }
+
+            if (!copied) {
                 const textArea = document.createElement('textarea');
-                textArea.value = otp;
+                textArea.value = value;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
                 document.body.appendChild(textArea);
+                textArea.focus();
                 textArea.select();
-                document.execCommand('copy');
+                copied = document.execCommand('copy');
                 document.body.removeChild(textArea);
+            }
+
+            if (copied) {
                 this.showAlertModal(window.ZedlyI18n.translate('users.passwordCopied'), 'Info');
-            });
+            } else {
+                this.showAlertModal('Не удалось скопировать пароль автоматически. Скопируйте вручную.', 'Error');
+            }
         },
 
         // Teacher-specific functions
@@ -950,32 +1005,12 @@
 
             // Show OTP password modal after user creation
             showOtpModal: function (otp) {
-                // Remove existing OTP modal if present
-                const existing = document.getElementById('otpModal');
-                if (existing) existing.remove();
-                const html = `
-                <div class="modal-overlay" id="otpModal">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h2 class="modal-title">User created successfully!</h2>
-                        </div>
-                        <div class="modal-body" style="text-align:center;">
-                            <div style="margin-bottom:1.5rem;">
-                                <strong>Generated Password:</strong><br>
-                                <code style="background: rgba(0,0,0,0.1); padding: 8px 16px; border-radius: 6px; font-size: 1.3em; letter-spacing:2px;">${otp}</code><br>
-                                <small style="display:block;margin-top:0.5rem;">Please save this password - it won't be shown again!</small>
-                            </div>
-                            <button class="btn btn-primary" id="closeOtpModalBtn">Close</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-                document.body.insertAdjacentHTML('beforeend', html);
-                document.getElementById('closeOtpModalBtn').onclick = () => {
-                    document.getElementById('otpModal').remove();
-                    this.loadUsers();
-                };
+                this.showTempPasswordModal({
+                    title: 'User created successfully!',
+                    subtitle: "Please save this password - it won't be shown again.",
+                    password: otp,
+                    onClose: () => this.loadUsers()
+                });
             }
         };
     }) ();
-

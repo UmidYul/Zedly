@@ -170,7 +170,8 @@
     }
 
     function markAsRead(notificationId) {
-        const notification = notifications.find(n => n.id === notificationId);
+        const targetId = String(notificationId);
+        const notification = notifications.find(n => String(n.id) === targetId);
         if (notification) {
             notification.read = true;
             updateUnreadCount();
@@ -195,7 +196,8 @@
             ...notification,
             id: Date.now(),
             timestamp: Date.now(),
-            read: false
+            read: false,
+            icon: notification.icon || '🔔'
         });
         updateUnreadCount();
         renderNotifications();

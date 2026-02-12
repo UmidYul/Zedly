@@ -5,7 +5,7 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 const { query } = require('../config/database');
 const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
-const { notifyNewUser } = require('../utils/notifications');
+const { notifyNewUser, notifySystemChange } = require('../utils/notifications');
 
 // --- Career Analytics and Tests for SchoolAdmin ---
 const { getCareerStats, getCareerTests } = require('./careerHandlers');
@@ -416,6 +416,7 @@ router.post('/users', async (req, res) => {
         }
 
         // Generate password (OTP if not provided)
+        const isTemporaryPassword = !password;
         const finalPassword = password || generateOTP();
         const passwordHash = await bcrypt.hash(finalPassword, 10);
 
@@ -424,10 +425,10 @@ router.post('/users', async (req, res) => {
             `INSERT INTO users (
                 school_id, role, username, password_hash,
                 first_name, last_name, email, phone, telegram_id,
-                is_active
+                is_active, must_change_password
             )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
-             RETURNING id, username, role, first_name, last_name, email, phone, created_at`,
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10)
+             RETURNING id, username, role, first_name, last_name, email, phone, telegram_id, created_at`,
             [
                 schoolId,
                 role,
@@ -437,7 +438,8 @@ router.post('/users', async (req, res) => {
                 last_name.trim(),
                 email || null,
                 phone || null,
-                telegram_id || null
+                telegram_id || null,
+                isTemporaryPassword
             ]
         );
 
@@ -501,10 +503,22 @@ router.post('/users', async (req, res) => {
             }
         }
 
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'create',
+                entityType: 'user',
+                entityName: newUser.username,
+                details: `role=${newUser.role}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
+        }
+
         res.status(201).json({
             message: 'User created successfully',
             user: result.rows[0],
-            ...(password ? {} : { otp_password: finalPassword })
+            ...(isTemporaryPassword ? { otp_password: finalPassword } : {})
         });
     } catch (error) {
         console.error('Create user error:', error);
@@ -668,6 +682,18 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             [req.user.id, 'update', 'user', id, req.body]
         );
 
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'update',
+                entityType: 'user',
+                entityName: result.rows[0].username,
+                details: `id=${id}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
+        }
+
         res.json({
             message: 'User updated successfully',
             user: result.rows[0]
@@ -738,6 +764,18 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
                 { username: existingUser.rows[0].username }
             ]
         );
+
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'delete',
+                entityType: 'user',
+                entityName: existingUser.rows[0].username,
+                details: `id=${id}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
+        }
 
         res.json({
             message: 'User deactivated successfully'
@@ -866,9 +904,9 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                     `INSERT INTO users (
                         school_id, role, username, password_hash,
                         first_name, last_name, email, phone,
-                        is_active
+                        is_active, must_change_password
                     )
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true)
                      RETURNING id, username, role, first_name, last_name, email`,
                     [
                         schoolId,
@@ -926,6 +964,18 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
             message: 'Import completed',
             ...results
         });
+
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'import',
+                entityType: 'user',
+                entityName: `school_id=${schoolId}`,
+                details: `imported=${results.imported}, errors=${results.errors.length}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
+        }
     } catch (error) {
         console.error('Import users error:', error);
         res.status(500).json({
@@ -1007,7 +1057,7 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
 
         // Check if user exists in same school
         const existingUser = await query(
-            'SELECT id, username, first_name, last_name, email FROM users WHERE id = $1 AND school_id = $2',
+            'SELECT id, username, first_name, last_name, email, telegram_id, role, settings FROM users WHERE id = $1 AND school_id = $2',
             [id, schoolId]
         );
 
@@ -1065,6 +1115,18 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
             } catch (notifyError) {
                 console.error('Notification error:', notifyError);
             }
+        }
+
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'reset_password',
+                entityType: 'user',
+                entityName: user.username,
+                details: `id=${id}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
         }
 
         res.json({

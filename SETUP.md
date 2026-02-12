@@ -266,6 +266,9 @@ SMTP_PASSWORD=app-password
 
 # Telegram (опционально)
 TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...            # fallback чат
+TELEGRAM_SECURITY_CHAT_ID=...   # reset/delete события
+TELEGRAM_OPERATIONS_CHAT_ID=... # create/update/import события
 ```
 
 ---

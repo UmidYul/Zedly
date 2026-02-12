@@ -114,6 +114,110 @@ async function sendTelegramToTargets(userChatId, message, globalMessage) {
     return results;
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function parseUserSettings(settings) {
+    if (!settings) return {};
+    if (typeof settings === 'object' && !Array.isArray(settings)) return settings;
+    if (typeof settings === 'string') {
+        try {
+            const parsed = JSON.parse(settings);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed;
+            }
+        } catch (error) {
+            return {};
+        }
+    }
+    return {};
+}
+
+function getDefaultTelegramPreferencesByRole(role) {
+    const defaults = {
+        student: { enabled: true, new_test: true, password_reset: true, welcome: true },
+        teacher: { enabled: true, password_reset: true, welcome: true },
+        school_admin: { enabled: true, password_reset: true, welcome: true },
+        superadmin: { enabled: true, password_reset: true, welcome: true }
+    };
+
+    return defaults[role] || { enabled: true, password_reset: true, welcome: true };
+}
+
+function isTelegramEventEnabled(user, eventKey) {
+    const settings = parseUserSettings(user?.settings);
+    const defaults = getDefaultTelegramPreferencesByRole(user?.role);
+    const prefs = settings.telegram_notifications;
+
+    if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) {
+        return defaults[eventKey] !== false;
+    }
+
+    if (prefs.enabled === false) {
+        return false;
+    }
+
+    if (prefs[eventKey] !== undefined) {
+        return !!prefs[eventKey];
+    }
+
+    return defaults[eventKey] !== false;
+}
+
+/**
+ * Send global Telegram notification about system changes
+ * @param {Object} payload
+ * @param {string} payload.actor - Who made the change
+ * @param {string} payload.action - create/update/delete/reset_password/import
+ * @param {string} payload.entityType - school/user/class/test/etc
+ * @param {string} payload.entityName - human readable entity name
+ * @param {string} payload.details - optional details line
+ * @returns {Promise<boolean>}
+ */
+async function notifySystemChange({ actor, action, entityType, entityName, details }) {
+    const securityActions = new Set(['delete', 'reset_password']);
+    const isSecurityAction = securityActions.has(action);
+
+    const securityChatId = process.env.TELEGRAM_SECURITY_CHAT_ID;
+    const operationsChatId = process.env.TELEGRAM_OPERATIONS_CHAT_ID;
+    const fallbackChatId = process.env.TELEGRAM_CHAT_ID;
+
+    const targetChatId = isSecurityAction
+        ? (securityChatId || fallbackChatId)
+        : (operationsChatId || fallbackChatId);
+
+    if (!targetChatId) {
+        return false;
+    }
+
+    const actionLabels = {
+        create: 'создание',
+        update: 'изменение',
+        delete: 'удаление',
+        reset_password: 'сброс пароля',
+        import: 'импорт'
+    };
+
+    const actionText = actionLabels[action] || action || 'изменение';
+    const lines = [
+        '🛠 <b>Изменение в системе</b>',
+        `👤 <b>Кто:</b> ${escapeHtml(actor || 'system')}`,
+        `⚙️ <b>Действие:</b> ${escapeHtml(actionText)}`,
+        `📌 <b>Сущность:</b> ${escapeHtml(entityType || '-')}`,
+        `🏷 <b>Объект:</b> ${escapeHtml(entityName || '-')}`
+    ];
+
+    if (details) {
+        lines.push(`📝 <b>Детали:</b> ${escapeHtml(details)}`);
+    }
+
+    return sendTelegram(targetChatId, lines.join('\n'));
+}
+
 /**
  * Send notification about new test
  * @param {Object} user - User object with email and telegram_id
@@ -187,9 +291,10 @@ async function notifyNewTest(user, test, language = 'ru') {
         });
     }
 
-    // Send Telegram
+    // Send Telegram (role-aware preferences)
+    const userChatId = isTelegramEventEnabled(user, 'new_test') ? user.telegram_id : null;
     const telegramResults = await sendTelegramToTargets(
-        user.telegram_id,
+        userChatId,
         msg.telegram,
         `🆕 <b>Новый тест назначен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n📚 ${test.title}`
     );
@@ -269,9 +374,10 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
         });
     }
 
-    // Send Telegram
+    // Send Telegram (role-aware preferences)
+    const userChatId = isTelegramEventEnabled(user, 'password_reset') ? user.telegram_id : null;
     const telegramResults = await sendTelegramToTargets(
-        user.telegram_id,
+        userChatId,
         msg.telegram,
         `🔐 <b>Пароль сброшен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n🆔 ${user.username || ''}`
     );
@@ -287,16 +393,33 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
  * @param {string} language - Language code (ru/uz)
  */
 async function notifyNewUser(user, password, language = 'ru') {
+    const roleLabels = {
+        ru: {
+            student: 'ученик',
+            teacher: 'учитель',
+            school_admin: 'школьный администратор',
+            superadmin: 'супер администратор'
+        },
+        uz: {
+            student: "o'quvchi",
+            teacher: "o'qituvchi",
+            school_admin: 'maktab administratori',
+            superadmin: 'super administrator'
+        }
+    };
+    const roleLabel = (roleLabels[language] || roleLabels.ru)[user.role] || user.role || (language === 'uz' ? 'foydalanuvchi' : 'пользователь');
+
     const messages = {
         ru: {
             subject: 'Добро пожаловать в ZEDLY',
-            text: `Здравствуйте, ${user.first_name}!\n\nДля вас создан аккаунт на платформе ZEDLY.\n\nЛогин: ${user.username}\nВременный пароль: ${password}\n\nПожалуйста, войдите в систему и создайте постоянный пароль.\n\nС уважением,\nКоманда ZEDLY`,
+            text: `Здравствуйте, ${user.first_name}!\n\nДля вас создан аккаунт на платформе ZEDLY.\nРоль: ${roleLabel}\n\nЛогин: ${user.username}\nВременный пароль: ${password}\n\nПожалуйста, войдите в систему и создайте постоянный пароль.\n\nС уважением,\nКоманда ZEDLY`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #3b82f6;">Добро пожаловать в ZEDLY!</h2>
                     <p>Здравствуйте, <strong>${user.first_name}</strong>!</p>
                     <p>Для вас создан аккаунт на образовательной платформе ZEDLY.</p>
                     <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Роль:</strong> ${roleLabel}</p>
                         <p style="margin: 5px 0;"><strong>Логин:</strong> ${user.username}</p>
                         <p style="margin: 5px 0;"><strong>Временный пароль:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${password}</code></p>
                     </div>
@@ -310,17 +433,18 @@ async function notifyNewUser(user, password, language = 'ru') {
                     <p style="color: #6b7280; font-size: 14px;">С уважением,<br>Команда ZEDLY</p>
                 </div>
             `,
-            telegram: `👋 <b>Xush kelibsiz ZEDLY platformasiga!</b>\n\n👤 Login: <code>${user.username}</code>\n🔑 Vaqtinchalik parol: <code>${password}</code>\n\n⚠️ Tizimga birinchi kirganingizda doimiy parol yarating!`
+            telegram: `👋 <b>Добро пожаловать в ZEDLY!</b>\n\n👤 Роль: <b>${roleLabel}</b>\n🆔 Логин: <code>${user.username}</code>\n🔑 Временный пароль: <code>${password}</code>\n\n⚠️ При первом входе создайте постоянный пароль!`
         },
         uz: {
             subject: 'ZEDLY platformasiga xush kelibsiz',
-            text: `Assalomu alaykum, ${user.first_name}!\n\nSiz uchun ZEDLY platformasida akkount yaratildi.\n\nLogin: ${user.username}\nVaqtinchalik parol: ${password}\n\nIltimos, tizimga kirib doimiy parol yarating.\n\nHurmat bilan,\nZEDLY jamoasi`,
+            text: `Assalomu alaykum, ${user.first_name}!\n\nSiz uchun ZEDLY platformasida akkount yaratildi.\nRol: ${roleLabel}\n\nLogin: ${user.username}\nVaqtinchalik parol: ${password}\n\nIltimos, tizimga kirib doimiy parol yarating.\n\nHurmat bilan,\nZEDLY jamoasi`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #3b82f6;">ZEDLY platformasiga xush kelibsiz!</h2>
                     <p>Assalomu alaykum, <strong>${user.first_name}</strong>!</p>
                     <p>Siz uchun ZEDLY ta'lim platformasida akkount yaratildi.</p>
                     <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Rol:</strong> ${roleLabel}</p>
                         <p style="margin: 5px 0;"><strong>Login:</strong> ${user.username}</p>
                         <p style="margin: 5px 0;"><strong>Vaqtinchalik parol:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${password}</code></p>
                     </div>
@@ -334,7 +458,7 @@ async function notifyNewUser(user, password, language = 'ru') {
                     <p style="color: #6b7280; font-size: 14px;">Hurmat bilan,<br>ZEDLY jamoasi</p>
                 </div>
             `,
-            telegram: `👋 <b>Xush kelibsiz ZEDLY platformasiga!</b>\n\n👤 Login: <code>${user.username}</code>\n🔑 Vaqtinchalik parol: <code>${password}</code>\n\n⚠️ Tizimga birinchi kirganingizda doimiy parol yarating!`
+            telegram: `👋 <b>ZEDLY platformasiga xush kelibsiz!</b>\n\n👤 Rol: <b>${roleLabel}</b>\n🆔 Login: <code>${user.username}</code>\n🔑 Vaqtinchalik parol: <code>${password}</code>\n\n⚠️ Birinchi kirishda doimiy parol yarating!`
         }
     };
 
@@ -351,9 +475,10 @@ async function notifyNewUser(user, password, language = 'ru') {
         });
     }
 
-    // Send Telegram
+    // Send Telegram (role-aware preferences)
+    const userChatId = isTelegramEventEnabled(user, 'welcome') ? user.telegram_id : null;
     const telegramResults = await sendTelegramToTargets(
-        user.telegram_id,
+        userChatId,
         msg.telegram,
         `👋 <b>Новый пользователь</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n🆔 ${user.username || ''}`
     );
@@ -367,6 +492,7 @@ module.exports = {
     sendTelegram,
     telegramBot,
     sendTelegramToTargets,
+    notifySystemChange,
     notifyNewTest,
     notifyPasswordReset,
     notifyNewUser

@@ -14,6 +14,84 @@
             this.setupEventListeners();
         },
 
+        confirmAction: async function (message, title = 'Подтверждение') {
+            if (window.ZedlyDialog?.confirm) {
+                return window.ZedlyDialog.confirm(message, { title });
+            }
+            return confirm(message);
+        },
+
+        showInfoModal: async function (message, title = 'Информация') {
+            if (window.ZedlyDialog?.alert) {
+                return window.ZedlyDialog.alert(message, { title });
+            }
+            alert(message);
+        },
+
+        showTempPasswordModal: function ({ username, password }) {
+            const existing = document.getElementById('tempPasswordModal');
+            if (existing) existing.remove();
+
+            const html = `
+                <div class="modal-overlay" id="tempPasswordModal">
+                    <div class="modal-content temp-password-modal">
+                        <div class="modal-header">
+                            <h3>Временный пароль</h3>
+                            <button class="modal-close" id="tempPasswordCloseBtn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Новый временный пароль для <strong>${username}</strong>:</p>
+                            <div class="otp-display otp-display-reset">
+                                <label class="otp-label">Временный пароль</label>
+                                <div class="otp-field-wrap">
+                                    <input class="otp-field" id="tempPasswordField" type="text" readonly value="${password}">
+                                    <button class="btn btn-primary" id="copyTempPasswordBtn">Скопировать</button>
+                                </div>
+                            </div>
+                            <p class="warning-text">Пользователь должен сменить пароль после входа.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', html);
+
+            const close = () => document.getElementById('tempPasswordModal')?.remove();
+            document.getElementById('tempPasswordCloseBtn')?.addEventListener('click', close);
+            document.getElementById('tempPasswordModal')?.addEventListener('click', (e) => {
+                if (e.target.id === 'tempPasswordModal') close();
+            });
+            document.getElementById('copyTempPasswordBtn')?.addEventListener('click', () => this.copyTempPassword());
+        },
+
+        copyTempPassword: async function () {
+            const input = document.getElementById('tempPasswordField');
+            if (!input) return;
+            const value = input.value.trim();
+            if (!value) return;
+
+            let copied = false;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(value);
+                    copied = true;
+                }
+            } catch (error) {
+                console.warn('Clipboard API failed, using fallback:', error);
+            }
+
+            if (!copied) {
+                input.focus();
+                input.select();
+                copied = document.execCommand('copy');
+            }
+
+            if (copied) {
+                await this.showInfoModal('Пароль скопирован в буфер обмена.');
+            } else {
+                await this.showInfoModal('Не удалось скопировать пароль автоматически. Скопируйте вручную.', 'Ошибка');
+            }
+        },
+
         // Setup event listeners
         setupEventListeners: function () {
             // Search input
@@ -230,12 +308,12 @@
                         const data = await response.json();
                         school = data.school;
                     } else {
-                        alert('Failed to load school data');
+                        await this.showInfoModal('Failed to load school data', 'Ошибка');
                         return;
                     }
                 } catch (error) {
                     console.error('Load school error:', error);
-                    alert('Failed to load school data');
+                    await this.showInfoModal('Failed to load school data', 'Ошибка');
                     return;
                 }
             }
@@ -477,7 +555,8 @@
 
         // Delete school
         deleteSchool: async function (schoolId, schoolName) {
-            if (!confirm(`Are you sure you want to deactivate "${schoolName}"?`)) {
+            const confirmed = await this.confirmAction(`Are you sure you want to deactivate "${schoolName}"?`);
+            if (!confirmed) {
                 return;
             }
 
@@ -493,11 +572,11 @@
                 if (response.ok) {
                     this.loadSchools();
                 } else {
-                    alert('Failed to delete school');
+                    await this.showInfoModal('Failed to delete school', 'Ошибка');
                 }
             } catch (error) {
                 console.error('Delete school error:', error);
-                alert('Failed to delete school');
+                await this.showInfoModal('Failed to delete school', 'Ошибка');
             }
         },
 
@@ -519,7 +598,7 @@
                 this.showAdminsModal(schoolId, schoolName, data.admins);
             } catch (error) {
                 console.error('Load school admins error:', error);
-                alert('Failed to load school administrators');
+                await this.showInfoModal('Failed to load school administrators', 'Ошибка');
             }
         },
 
@@ -547,6 +626,7 @@
                                     <th>Contact</th>
                                     <th>Status</th>
                                     <th>Last Login</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -569,6 +649,18 @@
                             </td>
                             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                             <td class="text-secondary">${lastLogin}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon" onclick="SchoolsManager.resetAdminPassword('${schoolId}', '${admin.id}', '${admin.username}')" title="Reset Password">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 1v6"/>
+                                            <path d="M8.5 8.5A5 5 0 1 0 16 13h-2a3 3 0 1 1-2.12-2.87"/>
+                                            <path d="M17 8h5v5"/>
+                                            <path d="M22 8l-6.2 6.2"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     `;
                 });
@@ -638,6 +730,46 @@
                 modal.remove();
             }
             document.removeEventListener('keydown', this.handleAdminsEscapeKey);
+        },
+
+        resetAdminPassword: async function (schoolId, adminId, username) {
+            const confirmed = await this.confirmAction(`Reset password for "${username}"?`);
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/superadmin/schools/${schoolId}/admins/${adminId}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to reset password');
+                }
+
+                this.showTempPasswordModal({
+                    username,
+                    password: result.tempPassword
+                });
+
+                if (window.ZedlyNotifications) {
+                    window.ZedlyNotifications.add({
+                        type: 'password_reset',
+                        title: 'Пароль сброшен',
+                        message: `Временный пароль для ${username} сгенерирован`,
+                        icon: '🔑'
+                    });
+                }
+            } catch (error) {
+                console.error('Reset school admin password error:', error);
+                await this.showInfoModal(error.message || 'Failed to reset password', 'Ошибка');
+            }
         },
 
         // Show admin modal (create new admin)

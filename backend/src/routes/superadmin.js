@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
-const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications');
+const { notifyNewUser, notifyPasswordReset, notifySystemChange } = require('../utils/notifications');
 const { getTableColumns, pickColumn, getSchoolNameExpr } = require('../utils/db');
 const { getGlobalCareerStats } = require('./careerHandlers');
 
@@ -180,6 +180,18 @@ router.post('/schools', async (req, res) => {
             message: 'School created successfully',
             school: result.rows[0]
         });
+
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'create',
+                entityType: 'school',
+                entityName: result.rows[0].name,
+                details: `id=${result.rows[0].id}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
+        }
     } catch (error) {
         console.error('Create school error:', error);
         res.status(500).json({
@@ -287,6 +299,18 @@ router.put('/schools/:id', async (req, res) => {
             message: 'School updated successfully',
             school: result.rows[0]
         });
+
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'update',
+                entityType: 'school',
+                entityName: result.rows[0].name,
+                details: `id=${id}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
+        }
     } catch (error) {
         console.error('Update school error:', error);
         res.status(500).json({
@@ -338,6 +362,18 @@ router.delete('/schools/:id', async (req, res) => {
             res.json({
                 message: 'School permanently deleted'
             });
+
+            try {
+                await notifySystemChange({
+                    actor: req.user.username,
+                    action: 'delete',
+                    entityType: 'school',
+                    entityName: existingSchool.rows[0].name,
+                    details: `id=${id}, permanent=true`
+                });
+            } catch (notifyError) {
+                console.error('System telegram notification error:', notifyError);
+            }
         } else {
             // Soft delete
             await query(
@@ -361,6 +397,18 @@ router.delete('/schools/:id', async (req, res) => {
             res.json({
                 message: 'School deactivated successfully'
             });
+
+            try {
+                await notifySystemChange({
+                    actor: req.user.username,
+                    action: 'delete',
+                    entityType: 'school',
+                    entityName: existingSchool.rows[0].name,
+                    details: `id=${id}, soft=true`
+                });
+            } catch (notifyError) {
+                console.error('System telegram notification error:', notifyError);
+            }
         }
     } catch (error) {
         console.error('Delete school error:', error);
@@ -546,10 +594,10 @@ router.post('/schools/:schoolId/admins', async (req, res) => {
         const result = await query(
             `INSERT INTO users (
                 school_id, username, password_hash, first_name, last_name,
-                email, phone, telegram_id, role, is_active
+                email, phone, telegram_id, role, is_active, must_change_password
              )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'school_admin', true)
-             RETURNING id, username, first_name, last_name, email, phone, telegram_id, created_at`,
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'school_admin', true, $9)
+             RETURNING id, username, role, first_name, last_name, email, phone, telegram_id, created_at`,
             [
                 schoolId,
                 username.trim(),
@@ -558,7 +606,8 @@ router.post('/schools/:schoolId/admins', async (req, res) => {
                 last_name.trim(),
                 email?.trim() || null,
                 phone?.trim() || null,
-                telegram_id?.trim() || null
+                telegram_id?.trim() || null,
+                !!otpPassword
             ]
         );
 
@@ -588,6 +637,18 @@ router.post('/schools/:schoolId/admins', async (req, res) => {
             } catch (notifyError) {
                 console.error('Notification error:', notifyError);
             }
+        }
+
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'create',
+                entityType: 'school_admin',
+                entityName: newAdmin.username,
+                details: `school_id=${schoolId}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
         }
 
         const response = {
@@ -653,6 +714,18 @@ router.delete('/schools/:schoolId/admins/:id', async (req, res) => {
         res.json({
             message: 'School administrator deactivated successfully'
         });
+
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'delete',
+                entityType: 'school_admin',
+                entityName: existingAdmin.rows[0].username,
+                details: `school_id=${schoolId}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
+        }
     } catch (error) {
         console.error('Delete school admin error:', error);
         res.status(500).json({
@@ -672,7 +745,7 @@ router.post('/schools/:schoolId/admins/:id/reset-password', async (req, res) => 
 
         // Check if admin exists in the school
         const existingAdmin = await query(
-            'SELECT id, username, first_name, last_name, email FROM users WHERE id = $1 AND school_id = $2 AND role = $3',
+            'SELECT id, username, first_name, last_name, email, telegram_id, role, settings FROM users WHERE id = $1 AND school_id = $2 AND role = $3',
             [id, schoolId, 'school_admin']
         );
 
@@ -731,6 +804,18 @@ router.post('/schools/:schoolId/admins/:id/reset-password', async (req, res) => 
             } catch (notifyError) {
                 console.error('Notification error:', notifyError);
             }
+        }
+
+        try {
+            await notifySystemChange({
+                actor: req.user.username,
+                action: 'reset_password',
+                entityType: 'school_admin',
+                entityName: admin.username,
+                details: `school_id=${schoolId}`
+            });
+        } catch (notifyError) {
+            console.error('System telegram notification error:', notifyError);
         }
 
         res.json({
