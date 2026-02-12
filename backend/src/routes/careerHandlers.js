@@ -80,13 +80,13 @@ async function getCareerTests(req, res) {
     if (!req.user.school_id) {
         return res.status(403).json({ error: 'Access denied: school_id required' });
     }
+    let { school_id } = req.user;
+    const { lang } = req.query; // lang=ru или lang=uz
+    // Привести school_id к строке (UUID)
     if (typeof school_id !== 'string') {
         school_id = String(school_id);
     }
     // Получить все тесты своей школы с локализацией
-    let { school_id } = req.user;
-    const { lang } = req.query; // lang=ru или lang=uz
-    // Привести school_id к строке (UUID)
     console.log(school_id, typeof school_id);
     // Audit log: просмотр тестов
     await db.query('INSERT INTO audit_career (action, admin_id, details) VALUES ($1, $2, $3)', ['view_tests', req.user.id, 'Просмотр тестов']);
