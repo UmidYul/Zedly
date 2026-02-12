@@ -39,8 +39,8 @@
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'users', label: 'dashboard.nav.users', id: 'users', href: '#users' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
-                    { icon: 'book', label: 'dashboard.nav.subjects', id: 'subjects', href: '#subjects' },
-                    { icon: 'target', label: 'dashboard.nav.career', id: 'career-admin', href: '#career-admin' }
+                    { icon: 'book', label: 'dashboard.nav.subjects', id: 'subjects', href: '#subjects' }
+                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career-admin', href: '#career-admin' } // скрыто
                 ]
             },
             {
@@ -92,6 +92,7 @@
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'star', label: 'dashboard.nav.results', id: 'results', href: '#results' }
+                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career', href: '#career' } // скрыто
                 ]
             },
             {
@@ -140,12 +141,12 @@
         if (!token) {
             console.log('❌ No access token found, redirecting to login');
             redirectToLogin();
-                refreshTranslations();
+            refreshTranslations();
             return;
         }
-                await loadDashboardContent();
+        await loadDashboardContent();
 
-                refreshTranslations();
+        refreshTranslations();
         try {
             console.log('📡 Fetching user info from /api/auth/me');
             // Fetch current user info
