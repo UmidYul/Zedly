@@ -2,6 +2,7 @@
     'use strict';
 
     let telegramState = null;
+    let statusPollTimer = null;
 
     function showMessage(message, title = 'Информация') {
         if (window.ZedlyDialog?.alert) {
@@ -59,42 +60,91 @@
         return prefs;
     }
 
+    function stopStatusPolling() {
+        if (statusPollTimer) {
+            clearInterval(statusPollTimer);
+            statusPollTimer = null;
+        }
+    }
+
     function closeModal() {
+        stopStatusPolling();
         document.getElementById('telegramConnectModal')?.remove();
+    }
+
+    function updateModalConnectionState(state) {
+        const modal = document.getElementById('telegramConnectModal');
+        if (!modal) return;
+
+        const chip = modal.querySelector('.telegram-status-chip');
+        const testBtn = modal.querySelector('#tgTestBtn');
+        const disconnectBtn = modal.querySelector('#tgDisconnectBtn');
+        const statusText = modal.querySelector('#tgLinkStatusText');
+
+        if (chip) {
+            chip.classList.remove('connected', 'disconnected');
+            chip.classList.add(state.connected ? 'connected' : 'disconnected');
+            chip.textContent = state.connected ? 'Подключено' : 'Не подключено';
+        }
+
+        if (testBtn) testBtn.disabled = !state.connected;
+        if (disconnectBtn) disconnectBtn.disabled = !state.connected;
+        if (statusText) {
+            statusText.textContent = state.connected
+                ? 'Telegram успешно привязан. Можно отправить тест и сохранить настройки.'
+                : 'Нажмите кнопку подключения и отправьте /start в боте.';
+        }
+    }
+
+    function startStatusPolling() {
+        stopStatusPolling();
+        statusPollTimer = setInterval(async () => {
+            try {
+                const state = await fetchTelegramStatus();
+                updateModalConnectionState(state);
+                if (state.connected) {
+                    stopStatusPolling();
+                }
+            } catch (error) {
+                console.warn('Telegram status polling failed:', error.message);
+            }
+        }, 3000);
+    }
+
+    async function startTelegramLinkFlow() {
+        try {
+            const response = await fetch('/api/telegram/me/link/start', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Не удалось начать подключение');
+            }
+
+            window.open(data.link, '_blank', 'noopener,noreferrer');
+            startStatusPolling();
+
+            const statusText = document.getElementById('tgLinkStatusText');
+            if (statusText) {
+                statusText.textContent = 'Ожидаем команду /start в Telegram...';
+            }
+        } catch (error) {
+            console.error('Start Telegram link flow error:', error);
+            await showMessage(error.message, 'Ошибка');
+        }
     }
 
     async function saveTelegramSettings() {
         const modal = document.getElementById('telegramConnectModal');
         if (!modal) return;
 
-        const telegramId = modal.querySelector('#tgChatId')?.value?.trim();
         const prefs = collectPreferences(modal);
-        const isConnected = !!telegramState?.connected;
-        const currentId = String(telegramState?.telegram_id || '');
-        const hasNewId = telegramId && telegramId !== currentId;
 
         try {
-            let endpoint = '/api/telegram/me/preferences';
-            let method = 'PUT';
-            let body = { preferences: prefs };
-
-            if (!isConnected || hasNewId) {
-                if (!telegramId) {
-                    await showMessage('Введите Telegram Chat ID', 'Ошибка');
-                    return;
-                }
-                endpoint = '/api/telegram/me/connect';
-                method = 'POST';
-                body = {
-                    telegram_id: telegramId,
-                    preferences: prefs
-                };
-            }
-
-            const response = await fetch(endpoint, {
-                method,
+            const response = await fetch('/api/telegram/me/preferences', {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                body: JSON.stringify({ preferences: prefs })
             });
             const data = await response.json();
             if (!response.ok) {
@@ -102,8 +152,8 @@
             }
 
             await fetchTelegramStatus();
+            updateModalConnectionState(telegramState);
             await showMessage('Telegram настройки сохранены');
-            closeModal();
         } catch (error) {
             console.error('Save Telegram settings error:', error);
             await showMessage(error.message, 'Ошибка');
@@ -138,8 +188,8 @@
                 throw new Error(data.message || 'Failed to disconnect Telegram');
             }
             await fetchTelegramStatus();
+            updateModalConnectionState(telegramState);
             await showMessage('Telegram отключен');
-            closeModal();
         } catch (error) {
             console.error('Disconnect Telegram error:', error);
             await showMessage(error.message, 'Ошибка');
@@ -149,6 +199,7 @@
     async function openTelegramModal() {
         try {
             const state = await fetchTelegramStatus();
+            const botName = state.bot?.username ? `@${state.bot.username}` : 'бот недоступен';
             const modalHtml = `
                 <div class="modal-overlay" id="telegramConnectModal">
                     <div class="modal telegram-modal">
@@ -161,14 +212,19 @@
                                 ${state.connected ? 'Подключено' : 'Не подключено'}
                             </div>
                             <p class="telegram-help">
-                                1) Откройте бота: ${state.bot?.username ? `<a class="telegram-link" target="_blank" href="https://t.me/${state.bot.username}">@${state.bot.username}</a>` : 'бот недоступен'}<br>
-                                2) Нажмите <code>/start</code><br>
-                                3) Вставьте ваш Chat ID ниже
+                                Подключение выполняется автоматически через бота ${botName}.<br>
+                                Нажмите кнопку ниже, откройте чат и отправьте <code>/start</code>.
                             </p>
-                            <div class="form-group">
-                                <label class="form-label">Telegram Chat ID</label>
-                                <input id="tgChatId" class="form-input" type="text" value="${state.telegram_id || ''}" placeholder="Например: 123456789">
+                            <div class="telegram-actions-row" style="margin-bottom: 12px;">
+                                <button class="btn btn-primary" id="tgLinkBtn" ${state.link_flow_supported ? '' : 'disabled'}>
+                                    Подключить через Telegram
+                                </button>
                             </div>
+                            <p class="telegram-help" id="tgLinkStatusText">
+                                ${state.connected
+                    ? 'Telegram успешно привязан. Можно отправить тест и сохранить настройки.'
+                    : 'Нажмите кнопку подключения и отправьте /start в боте.'}
+                            </p>
                             <div class="form-group">
                                 <label class="telegram-pref-item">
                                     <input type="checkbox" id="tgEnabled" ${state.preferences?.enabled !== false ? 'checked' : ''}>
@@ -200,9 +256,14 @@
             document.getElementById('telegramConnectModal')?.addEventListener('click', (e) => {
                 if (e.target.id === 'telegramConnectModal') closeModal();
             });
+            document.getElementById('tgLinkBtn')?.addEventListener('click', startTelegramLinkFlow);
             document.getElementById('tgSaveBtn')?.addEventListener('click', saveTelegramSettings);
             document.getElementById('tgTestBtn')?.addEventListener('click', sendTestMessage);
             document.getElementById('tgDisconnectBtn')?.addEventListener('click', disconnectTelegram);
+
+            if (!state.connected) {
+                startStatusPolling();
+            }
         } catch (error) {
             console.error('Open Telegram modal error:', error);
             await showMessage('Не удалось загрузить настройки Telegram', 'Ошибка');

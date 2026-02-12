@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { telegramBot, sendTelegram } = require('../utils/notifications');
@@ -9,6 +10,9 @@ const USERS_COLUMNS_CACHE = {
     hasSettings: false,
     hasUpdatedAt: false
 };
+const TELEGRAM_LINK_TTL_MS = 15 * 60 * 1000;
+const consumedLinkTokens = new Map();
+let telegramStartListenerInitialized = false;
 
 async function loadUsersColumns() {
     if (USERS_COLUMNS_CACHE.loaded) {
@@ -26,6 +30,79 @@ async function loadUsersColumns() {
     USERS_COLUMNS_CACHE.hasSettings = columns.has('settings');
     USERS_COLUMNS_CACHE.hasUpdatedAt = columns.has('updated_at');
     return USERS_COLUMNS_CACHE;
+}
+
+function getTelegramLinkSecret() {
+    return process.env.TELEGRAM_LINK_SECRET || process.env.JWT_SECRET || 'zedly-telegram-link-secret';
+}
+
+function createLinkToken(userId) {
+    const expiresAtMs = Date.now() + TELEGRAM_LINK_TTL_MS;
+    const expiresAtSec = Math.floor(expiresAtMs / 1000);
+    const nonce = crypto.randomBytes(4).toString('hex');
+    const payload = `${userId}.${expiresAtSec}.${nonce}`;
+    const signature = crypto
+        .createHmac('sha256', getTelegramLinkSecret())
+        .update(payload)
+        .digest('hex')
+        .slice(0, 12);
+
+    return {
+        token: `${payload}.${signature}`,
+        expiresAt: expiresAtMs
+    };
+}
+
+function verifyLinkToken(token) {
+    if (!token || typeof token !== 'string') {
+        return { valid: false, reason: 'invalid' };
+    }
+
+    const cleanToken = token.trim();
+    if (consumedLinkTokens.has(cleanToken)) {
+        return { valid: false, reason: 'used' };
+    }
+
+    const parts = cleanToken.split('.');
+    if (parts.length !== 4) {
+        return { valid: false, reason: 'invalid' };
+    }
+
+    const [userIdRaw, expiresAtRaw, nonce, signatureRaw] = parts;
+    if (!/^\d+$/.test(userIdRaw) || !/^\d+$/.test(expiresAtRaw) || !/^[a-f0-9]{8}$/.test(nonce)) {
+        return { valid: false, reason: 'invalid' };
+    }
+
+    const payload = `${userIdRaw}.${expiresAtRaw}.${nonce}`;
+    const expectedSignature = crypto
+        .createHmac('sha256', getTelegramLinkSecret())
+        .update(payload)
+        .digest('hex')
+        .slice(0, 12);
+
+    const expectedBuffer = Buffer.from(expectedSignature);
+    const actualBuffer = Buffer.from(signatureRaw);
+    if (expectedBuffer.length !== actualBuffer.length || !crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
+        return { valid: false, reason: 'invalid' };
+    }
+
+    const expiresAtSec = Number(expiresAtRaw);
+    const expiresAt = expiresAtSec * 1000;
+    if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
+        return { valid: false, reason: 'expired' };
+    }
+
+    return { valid: true, userId: Number(userIdRaw), expiresAt };
+}
+
+function markTokenConsumed(token, expiresAt) {
+    consumedLinkTokens.set(token, expiresAt);
+    const now = Date.now();
+    for (const [savedToken, savedExp] of consumedLinkTokens.entries()) {
+        if (savedExp < now - TELEGRAM_LINK_TTL_MS) {
+            consumedLinkTokens.delete(savedToken);
+        }
+    }
 }
 
 const ROLE_EVENT_MAP = {
@@ -78,6 +155,117 @@ function normalizePreferences(role, incoming) {
     return normalized;
 }
 
+async function connectTelegramByToken(chatId, token) {
+    const verification = verifyLinkToken(token);
+    if (!verification.valid) {
+        return { ok: false, reason: verification.reason };
+    }
+
+    const userId = verification.userId;
+    const state = await getCurrentUserTelegramState(userId);
+    if (!state) {
+        return { ok: false, reason: 'not_found' };
+    }
+
+    const duplicateCheck = await query(
+        `SELECT id
+         FROM users
+         WHERE telegram_id = $1 AND id != $2
+         LIMIT 1`,
+        [String(chatId), userId]
+    );
+
+    if (duplicateCheck.rows.length > 0) {
+        return { ok: false, reason: 'already_used' };
+    }
+
+    const normalizedPrefs = normalizePreferences(state.user.role, state.rawSettings?.telegram_notifications);
+    const updatedSettings = {
+        ...(state.rawSettings || {}),
+        telegram_notifications: normalizedPrefs
+    };
+    const columns = await loadUsersColumns();
+
+    if (columns.hasSettings && columns.hasUpdatedAt) {
+        await query(
+            `UPDATE users
+             SET telegram_id = $1,
+                 settings = $2,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $3`,
+            [String(chatId), updatedSettings, userId]
+        );
+    } else if (columns.hasSettings) {
+        await query(
+            `UPDATE users
+             SET telegram_id = $1,
+                 settings = $2
+             WHERE id = $3`,
+            [String(chatId), updatedSettings, userId]
+        );
+    } else if (columns.hasUpdatedAt) {
+        await query(
+            `UPDATE users
+             SET telegram_id = $1,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2`,
+            [String(chatId), userId]
+        );
+    } else {
+        await query(
+            `UPDATE users
+             SET telegram_id = $1
+             WHERE id = $2`,
+            [String(chatId), userId]
+        );
+    }
+
+    markTokenConsumed(token, verification.expiresAt);
+    return { ok: true, username: state.user.username, role: state.user.role };
+}
+
+function initTelegramStartListener() {
+    if (!telegramBot || telegramStartListenerInitialized) {
+        return;
+    }
+
+    telegramStartListenerInitialized = true;
+    telegramBot.onText(/^\/start(?:\s+(.+))?$/i, async (msg, match) => {
+        const startToken = (match && match[1] ? match[1] : '').trim();
+        const chatId = msg.chat.id;
+
+        try {
+            if (!startToken) {
+                await sendTelegram(chatId, 'Привет! Чтобы подключить уведомления, нажмите кнопку подключения в кабинете ZEDLY.');
+                return;
+            }
+
+            const result = await connectTelegramByToken(chatId, startToken);
+            if (!result.ok) {
+                const reasonMessage = {
+                    expired: 'Ссылка для подключения устарела. Вернитесь в кабинет и нажмите кнопку подключения заново.',
+                    invalid: 'Неверная ссылка подключения. Запустите привязку заново из кабинета.',
+                    used: 'Эта ссылка уже была использована. Запустите привязку заново из кабинета.',
+                    not_found: 'Пользователь не найден. Попробуйте снова из кабинета.',
+                    already_used: 'Этот Telegram уже привязан к другому аккаунту.'
+                };
+                await sendTelegram(chatId, reasonMessage[result.reason] || 'Не удалось завершить привязку. Попробуйте снова из кабинета.');
+                return;
+            }
+
+            await sendTelegram(
+                chatId,
+                `✅ <b>Telegram подключен</b>\n\n👤 Пользователь: <b>${result.username}</b>\n🎓 Роль: <b>${result.role}</b>\n\nТеперь вы будете получать уведомления в Telegram.`
+            );
+        } catch (error) {
+            console.error('Telegram /start link error:', error);
+            await sendTelegram(chatId, 'Произошла ошибка при привязке. Попробуйте снова позже.');
+        }
+    });
+}
+
+initTelegramStartListener();
+
 async function getCurrentUserTelegramState(userId) {
     const columns = await loadUsersColumns();
     const result = await query(
@@ -129,6 +317,7 @@ router.get('/me/status', authenticate, async (req, res) => {
             connected: !!state.user.telegram_id,
             role: state.user.role,
             telegram_id: state.user.telegram_id,
+            link_flow_supported: !!telegramBot && !!botInfo?.username,
             bot: {
                 username: botInfo?.username || null,
                 first_name: botInfo?.first_name || null
@@ -141,6 +330,47 @@ router.get('/me/status', authenticate, async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to load Telegram status'
+        });
+    }
+});
+
+/**
+ * POST /api/telegram/me/link/start
+ * Start one-click Telegram link flow via bot deep-link
+ */
+router.post('/me/link/start', authenticate, async (req, res) => {
+    try {
+        if (!telegramBot) {
+            return res.status(400).json({
+                error: 'not_configured',
+                message: 'Telegram bot is not configured'
+            });
+        }
+
+        const botInfo = await telegramBot.getMe();
+        if (!botInfo?.username) {
+            return res.status(500).json({
+                error: 'server_error',
+                message: 'Telegram bot username is unavailable'
+            });
+        }
+
+        const { token, expiresAt } = createLinkToken(req.user.id);
+        const link = `https://t.me/${botInfo.username}?start=${encodeURIComponent(token)}`;
+
+        res.json({
+            link,
+            token_expires_at: new Date(expiresAt).toISOString(),
+            bot: {
+                username: botInfo.username,
+                first_name: botInfo.first_name || null
+            }
+        });
+    } catch (error) {
+        console.error('Telegram link start error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to start Telegram link flow'
         });
     }
 });

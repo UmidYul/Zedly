@@ -26,7 +26,8 @@ const emailTransporter = nodemailer.createTransport({
 let telegramBot = null;
 if (process.env.TELEGRAM_BOT_TOKEN) {
     try {
-        telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
+        const useWebhook = process.env.TELEGRAM_USE_WEBHOOK === 'true';
+        telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: !useWebhook });
     } catch (error) {
         console.error('Failed to initialize Telegram bot:', error.message);
     }
