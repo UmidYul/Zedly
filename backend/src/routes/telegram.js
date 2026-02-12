@@ -16,7 +16,8 @@ const consumedLinkTokens = new Map();
 let telegramStartListenerInitialized = false;
 
 function getAppUrl() {
-    return process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+    const raw = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+    return raw.replace(/\/+$/, '').replace(/\/api$/i, '');
 }
 
 async function loadUsersColumns() {
