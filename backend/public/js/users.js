@@ -863,11 +863,6 @@
                 `<option value="${s.id}">${s.name}</option>`
             ).join('');
 
-            // Modern multiple-choice for classes (checkboxes)
-            const classCheckboxes = this.classes.map(c =>
-                `<label class="multi-choice-option"><input type="checkbox" name="classes_${assignmentId}" value="${c.id}"> ${c.name} (Grade ${c.grade_level})</label>`
-            ).join('');
-
             const html = `
                 <div class="teacher-assignment" data-id="${assignmentId}">
                     <button type="button" class="btn-remove top-right" onclick="UsersManager.removeTeacherAssignment(${assignmentId})" title="Remove">
@@ -885,13 +880,25 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Classes</label>
-                        <div class="multi-choice-list">${classCheckboxes}</div>
+                        <select class="form-input" name="classes_${assignmentId}" multiple required style="min-width:180px; min-height:60px;"></select>
                         <span class="form-hint">Select one or more classes</span>
                     </div>
                 </div>
             `;
 
             container.insertAdjacentHTML('beforeend', html);
+
+            // Инициализировать динамическую фильтрацию классов по предмету
+            const div = container.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
+            const subjectSelect = div.querySelector('select[name^="subject_"]');
+            const classSelect = div.querySelector('select[name^="classes_"]');
+            if (subjectSelect) {
+                subjectSelect.onchange = async () => {
+                    await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value);
+                };
+            }
+            // Пустой список классов до выбора предмета
+            if (classSelect) classSelect.innerHTML = '';
         },
 
         // Remove teacher assignment row
