@@ -6,8 +6,13 @@ const XLSX = require('xlsx');
 const { query } = require('../config/database');
 const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
 const { notifyNewUser } = require('../utils/notifications');
+
 // --- Career Analytics and Tests for SchoolAdmin ---
 const { getCareerStats, getCareerTests } = require('./careerHandlers');
+
+// All routes require school_admin role
+router.use(authenticate);
+router.use(authorize('school_admin'));
 
 /**
  * GET /api/admin/career/analytics
