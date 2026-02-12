@@ -762,8 +762,8 @@
             try {
                 const token = localStorage.getItem('access_token');
 
-                // Load subjects
-                const subjectsResponse = await fetch('/api/admin/subjects?page=1&limit=1000', {
+                // Для учителей — только назначенные предметы
+                const subjectsResponse = await fetch('/api/teacher/subjects', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (subjectsResponse.ok) {
@@ -771,7 +771,7 @@
                     this.subjects = subjectsData.subjects || [];
                 }
 
-                // Load classes
+                // Классы по-прежнему через admin
                 const classesResponse = await fetch('/api/admin/classes?page=1&limit=1000&search=&grade=all', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
