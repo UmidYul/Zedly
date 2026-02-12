@@ -865,23 +865,25 @@
 
             const html = `
                 <div class="teacher-assignment" data-id="${assignmentId}">
-                    <button type="button" class="btn-remove top-right" onclick="UsersManager.removeTeacherAssignment(${assignmentId})" title="Remove">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                    <div class="form-group">
-                        <label class="form-label">Subject</label>
-                        <select class="form-input" name="subject_${assignmentId}" required>
-                            <option value="">Select subject</option>
-                            ${subjectOptions}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Classes</label>
-                        <select class="form-input" name="classes_${assignmentId}" multiple required style="min-width:180px; min-height:60px;"></select>
-                        <span class="form-hint">Select one or more classes</span>
+                    <div class="assignment-row">
+                        <div class="form-group flex-1">
+                            <label class="form-label">Subject</label>
+                            <select class="form-input" name="subject_${assignmentId}" required>
+                                <option value="">Select subject</option>
+                                ${subjectOptions}
+                            </select>
+                        </div>
+                        <div class="form-group flex-2">
+                            <label class="form-label">Classes</label>
+                            <select class="form-input" name="classes_${assignmentId}" multiple required></select>
+                            <span class="form-hint">Select one or more classes</span>
+                        </div>
+                        <button type="button" class="btn-remove" onclick="UsersManager.removeTeacherAssignment(${assignmentId})" title="Remove">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             `;

@@ -709,13 +709,14 @@
     background: var(--surface-card);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .assignment-row {
     display: grid;
     grid-template-columns: 1fr 1.6fr auto;
     gap: var(--spacing-md);
-    align-items: start;
+    align-items: end;
 }
 
 .assignment-row .form-group {
@@ -723,11 +724,11 @@
 }
 
 .assignment-row .form-input {
-    background: var(--bg-primary);
+    background: var(--bg-secondary);
 }
 
 .assignment-row select[multiple].form-input {
-    min-height: 110px;
+    min-height: 140px;
 }
 
 .flex-1 {
@@ -739,15 +740,15 @@
 }
 
 .btn-remove {
-    margin-top: 24px;
+    margin-top: 22px;
     width: 36px;
     height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--error);
-    background: transparent;
-    color: var(--error);
+    border: 1px solid rgba(239, 83, 80, 0.4);
+    background: rgba(239, 83, 80, 0.08);
+    color: #fca5a5;
     border-radius: var(--radius-md);
     cursor: pointer;
     transition: var(--transition-fast);
@@ -755,7 +756,7 @@
 }
 
 .btn-remove:hover {
-    background: var(--error);
+    background: rgba(239, 83, 80, 0.2);
     color: white;
 }
 
