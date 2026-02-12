@@ -8,6 +8,30 @@
         searchTerm: '',
         roleFilter: 'all',
 
+        // Show custom alert modal
+        showAlertModal: function (message, title = 'Info') {
+            // Remove existing alert modal if present
+            const existing = document.getElementById('alertModal');
+            if (existing) existing.remove();
+            const html = `
+                        <div class="modal-overlay" id="alertModal">
+                            <div class="modal-content" style="max-width: 400px;">
+                                <div class="modal-header">
+                                    <h2 class="modal-title">${title}</h2>
+                                </div>
+                                <div class="modal-body" style="text-align:center;">
+                                    <div style="margin-bottom:1.5rem; font-size:1.1em;">${message}</div>
+                                    <button class="btn btn-primary" id="closeAlertModalBtn">OK</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+            document.body.insertAdjacentHTML('beforeend', html);
+            document.getElementById('closeAlertModalBtn').onclick = () => {
+                document.getElementById('alertModal').remove();
+            };
+        },
+
         // Initialize users page
         init: function () {
             this.currentPage = 1; // Reset to first page
@@ -237,12 +261,12 @@
                         const data = await response.json();
                         user = data.user;
                     } else {
-                        alert('Failed to load user data');
+                        this.showAlertModal('Failed to load user data', 'Error');
                         return;
                     }
                 } catch (error) {
                     console.error('Load user error:', error);
-                    alert('Failed to load user data');
+                    this.showAlertModal('Failed to load user data', 'Error');
                     return;
                 }
             }
@@ -594,11 +618,11 @@
                 if (response.ok) {
                     this.loadUsers();
                 } else {
-                    alert('Failed to delete user');
+                    this.showAlertModal('Failed to delete user', 'Error');
                 }
             } catch (error) {
                 console.error('Delete user error:', error);
-                alert('Failed to delete user');
+                this.showAlertModal('Failed to delete user', 'Error');
             }
         },
 
@@ -635,11 +659,11 @@
                         });
                     }
                 } else {
-                    alert(window.ZedlyI18n.translate('users.resetPasswordFailed'));
+                    this.showAlertModal(window.ZedlyI18n.translate('users.resetPasswordFailed'), 'Error');
                 }
             } catch (error) {
                 console.error('Reset password error:', error);
-                alert(window.ZedlyI18n.translate('users.resetPasswordFailed'));
+                this.showAlertModal(window.ZedlyI18n.translate('users.resetPasswordFailed'), 'Error');
             }
         },
 
@@ -684,7 +708,7 @@
         // Copy OTP to clipboard
         copyOTP: function (otp) {
             navigator.clipboard.writeText(otp).then(() => {
-                alert(window.ZedlyI18n.translate('users.passwordCopied'));
+                this.showAlertModal(window.ZedlyI18n.translate('users.passwordCopied'), 'Info');
             }).catch(err => {
                 console.error('Failed to copy:', err);
                 // Fallback for older browsers
@@ -694,7 +718,7 @@
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                alert(window.ZedlyI18n.translate('users.passwordCopied'));
+                this.showAlertModal(window.ZedlyI18n.translate('users.passwordCopied'), 'Info');
             });
         },
 
