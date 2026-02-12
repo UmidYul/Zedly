@@ -241,6 +241,38 @@ function buildCareerRecommendations(topInterests) {
  */
 
 /**
+ * GET /api/student/subjects
+ * Get all subjects in student's school
+ */
+router.get('/subjects', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const subjectColumns = await getTableColumns('subjects');
+        const nameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
+        const colorColumn = pickColumn(subjectColumns, ['color'], null);
+
+        const result = await query(
+            `SELECT
+                id,
+                ${nameColumn} as name,
+                ${colorColumn ? colorColumn : 'NULL'} as color
+             FROM subjects
+             WHERE school_id = $1
+             ORDER BY ${nameColumn} ASC`,
+            [schoolId]
+        );
+
+        res.json({ subjects: result.rows });
+    } catch (error) {
+        console.error('Get student subjects error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch subjects'
+        });
+    }
+});
+
+/**
  * GET /api/student/assignments
  * Get all test assignments available to student
  */
@@ -325,6 +357,7 @@ router.get('/assignments', async (req, res) => {
                 ta.id,
                 ta.test_id,
                 ta.class_id,
+                t.subject_id,
                 ${startDateColumn ? `ta.${startDateColumn}` : 'NULL'} as start_date,
                 ${endDateColumn ? `ta.${endDateColumn}` : 'NULL'} as end_date,
                 t.${testTitleColumn} as test_title,

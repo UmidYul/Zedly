@@ -5,6 +5,8 @@
     window.StudentTestsManager = {
         currentTab: 'available', // available, completed
         assignments: [],
+        subjects: [],
+        selectedSubjectId: null,
 
         // Safely serialize values for inline onclick handlers
         toJsArg: function (value) {
@@ -35,7 +37,6 @@
 
         // Setup event listeners
         setupEventListeners: function () {
-            // Tab switching
             document.querySelectorAll('[data-tab]').forEach(tab => {
                 tab.addEventListener('click', (e) => {
                     const tabName = e.currentTarget.dataset.tab;
@@ -48,7 +49,6 @@
         switchTab: function (tabName) {
             this.currentTab = tabName;
 
-            // Update active tab
             document.querySelectorAll('[data-tab]').forEach(tab => {
                 tab.classList.remove('active');
                 if (tab.dataset.tab === tabName) {
@@ -56,7 +56,6 @@
                 }
             });
 
-            // Load content
             if (tabName === 'available') {
                 this.loadAssignments();
             } else if (tabName === 'completed') {
@@ -64,66 +63,182 @@
             }
         },
 
-        // Load assignments from API
+        // Select a subject and rerender tests list
+        selectSubject: function (subjectId) {
+            this.selectedSubjectId = String(subjectId);
+            this.renderAssignments();
+        },
+
+        // Load subjects + assignments from API
         loadAssignments: async function () {
             const container = document.getElementById('testsContainer');
             if (!container) return;
 
-            // Show loading
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
                     <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Loading tests...</p>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Загрузка тестов...</p>
                 </div>
             `;
 
             try {
                 const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/student/assignments?status=all', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const headers = { Authorization: `Bearer ${token}` };
 
-                if (!response.ok) {
+                const [subjectsResponse, assignmentsResponse] = await Promise.all([
+                    fetch('/api/student/subjects', { headers }),
+                    fetch('/api/student/assignments?status=all', { headers })
+                ]);
+
+                if (!assignmentsResponse.ok) {
                     throw new Error('Failed to load assignments');
                 }
 
-                const data = await response.json();
-                this.assignments = data.assignments;
+                const assignmentsData = await assignmentsResponse.json();
+                this.assignments = Array.isArray(assignmentsData.assignments) ? assignmentsData.assignments : [];
+
+                if (subjectsResponse.ok) {
+                    const subjectsData = await subjectsResponse.json();
+                    this.subjects = this.normalizeSubjects(subjectsData.subjects);
+                } else {
+                    this.subjects = [];
+                }
+
+                // Fallback to subjects from assignments if school subjects endpoint is empty
+                if (this.subjects.length === 0 && this.assignments.length > 0) {
+                    const byId = new Map();
+                    this.assignments.forEach((assignment) => {
+                        if (assignment.subject_id == null) return;
+                        const key = String(assignment.subject_id);
+                        if (!byId.has(key)) {
+                            byId.set(key, {
+                                id: key,
+                                name: assignment.subject_name || 'Без предмета',
+                                color: assignment.subject_color || '#2563eb'
+                            });
+                        }
+                    });
+                    this.subjects = Array.from(byId.values());
+                }
+
+                if (this.subjects.length > 0) {
+                    const hasSelected = this.subjects.some(subject => String(subject.id) === this.selectedSubjectId);
+                    if (!hasSelected) {
+                        this.selectedSubjectId = String(this.subjects[0].id);
+                    }
+                } else {
+                    this.selectedSubjectId = null;
+                }
+
                 this.renderAssignments();
             } catch (error) {
                 console.error('Load assignments error:', error);
                 container.innerHTML = `
                     <div class="error-message">
-                        <p>Failed to load tests. Please try again.</p>
+                        <p>Не удалось загрузить тесты. Попробуйте ещё раз.</p>
                     </div>
                 `;
             }
         },
 
-        // Render assignments
+        normalizeSubjects: function (subjects) {
+            if (!Array.isArray(subjects)) {
+                return [];
+            }
+
+            return subjects
+                .filter(subject => subject && subject.id != null)
+                .map(subject => ({
+                    id: String(subject.id),
+                    name: subject.name || 'Без названия',
+                    color: subject.color || '#2563eb'
+                }));
+        },
+
+        getAssignmentsBySubjectId: function (subjectId) {
+            const id = String(subjectId);
+            return this.assignments.filter(assignment => String(assignment.subject_id) === id);
+        },
+
+        // Render assignments in subject-first UX
         renderAssignments: function () {
             const container = document.getElementById('testsContainer');
             if (!container) return;
 
-            if (this.assignments.length === 0) {
+            if (this.subjects.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">No tests available at the moment.</p>
+                    <div class="empty-state subject-empty-state">
+                        <h3>Предметы пока не добавлены</h3>
+                        <p>Когда в школе появятся предметы, здесь отобразятся соответствующие тесты.</p>
                     </div>
                 `;
                 return;
             }
 
-            const now = new Date();
+            const selectedSubject = this.subjects.find(subject => String(subject.id) === this.selectedSubjectId) || this.subjects[0];
+            const subjectAssignments = this.getAssignmentsBySubjectId(selectedSubject.id);
+            const testsCount = subjectAssignments.length;
 
-            // Group assignments by status
+            let html = `
+                <div class="subject-hub">
+                    <div class="subject-hub-header">
+                        <div>
+                            <h3>Выберите предмет</h3>
+                            <p>Сначала выберите предмет, затем запустите нужный тест.</p>
+                        </div>
+                    </div>
+                    <div class="subject-list">
+            `;
+
+            this.subjects.forEach(subject => {
+                const isActive = String(subject.id) === String(selectedSubject.id);
+                const count = this.getAssignmentsBySubjectId(subject.id).length;
+                html += `
+                    <button
+                        type="button"
+                        class="subject-item ${isActive ? 'active' : ''}"
+                        onclick="StudentTestsManager.selectSubject(${this.toJsArg(subject.id)})"
+                    >
+                        <span class="subject-item-dot" style="background:${subject.color};"></span>
+                        <span class="subject-item-name">${subject.name}</span>
+                        <span class="subject-item-count">${count}</span>
+                    </button>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+                <div class="tests-section">
+                    <div class="subject-selection-summary">
+                        <div class="subject-selection-title">
+                            <span class="subject-badge" style="background-color: ${selectedSubject.color}20; color: ${selectedSubject.color}; border: 1px solid ${selectedSubject.color}55;">
+                                ${selectedSubject.name}
+                            </span>
+                            <h3>Тесты по предмету</h3>
+                        </div>
+                        <p>${testsCount} ${this.getTestsWord(testsCount)}</p>
+                    </div>
+            `;
+
+            if (subjectAssignments.length === 0) {
+                html += `
+                    <div class="empty-state">
+                        <h3>По этому предмету пока нет тестов</h3>
+                        <p>Выберите другой предмет или подождите, пока учитель назначит тест.</p>
+                    </div>
+                `;
+                html += '</div>';
+                container.innerHTML = html;
+                return;
+            }
+
+            const now = new Date();
             const active = [];
             const upcoming = [];
             const expired = [];
 
-            this.assignments.forEach(assignment => {
+            subjectAssignments.forEach(assignment => {
                 const startDate = new Date(assignment.start_date);
                 const endDate = new Date(assignment.end_date);
 
@@ -136,39 +251,38 @@
                 }
             });
 
-            let html = '';
-
-            // Active tests
             if (active.length > 0) {
-                html += '<div class="tests-section"><h3 class="section-title">Active Tests</h3>';
-                html += '<div class="tests-grid">';
+                html += '<h4 class="section-title">Доступные сейчас</h4><div class="tests-grid">';
                 active.forEach(assignment => {
                     html += this.renderTestCard(assignment, 'active');
                 });
-                html += '</div></div>';
+                html += '</div>';
             }
 
-            // Upcoming tests
             if (upcoming.length > 0) {
-                html += '<div class="tests-section"><h3 class="section-title">Upcoming Tests</h3>';
-                html += '<div class="tests-grid">';
+                html += '<h4 class="section-title">Скоро начнутся</h4><div class="tests-grid">';
                 upcoming.forEach(assignment => {
                     html += this.renderTestCard(assignment, 'upcoming');
                 });
-                html += '</div></div>';
+                html += '</div>';
             }
 
-            // Expired tests
             if (expired.length > 0) {
-                html += '<div class="tests-section"><h3 class="section-title">Past Tests</h3>';
-                html += '<div class="tests-grid">';
+                html += '<h4 class="section-title">Завершённые</h4><div class="tests-grid">';
                 expired.forEach(assignment => {
                     html += this.renderTestCard(assignment, 'expired');
                 });
-                html += '</div></div>';
+                html += '</div>';
             }
 
+            html += '</div>';
             container.innerHTML = html;
+        },
+
+        getTestsWord: function (count) {
+            if (count % 10 === 1 && count % 100 !== 11) return 'тест';
+            if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'теста';
+            return 'тестов';
         },
 
         // Render test card
@@ -187,7 +301,7 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
-                            Continue Test
+                            Продолжить
                         </button>
                     `;
                 } else if (attemptsLeft > 0) {
@@ -196,31 +310,32 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
-                            Start Test
+                            Начать тест
                         </button>
                     `;
                 } else {
-                    actionButton = '<span class="text-secondary">No attempts left</span>';
+                    actionButton = '<span class="text-secondary">Лимит попыток исчерпан</span>';
                 }
             } else if (status === 'upcoming') {
-                actionButton = `<button class="btn btn-outline" disabled>Starts ${this.formatDate(assignment.start_date)}</button>`;
+                actionButton = `<button class="btn btn-outline" disabled>Старт: ${this.formatDate(assignment.start_date)}</button>`;
             } else {
                 actionButton = `
                     <button class="btn btn-outline" onclick="StudentTestsManager.viewResults(${this.toJsArg(assignment.id)})">
-                        View Results
+                        Смотреть результат
                     </button>
                 `;
             }
 
+            const statusLabel = status === 'active'
+                ? 'Доступен'
+                : status === 'upcoming'
+                    ? 'Ожидается'
+                    : 'Завершён';
+
             return `
                 <div class="test-card ${status}">
                     <div class="test-card-header">
-                        ${assignment.subject_name ? `
-                            <span class="subject-badge" style="background-color: ${assignment.subject_color}20; color: ${assignment.subject_color};">
-                                ${assignment.subject_name}
-                            </span>
-                        ` : ''}
-                        <span class="status-badge status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                        <span class="status-badge status-${status}">${statusLabel}</span>
                     </div>
                     <div class="test-card-body">
                         <h3 class="test-title">${assignment.test_title}</h3>
@@ -233,33 +348,33 @@
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
-                                ${assignment.duration_minutes} minutes
+                                ${assignment.duration_minutes} мин
                             </div>
                             <div class="meta-item">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M9 11l3 3L22 4"></path>
                                     <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
                                 </svg>
-                                ${assignment.question_count} questions
+                                ${assignment.question_count} вопросов
                             </div>
                             <div class="meta-item">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M12 2v20M2 12h20"></path>
                                 </svg>
-                                ${assignment.passing_score}% to pass
+                                Порог: ${assignment.passing_score}%
                             </div>
                         </div>
 
                         <div class="test-progress">
                             <div class="progress-row">
-                                <span>Attempts:</span>
+                                <span>Попытки:</span>
                                 <span>${assignment.attempts_made} / ${assignment.max_attempts}</span>
                             </div>
                             ${bestScore !== null ? `
                                 <div class="progress-row">
-                                    <span>Best Score:</span>
+                                    <span>Лучший результат:</span>
                                     <span class="${hasPendingGrading ? 'text-warning' : (passed ? 'text-success' : 'text-warning')}">
-                                        ${hasPendingGrading ? '⏳ Pending Review' : bestScore + '%'}
+                                        ${hasPendingGrading ? 'Проверяется' : bestScore + '%'}
                                     </span>
                                 </div>
                             ` : ''}
@@ -273,7 +388,7 @@
                                     <line x1="8" y1="2" x2="8" y2="6"></line>
                                     <line x1="3" y1="10" x2="21" y2="10"></line>
                                 </svg>
-                                Due: ${this.formatDate(assignment.end_date)}
+                                Сдать до: ${this.formatDate(assignment.end_date)}
                             </div>
                         ` : ''}
                     </div>
@@ -320,14 +435,13 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Redirect to test taking page
                     window.location.href = `/take-test.html?attempt_id=${data.attempt_id}`;
                 } else {
-                    await this.notify(data.message || 'Failed to start test');
+                    await this.notify(data.message || 'Не удалось начать тест');
                 }
             } catch (error) {
                 console.error('Start test error:', error);
-                await this.notify('Failed to start test. Please try again.');
+                await this.notify('Не удалось начать тест. Попробуйте ещё раз.');
             }
         },
 
@@ -349,7 +463,7 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
                     <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Loading results...</p>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Загрузка результатов...</p>
                 </div>
             `;
 
@@ -371,7 +485,7 @@
                 console.error('Load results error:', error);
                 container.innerHTML = `
                     <div class="error-message">
-                        <p>Failed to load results. Please try again.</p>
+                        <p>Не удалось загрузить результаты. Попробуйте ещё раз.</p>
                     </div>
                 `;
             }
@@ -385,7 +499,7 @@
             if (results.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">No completed tests yet.</p>
+                        <p style="color: var(--text-secondary);">Пока нет завершённых тестов.</p>
                     </div>
                 `;
                 return;
@@ -396,13 +510,13 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Test</th>
-                                <th>Subject</th>
-                                <th>Class</th>
-                                <th>Date</th>
-                                <th>Score</th>
-                                <th>Result</th>
-                                <th>Actions</th>
+                                <th>Тест</th>
+                                <th>Предмет</th>
+                                <th>Класс</th>
+                                <th>Дата</th>
+                                <th>Баллы</th>
+                                <th>Результат</th>
+                                <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -411,7 +525,7 @@
             results.forEach(result => {
                 const percentage = parseFloat(result.percentage);
                 const statusClass = percentage >= 60 ? 'status-active' : 'status-warning';
-                const statusText = percentage >= 60 ? 'Passed' : 'Failed';
+                const statusText = percentage >= 60 ? 'Сдан' : 'Не сдан';
 
                 html += `
                     <tr>
@@ -432,7 +546,7 @@
                             <span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="StudentTestsManager.viewAttemptDetails(${this.toJsArg(result.attempt_id)})" title="View Details">
+                            <button class="btn-icon" onclick="StudentTestsManager.viewAttemptDetails(${this.toJsArg(result.attempt_id)})" title="Подробнее">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>

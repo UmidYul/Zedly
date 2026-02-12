@@ -1183,6 +1183,7 @@
                             <button class="tab" data-tab="completed">Completed Tests</button>
                         </div>
                     </div>
+                    <div id="studentSubjectFilter"></div>
                     <div id="testsContainer"></div>
                 `;
             } else {
