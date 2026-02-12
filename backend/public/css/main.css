@@ -1,3 +1,42 @@
+/* ==============================================
+   Custom Scrollbar Styles (Modern)
+   ============================================== */
+
+/* For Webkit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+    border-radius: var(--radius-lg);
+    min-height: 40px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    border: 2px solid var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+::-webkit-scrollbar-corner {
+    background: var(--bg-tertiary);
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-light) var(--bg-tertiary);
+}
+
+/* For Edge/IE (limited support) */
+body {
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+}
+
 /* Modern multiple-choice for teacher assignment */
 .multi-choice-list {
     display: flex;
