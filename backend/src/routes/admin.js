@@ -413,11 +413,20 @@ router.post('/users', async (req, res) => {
                 const { subject_id, class_ids } = assignment;
                 if (subject_id && Array.isArray(class_ids)) {
                     for (const classId of class_ids) {
+                        // fetch academic_year for this classId
+                        const classResult = await query(
+                            'SELECT academic_year FROM classes WHERE id = $1',
+                            [classId]
+                        );
+                        const academicYear = classResult.rows[0]?.academic_year;
+                        if (!academicYear) {
+                            throw new Error(`Class with id ${classId} not found or missing academic_year`);
+                        }
                         await query(
-                            `INSERT INTO teacher_class_subjects (teacher_id, class_id, subject_id)
-                             VALUES ($1, $2, $3)
-                             ON CONFLICT (teacher_id, class_id, subject_id) DO NOTHING`,
-                            [userId, classId, subject_id]
+                            `INSERT INTO teacher_class_subjects (teacher_id, class_id, subject_id, academic_year)
+                             VALUES ($1, $2, $3, $4)
+                             ON CONFLICT (teacher_id, class_id, subject_id, academic_year) DO NOTHING`,
+                            [userId, classId, subject_id, academicYear]
                         );
                     }
                 }
