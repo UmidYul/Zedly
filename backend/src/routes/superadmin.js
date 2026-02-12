@@ -8,7 +8,6 @@ const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications')
 router.use(authenticate);
 router.use(authorize('superadmin'));
 
-}
 
 /**
  * GET /api/superadmin/schools
