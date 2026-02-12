@@ -183,8 +183,8 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
         const subjectPerformance = await query(`
             SELECT
                 s.id,
-                s.name as name_ru,
-                s.name as name_uz,
+                ${nameRu} as name_ru,
+                ${nameUz} as name_uz,
                 s.code,
                 s.color,
                 COUNT(DISTINCT t.id) as test_count,
@@ -197,7 +197,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
             LEFT JOIN tests t ON t.subject_id = s.id AND t.school_id = $1
             LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
             WHERE s.school_id = $1
-            GROUP BY s.id, s.name, s.code, s.color
+            GROUP BY s.id, ${nameRu}, ${nameUz}, s.code, s.color
             ORDER BY test_count DESC, avg_score DESC
         `, [schoolId]);
 
@@ -239,7 +239,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
         // Get heatmap data: [subject, week, average_score]
         const heatmapData = await query(`
             SELECT
-                s.name as subject,
+                ${nameRu} as subject,
                                 EXTRACT(WEEK FROM ${attempt.completedAt}) as week,
                                 DATE_TRUNC('week', ${attempt.completedAt}) as week_start,
                                 AVG(${attempt.score}) as avg_score,
@@ -254,7 +254,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
                             AND ${attempt.completedFilter}
                             AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '${period} days'
               ${gradeFilter}
-                        GROUP BY s.name, EXTRACT(WEEK FROM ${attempt.completedAt}), DATE_TRUNC('week', ${attempt.completedAt})
+                        GROUP BY ${nameRu}, EXTRACT(WEEK FROM ${attempt.completedAt}), DATE_TRUNC('week', ${attempt.completedAt})
             ORDER BY week_start DESC, subject
         `, params);
 
@@ -308,15 +308,15 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 WHERE c.school_id = $1
                   ${subject_id ? 'AND t.subject_id = $2' : ''}
                 GROUP BY c.id, c.name, c.${classGradeColumn}
-                ORDER BY c.${classGradeColumn}, c.name
+                ORDER BY NULLIF(REGEXP_REPLACE(c.${classGradeColumn}::text, '[^0-9]', '', 'g'), '')::int NULLS LAST, c.name
             `, subject_id ? [schoolId, subject_id] : [schoolId]);
         } else if (type === 'subjects') {
             // Compare subjects
             comparisonData = await query(`
                 SELECT
                     s.id,
-                    s.name as name_ru,
-                    s.name as name_uz,
+                    ${nameRu} as name_ru,
+                    ${nameUz} as name_uz,
                     s.code,
                     s.color,
                     COUNT(DISTINCT t.id) as test_count,
@@ -331,7 +331,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 LEFT JOIN tests t ON t.subject_id = s.id
                 LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
                 WHERE s.school_id = $1
-                GROUP BY s.id, s.name, s.code, s.color
+                GROUP BY s.id, ${nameRu}, ${nameUz}, s.code, s.color
                 HAVING COUNT(ta.id) > 0
                 ORDER BY avg_score DESC
             `, [schoolId]);
@@ -684,7 +684,7 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
             LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
             WHERE c.school_id = $1
             GROUP BY c.id, c.name, c.${classGradeColumn}
-            ORDER BY c.${classGradeColumn}, c.name
+            ORDER BY NULLIF(REGEXP_REPLACE(c.${classGradeColumn}::text, '[^0-9]', '', 'g'), '')::int NULLS LAST, c.name
         `, [schoolId]);
 
         const subjectsData = await query(`

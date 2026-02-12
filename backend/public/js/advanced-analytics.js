@@ -15,6 +15,14 @@
     let activeTab = 'heatmap';
     let chartLoadPromise = null;
 
+    function getLocalizedName(item) {
+        const lang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+        if (lang === 'uz') {
+            return item?.name_uz || item?.name_ru || item?.name || '—';
+        }
+        return item?.name_ru || item?.name_uz || item?.name || '—';
+    }
+
     function getRoot() {
         return document.getElementById('advancedAnalyticsRoot');
     }
@@ -296,7 +304,7 @@
 
         const labels = data.map(item => {
             if (type === 'classes') return item.name;
-            if (type === 'subjects') return item.name_ru;
+            if (type === 'subjects') return getLocalizedName(item);
             if (type === 'students') return `${item.first_name} ${item.last_name}`;
             return '';
         });
@@ -333,7 +341,7 @@
         tbody.innerHTML = data.map(item => {
             const score = parseFloat(item.avg_score) || 0;
             const name = type === 'classes' ? item.name
-                : type === 'subjects' ? item.name_ru
+                : type === 'subjects' ? getLocalizedName(item)
                     : `${item.first_name} ${item.last_name}`;
 
             return `
@@ -522,7 +530,7 @@
                 return;
             }
 
-            const labels = subjects.map(item => item.name_ru);
+            const labels = subjects.map(item => getLocalizedName(item));
             const scores = subjects.map(item => parseFloat(item.avg_score) || 0);
 
             subjectsChart = new Chart(ctx, {
@@ -552,7 +560,7 @@
 
             tbody.innerHTML = subjects.map(item => `
                 <tr>
-                    <td>${item.name_ru}</td>
+                    <td>${getLocalizedName(item)}</td>
                     <td>${item.test_count || 0}</td>
                     <td>${item.attempt_count || 0}</td>
                     <td>${parseFloat(item.avg_score || 0).toFixed(1)}%</td>
