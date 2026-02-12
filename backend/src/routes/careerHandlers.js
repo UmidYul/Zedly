@@ -6,8 +6,12 @@ const db = require('../config/database');
 // --- SchoolAdmin ---
 async function createCareerTest(req, res) {
     // RBAC: только SchoolAdmin своей школы
-    const { school_id } = req.user;
+    let { school_id } = req.user;
     const { title_ru, title_uz, description_ru, description_uz } = req.body;
+    // Привести school_id к строке (UUID)
+    if (typeof school_id !== 'string') {
+        school_id = String(school_id);
+    }
     try {
         const result = await db.query(
             'INSERT INTO career_tests (school_id, title_ru, title_uz, description_ru, description_uz) VALUES ($1, $2, $3, $4, $5) RETURNING *',
@@ -23,9 +27,13 @@ async function createCareerTest(req, res) {
 }
 async function updateCareerTest(req, res) {
     // Обновление теста профориентации
-    const { school_id } = req.user;
+    let { school_id } = req.user;
     const testId = req.params.id;
     const { title_ru, title_uz, description_ru, description_uz } = req.body;
+    // Привести school_id к строке (UUID)
+    if (typeof school_id !== 'string') {
+        school_id = String(school_id);
+    }
     try {
         const result = await db.query(
             'UPDATE career_tests SET title_ru = $1, title_uz = $2, description_ru = $3, description_uz = $4, updated_at = NOW() WHERE id = $5 AND school_id = $6 RETURNING *',
@@ -44,9 +52,13 @@ async function updateCareerTest(req, res) {
 }
 async function publishCareerTest(req, res) {
     // Публикация/скрытие теста
-    const { school_id } = req.user;
+    let { school_id } = req.user;
     const testId = req.params.id;
     const { is_published } = req.body;
+    // Привести school_id к строке (UUID)
+    if (typeof school_id !== 'string') {
+        school_id = String(school_id);
+    }
     try {
         const result = await db.query(
             'UPDATE career_tests SET is_published = $1, updated_at = NOW() WHERE id = $2 AND school_id = $3 RETURNING *',
