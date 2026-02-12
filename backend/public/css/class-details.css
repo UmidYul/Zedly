@@ -1,32 +1,44 @@
 /* Small visibility and responsiveness tweaks for class details page */
 .page-header h1#className {
-  font-size: 1.6rem;
-  margin: 0 0 6px 0;
-  color: #ffffff;
+    font-size: 1.6rem;
+    margin: 0 0 6px 0;
+    color: #ffffff;
 }
+
 .page-header p#classInfo {
-  margin: 0 0 14px 0;
-  color: #cbd5e1;
-  font-weight: 600;
+    margin: 0 0 14px 0;
+    color: #cbd5e1;
+    font-weight: 600;
 }
-.subjects-section, .students-section {
-  margin-top: 20px;
+
+.subjects-section,
+.students-section {
+    margin-top: 20px;
 }
+
 .data-table thead th {
-  background: rgba(255,255,255,0.03);
-  color: #e6eef8;
-  font-weight: 700;
+    background: rgba(255, 255, 255, 0.03);
+    color: #e6eef8;
+    font-weight: 700;
 }
+
 .data-table tbody td {
-  color: #d1d5db;
-  padding: 12px 16px;
+    color: #d1d5db;
+    padding: 12px 16px;
 }
+
 .empty-row {
-  text-align: center;
-  color: #9ca3af;
-  padding: 24px 0;
+    text-align: center;
+    color: #9ca3af;
+    padding: 24px 0;
 }
+
 @media (max-width: 760px) {
-  .page-header h1#className { font-size: 1.2rem; }
-  .data-table tbody td { padding: 10px 8px; }
+    .page-header h1#className {
+        font-size: 1.2rem;
+    }
+
+    .data-table tbody td {
+        padding: 10px 8px;
+    }
 }
