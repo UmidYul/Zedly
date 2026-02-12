@@ -36,9 +36,7 @@
             const params = new URLSearchParams(window.location.search);
             this.focusAssignmentId = params.get('assignment_id');
             this.focusSubjectId = params.get('subject_id');
-            if (this.focusSubjectId) {
-                this.selectedSubjectId = String(this.focusSubjectId);
-            }
+            this.selectedSubjectId = this.focusSubjectId ? String(this.focusSubjectId) : null;
             this.setupEventListeners();
             this.loadAssignments();
         },
@@ -74,6 +72,11 @@
         // Select a subject and rerender tests list
         selectSubject: function (subjectId) {
             this.selectedSubjectId = String(subjectId);
+            this.renderAssignments();
+        },
+
+        clearSubjectSelection: function () {
+            this.selectedSubjectId = null;
             this.renderAssignments();
         },
 
@@ -129,20 +132,18 @@
                     this.subjects = Array.from(byId.values());
                 }
 
-                if (this.subjects.length > 0) {
-                    if (this.focusSubjectId) {
-                        const hasFocusSubject = this.subjects.some(subject => String(subject.id) === String(this.focusSubjectId));
-                        if (hasFocusSubject) {
-                            this.selectedSubjectId = String(this.focusSubjectId);
-                        }
+                if (this.focusAssignmentId && !this.selectedSubjectId) {
+                    const focusAssignment = this.assignments.find((item) => String(item.id) === String(this.focusAssignmentId));
+                    if (focusAssignment?.subject_id != null) {
+                        this.selectedSubjectId = String(focusAssignment.subject_id);
                     }
+                }
 
-                    const hasSelected = this.subjects.some(subject => String(subject.id) === this.selectedSubjectId);
+                if (this.selectedSubjectId) {
+                    const hasSelected = this.subjects.some(subject => String(subject.id) === String(this.selectedSubjectId));
                     if (!hasSelected) {
-                        this.selectedSubjectId = String(this.subjects[0].id);
+                        this.selectedSubjectId = null;
                     }
-                } else {
-                    this.selectedSubjectId = null;
                 }
 
                 this.renderAssignments();
@@ -175,6 +176,35 @@
             return this.assignments.filter(assignment => String(assignment.subject_id) === id);
         },
 
+        renderSubjectsCatalog: function () {
+            let html = `
+                <div class="subject-hub">
+                    <div class="subject-hub-header">
+                        <h3>Предметы</h3>
+                        <p>Выберите предмет, чтобы увидеть доступные тесты.</p>
+                    </div>
+                    <div class="subject-catalog">
+            `;
+
+            this.subjects.forEach(subject => {
+                const count = this.getAssignmentsBySubjectId(subject.id).length;
+                html += `
+                    <button
+                        type="button"
+                        class="subject-card"
+                        onclick="StudentTestsManager.selectSubject(${this.toJsArg(subject.id)})"
+                    >
+                        <span class="subject-card__color" style="background:${subject.color};"></span>
+                        <span class="subject-card__name">${subject.name}</span>
+                        <span class="subject-card__meta">${count} ${this.getTestsWord(count)}</span>
+                    </button>
+                `;
+            });
+
+            html += '</div></div>';
+            return html;
+        },
+
         // Render assignments in subject-first UX
         renderAssignments: function () {
             const container = document.getElementById('testsContainer');
@@ -190,40 +220,24 @@
                 return;
             }
 
-            const selectedSubject = this.subjects.find(subject => String(subject.id) === this.selectedSubjectId) || this.subjects[0];
+            // Step 1: show only subjects until user selects one
+            if (!this.selectedSubjectId) {
+                container.innerHTML = this.renderSubjectsCatalog();
+                return;
+            }
+
+            const selectedSubject = this.subjects.find(subject => String(subject.id) === String(this.selectedSubjectId));
+            if (!selectedSubject) {
+                this.selectedSubjectId = null;
+                container.innerHTML = this.renderSubjectsCatalog();
+                return;
+            }
+
             const subjectAssignments = this.getAssignmentsBySubjectId(selectedSubject.id);
             const testsCount = subjectAssignments.length;
 
             let html = `
-                <div class="subject-hub">
-                    <div class="subject-hub-header">
-                        <div>
-                            <h3>Выберите предмет</h3>
-                            <p>Сначала выберите предмет, затем запустите нужный тест.</p>
-                        </div>
-                    </div>
-                    <div class="subject-list">
-            `;
-
-            this.subjects.forEach(subject => {
-                const isActive = String(subject.id) === String(selectedSubject.id);
-                const count = this.getAssignmentsBySubjectId(subject.id).length;
-                html += `
-                    <button
-                        type="button"
-                        class="subject-item ${isActive ? 'active' : ''}"
-                        onclick="StudentTestsManager.selectSubject(${this.toJsArg(subject.id)})"
-                    >
-                        <span class="subject-item-dot" style="background:${subject.color};"></span>
-                        <span class="subject-item-name">${subject.name}</span>
-                        <span class="subject-item-count">${count}</span>
-                    </button>
-                `;
-            });
-
-            html += `
-                    </div>
-                </div>
+                ${this.renderSubjectsCatalog()}
                 <div class="tests-section">
                     <div class="subject-selection-summary">
                         <div class="subject-selection-title">
@@ -232,7 +246,10 @@
                             </span>
                             <h3>Тесты по предмету</h3>
                         </div>
-                        <p>${testsCount} ${this.getTestsWord(testsCount)}</p>
+                        <div class="subject-selection-actions">
+                            <p>${testsCount} ${this.getTestsWord(testsCount)}</p>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="StudentTestsManager.clearSubjectSelection()">Выбрать другой предмет</button>
+                        </div>
                     </div>
             `;
 
