@@ -630,9 +630,16 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
             });
         }
 
-        // Soft delete
+
+        // Soft delete user
         await query(
             'UPDATE users SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+            [id]
+        );
+
+        // Soft delete all class_students links for this user (if student)
+        await query(
+            'UPDATE class_students SET is_active = false WHERE student_id = $1',
             [id]
         );
 
