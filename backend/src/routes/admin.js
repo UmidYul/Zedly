@@ -1,3 +1,11 @@
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcrypt');
+const multer = require('multer');
+const XLSX = require('xlsx');
+const { query } = require('../config/database');
+const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
+const { notifyNewUser } = require('../utils/notifications');
 // --- Career Analytics and Tests for SchoolAdmin ---
 const { getCareerStats, getCareerTests } = require('./careerHandlers');
 
@@ -16,14 +24,6 @@ router.get('/career/analytics', async (req, res) => {
 router.get('/career/tests', async (req, res) => {
     return getCareerTests(req, res);
 });
-const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcrypt');
-const multer = require('multer');
-const XLSX = require('xlsx');
-const { query } = require('../config/database');
-const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
-const { notifyNewUser } = require('../utils/notifications');
 
 const SUBJECT_COLOR_PALETTE = [
     '#4A90E2', '#E94C4C', '#50C878', '#F59E0B',
