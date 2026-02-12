@@ -642,7 +642,9 @@
             const items = question.options || [];
             const orderedItems = Array.isArray(existingAnswer) && existingAnswer.length > 0
                 ? existingAnswer
-                : items.map((_, i) => i);
+                    .map(value => Number(value))
+                    .filter(value => Number.isFinite(value))
+                : this.getOptionOrder(question);
 
             let html = '<div class="ordering-list" id="orderingList">';
 
@@ -736,7 +738,7 @@
                     return;
                 }
 
-                if (!['singlechoice', 'multiplechoice', 'imagebased'].includes(question.question_type)) {
+                if (!['singlechoice', 'multiplechoice', 'imagebased', 'ordering'].includes(question.question_type)) {
                     return;
                 }
 
