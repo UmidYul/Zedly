@@ -542,26 +542,13 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    // Show success with OTP password if generated
+                    // Show OTP password in a separate modal if generated
                     if (result.otp_password) {
-                        formAlert.className = 'alert alert-success';
-                        formAlert.innerHTML = `
-                            <strong>User created successfully!</strong><br>
-                            <strong>Generated Password:</strong> <code style="background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; font-size: 1.1em;">${result.otp_password}</code><br>
-                            <small>Please save this password - it won't be shown again!</small>
-                        `;
-
-                        // Change button to "Close"
-                        submitBtn.textContent = 'Close';
-                        submitBtn.onclick = () => {
-                            this.closeModal();
-                            this.loadUsers();
-                        };
+                        this.closeModal();
+                        this.showOtpModal(result.otp_password);
                     } else {
                         formAlert.className = 'alert alert-success';
                         formAlert.textContent = result.message;
-
-                        // Reload users list
                         setTimeout(() => {
                             this.closeModal();
                             this.loadUsers();
@@ -572,6 +559,34 @@
                     formAlert.className = 'alert alert-error';
                     formAlert.textContent = result.message || 'An error occurred';
                 }
+                // Show OTP password modal
+                showOtpModal: function (otp) {
+                    // Remove existing OTP modal if present
+                    const existing = document.getElementById('otpModal');
+                    if (existing) existing.remove();
+                    const html = `
+                            <div class="modal-overlay" id="otpModal">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h2 class="modal-title">User created successfully!</h2>
+                                    </div>
+                                    <div class="modal-body" style="text-align:center;">
+                                        <div style="margin-bottom:1.5rem;">
+                                            <strong>Generated Password:</strong><br>
+                                            <code style="background: rgba(0,0,0,0.1); padding: 8px 16px; border-radius: 6px; font-size: 1.3em; letter-spacing:2px;">${otp}</code><br>
+                                            <small style="display:block;margin-top:0.5rem;">Please save this password - it won't be shown again!</small>
+                                        </div>
+                                        <button class="btn btn-primary" id="closeOtpModalBtn">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    document.body.insertAdjacentHTML('beforeend', html);
+                    document.getElementById('closeOtpModalBtn').onclick = () => {
+                        document.getElementById('otpModal').remove();
+                        this.loadUsers();
+                    };
+                },
             } catch (error) {
                 console.error('Submit user error:', error);
                 formAlert.className = 'alert alert-error';
@@ -788,6 +803,7 @@
                 const subjectSelect = div.querySelector('select[name^="subject_"]');
                 const classSelect = div.querySelector('select[name^="classes_"]');
 
+                // Always re-render all class options and re-select previous
                 const selectedSubject = subjectSelect?.value || '';
                 const selectedClasses = classSelect
                     ? Array.from(classSelect.selectedOptions).map(opt => opt.value)
@@ -800,6 +816,7 @@
 
                 if (classSelect) {
                     classSelect.innerHTML = classOptions;
+                    // Always re-select all previously selected classes
                     selectedClasses.forEach(value => {
                         const option = classSelect.querySelector(`option[value="${value}"]`);
                         if (option) {
