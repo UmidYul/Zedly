@@ -914,14 +914,32 @@
     window.ZedlyI18n = {
         setLang,
         getCurrentLang,
-        translate: (key, lang) => {
+        /**
+         * @param {string} key - translation key
+         * @param {object|string} [paramsOrLang] - params object for template or language code
+         * @param {string} [lang] - language code (optional)
+         */
+        translate: (key, paramsOrLang, lang) => {
+            let params = undefined;
+            // Support: (key, params, lang) or (key, lang)
+            if (typeof paramsOrLang === 'string') {
+                lang = paramsOrLang;
+            } else if (typeof paramsOrLang === 'object' && paramsOrLang !== null) {
+                params = paramsOrLang;
+            }
             lang = lang || getCurrentLang();
-            return translations[lang][key] || key;
+            let str = (translations[lang] && translations[lang][key]) || key;
+            if (params) {
+                Object.keys(params).forEach(k => {
+                    str = str.replace(new RegExp('{' + k + '}', 'g'), params[k]);
+                });
+            }
+            return str;
         }
     };
 
     // Short alias for convenience
     window.i18n = {
-        t: (key, lang) => window.ZedlyI18n.translate(key, lang)
+        t: (key, paramsOrLang, lang) => window.ZedlyI18n.translate(key, paramsOrLang, lang)
     };
 })();
