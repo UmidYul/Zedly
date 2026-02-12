@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профориентационный тест</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/career.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="career-test-page">
+        <h1 data-i18n="career.title">Профориентационный тест</h1>
+        <form id="careerTestForm">
+            <div id="careerQuestions"></div>
+            <button type="submit" class="btn btn-primary" id="careerSubmitBtn" data-i18n="career.submit">Отправить</button>
+            <div id="careerFormStatus" class="career-status"></div>
+        </form>
+        <div id="careerResultsEmpty" style="display:none;" data-i18n="career.noResult">Нет результатов</div>
+        <canvas id="careerRadarChart" style="display:none;max-width:600px;margin:40px auto;"></canvas>
+        <div id="careerRecommendations"></div>
+    </div>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/career.js"></script>
+    <script>window.CareerManager && CareerManager.init && CareerManager.init();</script>
+</body>
+</html>

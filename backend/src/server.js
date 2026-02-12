@@ -155,6 +155,16 @@ try {
     console.error(error.stack);
 }
 
+// Career module routes
+try {
+    const careerRouter = require('../../routes/career');
+    app.use('/api/career', careerRouter);
+    console.log('✓ Career module routes loaded: /api/career');
+} catch (error) {
+    console.error('❌ Failed to load career module routes:', error.message);
+    console.error(error.stack);
+}
+
 // ==============================================
 // Serve Static Files (AFTER API routes!)
 // ==============================================
@@ -204,29 +214,31 @@ app.use((err, req, res, next) => {
 // Start Server
 // ==============================================
 
-app.listen(PORT, () => {
-    console.log(`
-    ╔═══════════════════════════════════════╗
-    ║                                       ║
-    ║   ZEDLY Server is running!            ║
-    ║                                       ║
-    ║   Port:        ${PORT}                    ║
-    ║   Environment: ${process.env.NODE_ENV || 'development'}          ║
-    ║   URL:         http://localhost:${PORT}   ║
-    ║                                       ║
-    ╚═══════════════════════════════════════╝
-    `);
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`
+        ╔═══════════════════════════════════════╗
+        ║                                       ║
+        ║   ZEDLY Server is running!            ║
+        ║                                       ║
+        ║   Port:        ${PORT}                    ║
+        ║   Environment: ${process.env.NODE_ENV || 'development'}          ║
+        ║   URL:         http://localhost:${PORT}   ║
+        ║                                       ║
+        ╚═══════════════════════════════════════╝
+        `);
 
-    console.log('📍 Registered routes:');
-    console.log('   GET  /api/health');
-    console.log('   POST /api/auth/login');
-    console.log('   POST /api/auth/refresh');
-    console.log('   POST /api/auth/logout');
-    console.log('   GET  /api/auth/me');
-    console.log('   GET  /');
-    console.log('   GET  /login');
-    console.log('   GET  /dashboard');
-    console.log('');
-});
+        console.log('📍 Registered routes:');
+        console.log('   GET  /api/health');
+        console.log('   POST /api/auth/login');
+        console.log('   POST /api/auth/refresh');
+        console.log('   POST /api/auth/logout');
+        console.log('   GET  /api/auth/me');
+        console.log('   GET  /');
+        console.log('   GET  /login');
+        console.log('   GET  /dashboard');
+        console.log('');
+    });
+}
 
 module.exports = app;
