@@ -11,14 +11,14 @@
 
         // Initialize classes page
         init: function () {
-            // Get user role from localStorage
-            const userDataStr = localStorage.getItem('user_data');
+            // Get user role from localStorage (key: 'user')
+            const userDataStr = localStorage.getItem('user');
             if (userDataStr) {
                 try {
                     const userData = JSON.parse(userDataStr);
                     this.userRole = userData.role;
                 } catch (e) {
-                    console.error('Failed to parse user data', e);
+                    console.error('Failed to parse user', e);
                     this.userRole = 'teacher'; // Default to teacher
                 }
             }
