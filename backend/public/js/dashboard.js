@@ -3,6 +3,7 @@
     'use strict';
 
     let currentUser = null;
+    let teacherHasHomeroom = false;
 
     // Navigation items for each role
     const navigationConfig = {
@@ -66,7 +67,8 @@
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'assignment', label: 'dashboard.nav.assignments', id: 'assignments', href: '#assignments' },
-                    { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' }
+                    { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
+                    { icon: 'users', label: 'dashboard.nav.myClass', id: 'my-class', href: '/my-class.html' }
                 ]
             },
             {
@@ -177,6 +179,9 @@
             try {
                 // Update UI (with error handling for each step)
                 console.log('📝 Updating user info...');
+                if (currentUser.role === 'teacher') {
+                    teacherHasHomeroom = await checkTeacherHomeroom();
+                }
                 updateUserInfo();
 
                 console.log('🧭 Rendering navigation...');
@@ -248,6 +253,9 @@
             html += `<div class="nav-section-title" data-i18n="${section.section}">${t(section.section)}</div>`;
 
             section.items.forEach(item => {
+                if (item.id === 'my-class' && currentUser.role === 'teacher' && !teacherHasHomeroom) {
+                    return;
+                }
                 const iconSvg = icons[item.icon] || icons.grid;
                 html += `
                     <a href="${item.href}" class="nav-item" data-page="${item.id}">
@@ -280,6 +288,22 @@
         if (window.ZedlyI18n?.getCurrentLang && window.ZedlyI18n?.setLang) {
             const lang = window.ZedlyI18n.getCurrentLang();
             window.ZedlyI18n.setLang(lang);
+        }
+    }
+
+    async function checkTeacherHomeroom() {
+        try {
+            const response = await fetch('/api/teacher/homeroom-classes', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
+            if (!response.ok) return false;
+            const data = await response.json();
+            return Array.isArray(data.classes) && data.classes.length > 0;
+        } catch (error) {
+            console.error('Homeroom check error:', error);
+            return false;
         }
     }
 

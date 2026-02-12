@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой класс - ZEDLY</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/tables.css">
+    <link rel="stylesheet" href="css/my-class.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="logo">
+                <h1>ZEDLY</h1>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+                <span class="icon">🌙</span>
+            </button>
+            <button class="lang-toggle" id="langToggle" aria-label="Toggle Language">
+                <span class="lang-text">RU</span>
+            </button>
+        </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <div class="sidebar-footer">
+            <div class="user-menu">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-role" id="userRole">Role</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn">Выйти</button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="main-content">
+        <div class="content-wrapper">
+            <div class="back-button-container">
+                <button class="back-btn" onclick="window.location.href='/dashboard.html'">
+                    <span>←</span>
+                    <span>К панели</span>
+                </button>
+            </div>
+
+            <section class="hero-card" id="heroCard">
+                <div class="hero-info">
+                    <p class="hero-label">Мой класс</p>
+                    <div class="class-select-row hidden" id="classSelectRow">
+                        <label for="classSelect">Класс</label>
+                        <select id="classSelect" class="class-select"></select>
+                    </div>
+                    <h1 id="className">Загрузка...</h1>
+                    <p id="classMeta">Подготовка данных</p>
+                </div>
+                <div class="hero-metrics">
+                    <div class="metric">
+                        <div class="metric-label">Учеников</div>
+                        <div class="metric-value" id="studentCount">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Назначений</div>
+                        <div class="metric-value" id="assignmentCount">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Активные</div>
+                        <div class="metric-value" id="activeAssignments">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Средний балл</div>
+                        <div class="metric-value" id="avgScore">0%</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card analytics-card" id="analyticsCard">
+                <div class="section-header">
+                    <div>
+                        <h2>Предметная успеваемость</h2>
+                        <p>Средний результат по предметам вашего класса</p>
+                    </div>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="subjectChart" height="120"></canvas>
+                </div>
+                <div class="subject-performance" id="subjectPerformance">
+                    <div class="empty-state">Данных пока нет</div>
+                </div>
+            </section>
+
+            <section class="card students-card" id="studentsCard">
+                <div class="section-header">
+                    <div>
+                        <h2>Ученики класса</h2>
+                        <p>Управляйте доступом и паролями учеников</p>
+                    </div>
+                    <div class="table-controls">
+                        <input class="search-input" id="studentSearch" type="text" placeholder="Поиск по имени или логину">
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Имя</th>
+                                <th>Логин</th>
+                                <th>Тестов пройдено</th>
+                                <th>Средний балл</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <tr>
+                                <td colspan="5" class="empty-row">Загрузка...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card empty-card hidden" id="emptyState">
+                <div class="empty-state">
+                    <h2>Класс не назначен</h2>
+                    <p>Пока у вас нет класса в качестве классного руководителя.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="modal-overlay hidden" id="passwordModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Временный пароль</h3>
+                <button class="modal-close" type="button" id="modalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalStudentName">Пароль для ученика</p>
+                <div class="password-box" id="modalPassword">—</div>
+                <p class="modal-hint">Передайте пароль ученику и попросите сменить его после входа.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" type="button" id="modalCopy">Скопировать</button>
+                <button class="btn btn-primary" type="button" id="modalOk">Готово</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/i18n.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth-interceptor.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/my-class.js"></script>
+</body>
+
+</html>

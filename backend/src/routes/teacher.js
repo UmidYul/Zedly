@@ -3,7 +3,17 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
-const { notifyNewTest } = require('../utils/notifications');
+const bcrypt = require('bcrypt');
+const { notifyNewTest, notifyPasswordReset } = require('../utils/notifications');
+
+function generateOtp() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let otp = '';
+    for (let i = 0; i < 8; i++) {
+        otp += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return otp;
+}
 
 
 async function getAttemptOverviewExpressions(alias = 'att') {
@@ -663,6 +673,79 @@ router.get('/classes', async (req, res) => {
 });
 
 /**
+ * GET /api/teacher/homeroom-class
+ * Get homeroom class for current teacher
+ */
+router.get('/homeroom-class', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+
+        const result = await query(
+            `SELECT
+                c.id, c.name, c.grade_level, c.academic_year, c.is_active,
+                c.homeroom_teacher_id,
+                CONCAT(ht.first_name, ' ', ht.last_name) as homeroom_teacher_name,
+                (SELECT COUNT(*) FROM class_students WHERE class_id = c.id AND is_active = true) as student_count
+             FROM classes c
+             LEFT JOIN users ht ON c.homeroom_teacher_id = ht.id
+             WHERE c.school_id = $1
+               AND c.is_active = true
+               AND c.homeroom_teacher_id = $2
+             ORDER BY c.grade_level DESC, c.name ASC
+             LIMIT 1`,
+            [schoolId, teacherId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Homeroom class not found'
+            });
+        }
+
+        res.json({ class: result.rows[0] });
+    } catch (error) {
+        console.error('Get homeroom class error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch homeroom class'
+        });
+    }
+});
+
+/**
+ * GET /api/teacher/homeroom-classes
+ * Get all homeroom classes for current teacher
+ */
+router.get('/homeroom-classes', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+
+        const result = await query(
+            `SELECT
+                c.id, c.name, c.grade_level, c.academic_year, c.is_active,
+                (SELECT COUNT(*) FROM class_students WHERE class_id = c.id AND is_active = true) as student_count
+             FROM classes c
+             WHERE c.school_id = $1
+               AND c.is_active = true
+               AND c.homeroom_teacher_id = $2
+             ORDER BY c.grade_level DESC, c.name ASC`,
+            [schoolId, teacherId]
+        );
+
+        res.json({ classes: result.rows });
+    } catch (error) {
+        console.error('Get homeroom classes error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch homeroom classes'
+        });
+    }
+});
+
+/**
  * GET /api/teacher/classes/:id
  * Get class details with students
  */
@@ -880,6 +963,94 @@ router.get('/classes/:id/analytics', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to fetch class analytics'
+        });
+    }
+});
+
+/**
+ * POST /api/teacher/students/:id/reset-password
+ * Reset password for a student in teacher's homeroom class
+ */
+router.post('/students/:id/reset-password', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+
+        const studentResult = await query(
+            `SELECT
+                u.id, u.username, u.first_name, u.last_name, u.email, u.telegram_id
+             FROM class_students cs
+             JOIN classes c ON c.id = cs.class_id
+             JOIN users u ON u.id = cs.student_id
+             WHERE cs.student_id = $1
+               AND cs.is_active = true
+               AND c.school_id = $2
+               AND c.homeroom_teacher_id = $3
+               AND u.role = 'student'
+               AND u.is_active = true
+             LIMIT 1`,
+            [id, schoolId, teacherId]
+        );
+
+        if (studentResult.rows.length === 0) {
+            return res.status(403).json({
+                error: 'forbidden',
+                message: 'You can reset passwords only for your homeroom students'
+            });
+        }
+
+        const student = studentResult.rows[0];
+        const otp = generateOtp();
+        const hashedPassword = await bcrypt.hash(otp, 10);
+
+        await query(
+            `UPDATE users
+             SET password_hash = $1,
+                 must_change_password = true,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2`,
+            [hashedPassword, student.id]
+        );
+
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                teacherId,
+                'update',
+                'user',
+                student.id,
+                {
+                    action_type: 'password_reset',
+                    username: student.username,
+                    reset_by: req.user.username
+                }
+            ]
+        );
+
+        if (student.email || student.telegram_id) {
+            try {
+                await notifyPasswordReset(student, otp, req.query.lang || 'ru');
+            } catch (notifyError) {
+                console.error('Notification error:', notifyError);
+            }
+        }
+
+        res.json({
+            message: 'Password reset successfully',
+            tempPassword: otp,
+            user: {
+                id: student.id,
+                username: student.username,
+                name: `${student.first_name} ${student.last_name}`.trim()
+            }
+        });
+    } catch (error) {
+        console.error('Reset student password error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to reset password'
         });
     }
 });
