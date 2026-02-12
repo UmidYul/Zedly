@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { requireRole, requireSchool, requireStudent } = require('../middleware/rbac');
+const { requireRole, requireSchool, requireStudent } = require('../src/middleware/rbac');
 const careerHandlers = require('../src/routes/careerHandlers');
 
 // --- SchoolAdmin ---
