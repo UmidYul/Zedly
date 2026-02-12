@@ -22,24 +22,64 @@ async function createCareerTest(req, res) {
     }
 }
 async function updateCareerTest(req, res) {
-    // ...редактирование теста
+    // Обновление теста профориентации
+    const { school_id } = req.user;
+    const testId = req.params.id;
+    const { title_ru, title_uz, description_ru, description_uz } = req.body;
+    try {
+        const result = await db.query(
+            'UPDATE career_tests SET title_ru = $1, title_uz = $2, description_ru = $3, description_uz = $4, updated_at = NOW() WHERE id = $5 AND school_id = $6 RETURNING *',
+            [title_ru, title_uz, description_ru, description_uz, testId, school_id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Test not found or access denied' });
+        }
+        // Audit log
+        await db.query('INSERT INTO audit_career (action, admin_id, test_id, details) VALUES ($1, $2, $3, $4)',
+            ['update', req.user.id, testId, 'Тест обновлен']);
+        res.json({ test: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
 async function publishCareerTest(req, res) {
-    // ...публикация/скрытие теста
+    // Публикация/скрытие теста
+    const { school_id } = req.user;
+    const testId = req.params.id;
+    const { is_published } = req.body;
+    try {
+        const result = await db.query(
+            'UPDATE career_tests SET is_published = $1, updated_at = NOW() WHERE id = $2 AND school_id = $3 RETURNING *',
+            [is_published, testId, school_id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Test not found or access denied' });
+        }
+        // Audit log
+        await db.query('INSERT INTO audit_career (action, admin_id, test_id, details) VALUES ($1, $2, $3, $4)',
+            ['publish', req.user.id, testId, is_published ? 'Тест опубликован' : 'Тест скрыт']);
+        res.json({ test: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
 async function getCareerTests(req, res) {
-    // ...получить тесты своей школы
+    // Stub: get tests for school
+    res.json({ message: 'Stub: getCareerTests', tests: [] });
 }
 async function getCareerResults(req, res) {
-    // ...результаты учеников
+    // Stub: get student results
+    res.json({ message: 'Stub: getCareerResults', results: [] });
 }
 async function getCareerStats(req, res) {
-    // ...агрегированная статистика
+    // Stub: aggregated stats
+    res.json({ message: 'Stub: getCareerStats', stats: {} });
 }
 
 // --- Student ---
 async function getAvailableCareerTests(req, res) {
-    // ...доступные тесты
+    // Stub: get available tests for student
+    res.json({ message: 'Stub: getAvailableCareerTests', tests: [] });
 }
 async function attemptCareerTest(req, res) {
     // RBAC: только Student своей школы
@@ -64,12 +104,14 @@ async function attemptCareerTest(req, res) {
     }
 }
 async function getMyCareerResult(req, res) {
-    // ...получить свой результат
+    // Stub: get student's own result
+    res.json({ message: 'Stub: getMyCareerResult', testId: req.params.testId, result: {} });
 }
 
 // --- SuperAdmin ---
 async function getGlobalCareerStats(req, res) {
-    // ...глобальная статистика
+    // Stub: global stats for SuperAdmin
+    res.json({ message: 'Stub: getGlobalCareerStats', stats: {} });
 }
 
 module.exports = {
