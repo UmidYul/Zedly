@@ -173,12 +173,11 @@
 
             document.getElementById('nextBtn').addEventListener('click', () => {
                 this.saveCurrentAnswer();
-                this.navigateQuestion(1);
-            });
-
-            // Submit button
-            document.getElementById('submitTestBtn').addEventListener('click', () => {
-                this.confirmSubmit();
+                if (this.currentQuestionIndex === this.questions.length - 1) {
+                    this.confirmSubmit();
+                } else {
+                    this.navigateQuestion(1);
+                }
             });
         },
 
@@ -427,7 +426,8 @@
 
             // Update navigation buttons
             document.getElementById('prevBtn').style.visibility = this.currentQuestionIndex === 0 ? 'hidden' : 'visible';
-            document.getElementById('nextBtn').textContent = this.currentQuestionIndex === this.questions.length - 1 ? 'Finish' : 'Next';
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.textContent = this.currentQuestionIndex === this.questions.length - 1 ? 'Завершить' : 'Вперед';
 
             // Update question navigation
             this.renderQuestionNav();
@@ -829,9 +829,13 @@
                 clearInterval(this.autoSaveInterval);
 
                 // Show loading
-                const submitBtn = document.getElementById('submitTestBtn');
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner"></span> Submitting...';
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) {
+                    nextBtn.disabled = true;
+                    nextBtn.innerHTML = '<span class="spinner"></span> Отправка...';
+                }
 
                 const token = localStorage.getItem('access_token');
                 const response = await fetch(`/api/student/attempts/${this.attemptId}/submit`, {

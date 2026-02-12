@@ -29,30 +29,6 @@
 
     <!-- Main Test Container -->
     <div class="test-container">
-        <!-- Question Navigation Sidebar -->
-        <div class="question-nav">
-            <div class="nav-header">
-                <h3>Questions</h3>
-                <div class="nav-legend">
-                    <div class="legend-item">
-                        <span class="legend-dot answered"></span>
-                        <span>Answered</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot unanswered"></span>
-                        <span>Unanswered</span>
-                    </div>
-                </div>
-            </div>
-            <div class="nav-grid" id="questionNav"></div>
-            <button class="btn btn-primary btn-submit" id="submitTestBtn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                Submit Test
-            </button>
-        </div>
-
         <!-- Question Display Area -->
         <div class="question-area">
             <div id="questionContainer">
@@ -65,14 +41,31 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
-                    Previous
+                    Назад
                 </button>
                 <button class="btn btn-primary" id="nextBtn">
-                    Next
+                    Вперед
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                 </button>
+            </div>
+
+            <div class="question-nav">
+                <div class="nav-header">
+                    <h3>Вопросы</h3>
+                    <div class="nav-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot answered"></span>
+                            <span>Отвечен</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot unanswered"></span>
+                            <span>Без ответа</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="nav-grid" id="questionNav"></div>
             </div>
         </div>
     </div>

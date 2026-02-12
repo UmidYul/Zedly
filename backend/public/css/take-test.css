@@ -71,28 +71,22 @@
 
 /* Main Container */
 .test-container {
-    max-width: 1400px;
+    max-width: 980px;
     margin: 0 auto;
     padding: var(--spacing-xl);
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: var(--spacing-xl);
-    align-items: start;
+    display: block;
     min-height: calc(100vh - 120px);
 }
 
-/* Question Navigation Sidebar */
+/* Question Navigation */
 .question-nav {
-    position: sticky;
-    top: 120px;
+    margin-top: var(--spacing-lg);
     background: var(--surface-card);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
+    border-top: 1px solid var(--border-light);
+    padding: var(--spacing-xl);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-lg);
-    box-shadow: var(--glow);
 }
 
 .nav-header {
@@ -109,7 +103,7 @@
 
 .nav-legend {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
     font-size: 0.75rem;
     color: var(--text-secondary);
@@ -140,7 +134,7 @@
 
 .nav-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
     gap: var(--spacing-sm);
 }
 
@@ -175,28 +169,6 @@
     background: rgba(74, 144, 226, 0.1);
     border-color: var(--primary);
     color: var(--primary);
-}
-
-.btn-submit {
-    width: 100%;
-    margin-top: var(--spacing-md);
-    background: linear-gradient(135deg, var(--success) 0%, #38a169 100%);
-    border: none;
-    color: white;
-    font-weight: 700;
-    padding: var(--spacing-md);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: var(--transition-fast);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-sm);
-}
-
-.btn-submit:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
 }
 
 .proctoring-notice {
@@ -694,17 +666,7 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .test-container {
-        grid-template-columns: 1fr;
-    }
-
-    .question-nav {
-        position: relative;
-        top: 0;
-        order: 2;
-    }
-
-    .question-area {
-        order: 1;
+        max-width: 100%;
     }
 }
 
@@ -736,10 +698,6 @@
 
     .question-text {
         font-size: 1.05rem;
-    }
-
-    .nav-grid {
-        grid-template-columns: repeat(5, 1fr);
     }
 
     .question-controls {
@@ -804,7 +762,7 @@
     }
 
     .nav-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
     }
 
     .question-text {
