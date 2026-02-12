@@ -749,9 +749,16 @@
 .teacher-assignment .multi-choice-list {
     column-count: 2;
     column-gap: 16px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 6px;
 }
 
+.teacher-assignment .multi-choice-item,
 .teacher-assignment .multi-choice-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     break-inside: avoid;
     margin-bottom: 6px;
     padding: 4px 6px;

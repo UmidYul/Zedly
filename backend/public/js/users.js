@@ -798,7 +798,7 @@
                 const label = `${cls.name} (Grade ${cls.grade_level})`;
                 const checked = preselected.includes(String(cls.id)) ? 'checked' : '';
                 return `
-                    <label class="multi-choice-item">
+                    <label class="multi-choice-option">
                         <input type="checkbox" name="classes_${id}" value="${cls.id}" ${checked}>
                         <span>${label}</span>
                     </label>
