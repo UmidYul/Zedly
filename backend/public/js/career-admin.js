@@ -73,15 +73,19 @@ const CareerAdminManager = {
         const questions = [];
         const questionsBlock = modal.querySelector('#careerQuestionsBlock');
         function renderQuestions() {
-            questionsBlock.innerHTML = questions.map((q, i) => `
-                <div class="career-question-edit">
-                    <b>Вопрос ${i + 1}</b><br>
-                    <input type="text" placeholder="Текст вопроса (RU)" value="${q.question_text_ru || ''}" onchange="this._q.question_text_ru=this.value" /><br>
-                    <input type="text" placeholder="Текст вопроса (UZ)" value="${q.question_text_uz || ''}" onchange="this._q.question_text_uz=this.value" /><br>
-                    <textarea placeholder="Варианты (JSON: [{text_ru,text_uz,value}])" onchange="this._q.options=this.value">${q.options_raw || ''}</textarea><br>
-                    <button type="button" onclick="this.parentNode.remove();window.CareerAdminManager._removeQuestion(${i})">Удалить</button>
-                </div>
-            `).join('');
+            questionsBlock.innerHTML = questions.map((q, i) => {
+                // Escape $ and { in options_raw for textarea value
+                const safeOptions = (q.options_raw || '').replace(/\$/g, '$$$$').replace(/\{/g, '&#123;').replace(/\}/g, '&#125;');
+                return `
+                    <div class="career-question-edit">
+                        <b>Вопрос ${i + 1}</b><br>
+                        <input type="text" placeholder="Текст вопроса (RU)" value="${q.question_text_ru || ''}" onchange="this._q.question_text_ru=this.value" /><br>
+                        <input type="text" placeholder="Текст вопроса (UZ)" value="${q.question_text_uz || ''}" onchange="this._q.question_text_uz=this.value" /><br>
+                        <textarea placeholder="Варианты (JSON: [{text_ru,text_uz,value}])" onchange="this._q.options_raw=this.value">${safeOptions}</textarea><br>
+                        <button type="button" onclick="this.parentNode.remove();window.CareerAdminManager._removeQuestion(${i})">Удалить</button>
+                    </div>
+                `;
+            }).join('');
             // Привязка объектов к DOM
             Array.from(questionsBlock.querySelectorAll('.career-question-edit')).forEach((el, i) => {
                 const q = questions[i];
