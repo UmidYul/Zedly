@@ -22,6 +22,21 @@
         },
         lastTabSwitchAt: 0,
 
+        notify: function (message, options) {
+            if (window.ZedlyDialog?.alert) {
+                return window.ZedlyDialog.alert(message, options);
+            }
+            alert(message);
+            return Promise.resolve(true);
+        },
+
+        askConfirm: function (message, options) {
+            if (window.ZedlyDialog?.confirm) {
+                return window.ZedlyDialog.confirm(message, options);
+            }
+            return Promise.resolve(confirm(message));
+        },
+
         // Initialize test taking page
         init: async function () {
             // Get attempt ID from URL
@@ -29,7 +44,7 @@
             this.attemptId = urlParams.get('attempt_id');
 
             if (!this.attemptId) {
-                alert('Invalid test attempt');
+                await this.notify('Invalid test attempt');
                 window.location.href = '/dashboard.html';
                 return;
             }
@@ -86,7 +101,7 @@
 
                 // Validate questions exist
                 if (!this.questions || this.questions.length === 0) {
-                    alert('This test has no questions. Please contact your teacher.');
+                    await this.notify('This test has no questions. Please contact your teacher.');
                     window.location.href = '/dashboard.html';
                     return;
                 }
@@ -113,7 +128,7 @@
 
                 // Check if time expired
                 if (new Date() >= this.endTime) {
-                    alert('Time has expired for this test. Submitting automatically.');
+                    await this.notify('Time has expired for this test. Submitting automatically.');
                     await this.submitTest();
                     return;
                 }
@@ -131,7 +146,7 @@
 
             } catch (error) {
                 console.error('Load attempt error:', error);
-                alert('Failed to load test. Redirecting to dashboard.');
+                await this.notify('Failed to load test. Redirecting to dashboard.');
                 window.location.href = '/dashboard.html';
             }
         },
@@ -373,8 +388,10 @@
             // Safety check
             if (!question) {
                 console.error('Question not found at index:', this.currentQuestionIndex);
-                alert('Unable to load question. Returning to dashboard.');
-                window.location.href = '/dashboard.html';
+                this.notify('Unable to load question. Returning to dashboard.')
+                    .then(() => {
+                        window.location.href = '/dashboard.html';
+                    });
                 return;
             }
 
@@ -764,7 +781,7 @@
         },
 
         // Confirm submit
-        confirmSubmit: function () {
+        confirmSubmit: async function () {
             this.saveCurrentAnswer();
 
             const unanswered = this.questions.filter(q => !this.isQuestionAnswered(q.id)).length;
@@ -774,16 +791,22 @@
                 message += `\n\nYou have ${unanswered} unanswered question(s).`;
             }
 
-            if (confirm(message)) {
+            const confirmed = await this.askConfirm(message, {
+                title: 'Submit Test',
+                okText: 'Submit',
+                cancelText: 'Cancel'
+            });
+
+            if (confirmed) {
                 this.submitTest();
             }
         },
 
         // Auto-submit when time expires
-        autoSubmit: function () {
+        autoSubmit: async function () {
             this.saveCurrentAnswer();
-            alert('Time is up! Your test is being submitted automatically.');
-            this.submitTest();
+            await this.notify('Time is up! Your test is being submitted automatically.');
+            await this.submitTest();
         },
 
         // Submit test
@@ -817,14 +840,17 @@
 
                 if (response.ok) {
                     // Show success and redirect
-                    alert(`Test submitted successfully!\n\nYour score: ${data.score}/${data.max_score} (${data.percentage}%)\nStatus: ${data.passed ? 'Passed' : 'Not Passed'}`);
+                    await this.notify(
+                        `Test submitted successfully!\n\nYour score: ${data.score}/${data.max_score} (${data.percentage}%)\nStatus: ${data.passed ? 'Passed' : 'Not Passed'}`,
+                        { title: 'Test Submitted' }
+                    );
                     window.location.href = '/dashboard.html';
                 } else {
                     throw new Error(data.message || 'Failed to submit test');
                 }
             } catch (error) {
                 console.error('Submit test error:', error);
-                alert('Failed to submit test. Please try again.');
+                await this.notify('Failed to submit test. Please try again.');
                 window.location.reload();
             }
         }

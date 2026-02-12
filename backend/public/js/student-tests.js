@@ -12,6 +12,21 @@
             return `'${str.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
         },
 
+        notify: function (message, options) {
+            if (window.ZedlyDialog?.alert) {
+                return window.ZedlyDialog.alert(message, options);
+            }
+            alert(message);
+            return Promise.resolve(true);
+        },
+
+        askConfirm: function (message, options) {
+            if (window.ZedlyDialog?.confirm) {
+                return window.ZedlyDialog.confirm(message, options);
+            }
+            return Promise.resolve(confirm(message));
+        },
+
         // Initialize student tests page
         init: function () {
             this.setupEventListeners();
@@ -282,7 +297,12 @@
 
         // Start test
         startTest: async function (assignmentId) {
-            if (!confirm('Are you sure you want to start this test? The timer will begin immediately.')) {
+            const confirmed = await this.askConfirm(
+                'Вы уверены, что хотите начать тест? Таймер запустится сразу.',
+                { title: 'Начать тест', okText: 'Начать', cancelText: 'Отмена' }
+            );
+
+            if (!confirmed) {
                 return;
             }
 
@@ -303,11 +323,11 @@
                     // Redirect to test taking page
                     window.location.href = `/take-test.html?attempt_id=${data.attempt_id}`;
                 } else {
-                    alert(data.message || 'Failed to start test');
+                    await this.notify(data.message || 'Failed to start test');
                 }
             } catch (error) {
                 console.error('Start test error:', error);
-                alert('Failed to start test. Please try again.');
+                await this.notify('Failed to start test. Please try again.');
             }
         },
 

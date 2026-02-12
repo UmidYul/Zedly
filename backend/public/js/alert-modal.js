@@ -1,8 +1,10 @@
-// Global alert modal replacement
+// Global alert/confirm modal replacement
 (function () {
     'use strict';
 
     const nativeAlert = window.alert ? window.alert.bind(window) : null;
+    const nativeConfirm = window.confirm ? window.confirm.bind(window) : null;
+
     const queue = [];
     let isOpen = false;
 
@@ -84,8 +86,6 @@
                 font-weight: 600;
                 cursor: pointer;
                 transition: transform 0.08s ease, filter 0.12s ease;
-                background: var(--primary, #4A90E2);
-                color: #fff;
             }
 
             .zedly-alert-btn:hover {
@@ -94,6 +94,17 @@
 
             .zedly-alert-btn:active {
                 transform: translateY(1px);
+            }
+
+            .zedly-alert-btn-primary {
+                background: var(--primary, #4A90E2);
+                color: #fff;
+            }
+
+            .zedly-alert-btn-secondary {
+                background: transparent;
+                color: var(--text-secondary, #d1d5db);
+                border-color: var(--border, rgba(255, 255, 255, 0.12));
             }
 
             @keyframes zedlyAlertFadeIn {
@@ -110,14 +121,33 @@
         document.head.appendChild(style);
     }
 
-    function closeCurrent(backdrop) {
-        if (!backdrop || !backdrop.parentNode) return;
-        backdrop.parentNode.removeChild(backdrop);
+    function showNext() {
+        if (isOpen || queue.length === 0) return;
+        isOpen = true;
+        showModal(queue.shift());
+    }
+
+    function enqueue(item) {
+        return new Promise((resolve) => {
+            queue.push({ ...item, resolve });
+            showNext();
+        });
+    }
+
+    function closeCurrent(backdrop, item, result) {
+        if (backdrop && backdrop.parentNode) {
+            backdrop.parentNode.removeChild(backdrop);
+        }
+
+        if (typeof item.resolve === 'function') {
+            item.resolve(result);
+        }
+
         isOpen = false;
         showNext();
     }
 
-    function showModal(message) {
+    function showModal(item) {
         ensureStyles();
 
         const backdrop = document.createElement('div');
@@ -125,36 +155,65 @@
 
         const modal = document.createElement('div');
         modal.className = 'zedly-alert-modal';
-        modal.setAttribute('role', 'alertdialog');
+        modal.setAttribute('role', item.type === 'confirm' ? 'dialog' : 'alertdialog');
         modal.setAttribute('aria-modal', 'true');
 
         const header = document.createElement('div');
         header.className = 'zedly-alert-header';
-        header.innerHTML = '<span class="zedly-alert-icon">i</span><span>Уведомление</span>';
+        header.innerHTML = `<span class="zedly-alert-icon">i</span><span>${item.title || 'Уведомление'}</span>`;
 
         const body = document.createElement('div');
         body.className = 'zedly-alert-body';
-        body.textContent = String(message ?? '');
+        body.textContent = String(item.message ?? '');
 
         const actions = document.createElement('div');
         actions.className = 'zedly-alert-actions';
 
         const okBtn = document.createElement('button');
         okBtn.type = 'button';
-        okBtn.className = 'zedly-alert-btn';
-        okBtn.textContent = 'OK';
+        okBtn.className = 'zedly-alert-btn zedly-alert-btn-primary';
+        okBtn.textContent = item.okText || 'OK';
 
-        okBtn.addEventListener('click', () => closeCurrent(backdrop));
-
-        backdrop.addEventListener('click', (event) => {
-            if (event.target === backdrop) closeCurrent(backdrop);
-        });
-
-        document.addEventListener('keydown', function onEsc(event) {
+        const onEsc = (event) => {
             if (event.key !== 'Escape') return;
             document.removeEventListener('keydown', onEsc);
-            closeCurrent(backdrop);
-        }, { once: true });
+            closeCurrent(backdrop, item, item.type === 'confirm' ? false : true);
+        };
+
+        document.addEventListener('keydown', onEsc);
+
+        okBtn.addEventListener('click', () => {
+            document.removeEventListener('keydown', onEsc);
+            closeCurrent(backdrop, item, true);
+        });
+
+        if (item.type === 'confirm') {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'zedly-alert-btn zedly-alert-btn-secondary';
+            cancelBtn.textContent = item.cancelText || 'Отмена';
+
+            cancelBtn.addEventListener('click', () => {
+                document.removeEventListener('keydown', onEsc);
+                closeCurrent(backdrop, item, false);
+            });
+
+            backdrop.addEventListener('click', (event) => {
+                if (event.target === backdrop) {
+                    document.removeEventListener('keydown', onEsc);
+                    closeCurrent(backdrop, item, false);
+                }
+            });
+
+            actions.appendChild(cancelBtn);
+        } else {
+            backdrop.addEventListener('click', (event) => {
+                if (event.target === backdrop) {
+                    document.removeEventListener('keydown', onEsc);
+                    closeCurrent(backdrop, item, true);
+                }
+            });
+        }
 
         actions.appendChild(okBtn);
         modal.appendChild(header);
@@ -163,23 +222,48 @@
         backdrop.appendChild(modal);
         document.body.appendChild(backdrop);
 
-        okBtn.focus();
+        (item.type === 'confirm' ? actions.querySelector('.zedly-alert-btn-secondary') : okBtn).focus();
     }
 
-    function showNext() {
-        if (isOpen || queue.length === 0) return;
-        isOpen = true;
-        showModal(queue.shift());
+    function alertModal(message, options) {
+        if (!document || !document.body) {
+            if (nativeAlert) nativeAlert(message);
+            return Promise.resolve(true);
+        }
+
+        return enqueue({
+            type: 'alert',
+            message,
+            title: options?.title,
+            okText: options?.okText
+        });
+    }
+
+    function confirmModal(message, options) {
+        if (!document || !document.body) {
+            if (nativeConfirm) return Promise.resolve(nativeConfirm(message));
+            return Promise.resolve(false);
+        }
+
+        return enqueue({
+            type: 'confirm',
+            message,
+            title: options?.title || 'Подтверждение',
+            okText: options?.okText || 'Подтвердить',
+            cancelText: options?.cancelText || 'Отмена'
+        });
     }
 
     window.__nativeAlert = nativeAlert;
-    window.alert = function (message) {
-        if (!document || !document.body) {
-            if (nativeAlert) nativeAlert(message);
-            return;
-        }
+    window.__nativeConfirm = nativeConfirm;
 
-        queue.push(message);
-        showNext();
+    window.ZedlyDialog = {
+        alert: alertModal,
+        confirm: confirmModal
+    };
+
+    // Keep compatibility with existing code
+    window.alert = function (message) {
+        alertModal(message);
     };
 })();
