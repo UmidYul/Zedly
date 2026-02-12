@@ -727,6 +727,16 @@
     background: var(--bg-secondary);
 }
 
+.assignment-row select.form-input {
+    color: var(--text-primary);
+    background: rgba(15, 23, 41, 0.75);
+}
+
+.assignment-row select.form-input option {
+    color: var(--text-primary);
+    background: #0f1729;
+}
+
 .assignment-row select[multiple].form-input {
     min-height: 140px;
 }
