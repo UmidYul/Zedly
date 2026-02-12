@@ -301,7 +301,7 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <form id="classForm" onsubmit="ClassesManager.submitClass(event, ${classId})">
+                            <form id="classForm" onsubmit="return ClassesManager.submitClass(event, ${classId})">
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
@@ -445,7 +445,7 @@
             if (!data.name || !data.grade_level || !data.academic_year) {
                 formAlert.className = 'alert alert-error';
                 formAlert.textContent = 'Please fill all required fields';
-                return;
+                return false;
             }
 
             // Show loading
@@ -493,6 +493,7 @@
                 submitBtn.classList.remove('loading');
                 submitBtn.disabled = false;
             }
+            return false;
         },
 
         // Edit class

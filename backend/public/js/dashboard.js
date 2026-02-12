@@ -446,7 +446,9 @@
                 console.error(`Failed to initialize ${scriptInfo.manager}:`, error);
             }
             return;
-        }        const sources = Array.isArray(scriptInfo.src) ? scriptInfo.src : [scriptInfo.src];
+        }
+
+        const sources = Array.isArray(scriptInfo.src) ? scriptInfo.src : [scriptInfo.src];
 
         const loadScript = (src) => new Promise((resolve, reject) => {
             const existing = document.querySelector(`script[src="${src}"]`);
