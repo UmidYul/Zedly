@@ -492,8 +492,12 @@ ol {
 }
 
 .btn-primary:hover::before {
-    left: 100%;
+    left: 0;
 }
+
+/* ==============================================
+   Buttons (continued)
+   ============================================== */
 
 .btn-primary:hover {
     transform: translateY(-2px);
