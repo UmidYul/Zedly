@@ -97,7 +97,7 @@ const CareerAdminManager = {
             questions.push({
                 question_text_ru: '',
                 question_text_uz: '',
-                options_raw: '[{"text_ru":"Да","text_uz":"Ha","value":1},{"text_ru":"Нет","text_uz":"Yo'q","value":0}]'
+                options_raw: '[{"text_ru":"Да","text_uz":"Ha","value":1},{"text_ru":"Нет","text_uz":"Yo\'q","value":0}]'
             });
             renderQuestions();
         };
