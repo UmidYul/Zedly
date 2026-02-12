@@ -620,6 +620,34 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             params
         );
 
+        // Update teacher assignments if provided
+        if (role === 'teacher' && Array.isArray(req.body.teacher_assignments)) {
+            // Remove previous assignments for this teacher
+            await query('DELETE FROM teacher_class_subjects WHERE teacher_id = $1', [id]);
+
+            for (const assignment of req.body.teacher_assignments) {
+                const { subject_id, class_ids } = assignment;
+                if (subject_id && Array.isArray(class_ids)) {
+                    for (const classId of class_ids) {
+                        const classResult = await query(
+                            'SELECT academic_year FROM classes WHERE id = $1',
+                            [classId]
+                        );
+                        const academicYear = classResult.rows[0]?.academic_year;
+                        if (!academicYear) {
+                            throw new Error(`Class with id ${classId} not found or missing academic_year`);
+                        }
+                        await query(
+                            `INSERT INTO teacher_class_subjects (teacher_id, class_id, subject_id, academic_year)
+                             VALUES ($1, $2, $3, $4)
+                             ON CONFLICT (teacher_id, class_id, subject_id, academic_year) DO NOTHING`,
+                            [id, classId, subject_id, academicYear]
+                        );
+                    }
+                }
+            }
+        }
+
         // Log action
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
