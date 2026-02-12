@@ -573,8 +573,8 @@
             const data = {};
 
             if (!assignmentId) {
-                data.test_id = parseInt(formData.get('test_id'));
-                data.class_id = parseInt(formData.get('class_id'));
+                data.test_id = formData.get('test_id');
+                data.class_id = formData.get('class_id');
             }
 
             data.start_date = formData.get('start_date');
