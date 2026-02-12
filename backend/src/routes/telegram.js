@@ -229,14 +229,42 @@ function initTelegramStartListener() {
         return;
     }
 
+    function extractStartTokenFromMessage(msg) {
+        const rawText = (msg?.text || '').trim();
+        if (!rawText) {
+            return '';
+        }
+
+        // Handles "/start token", "/start@BotName token" and additional spaces/newlines
+        const commandMatch = rawText.match(/^\/start(?:@\w+)?(?:\s+(.+))?$/i);
+        if (commandMatch && commandMatch[1]) {
+            return commandMatch[1].trim();
+        }
+
+        // Fallback using entities offsets (Telegram bot_command metadata)
+        const commandEntity = Array.isArray(msg?.entities)
+            ? msg.entities.find((entity) => entity.type === 'bot_command' && entity.offset === 0)
+            : null;
+
+        if (commandEntity && rawText.toLowerCase().startsWith('/start')) {
+            const payload = rawText.slice(commandEntity.length).trim();
+            return payload;
+        }
+
+        return '';
+    }
+
     telegramStartListenerInitialized = true;
-    telegramBot.onText(/^\/start(?:\s+(.+))?$/i, async (msg, match) => {
-        const startToken = (match && match[1] ? match[1] : '').trim();
+    telegramBot.onText(/^\/start(?:@\w+)?(?:\s+.*)?$/i, async (msg) => {
+        const startToken = extractStartTokenFromMessage(msg);
         const chatId = msg.chat.id;
 
         try {
             if (!startToken) {
-                await sendTelegram(chatId, 'Привет! Чтобы подключить уведомления, нажмите кнопку подключения в кабинете ZEDLY.');
+                await sendTelegram(
+                    chatId,
+                    'Привет! Для привязки аккаунта вернитесь в кабинет ZEDLY и нажмите кнопку подключения Telegram еще раз, затем нажмите кнопку START по открывшейся ссылке.'
+                );
                 return;
             }
 
