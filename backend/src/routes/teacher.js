@@ -1,8 +1,14 @@
+
+const express = require('express');
+const router = express.Router();
+const { query } = require('../config/database');
+const { authenticate, authorize } = require('../middleware/auth');
+const { notifyNewTest } = require('../utils/notifications');
+
 /**
  * GET /api/teacher/classes
  * Get classes for current teacher, optionally filtered by subject_id
  */
-
 router.get('/classes', async (req, res) => {
     try {
         const teacherId = req.user.id;
@@ -32,11 +38,6 @@ router.get('/classes', async (req, res) => {
         });
     }
 });
-const express = require('express');
-const router = express.Router();
-const { query } = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
-const { notifyNewTest } = require('../utils/notifications');
 
 async function getAttemptOverviewExpressions(alias = 'att') {
     const result = await query(`
