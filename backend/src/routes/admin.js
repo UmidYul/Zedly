@@ -631,15 +631,25 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
         }
 
 
-        // Soft delete user
+
+        // Remove all class_students links for this user (if student)
         await query(
-            'UPDATE users SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+            'DELETE FROM class_students WHERE student_id = $1',
             [id]
         );
 
-        // Soft delete all class_students links for this user (if student)
+        // Remove all teacher_class_subjects links for this user (if teacher)
         await query(
-            'UPDATE class_students SET is_active = false WHERE student_id = $1',
+            'DELETE FROM teacher_class_subjects WHERE teacher_id = $1',
+            [id]
+        );
+
+        // Remove audit logs for this user (optional, comment if you want to keep logs)
+        // await query('DELETE FROM audit_logs WHERE user_id = $1', [id]);
+
+        // Remove user
+        await query(
+            'DELETE FROM users WHERE id = $1',
             [id]
         );
 
