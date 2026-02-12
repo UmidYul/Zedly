@@ -108,7 +108,7 @@ router.get('/tests', async (req, res) => {
         const result = await query(
             `SELECT
                 t.id, t.title, t.description, t.subject_id, t.duration_minutes,
-                t.passing_score, t.is_published as is_active, t.created_at, t.updated_at,
+                t.passing_score, t.max_attempts, t.is_published as is_active, t.created_at, t.updated_at,
                 s.name as subject_name, s.color as subject_color,
                 (SELECT COUNT(*) FROM test_questions WHERE test_id = t.id) as question_count,
                 (SELECT COUNT(*) FROM test_attempts WHERE test_id = t.id) as attempt_count,

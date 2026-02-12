@@ -391,7 +391,7 @@
             return `
                 <div class="form-group">
                     <label class="form-label">Answer Options <span class="required">*</span></label>
-                    <div id="optionsList" class="options-list">
+                    <div id="optionsList" class="options-list" data-correct-input-type="radio">
                         ${options.map((opt, i) => `
                             <div class="option-item">
                                 <input type="radio" name="correctAnswer" value="${i}" ${question.correct_answer == i ? 'checked' : ''}>
@@ -424,7 +424,7 @@
                 <div class="form-group">
                     <label class="form-label">Answer Options <span class="required">*</span></label>
                     <p class="form-hint">Select all correct answers</p>
-                    <div id="optionsList" class="options-list">
+                    <div id="optionsList" class="options-list" data-correct-input-type="checkbox">
                         ${options.map((opt, i) => `
                             <div class="option-item">
                                 <input type="checkbox" name="correctAnswer" value="${i}" ${correctAnswers.includes(i) || correctAnswers.includes(String(i)) ? 'checked' : ''}>
@@ -625,9 +625,10 @@
         addOption: function () {
             const list = document.getElementById('optionsList');
             const index = list.querySelectorAll('.option-item').length;
+            const correctInputType = list.dataset.correctInputType || 'checkbox';
             const itemHtml = `
                 <div class="option-item">
-                    <input type="${list.querySelector('input[type="radio"]') ? 'radio' : 'checkbox'}" name="correctAnswer" value="${index}">
+                    <input type="${correctInputType}" name="correctAnswer" value="${index}">
                     <input type="text" class="form-input option-input" data-index="${index}" value="" placeholder="Option ${index + 1}">
                     <button class="btn-icon btn-danger" onclick="TestEditor.removeOption(${index})" title="Remove">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
