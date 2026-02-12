@@ -741,6 +741,22 @@
     min-height: 140px;
 }
 
+.teacher-assignment .multi-choice-list {
+    column-count: 2;
+    column-gap: 16px;
+}
+
+.teacher-assignment .multi-choice-option {
+    break-inside: avoid;
+    margin-bottom: 6px;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.teacher-assignment .multi-choice-option input[type="checkbox"] {
+    margin-right: 0.5em;
+}
+
 .flex-1 {
     flex: 1;
 }

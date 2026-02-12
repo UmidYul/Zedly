@@ -812,12 +812,12 @@
 
             assignmentDivs.forEach(async div => {
                 const subjectSelect = div.querySelector('select[name^="subject_"]');
-                const classSelect = div.querySelector('select[name^="classes_"]');
+                const classList = div.querySelector('.multi-choice-list');
 
                 // Always re-render all subject options and re-select previous
                 const selectedSubject = subjectSelect?.value || '';
-                const selectedClasses = classSelect
-                    ? Array.from(classSelect.selectedOptions).map(opt => opt.value)
+                const selectedClasses = classList
+                    ? Array.from(classList.querySelectorAll('input[type="checkbox"]:checked')).map(input => input.value)
                     : [];
 
                 if (subjectSelect) {
@@ -837,10 +837,10 @@
 
         // Фильтрует классы по предмету для конкретного assignment
         updateAssignmentClasses: async function (div, subjectId, preselectClassIds = []) {
-            const classSelect = div.querySelector('select[name^="classes_"]');
-            if (!classSelect) return;
+            const classList = div.querySelector('.multi-choice-list');
+            if (!classList) return;
             if (!subjectId) {
-                classSelect.innerHTML = '';
+                classList.innerHTML = '';
                 return;
             }
             try {
@@ -855,22 +855,21 @@
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    const classOptions = data.classes.map(c =>
-                        `<option value="${c.id}">${c.name} (Grade ${c.grade_level})</option>`
-                    ).join('');
-                    classSelect.innerHTML = classOptions;
-                    // Проставить выбранные классы, если есть
-                    preselectClassIds.forEach(value => {
-                        const option = classSelect.querySelector(`option[value="${value}"]`);
-                        if (option) {
-                            option.selected = true;
-                        }
-                    });
+                    const listHtml = data.classes.map(c => {
+                        const checked = preselectClassIds.includes(String(c.id)) ? 'checked' : '';
+                        return `
+                            <label class="multi-choice-option">
+                                <input type="checkbox" name="classes_${div.dataset.id}" value="${c.id}" ${checked}>
+                                <span>${c.name} (Grade ${c.grade_level})</span>
+                            </label>
+                        `;
+                    }).join('');
+                    classList.innerHTML = listHtml || '<div class="form-hint">No classes available</div>';
                 } else {
-                    classSelect.innerHTML = '';
+                    classList.innerHTML = '';
                 }
             } catch (error) {
-                classSelect.innerHTML = '';
+                classList.innerHTML = '';
             }
         },
 
@@ -895,7 +894,7 @@
                         </div>
                         <div class="form-group flex-2">
                             <label class="form-label">Classes</label>
-                            <select class="form-input" name="classes_${assignmentId}" multiple required></select>
+                            <div class="multi-choice-list" data-name="classes_${assignmentId}"></div>
                             <span class="form-hint">Select one or more classes</span>
                         </div>
                         <button type="button" class="btn-remove" onclick="UsersManager.removeTeacherAssignment(${assignmentId})" title="Remove">
@@ -913,14 +912,14 @@
             // Инициализировать динамическую фильтрацию классов по предмету
             const div = container.querySelector(`.teacher-assignment[data-id="${assignmentId}"]`);
             const subjectSelect = div.querySelector('select[name^="subject_"]');
-            const classSelect = div.querySelector('select[name^="classes_"]');
+            const classList = div.querySelector('.multi-choice-list');
             if (subjectSelect) {
                 subjectSelect.onchange = async () => {
                     await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value);
                 };
             }
             // Пустой список классов до выбора предмета
-            if (classSelect) classSelect.innerHTML = '';
+            if (classList) classList.innerHTML = '';
         },
 
         // Remove teacher assignment row
@@ -985,3 +984,4 @@
         }
     };
 })();
+
