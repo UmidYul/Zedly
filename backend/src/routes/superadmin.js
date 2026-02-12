@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
+
 const { notifyNewUser, notifyPasswordReset } = require('../utils/notifications');
+const { getTableColumns, pickColumn } = require('../utils/db');
 
 // All routes require superadmin role
 router.use(authenticate);
