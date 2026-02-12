@@ -7,22 +7,39 @@ const db = require('../config/database');
 async function createCareerTest(req, res) {
     // RBAC: только SchoolAdmin своей школы
     let { school_id } = req.user;
-    const { title_ru, title_uz, description_ru, description_uz } = req.body;
+    const { title_ru, title_uz, description_ru, description_uz, questions } = req.body;
     // Привести school_id к строке (UUID)
     if (typeof school_id !== 'string') {
         school_id = String(school_id);
     }
+    const client = await db.connect();
     try {
-        const result = await db.query(
+        await client.query('BEGIN');
+        const result = await client.query(
             'INSERT INTO career_tests (school_id, title_ru, title_uz, description_ru, description_uz) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [school_id, title_ru, title_uz, description_ru, description_uz]
         );
+        const test = result.rows[0];
+        // Вставка вопросов, если есть
+        if (Array.isArray(questions) && questions.length > 0) {
+            for (let i = 0; i < questions.length; i++) {
+                const q = questions[i];
+                await client.query(
+                    'INSERT INTO career_test_questions (test_id, question_text_ru, question_text_uz, options, order_number) VALUES ($1, $2, $3, $4, $5)',
+                    [test.id, q.question_text_ru, q.question_text_uz, JSON.stringify(q.options), q.order_number ?? (i + 1)]
+                );
+            }
+        }
         // Audit log
-        await db.query('INSERT INTO audit_career (action, admin_id, test_id, details) VALUES ($1, $2, $3, $4)',
-            ['create', req.user.id, result.rows[0].id, 'Создан тест']);
-        res.status(201).json({ test: result.rows[0] });
+        await client.query('INSERT INTO audit_career (action, admin_id, test_id, details) VALUES ($1, $2, $3, $4)',
+            ['create', req.user.id, test.id, 'Создан тест']);
+        await client.query('COMMIT');
+        res.status(201).json({ test });
     } catch (error) {
+        await client.query('ROLLBACK');
         res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
     }
 }
 async function updateCareerTest(req, res) {
