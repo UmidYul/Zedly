@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { requireRole, requireSchool, requireStudent } = require('../src/middleware/rbac');
+const rbac = require('../src/middleware/rbac');
 const careerHandlers = require('../src/routes/careerHandlers');
 
 // --- SchoolAdmin ---
@@ -14,24 +14,24 @@ const careerHandlers = require('../src/routes/careerHandlers');
 // Получить все тесты своей школы
 // Получить результаты учеников
 // Агрегированная статистика
-router.post('/career/tests', requireRole('SchoolAdmin'), requireSchool, careerHandlers.createCareerTest);
-router.put('/career/tests/:id', requireRole('SchoolAdmin'), requireSchool, careerHandlers.updateCareerTest);
-router.patch('/career/tests/:id/publish', requireRole('SchoolAdmin'), requireSchool, careerHandlers.publishCareerTest);
-router.get('/career/tests', requireRole('SchoolAdmin'), requireSchool, careerHandlers.getCareerTests);
-router.get('/career/results', requireRole('SchoolAdmin'), requireSchool, careerHandlers.getCareerResults);
-router.get('/career/stats', requireRole('SchoolAdmin'), requireSchool, careerHandlers.getCareerStats);
+router.post('/career/tests', rbac(['SchoolAdmin']), careerHandlers.createCareerTest);
+router.put('/career/tests/:id', rbac(['SchoolAdmin']), careerHandlers.updateCareerTest);
+router.patch('/career/tests/:id/publish', rbac(['SchoolAdmin']), careerHandlers.publishCareerTest);
+router.get('/career/tests', rbac(['SchoolAdmin']), careerHandlers.getCareerTests);
+router.get('/career/results', rbac(['SchoolAdmin']), careerHandlers.getCareerResults);
+router.get('/career/stats', rbac(['SchoolAdmin']), careerHandlers.getCareerStats);
 
 // --- Student ---
 // Получить доступные тесты
 // Пройти тест
 // Получить свой результат
-router.get('/career/available', requireRole('Student'), requireStudent, careerHandlers.getAvailableCareerTests);
-router.post('/career/attempt/:testId', requireRole('Student'), requireStudent, careerHandlers.attemptCareerTest);
-router.get('/career/my-result/:testId', requireRole('Student'), requireStudent, careerHandlers.getMyCareerResult);
+router.get('/career/available', rbac(['Student']), careerHandlers.getAvailableCareerTests);
+router.post('/career/attempt/:testId', rbac(['Student']), careerHandlers.attemptCareerTest);
+router.get('/career/my-result/:testId', rbac(['Student']), careerHandlers.getMyCareerResult);
 
 // --- SuperAdmin ---
 // Глобальная статистика (без редактирования)
-router.get('/career/global-stats', requireRole('SuperAdmin'), careerHandlers.getGlobalCareerStats);
+router.get('/career/global-stats', rbac(['SuperAdmin']), careerHandlers.getGlobalCareerStats);
 
 module.exports = router;
 
