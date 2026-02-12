@@ -8,6 +8,11 @@
         results: [],
         filteredResults: [],
 
+        // Safely serialize values for inline onclick handlers
+        toJsArg: function (value) {
+            return JSON.stringify(String(value ?? ''));
+        },
+
         // Initialize results viewer
         init: async function () {
             // Get assignment ID from URL
@@ -150,7 +155,7 @@
                         <td>${submittedAt}</td>
                         <td>
                             ${result.is_completed ? `
-                                <button class="btn-icon btn-view" onclick="TeacherResults.viewAttempt(${result.attempt_id})" title="View Details">
+                                <button class="btn-icon btn-view" onclick="TeacherResults.viewAttempt(${this.toJsArg(result.attempt_id)})" title="View Details">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                         <circle cx="12" cy="12" r="3"></circle>
