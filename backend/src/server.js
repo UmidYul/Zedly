@@ -157,7 +157,7 @@ try {
 
 // Career module routes
 try {
-    const careerRouter = require('../../routes/career');
+    const careerRouter = require('../routes/career');
     app.use('/api/career', careerRouter);
     console.log('✓ Career module routes loaded: /api/career');
 } catch (error) {
