@@ -280,7 +280,7 @@ const SchoolAdminsManager = (function () {
             }
 
             const data = await response.json();
-            alert(`Password reset successfully! New password: ${data.new_password}`);
+            alert(`Password reset successfully! New password: ${data.tempPassword}`);
         } catch (error) {
             console.error('Failed to reset password:', error);
             alert('Failed to reset password. Please try again.');
