@@ -647,6 +647,34 @@ router.put('/attempts/:id/submit', async (req, res) => {
         const { id } = req.params;
         const { answers, tab_switches, copy_attempts, suspicious_activity } = req.body;
         const studentId = req.user.id;
+        const submittedAnswers = answers && typeof answers === 'object' ? answers : {};
+
+        const normalizeString = (value) => String(value ?? '').trim().toLowerCase();
+        const normalizeNumber = (value) => {
+            const numberValue = Number(value);
+            return Number.isFinite(numberValue) ? numberValue : null;
+        };
+        const normalizeBoolean = (value) => {
+            if (typeof value === 'boolean') return value;
+            const stringValue = normalizeString(value);
+            if (['true', '1', 'yes'].includes(stringValue)) return true;
+            if (['false', '0', 'no'].includes(stringValue)) return false;
+            return null;
+        };
+        const normalizeArray = (value) => Array.isArray(value) ? value : [];
+        const compareOrderedArrays = (a, b) => {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; i++) {
+                if (normalizeString(a[i]) !== normalizeString(b[i])) return false;
+            }
+            return true;
+        };
+        const compareUnorderedArrays = (a, b) => {
+            if (a.length !== b.length) return false;
+            const left = a.map(item => normalizeString(item)).sort();
+            const right = b.map(item => normalizeString(item)).sort();
+            return left.every((value, index) => value === right[index]);
+        };
 
         // Get attempt with validation
         const attemptResult = await query(
@@ -680,7 +708,7 @@ router.put('/attempts/:id/submit', async (req, res) => {
         const gradedAnswers = {};
 
         questionsResult.rows.forEach(question => {
-            const studentAnswer = answers[question.id];
+            const studentAnswer = submittedAnswers[question.id];
             const correctAnswer = question.correct_answer;
             let isCorrect = false;
             let earnedMarks = 0;
@@ -688,43 +716,63 @@ router.put('/attempts/:id/submit', async (req, res) => {
             if (studentAnswer !== undefined && studentAnswer !== null) {
                 switch (question.question_type) {
                     case 'singlechoice':
-                    case 'truefalse':
-                        isCorrect = String(studentAnswer) === String(correctAnswer);
+                    case 'imagebased': {
+                        const studentNumber = normalizeNumber(studentAnswer);
+                        const correctNumber = normalizeNumber(correctAnswer);
+                        if (studentNumber !== null && correctNumber !== null) {
+                            isCorrect = studentNumber === correctNumber;
+                        } else {
+                            isCorrect = normalizeString(studentAnswer) === normalizeString(correctAnswer);
+                        }
                         break;
+                    }
 
-                    case 'multiplechoice':
-                        const correctArray = Array.isArray(correctAnswer) ? correctAnswer : [];
-                        const studentArray = Array.isArray(studentAnswer) ? studentAnswer : [];
-                        isCorrect = correctArray.length === studentArray.length &&
-                            correctArray.every(val => studentArray.includes(val));
+                    case 'truefalse': {
+                        const studentBoolean = normalizeBoolean(studentAnswer);
+                        const correctBoolean = normalizeBoolean(correctAnswer);
+                        if (studentBoolean !== null && correctBoolean !== null) {
+                            isCorrect = studentBoolean === correctBoolean;
+                        } else {
+                            isCorrect = normalizeString(studentAnswer) === normalizeString(correctAnswer);
+                        }
                         break;
+                    }
 
-                    case 'shortanswer':
+                    case 'multiplechoice': {
+                        const correctArray = normalizeArray(correctAnswer);
+                        const studentArray = normalizeArray(studentAnswer);
+                        isCorrect = compareUnorderedArrays(correctArray, studentArray);
+                        break;
+                    }
+
+                    case 'shortanswer': {
                         const acceptableAnswers = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
                         isCorrect = acceptableAnswers.some(ans =>
-                            String(ans).toLowerCase().trim() === String(studentAnswer).toLowerCase().trim()
+                            normalizeString(ans) === normalizeString(studentAnswer)
                         );
                         break;
+                    }
 
                     case 'ordering':
-                    case 'matching':
-                        const correctOrder = Array.isArray(correctAnswer) ? correctAnswer : [];
-                        const studentOrder = Array.isArray(studentAnswer) ? studentAnswer : [];
-                        isCorrect = JSON.stringify(correctOrder) === JSON.stringify(studentOrder);
+                    case 'matching': {
+                        const correctOrder = normalizeArray(correctAnswer);
+                        const studentOrder = normalizeArray(studentAnswer);
+                        isCorrect = compareOrderedArrays(correctOrder, studentOrder);
                         break;
+                    }
 
                     case 'fillblanks':
-                        const correctBlanks = Array.isArray(correctAnswer) ? correctAnswer : [];
-                        const studentBlanks = Array.isArray(studentAnswer) ? studentAnswer : [];
+                    case 'fill_blanks':
+                    case 'fill_in_blank':
+                    case 'fill_in_blanks': {
+                        const correctBlanks = normalizeArray(correctAnswer);
+                        const studentBlanks = normalizeArray(studentAnswer);
                         isCorrect = correctBlanks.length === studentBlanks.length &&
                             correctBlanks.every((ans, idx) =>
-                                String(ans).toLowerCase().trim() === String(studentBlanks[idx] || '').toLowerCase().trim()
+                                normalizeString(ans) === normalizeString(studentBlanks[idx])
                             );
                         break;
-
-                    case 'imagebased':
-                        isCorrect = String(studentAnswer) === String(correctAnswer);
-                        break;
+                    }
 
                 }
 

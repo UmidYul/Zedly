@@ -484,11 +484,12 @@
         renderSingleChoice: function (question, existingAnswer) {
             const options = question.options || [];
             const optionOrder = this.getOptionOrder(question);
+            const selectedIndex = Number.isFinite(Number(existingAnswer)) ? Number(existingAnswer) : null;
             let html = '<div class="options-list">';
 
             optionOrder.forEach((originalIndex) => {
                 const option = options[originalIndex];
-                const isChecked = existingAnswer === originalIndex;
+                const isChecked = selectedIndex === originalIndex;
                 html += `
                     <label class="option-label">
                         <input
@@ -510,7 +511,11 @@
         renderMultipleChoice: function (question, existingAnswer) {
             const options = question.options || [];
             const optionOrder = this.getOptionOrder(question);
-            const selectedOptions = Array.isArray(existingAnswer) ? existingAnswer : [];
+            const selectedOptions = Array.isArray(existingAnswer)
+                ? existingAnswer
+                    .map(value => Number(value))
+                    .filter(value => Number.isFinite(value))
+                : [];
             let html = '<div class="options-list">';
 
             optionOrder.forEach((originalIndex) => {
@@ -833,6 +838,9 @@
                     break;
 
                 case 'fillblanks':
+                case 'fill_blanks':
+                case 'fill_in_blank':
+                case 'fill_in_blanks':
                     const blanks = document.querySelectorAll('.blank-input');
                     answer = Array.from(blanks).map(input => input.value.trim());
                     break;
