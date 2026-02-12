@@ -15,6 +15,10 @@ const pendingLinkTokens = new Map();
 const consumedLinkTokens = new Map();
 let telegramStartListenerInitialized = false;
 
+function getAppUrl() {
+    return process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+}
+
 async function loadUsersColumns() {
     if (USERS_COLUMNS_CACHE.loaded) {
         return USERS_COLUMNS_CACHE;
@@ -272,7 +276,14 @@ function initTelegramStartListener() {
 
             await sendTelegram(
                 chatId,
-                `✅ <b>Telegram подключен</b>\n\n👤 Пользователь: <b>${result.username}</b>\n🎓 Роль: <b>${result.role}</b>\n\nТеперь вы будете получать уведомления в Telegram.`
+                `✅ <b>Telegram подключен</b>\n\n👤 Пользователь: <b>${result.username}</b>\n🎓 Роль: <b>${result.role}</b>\n\nТеперь вы будете получать уведомления в Telegram.`,
+                {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: 'Открыть кабинет', url: `${getAppUrl().replace(/\/$/, '')}/dashboard` }
+                        ]]
+                    }
+                }
             );
         } catch (error) {
             console.error('Telegram /start link error:', error);
