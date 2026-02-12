@@ -307,7 +307,7 @@ router.post('/tests', async (req, res) => {
             title, description, subject_id, duration_minutes,
             passing_score, max_attempts, shuffle_questions,
             block_copy_paste, track_tab_switches, fullscreen_required,
-            questions
+            is_published, questions
         } = req.body;
         const teacherId = req.user.id;
         const schoolId = req.user.school_id;
@@ -341,7 +341,7 @@ router.post('/tests', async (req, res) => {
                 shuffle_questions, block_copy_paste, track_tab_switches, fullscreen_required,
                 is_published
              )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, false)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
              RETURNING id, title, created_at`,
             [
                 schoolId, teacherId, subject_id, title.trim(),
@@ -352,7 +352,8 @@ router.post('/tests', async (req, res) => {
                 shuffle_questions === true,
                 block_copy_paste !== false,
                 track_tab_switches !== false,
-                fullscreen_required === true
+                fullscreen_required === true,
+                is_published === true
             ]
         );
 
