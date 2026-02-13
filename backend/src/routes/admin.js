@@ -52,12 +52,20 @@ const upload = multer({
         fileSize: 5 * 1024 * 1024 // 5MB limit
     },
     fileFilter: (req, file, cb) => {
-        // Accept only Excel files
-        if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-            file.mimetype === 'application/vnd.ms-excel') {
+        const fileName = String(file.originalname || '').toLowerCase();
+        const allowedMimeTypes = new Set([
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+            'text/csv',
+            'application/csv',
+            'text/plain'
+        ]);
+        const hasAllowedExtension = fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv');
+
+        if (allowedMimeTypes.has(file.mimetype) || hasAllowedExtension) {
             cb(null, true);
         } else {
-            cb(new Error('Only Excel files are allowed'));
+            cb(new Error('Only Excel/CSV files are allowed'));
         }
     }
 });
@@ -810,22 +818,34 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
 router.get('/import/template/users', async (req, res) => {
     try {
         const templateRows = [
-            {
-                first_name: 'Иван',
-                last_name: 'Иванов',
-                role: 'student',
-                email: 'ivan@example.com',
-                phone: '+998901234567',
-                username: '',
-                class_name: '9A',
-                academic_year: '2024-2025',
-                roll_number: '1'
-            }
+            ['№', 'Ученик', 'Пол', 'Дата рождения', 'ПИНФЛ', 'Класс', 'Родственники', 'Контактные данные родственников', ''],
+            ['', '', '', '', '', '', '', 'Телефон', 'Эл. почта'],
+            [1, 'Иванов Иван', 'Мужской', '2010-05-14', '12345678901234', '9А', 'Иванова Мария (мать)', '+998901234567', 'parent@example.com']
         ];
 
-        const sheet = XLSX.utils.json_to_sheet(templateRows, {
-            header: ['first_name', 'last_name', 'role', 'email', 'phone', 'username', 'class_name', 'academic_year', 'roll_number']
-        });
+        const sheet = XLSX.utils.aoa_to_sheet(templateRows);
+        sheet['!merges'] = [
+            XLSX.utils.decode_range('A1:A2'),
+            XLSX.utils.decode_range('B1:B2'),
+            XLSX.utils.decode_range('C1:C2'),
+            XLSX.utils.decode_range('D1:D2'),
+            XLSX.utils.decode_range('E1:E2'),
+            XLSX.utils.decode_range('F1:F2'),
+            XLSX.utils.decode_range('G1:G2'),
+            XLSX.utils.decode_range('H1:I1')
+        ];
+        sheet['!cols'] = [
+            { wch: 6 },
+            { wch: 26 },
+            { wch: 12 },
+            { wch: 16 },
+            { wch: 18 },
+            { wch: 12 },
+            { wch: 28 },
+            { wch: 20 },
+            { wch: 26 }
+        ];
+
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, sheet, 'users');
 
@@ -860,7 +880,7 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
         const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        const parsedRows = parseImportRows(sheet);
 
         const results = {
             imported: 0,
@@ -868,22 +888,24 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
             errors: []
         };
 
-        for (let i = 0; i < rows.length; i++) {
-            const rowNumber = i + 2; // header row + 1
-            const mapped = mapImportRow(rows[i]);
+        for (let i = 0; i < parsedRows.length; i++) {
+            const { row, rowNumber } = parsedRows[i];
+            const mapped = mapImportRow(row);
 
             if (!mapped) {
                 continue;
             }
 
             try {
+                hydrateStudentNameFields(mapped);
+
                 const validationError = validateImportRow(mapped);
                 if (validationError) {
                     results.errors.push({ row: rowNumber, message: validationError });
                     continue;
                 }
 
-                const role = normalizeRole(mapped.role);
+                const role = normalizeRole(mapped.role) || (mapped.student_name ? 'student' : null);
                 if (!role) {
                     results.errors.push({ row: rowNumber, message: 'Invalid role' });
                     continue;
@@ -907,14 +929,15 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
 
                 const otpPassword = generateOTP();
                 const passwordHash = await bcrypt.hash(otpPassword, 10);
+                const settings = buildImportedUserSettings(mapped);
 
                 const userResult = await query(
                     `INSERT INTO users (
                         school_id, role, username, password_hash,
                         first_name, last_name, email, phone,
-                        is_active, must_change_password
+                        is_active, must_change_password, settings
                     )
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true, $9)
                      RETURNING id, username, role, first_name, last_name, email`,
                     [
                         schoolId,
@@ -924,7 +947,8 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                         mapped.first_name.trim(),
                         mapped.last_name.trim(),
                         mapped.email || null,
-                        mapped.phone || null
+                        mapped.phone || null,
+                        settings
                     ]
                 );
 
@@ -1966,9 +1990,26 @@ function mapImportRow(row) {
 }
 
 function validateImportRow(row) {
-    if (!row.first_name || !row.last_name || !row.role) {
-        return 'Missing required fields (first_name, last_name, role)';
+    if (!row.first_name || !row.last_name) {
+        return 'Missing required fields (first_name, last_name)';
     }
+
+    if (row.role && !normalizeRole(row.role)) {
+        return 'Invalid role';
+    }
+
+    if (row.role && normalizeRole(row.role) === 'student' && !row.class_name) {
+        return 'Class is required for student role';
+    }
+
+    if (row.student_name && !row.class_name) {
+        return 'Class is required for student import format';
+    }
+
+    if (row.gender && !normalizeGender(row.gender)) {
+        return 'Invalid gender value';
+    }
+
     return null;
 }
 
@@ -1976,7 +2017,7 @@ function normalizeHeader(header) {
     return String(header)
         .trim()
         .toLowerCase()
-        .replace(/[\s_]+/g, '');
+        .replace(/[\s_.-]+/g, '');
 }
 
 function normalizeRole(role) {
@@ -1995,6 +2036,143 @@ function normalizeRole(role) {
         администраторшколы: 'school_admin'
     };
     return roleMap[value] || null;
+}
+
+function normalizeGender(gender) {
+    const value = String(gender || '').trim().toLowerCase();
+    const genderMap = {
+        male: 'male',
+        female: 'female',
+        other: 'other',
+        мужской: 'male',
+        муж: 'male',
+        м: 'male',
+        женский: 'female',
+        жен: 'female',
+        ж: 'female',
+        другой: 'other'
+    };
+    return genderMap[value] || null;
+}
+
+function normalizeDateInput(rawValue) {
+    const value = String(rawValue || '').trim();
+    if (!value) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
+
+    const dotDate = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(value);
+    if (dotDate) {
+        const day = dotDate[1].padStart(2, '0');
+        const month = dotDate[2].padStart(2, '0');
+        return `${dotDate[3]}-${month}-${day}`;
+    }
+
+    return null;
+}
+
+function hydrateStudentNameFields(row) {
+    if (!row || typeof row !== 'object') return row;
+    if ((!row.first_name || !row.last_name) && row.student_name) {
+        const fullName = String(row.student_name).trim().replace(/\s+/g, ' ');
+        if (!fullName) return row;
+        const parts = fullName.split(' ');
+        if (parts.length === 1) {
+            row.first_name = row.first_name || parts[0];
+            row.last_name = row.last_name || '-';
+        } else {
+            row.last_name = row.last_name || parts.shift();
+            row.first_name = row.first_name || parts.join(' ');
+        }
+    }
+    return row;
+}
+
+function buildImportedUserSettings(row) {
+    const dateOfBirth = normalizeDateInput(row.date_of_birth);
+    const gender = normalizeGender(row.gender);
+    const pinfl = String(row.pinfl || '').trim();
+    const relativeName = String(row.relative_name || '').trim();
+    const relativePhone = String(row.relative_phone || '').trim();
+    const relativeEmail = String(row.relative_email || '').trim();
+
+    const profileSettings = {};
+    const personalInfo = {};
+
+    if (dateOfBirth) personalInfo.date_of_birth = dateOfBirth;
+    if (gender) personalInfo.gender = gender;
+    if (pinfl) personalInfo.pinfl = pinfl;
+
+    if (Object.keys(personalInfo).length > 0) {
+        profileSettings.personal_info = personalInfo;
+    }
+
+    if (relativeName || relativePhone || relativeEmail) {
+        profileSettings.guardian_info = {
+            name: relativeName || null,
+            phone: relativePhone || null,
+            email: relativeEmail || null
+        };
+    }
+
+    if (Object.keys(profileSettings).length === 0) {
+        return null;
+    }
+
+    return { profile_settings: profileSettings };
+}
+
+function parseImportRows(sheet) {
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
+    const normalizedMatrix = matrix.map((row) => row.map((cell) => normalizeHeader(cell)));
+
+    let customHeaderIndex = -1;
+    for (let i = 0; i < normalizedMatrix.length; i++) {
+        const row = normalizedMatrix[i];
+        if (row.includes('ученик') && row.includes('класс')) {
+            customHeaderIndex = i;
+            break;
+        }
+    }
+
+    if (customHeaderIndex >= 0) {
+        const nextRow = normalizedMatrix[customHeaderIndex + 1] || [];
+        const hasSecondHeaderRow = nextRow.includes('телефон') || nextRow.includes('элпочта');
+        const dataStart = customHeaderIndex + (hasSecondHeaderRow ? 2 : 1);
+        const customRows = [];
+
+        for (let i = dataStart; i < matrix.length; i++) {
+            const row = matrix[i] || [];
+            const mapped = {
+                no: row[0],
+                student_name: row[1],
+                gender: row[2],
+                date_of_birth: row[3],
+                pinfl: row[4],
+                class_name: row[5],
+                relative_name: row[6],
+                relative_phone: row[7],
+                relative_email: row[8]
+            };
+            const hasValues = Object.values(mapped).some((val) => String(val || '').trim() !== '');
+            if (!hasValues) {
+                continue;
+            }
+            customRows.push({ row: mapped, rowNumber: i + 1 });
+        }
+
+        if (customRows.length > 0) {
+            return customRows;
+        }
+    }
+
+    const fallbackRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    return fallbackRows.map((row, index) => ({
+        row,
+        rowNumber: index + 2
+    }));
 }
 
 function normalizeUsername(firstName, lastName) {
@@ -2060,7 +2238,18 @@ const IMPORT_HEADER_MAP = {
     rollnumber: 'roll_number',
     имя: 'first_name',
     фамилия: 'last_name',
+    ученик: 'student_name',
+    фио: 'student_name',
     роль: 'role',
+    пол: 'gender',
+    датарождения: 'date_of_birth',
+    пинфл: 'pinfl',
+    родственники: 'relative_name',
+    родственник: 'relative_name',
+    элпочта: 'relative_email',
+    электроннаяпочта: 'relative_email',
+    контактныеданныеродственниковтелефон: 'relative_phone',
+    контактныеданныеродственниковэлпочта: 'relative_email',
     телефон: 'phone',
     логин: 'username',
     класс: 'class_name',

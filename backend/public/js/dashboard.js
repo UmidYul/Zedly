@@ -801,10 +801,10 @@
                         </div>
                     </div>
                     <div class="import-body">
-                        <input type="file" id="importFile" accept=".xlsx,.xls" />
+                        <input type="file" id="importFile" accept=".xlsx,.xls,.csv" />
                         <button class="btn btn-primary" id="startImportBtn" data-i18n="import.start">Начать импорт</button>
                     </div>
-                    <p class="import-hint" data-i18n="import.hint">Поддерживаемые колонки: first_name, last_name, role, email, phone, username, class_name, academic_year, roll_number</p>
+                    <p class="import-hint" data-i18n="import.hint">Поддерживаемые колонки: №, Ученик, Пол, Дата рождения, ПИНФЛ, Класс, Родственники, Телефон, Эл. почта</p>
                 </div>
                 <div class="dashboard-section import-results" id="importResults"></div>
             `;
