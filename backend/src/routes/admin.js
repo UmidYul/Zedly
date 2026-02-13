@@ -2111,11 +2111,14 @@ function buildImportedUserSettings(row) {
 function parseImportRows(sheet) {
     const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
     const normalizedMatrix = matrix.map((row) => row.map((cell) => normalizeHeader(cell)));
+    const hasToken = (value, token) => String(value || '').includes(token);
 
     let customHeaderIndex = -1;
     for (let i = 0; i < normalizedMatrix.length; i++) {
         const row = normalizedMatrix[i];
-        if (row.includes('ученик') && row.includes('класс')) {
+        const hasStudentHeader = row.some((cell) => hasToken(cell, 'ученик') || hasToken(cell, 'фио'));
+        const hasClassHeader = row.some((cell) => hasToken(cell, 'класс'));
+        if (hasStudentHeader && hasClassHeader) {
             customHeaderIndex = i;
             break;
         }
@@ -2124,32 +2127,28 @@ function parseImportRows(sheet) {
     if (customHeaderIndex >= 0) {
         const topHeader = normalizedMatrix[customHeaderIndex] || [];
         const nextRow = normalizedMatrix[customHeaderIndex + 1] || [];
-        const hasSecondHeaderRow = nextRow.includes('телефон') || nextRow.includes('элпочта');
+        const hasSecondHeaderRow =
+            nextRow.some((cell) => hasToken(cell, 'телефон') || hasToken(cell, 'элпочта'));
         const bottomHeader = hasSecondHeaderRow ? nextRow : [];
-        const maxColumns = Math.max(topHeader.length, bottomHeader.length);
-        const columnMap = {};
-
+        const maxColumns = Math.max(topHeader.length, bottomHeader.length, (matrix[customHeaderIndex] || []).length);
+        const mergedHeaders = [];
         for (let i = 0; i < maxColumns; i++) {
             const top = topHeader[i] || '';
             const bottom = bottomHeader[i] || '';
-            const combined = `${top}${bottom}`;
-            const isRelativesContactColumn = top === 'контактныеданныеродственников';
-            const shouldSkipColumn =
-                isRelativesContactColumn ||
-                top === 'пинфл' ||
-                top === 'родственники';
+            mergedHeaders[i] = `${top}${bottom}`;
+        }
 
-            if (shouldSkipColumn) {
-                continue;
-            }
+        const findColumn = (predicate) => mergedHeaders.findIndex((cell) => predicate(cell));
+        const studentIdx = findColumn((cell) => hasToken(cell, 'ученик') || hasToken(cell, 'фио'));
+        const classIdx = findColumn((cell) => hasToken(cell, 'класс'));
+        const genderIdx = findColumn((cell) => hasToken(cell, 'пол'));
+        const dobIdx = findColumn((cell) => hasToken(cell, 'датарожд'));
 
-            const field =
-                IMPORT_HEADER_MAP[combined] ||
-                IMPORT_HEADER_MAP[top] ||
-                IMPORT_HEADER_MAP[bottom];
-            if (field) {
-                columnMap[i] = field;
-            }
+        if (studentIdx < 0 || classIdx < 0) {
+            return XLSX.utils.sheet_to_json(sheet, { defval: '' }).map((row, index) => ({
+                row,
+                rowNumber: index + 2
+            }));
         }
 
         const dataStart = customHeaderIndex + (hasSecondHeaderRow ? 2 : 1);
@@ -2157,11 +2156,19 @@ function parseImportRows(sheet) {
 
         for (let i = dataStart; i < matrix.length; i++) {
             const row = matrix[i] || [];
-            const mapped = {};
-            Object.entries(columnMap).forEach(([index, field]) => {
-                const value = row[Number(index)];
-                mapped[field] = typeof value === 'string' ? value.trim() : value;
+            const mapped = {
+                student_name: row[studentIdx],
+                class_name: row[classIdx]
+            };
+            if (genderIdx >= 0) mapped.gender = row[genderIdx];
+            if (dobIdx >= 0) mapped.date_of_birth = row[dobIdx];
+
+            Object.keys(mapped).forEach((key) => {
+                if (typeof mapped[key] === 'string') {
+                    mapped[key] = mapped[key].trim();
+                }
             });
+
             const hasValues = Object.values(mapped).some((val) => String(val || '').trim() !== '');
             if (!hasValues) {
                 continue;
