@@ -44,7 +44,7 @@
                     showAlert('Нет сохраненных данных импорта');
                     return;
                 }
-                downloadCredentialsCsv(payload.users, payload.createdAt);
+                downloadCredentialsXlsx(payload.users);
             });
 
             renderSavedCredentialsHint(resultsContainer);
@@ -149,7 +149,7 @@
                     <h3>Созданные пользователи (OTP)</h3>
                     <div style="margin-bottom: 10px;">
                         <button class="btn btn-secondary" type="button" data-action="download-import-credentials">
-                            Скачать логины и OTP (CSV)
+                            Скачать логины и OTP (XLSX)
                         </button>
                     </div>
                     <ul class="import-list">${createdList}</ul>
@@ -209,36 +209,36 @@
                 Последний импорт: ${dateLabel}. Доступен файл с логинами и OTP.
                 <div style="margin-top: 10px;">
                     <button class="btn btn-secondary" type="button" data-action="download-import-credentials">
-                        Скачать логины и OTP (CSV)
+                        Скачать логины и OTP (XLSX)
                     </button>
                 </div>
             </div>
         `;
     }
 
-    function downloadCredentialsCsv(users, createdAt) {
-        const rows = [
-            ['username', 'otp_password', 'role'],
-            ...users.map((user) => [user.username || '', user.otp_password || '', user.role || ''])
-        ];
-        const csv = rows
-            .map((row) => row.map(csvEscape).join(','))
-            .join('\n');
+    async function downloadCredentialsXlsx(users) {
+        try {
+            const response = await fetch(`${API_URL}/import/credentials/export`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ users })
+            });
 
-        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
-        const date = createdAt ? new Date(createdAt) : new Date();
-        const datePart = Number.isNaN(date.getTime())
-            ? new Date().toISOString().slice(0, 10)
-            : date.toISOString().slice(0, 10);
-        downloadBlob(blob, `import_credentials_${datePart}.csv`);
-    }
+            if (!response.ok) {
+                throw new Error('Failed to export credentials');
+            }
 
-    function csvEscape(value) {
-        const text = String(value ?? '');
-        if (/[",\n]/.test(text)) {
-            return `"${text.replace(/"/g, '""')}"`;
+            const blob = await response.blob();
+            const disposition = response.headers.get('Content-Disposition') || '';
+            const filenameMatch = disposition.match(/filename="([^"]+)"/i);
+            const filename = filenameMatch ? filenameMatch[1] : `import_credentials_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            downloadBlob(blob, filename);
+        } catch (error) {
+            console.error('Credentials export error:', error);
+            showAlert('Не удалось скачать файл логинов и OTP');
         }
-        return text;
     }
 
     function downloadBlob(blob, filename) {
