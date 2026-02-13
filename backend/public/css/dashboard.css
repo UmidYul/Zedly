@@ -1,5 +1,9 @@
 /* Dashboard Common Styles */
 
+:root {
+    --sidebar-fixed-width: 240px;
+}
+
 .dashboard {
     display: flex;
     min-height: 100vh;
@@ -22,6 +26,21 @@
     top: 0;
     transition: transform 0.3s ease;
     z-index: 210;
+}
+
+/* Force fixed sidebar behavior across all dashboard-like pages */
+.mobile-shell-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100dvh !important;
+    width: var(--sidebar-fixed-width);
+}
+
+.mobile-shell-enabled .dashboard-main,
+.mobile-shell-enabled .main-content {
+    margin-left: var(--sidebar-fixed-width);
+    min-height: 100vh;
 }
 
 .sidebar-nav {
@@ -812,6 +831,10 @@
 
 /* Responsive */
 @media (max-width: 1500px) {
+    :root {
+        --sidebar-fixed-width: 224px;
+    }
+
     .sidebar {
         width: 224px;
     }
@@ -846,6 +869,10 @@
 }
 
 @media (max-width: 1366px) {
+    :root {
+        --sidebar-fixed-width: 212px;
+    }
+
     .sidebar {
         width: 212px;
     }
@@ -902,6 +929,10 @@
 }
 
 @media (max-width: 968px) {
+    :root {
+        --sidebar-fixed-width: 0px;
+    }
+
     .sidebar {
         width: 260px;
         transform: translateX(-100%);
@@ -912,6 +943,11 @@
     }
 
     .dashboard-main {
+        margin-left: 0;
+    }
+
+    .mobile-shell-enabled .dashboard-main,
+    .mobile-shell-enabled .main-content {
         margin-left: 0;
     }
 
