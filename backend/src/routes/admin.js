@@ -1990,8 +1990,11 @@ function mapImportRow(row) {
 }
 
 function validateImportRow(row) {
-    if (!row.first_name || !row.last_name) {
-        return 'Missing required fields (first_name, last_name)';
+    const hasStudentFullName = String(row.student_name || '').trim().length > 0;
+    const hasSplitName = String(row.first_name || '').trim().length > 0 && String(row.last_name || '').trim().length > 0;
+
+    if (!hasStudentFullName && !hasSplitName) {
+        return 'Missing required field: student name (Ученик)';
     }
 
     if (row.role && !normalizeRole(row.role)) {
@@ -2093,28 +2096,15 @@ function hydrateStudentNameFields(row) {
 function buildImportedUserSettings(row) {
     const dateOfBirth = normalizeDateInput(row.date_of_birth);
     const gender = normalizeGender(row.gender);
-    const pinfl = String(row.pinfl || '').trim();
-    const relativeName = String(row.relative_name || '').trim();
-    const relativePhone = String(row.relative_phone || '').trim();
-    const relativeEmail = String(row.relative_email || '').trim();
 
     const profileSettings = {};
     const personalInfo = {};
 
     if (dateOfBirth) personalInfo.date_of_birth = dateOfBirth;
     if (gender) personalInfo.gender = gender;
-    if (pinfl) personalInfo.pinfl = pinfl;
 
     if (Object.keys(personalInfo).length > 0) {
         profileSettings.personal_info = personalInfo;
-    }
-
-    if (relativeName || relativePhone || relativeEmail) {
-        profileSettings.guardian_info = {
-            name: relativeName || null,
-            phone: relativePhone || null,
-            email: relativeEmail || null
-        };
     }
 
     if (Object.keys(profileSettings).length === 0) {
@@ -2243,13 +2233,6 @@ const IMPORT_HEADER_MAP = {
     роль: 'role',
     пол: 'gender',
     датарождения: 'date_of_birth',
-    пинфл: 'pinfl',
-    родственники: 'relative_name',
-    родственник: 'relative_name',
-    элпочта: 'relative_email',
-    электроннаяпочта: 'relative_email',
-    контактныеданныеродственниковтелефон: 'relative_phone',
-    контактныеданныеродственниковэлпочта: 'relative_email',
     телефон: 'phone',
     логин: 'username',
     класс: 'class_name',
