@@ -211,6 +211,113 @@
     font-style: italic;
 }
 
+.profile-forms-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.profile-form-block {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.9rem;
+}
+
+.profile-form-label {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.profile-form-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.profile-form-input {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.92rem;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.profile-form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.18);
+}
+
+.profile-help-text {
+    margin: 0;
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+}
+
+.profile-actions-row {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.profile-subtitle {
+    margin: 0 0 0.6rem 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.profile-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.45rem;
+    font-size: 0.9rem;
+}
+
+.activity-list {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.activity-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    padding: 0.75rem;
+}
+
+.activity-item-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+    align-items: center;
+}
+
+.activity-action {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.activity-time {
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+}
+
+.activity-details {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    word-break: break-word;
+}
+
 /* Badge for ranking */
 .rank-badge {
     display: inline-flex;
@@ -318,6 +425,10 @@
         flex-direction: column;
         gap: 0.5rem;
         text-align: center;
+    }
+
+    .profile-form-row {
+        flex-direction: column;
     }
 }
 

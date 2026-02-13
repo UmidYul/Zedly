@@ -131,6 +131,89 @@
                         </div>
                     </div>
 
+                    <div class="profile-card" id="profileAdvancedCard" style="display: none;">
+                        <h2 class="card-title">Контакты и подтверждение</h2>
+                        <div class="profile-forms-grid">
+                            <div class="profile-form-block">
+                                <label class="profile-form-label" for="emailInput">Email</label>
+                                <div class="profile-form-row">
+                                    <input class="profile-form-input" type="email" id="emailInput" placeholder="name@example.com">
+                                    <button class="btn btn-outline" type="button" id="requestEmailCodeBtn">Запросить код</button>
+                                </div>
+                                <div class="profile-form-row">
+                                    <input class="profile-form-input" type="text" id="emailCodeInput" maxlength="6" placeholder="Код подтверждения">
+                                    <button class="btn btn-primary" type="button" id="verifyEmailBtn">Подтвердить</button>
+                                </div>
+                                <p class="profile-help-text" id="emailStatusText">Статус: не подтвержден</p>
+                            </div>
+
+                            <div class="profile-form-block">
+                                <label class="profile-form-label" for="phoneInput">Телефон</label>
+                                <div class="profile-form-row">
+                                    <input class="profile-form-input" type="text" id="phoneInput" placeholder="+998901234567">
+                                    <button class="btn btn-outline" type="button" id="requestPhoneCodeBtn">Запросить код</button>
+                                </div>
+                                <div class="profile-form-row">
+                                    <input class="profile-form-input" type="text" id="phoneCodeInput" maxlength="6" placeholder="Код подтверждения">
+                                    <button class="btn btn-primary" type="button" id="verifyPhoneBtn">Подтвердить</button>
+                                </div>
+                                <p class="profile-help-text" id="phoneStatusText">Статус: не подтвержден</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-card" id="profileSocialsCard" style="display: none;">
+                        <h2 class="card-title">Соцсети</h2>
+                        <div class="profile-forms-grid">
+                            <div class="profile-form-block">
+                                <label class="profile-form-label" for="socialTelegramInput">Telegram</label>
+                                <input class="profile-form-input" type="text" id="socialTelegramInput" placeholder="@username">
+                            </div>
+                            <div class="profile-form-block">
+                                <label class="profile-form-label" for="socialInstagramInput">Instagram</label>
+                                <input class="profile-form-input" type="text" id="socialInstagramInput" placeholder="@instagram">
+                            </div>
+                            <div class="profile-form-block">
+                                <label class="profile-form-label" for="socialWebsiteInput">Website</label>
+                                <input class="profile-form-input" type="text" id="socialWebsiteInput" placeholder="https://example.com">
+                            </div>
+                        </div>
+                        <div class="profile-actions-row">
+                            <button class="btn btn-primary" type="button" id="saveSocialsBtn">Сохранить соцсети</button>
+                        </div>
+                    </div>
+
+                    <div class="profile-card" id="profileNotificationsCard" style="display: none;">
+                        <h2 class="card-title">Настройки уведомлений</h2>
+                        <div class="profile-forms-grid">
+                            <div class="profile-form-block">
+                                <h3 class="profile-subtitle">Каналы</h3>
+                                <label class="profile-checkbox"><input type="checkbox" id="channelInApp"> В приложении</label>
+                                <label class="profile-checkbox"><input type="checkbox" id="channelEmail"> Email</label>
+                                <label class="profile-checkbox"><input type="checkbox" id="channelTelegram"> Telegram</label>
+                            </div>
+                            <div class="profile-form-block">
+                                <h3 class="profile-subtitle">События</h3>
+                                <label class="profile-checkbox"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
+                                <label class="profile-checkbox"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
+                                <label class="profile-checkbox"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
+                                <label class="profile-checkbox"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
+                                <label class="profile-checkbox"><input type="checkbox" id="eventSystemUpdates"> Системные уведомления</label>
+                            </div>
+                            <div class="profile-form-block">
+                                <h3 class="profile-subtitle">Частота</h3>
+                                <select class="profile-form-input" id="notificationFrequency">
+                                    <option value="instant">Мгновенно</option>
+                                    <option value="daily">Ежедневно</option>
+                                    <option value="weekly">Еженедельно</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="profile-actions-row">
+                            <button class="btn btn-primary" type="button" id="saveNotificationsBtn">Сохранить уведомления</button>
+                        </div>
+                    </div>
+
                     <!-- Role-Specific Info -->
                     <div class="profile-card" id="roleSpecificCard" style="display: none;">
                         <h2 class="card-title" id="roleSpecificTitle">Дополнительная информация</h2>
@@ -163,6 +246,13 @@
                             <p class="no-data" data-i18n="profile.noCareerTest">Тест не пройден</p>
                         </div>
                         <canvas id="careerRadarChart" style="display: none;"></canvas>
+                    </div>
+
+                    <div class="profile-card" id="profileActivityCard" style="display: none;">
+                        <h2 class="card-title">История активности</h2>
+                        <div class="activity-list" id="activityList">
+                            <p class="no-data">Нет данных</p>
+                        </div>
                     </div>
                 </div>
             </div>

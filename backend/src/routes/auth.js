@@ -1,11 +1,103 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 const { query } = require('../config/database');
 const { generateTokens, verifyRefreshToken, generateAccessToken } = require('../utils/jwt');
 const { authenticate } = require('../middleware/auth');
+const { sendEmail } = require('../utils/notifications');
 
 const router = express.Router();
+
+function getUserSettings(rawSettings) {
+    if (!rawSettings) return {};
+    if (typeof rawSettings === 'object' && !Array.isArray(rawSettings)) {
+        return rawSettings;
+    }
+    if (typeof rawSettings === 'string') {
+        try {
+            const parsed = JSON.parse(rawSettings);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed;
+            }
+        } catch (error) {
+            return {};
+        }
+    }
+    return {};
+}
+
+function normalizeSocialLinks(links) {
+    if (!links || typeof links !== 'object' || Array.isArray(links)) {
+        return {};
+    }
+
+    const allowedKeys = ['telegram', 'instagram', 'facebook', 'youtube', 'linkedin', 'website'];
+    const normalized = {};
+
+    for (const key of allowedKeys) {
+        const value = links[key];
+        if (value === undefined || value === null) continue;
+        const trimmed = String(value).trim();
+        if (trimmed.length === 0) continue;
+        normalized[key] = trimmed.slice(0, 255);
+    }
+
+    return normalized;
+}
+
+function normalizeNotificationPreferences(prefs) {
+    const defaults = {
+        channels: {
+            in_app: true,
+            email: true,
+            telegram: true
+        },
+        events: {
+            new_test: true,
+            assignment_deadline: true,
+            password_reset: true,
+            profile_updates: true,
+            system_updates: false
+        },
+        frequency: 'instant'
+    };
+
+    if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) {
+        return defaults;
+    }
+
+    const normalized = JSON.parse(JSON.stringify(defaults));
+    const channels = prefs.channels || {};
+    const events = prefs.events || {};
+
+    for (const key of Object.keys(normalized.channels)) {
+        if (channels[key] !== undefined) {
+            normalized.channels[key] = !!channels[key];
+        }
+    }
+
+    for (const key of Object.keys(normalized.events)) {
+        if (events[key] !== undefined) {
+            normalized.events[key] = !!events[key];
+        }
+    }
+
+    const allowedFrequency = new Set(['instant', 'daily', 'weekly']);
+    if (allowedFrequency.has(String(prefs.frequency || '').toLowerCase())) {
+        normalized.frequency = String(prefs.frequency).toLowerCase();
+    }
+
+    return normalized;
+}
+
+function generateVerificationCode() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function hashVerificationCode(code) {
+    return crypto.createHash('sha256').update(String(code)).digest('hex');
+}
 
 // Rate limiting for login attempts
 const loginLimiter = rateLimit({
@@ -374,7 +466,7 @@ router.post('/change-password', authenticate, async (req, res) => {
 router.get('/me', authenticate, async (req, res) => {
     try {
         const result = await query(
-            `SELECT id, username, role, school_id, first_name, last_name, email, created_at, last_login
+            `SELECT id, username, role, school_id, first_name, last_name, email, phone, telegram_id, settings, created_at, last_login
              FROM users
              WHERE id = $1`,
             [req.user.id]
@@ -388,6 +480,9 @@ router.get('/me', authenticate, async (req, res) => {
         }
 
         const user = result.rows[0];
+        const settings = getUserSettings(user.settings);
+        const profileSettings = settings.profile || {};
+        const contactVerification = profileSettings.contact_verification || {};
 
         res.json({
             user: {
@@ -398,6 +493,11 @@ router.get('/me', authenticate, async (req, res) => {
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,
+                phone: user.phone,
+                telegram_id: user.telegram_id,
+                settings: settings,
+                email_verified: !!contactVerification.email_verified,
+                phone_verified: !!contactVerification.phone_verified,
                 created_at: user.created_at,
                 last_login: user.last_login
             }
@@ -407,6 +507,352 @@ router.get('/me', authenticate, async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'An error occurred while fetching user info'
+        });
+    }
+});
+
+/**
+ * GET /api/auth/profile/activity
+ * Get own activity history (logins, profile/security actions)
+ */
+router.get('/profile/activity', authenticate, async (req, res) => {
+    try {
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+
+        const result = await query(
+            `SELECT id, action, entity_type, entity_id, details, created_at
+             FROM audit_logs
+             WHERE user_id = $1
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [req.user.id, limit]
+        );
+
+        res.json({ activity: result.rows });
+    } catch (error) {
+        console.error('Get profile activity error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch activity history'
+        });
+    }
+});
+
+/**
+ * PUT /api/auth/profile/settings
+ * Update own profile settings (social links + notification preferences)
+ */
+router.put('/profile/settings', authenticate, async (req, res) => {
+    try {
+        const { social_links, notification_preferences } = req.body;
+
+        const userResult = await query(
+            'SELECT id, settings FROM users WHERE id = $1',
+            [req.user.id]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'user_not_found',
+                message: 'User not found'
+            });
+        }
+
+        const settings = getUserSettings(userResult.rows[0].settings);
+        const profileSettings = settings.profile || {};
+
+        const nextProfileSettings = {
+            ...profileSettings,
+            social_links: normalizeSocialLinks(social_links),
+            notification_preferences: normalizeNotificationPreferences(notification_preferences),
+            updated_at: new Date().toISOString()
+        };
+
+        const nextSettings = {
+            ...settings,
+            profile: nextProfileSettings
+        };
+
+        await query(
+            `UPDATE users
+             SET settings = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2`,
+            [nextSettings, req.user.id]
+        );
+
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'update',
+                'user',
+                req.user.id,
+                { action_type: 'profile_settings_update' }
+            ]
+        );
+
+        res.json({
+            message: 'Profile settings updated successfully',
+            profile: nextProfileSettings
+        });
+    } catch (error) {
+        console.error('Update profile settings error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to update profile settings'
+        });
+    }
+});
+
+/**
+ * POST /api/auth/profile/contact/request-change
+ * Request email/phone change with verification code
+ */
+router.post('/profile/contact/request-change', authenticate, async (req, res) => {
+    try {
+        const { type, value } = req.body;
+        const contactType = String(type || '').trim().toLowerCase();
+        const rawValue = String(value || '').trim();
+
+        if (!['email', 'phone'].includes(contactType)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid contact type. Use "email" or "phone".'
+            });
+        }
+
+        if (!rawValue) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Contact value is required'
+            });
+        }
+
+        if (contactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawValue)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid email format'
+            });
+        }
+
+        if (contactType === 'phone' && rawValue.length < 7) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid phone format'
+            });
+        }
+
+        const duplicateResult = await query(
+            `SELECT id
+             FROM users
+             WHERE ${contactType} = $1 AND id != $2
+             LIMIT 1`,
+            [rawValue, req.user.id]
+        );
+
+        if (duplicateResult.rows.length > 0) {
+            return res.status(409).json({
+                error: 'duplicate_error',
+                message: `${contactType === 'email' ? 'Email' : 'Phone'} is already in use`
+            });
+        }
+
+        const userResult = await query(
+            'SELECT id, first_name, settings FROM users WHERE id = $1',
+            [req.user.id]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'user_not_found',
+                message: 'User not found'
+            });
+        }
+
+        const user = userResult.rows[0];
+        const settings = getUserSettings(user.settings);
+        const profileSettings = settings.profile || {};
+        const verification = profileSettings.contact_verification || {};
+        const pending = verification.pending || {};
+
+        const code = generateVerificationCode();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+        const nextVerification = {
+            ...verification,
+            pending: {
+                ...pending,
+                [contactType]: {
+                    value: rawValue,
+                    code_hash: hashVerificationCode(code),
+                    expires_at: expiresAt
+                }
+            }
+        };
+
+        const nextSettings = {
+            ...settings,
+            profile: {
+                ...profileSettings,
+                contact_verification: nextVerification
+            }
+        };
+
+        await query(
+            `UPDATE users
+             SET settings = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2`,
+            [nextSettings, req.user.id]
+        );
+
+        if (contactType === 'email') {
+            try {
+                await sendEmail({
+                    to: rawValue,
+                    subject: 'ZEDLY: подтверждение email',
+                    text: `Код подтверждения: ${code}. Он действует 10 минут.`,
+                    html: `<p>Здравствуйте${user.first_name ? `, ${user.first_name}` : ''}.</p><p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`
+                });
+            } catch (emailError) {
+                console.error('Email verification send error:', emailError);
+            }
+        }
+
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'update',
+                'user',
+                req.user.id,
+                { action_type: `${contactType}_change_requested` }
+            ]
+        );
+
+        const response = {
+            message: `${contactType === 'email' ? 'Email' : 'Phone'} verification code sent`,
+            expires_at: expiresAt
+        };
+
+        if (process.env.NODE_ENV !== 'production') {
+            response.dev_verification_code = code;
+        }
+
+        res.json(response);
+    } catch (error) {
+        console.error('Request contact change error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to request contact change'
+        });
+    }
+});
+
+/**
+ * POST /api/auth/profile/contact/verify
+ * Verify contact change code and apply new email/phone value
+ */
+router.post('/profile/contact/verify', authenticate, async (req, res) => {
+    try {
+        const { type, code } = req.body;
+        const contactType = String(type || '').trim().toLowerCase();
+        const codeValue = String(code || '').trim();
+
+        if (!['email', 'phone'].includes(contactType) || !codeValue) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Type and verification code are required'
+            });
+        }
+
+        const userResult = await query(
+            'SELECT id, settings FROM users WHERE id = $1',
+            [req.user.id]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'user_not_found',
+                message: 'User not found'
+            });
+        }
+
+        const settings = getUserSettings(userResult.rows[0].settings);
+        const profileSettings = settings.profile || {};
+        const verification = profileSettings.contact_verification || {};
+        const pending = verification.pending || {};
+        const pendingEntry = pending[contactType];
+
+        if (!pendingEntry || !pendingEntry.value || !pendingEntry.code_hash || !pendingEntry.expires_at) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No pending verification found'
+            });
+        }
+
+        if (Date.now() > new Date(pendingEntry.expires_at).getTime()) {
+            return res.status(400).json({
+                error: 'verification_expired',
+                message: 'Verification code has expired'
+            });
+        }
+
+        if (hashVerificationCode(codeValue) !== pendingEntry.code_hash) {
+            return res.status(400).json({
+                error: 'invalid_code',
+                message: 'Invalid verification code'
+            });
+        }
+
+        const nextVerification = {
+            ...verification,
+            pending: {
+                ...pending,
+                [contactType]: null
+            },
+            [`${contactType}_verified`]: true
+        };
+
+        const nextSettings = {
+            ...settings,
+            profile: {
+                ...profileSettings,
+                contact_verification: nextVerification
+            }
+        };
+
+        await query(
+            `UPDATE users
+             SET ${contactType} = $1,
+                 settings = $2,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $3`,
+            [pendingEntry.value, nextSettings, req.user.id]
+        );
+
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'update',
+                'user',
+                req.user.id,
+                { action_type: `${contactType}_verified_and_updated` }
+            ]
+        );
+
+        res.json({
+            message: `${contactType === 'email' ? 'Email' : 'Phone'} updated successfully`,
+            [contactType]: pendingEntry.value
+        });
+    } catch (error) {
+        console.error('Verify contact change error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to verify contact change'
         });
     }
 });

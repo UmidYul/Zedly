@@ -6,6 +6,7 @@
     const i18n = window.ZedlyI18n || { translate: (key) => key };
     let currentUser = null;
     let profileUserId = null; // ID of the profile being viewed
+    let isOwnProfile = false;
     let performanceChart = null;
     let careerChart = null;
 
@@ -15,6 +16,19 @@
         }
         alert(message);
         return Promise.resolve(true);
+    }
+
+    function getToken() {
+        return localStorage.getItem('access_token') || localStorage.getItem('accessToken') || '';
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     // Initialize
@@ -48,7 +62,7 @@
     async function fetchCurrentUser() {
         const response = await fetch(`${API_URL}/auth/me`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                'Authorization': `Bearer ${getToken()}`
             }
         });
 
@@ -56,7 +70,8 @@
             throw new Error('Failed to fetch user');
         }
 
-        return await response.json();
+        const data = await response.json();
+        return data.user || data;
     }
 
     // Check if current user can view this profile
@@ -87,7 +102,7 @@
     // Load profile data
     async function loadProfileData() {
         try {
-            const isOwnProfile = profileUserId === currentUser.id || profileUserId === String(currentUser.id);
+            isOwnProfile = profileUserId === currentUser.id || profileUserId === String(currentUser.id);
 
             let profileData;
             if (isOwnProfile) {
@@ -100,6 +115,10 @@
 
             // Render profile
             renderProfile(profileData);
+
+            if (isOwnProfile) {
+                initOwnProfileFeatures(profileData);
+            }
 
             // Load role-specific data
             await loadRoleSpecificData(profileData);
@@ -117,7 +136,7 @@
 
         const response = await fetch(endpoint, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                'Authorization': `Bearer ${getToken()}`
             }
         });
 
@@ -125,7 +144,8 @@
             throw new Error('Failed to fetch user profile');
         }
 
-        return await response.json();
+        const data = await response.json();
+        return data.user || data;
     }
 
     // Render profile basic info
@@ -435,6 +455,239 @@
         `).join('');
 
         card.style.display = 'block';
+    }
+
+    function getProfileSettings(user) {
+        const settings = user?.settings && typeof user.settings === 'object' ? user.settings : {};
+        return settings.profile && typeof settings.profile === 'object' ? settings.profile : {};
+    }
+
+    function setVerificationStatusText(type, verified) {
+        const el = document.getElementById(type === 'email' ? 'emailStatusText' : 'phoneStatusText');
+        if (!el) return;
+        el.textContent = verified ? 'Статус: подтвержден' : 'Статус: не подтвержден';
+        el.style.color = verified ? '#16a34a' : '';
+    }
+
+    function fillOwnProfileSettings(user) {
+        const profileSettings = getProfileSettings(user);
+        const social = profileSettings.social_links || {};
+        const prefs = profileSettings.notification_preferences || {};
+        const channels = prefs.channels || {};
+        const events = prefs.events || {};
+
+        const emailInput = document.getElementById('emailInput');
+        const phoneInput = document.getElementById('phoneInput');
+        if (emailInput) emailInput.value = user.email || '';
+        if (phoneInput) phoneInput.value = user.phone || '';
+
+        const socialTelegramInput = document.getElementById('socialTelegramInput');
+        const socialInstagramInput = document.getElementById('socialInstagramInput');
+        const socialWebsiteInput = document.getElementById('socialWebsiteInput');
+        if (socialTelegramInput) socialTelegramInput.value = social.telegram || '';
+        if (socialInstagramInput) socialInstagramInput.value = social.instagram || '';
+        if (socialWebsiteInput) socialWebsiteInput.value = social.website || '';
+
+        const notificationFrequency = document.getElementById('notificationFrequency');
+        if (notificationFrequency) {
+            notificationFrequency.value = prefs.frequency || 'instant';
+        }
+
+        const setChecked = (id, value, fallback = true) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = value !== undefined ? !!value : fallback;
+        };
+
+        setChecked('channelInApp', channels.in_app, true);
+        setChecked('channelEmail', channels.email, true);
+        setChecked('channelTelegram', channels.telegram, true);
+        setChecked('eventNewTest', events.new_test, true);
+        setChecked('eventAssignmentDeadline', events.assignment_deadline, true);
+        setChecked('eventPasswordReset', events.password_reset, true);
+        setChecked('eventProfileUpdates', events.profile_updates, true);
+        setChecked('eventSystemUpdates', events.system_updates, false);
+
+        setVerificationStatusText('email', !!user.email_verified);
+        setVerificationStatusText('phone', !!user.phone_verified);
+    }
+
+    async function requestContactChange(type) {
+        const inputId = type === 'email' ? 'emailInput' : 'phoneInput';
+        const inputEl = document.getElementById(inputId);
+        const value = inputEl?.value?.trim() || '';
+
+        if (!value) {
+            showAlert(`Введите ${type === 'email' ? 'email' : 'телефон'}`);
+            return;
+        }
+
+        const response = await fetch('/api/auth/profile/contact/request-change', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ type, value })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            showAlert(data.message || 'Не удалось запросить код');
+            return;
+        }
+
+        const devCode = data.dev_verification_code ? ` (dev code: ${data.dev_verification_code})` : '';
+        showAlert(`${data.message || 'Код отправлен'}${devCode}`, 'Успешно');
+    }
+
+    async function verifyContactChange(type) {
+        const codeInputId = type === 'email' ? 'emailCodeInput' : 'phoneCodeInput';
+        const codeEl = document.getElementById(codeInputId);
+        const code = codeEl?.value?.trim() || '';
+
+        if (!code) {
+            showAlert('Введите код подтверждения');
+            return;
+        }
+
+        const response = await fetch('/api/auth/profile/contact/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ type, code })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            showAlert(data.message || 'Не удалось подтвердить контакт');
+            return;
+        }
+
+        if (type === 'email') {
+            const emailValue = document.getElementById('emailInput')?.value?.trim() || data.email || '-';
+            document.getElementById('profileEmail').textContent = emailValue;
+        } else {
+            const phoneValue = document.getElementById('phoneInput')?.value?.trim() || data.phone || '-';
+            document.getElementById('profilePhone').textContent = phoneValue;
+        }
+        setVerificationStatusText(type, true);
+        showAlert(data.message || 'Контакт подтвержден', 'Успешно');
+    }
+
+    async function saveOwnProfileSettings() {
+        const socialLinks = {
+            telegram: document.getElementById('socialTelegramInput')?.value?.trim() || '',
+            instagram: document.getElementById('socialInstagramInput')?.value?.trim() || '',
+            website: document.getElementById('socialWebsiteInput')?.value?.trim() || ''
+        };
+
+        const notificationPreferences = {
+            channels: {
+                in_app: !!document.getElementById('channelInApp')?.checked,
+                email: !!document.getElementById('channelEmail')?.checked,
+                telegram: !!document.getElementById('channelTelegram')?.checked
+            },
+            events: {
+                new_test: !!document.getElementById('eventNewTest')?.checked,
+                assignment_deadline: !!document.getElementById('eventAssignmentDeadline')?.checked,
+                password_reset: !!document.getElementById('eventPasswordReset')?.checked,
+                profile_updates: !!document.getElementById('eventProfileUpdates')?.checked,
+                system_updates: !!document.getElementById('eventSystemUpdates')?.checked
+            },
+            frequency: document.getElementById('notificationFrequency')?.value || 'instant'
+        };
+
+        const response = await fetch('/api/auth/profile/settings', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({
+                social_links: socialLinks,
+                notification_preferences: notificationPreferences
+            })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            showAlert(data.message || 'Не удалось сохранить настройки профиля');
+            return;
+        }
+
+        showAlert(data.message || 'Настройки сохранены', 'Успешно');
+    }
+
+    function renderActivityHistory(items) {
+        const list = document.getElementById('activityList');
+        if (!list) return;
+
+        if (!items || items.length === 0) {
+            list.innerHTML = '<p class="no-data">Нет активности</p>';
+            return;
+        }
+
+        list.innerHTML = items.map((item) => {
+            let details = '';
+            if (item.details && typeof item.details === 'object') {
+                details = JSON.stringify(item.details);
+            } else if (typeof item.details === 'string') {
+                details = item.details;
+            }
+
+            return `
+                <div class="activity-item">
+                    <div class="activity-item-header">
+                        <span class="activity-action">${escapeHtml(item.action || 'action')} / ${escapeHtml(item.entity_type || '-')}</span>
+                        <span class="activity-time">${escapeHtml(formatDate(item.created_at))}</span>
+                    </div>
+                    ${details ? `<div class="activity-details">${escapeHtml(details)}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadOwnActivity() {
+        const response = await fetch('/api/auth/profile/activity?limit=30', {
+            headers: {
+                'Authorization': `Bearer ${getToken()}`
+            }
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            renderActivityHistory([]);
+            return;
+        }
+
+        renderActivityHistory(data.activity || []);
+    }
+
+    function initOwnProfileFeatures(user) {
+        const advancedCard = document.getElementById('profileAdvancedCard');
+        const socialsCard = document.getElementById('profileSocialsCard');
+        const notificationsCard = document.getElementById('profileNotificationsCard');
+        const activityCard = document.getElementById('profileActivityCard');
+
+        if (advancedCard) advancedCard.style.display = 'block';
+        if (socialsCard) socialsCard.style.display = 'block';
+        if (notificationsCard) notificationsCard.style.display = 'block';
+        if (activityCard) activityCard.style.display = 'block';
+
+        fillOwnProfileSettings(user);
+
+        document.getElementById('requestEmailCodeBtn')?.addEventListener('click', () => requestContactChange('email'));
+        document.getElementById('verifyEmailBtn')?.addEventListener('click', () => verifyContactChange('email'));
+        document.getElementById('requestPhoneCodeBtn')?.addEventListener('click', () => requestContactChange('phone'));
+        document.getElementById('verifyPhoneBtn')?.addEventListener('click', () => verifyContactChange('phone'));
+        document.getElementById('saveSocialsBtn')?.addEventListener('click', saveOwnProfileSettings);
+        document.getElementById('saveNotificationsBtn')?.addEventListener('click', saveOwnProfileSettings);
+
+        loadOwnActivity().catch((error) => {
+            console.error('Failed to load activity', error);
+        });
     }
 
     // Render performance chart
