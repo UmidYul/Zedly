@@ -440,6 +440,27 @@
                 `;
                 return;
             }
+
+            const titles = {
+                superadmin: { title: i18n.t('dashboard.role.superadmin.title'), subtitle: i18n.t('dashboard.role.superadmin.subtitle') },
+                school_admin: { title: i18n.t('dashboard.role.school_admin.title'), subtitle: i18n.t('dashboard.role.school_admin.subtitle') },
+                teacher: { title: i18n.t('dashboard.role.teacher.title'), subtitle: i18n.t('dashboard.role.teacher.subtitle') },
+                student: { title: i18n.t('dashboard.role.student.title'), subtitle: i18n.t('dashboard.role.student.subtitle') }
+            };
+            const roleTitle = titles[currentUser.role] || titles.student;
+            content.innerHTML = `
+                <div class="page-header-section">
+                    <h1 class="page-main-title">${roleTitle.title}</h1>
+                    <p class="page-subtitle">${roleTitle.subtitle}</p>
+                </div>
+                <div class="dashboard-section">
+                    <p style="color: var(--text-secondary);">${t('dashboard.activity.none', 'No recent activity yet.')}</p>
+                    <p style="color: var(--danger, #ef4444); margin-top: 8px;">
+                        ${t('dashboard.stats.loadError', 'Не удалось загрузить актуальную статистику. Обновите страницу.')}
+                    </p>
+                </div>
+            `;
+            return;
         }
 
         // Set page content (fallback or non-overview pages)

@@ -1642,11 +1642,13 @@ router.get('/dashboard/overview', async (req, res) => {
         else if (columns.has('submitted_at')) completedFilter = 'tatt.submitted_at IS NOT NULL';
 
         const testsCompletedResult = await query(`
-            SELECT COUNT(DISTINCT tatt.id) as count
+            SELECT COUNT(DISTINCT tatt.assignment_id) as count
             FROM test_attempts tatt
             INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
             INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 ${classStudentActiveFilter} AND ${completedFilter}
+            WHERE cs.student_id = $1 ${classStudentActiveFilter}
+              AND tatt.student_id = $1
+              AND ${completedFilter}
         `, [studentId]);
         const testsCompleted = parseInt(testsCompletedResult.rows[0]?.count || 0);
 
@@ -1662,7 +1664,9 @@ router.get('/dashboard/overview', async (req, res) => {
                 FROM test_attempts tatt
                 INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
                 INNER JOIN class_students cs ON cs.class_id = ta.class_id
-                WHERE cs.student_id = $1 ${classStudentActiveFilter} AND ${completedFilter}
+                WHERE cs.student_id = $1 ${classStudentActiveFilter}
+                  AND tatt.student_id = $1
+                  AND ${completedFilter}
             `, [studentId]);
         }
         const avgScore = avgScoreResult.rows[0]?.avg || 0;
@@ -1759,7 +1763,9 @@ router.get('/dashboard/overview', async (req, res) => {
             INNER JOIN tests t ON t.id = ta.test_id
             INNER JOIN classes c ON c.id = ta.class_id
             INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 ${classStudentActiveFilter} AND ${completedFilter}
+            WHERE cs.student_id = $1 ${classStudentActiveFilter}
+              AND tatt.student_id = $1
+              AND ${completedFilter}
             ORDER BY ${columns.has('submitted_at') ? 'tatt.submitted_at'
                 : columns.has('completed_at') ? 'tatt.completed_at'
                     : 'tatt.id'} DESC
