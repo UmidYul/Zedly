@@ -127,42 +127,42 @@
                     <section class="profile-grid">
                         <div class="profile-col">
                             <article class="profile-card card-surface">
-                                <h2>Ваши данные</h2>
+                                <h2 data-i18n="profile.yourData">Ваши данные</h2>
                                 <div class="profile-info-grid">
-                                    <div class="info-row"><span>Логин</span><strong id="profileUsername">-</strong></div>
-                                    <div class="info-row"><span>Email</span><strong id="profileEmail">-</strong></div>
-                                    <div class="info-row"><span>Телефон</span><strong id="profilePhone">-</strong></div>
-                                    <div class="info-row"><span>Дата рождения</span><strong id="profileDOB">-</strong></div>
-                                    <div class="info-row"><span>Пол</span><strong id="profileGender">-</strong></div>
-                                    <div class="info-row"><span>Регистрация</span><strong id="profileCreatedAt">-</strong></div>
-                                    <div class="info-row"><span>Последний вход</span><strong id="profileLastLogin">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.username">Логин</span><strong id="profileUsername">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.email">Email</span><strong id="profileEmail">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.phone">Телефон</span><strong id="profilePhone">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.dateOfBirth">Дата рождения</span><strong id="profileDOB">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.gender">Пол</span><strong id="profileGender">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.registered">Регистрация</span><strong id="profileCreatedAt">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.lastLogin">Последний вход</span><strong id="profileLastLogin">-</strong></div>
                                 </div>
                             </article>
 
                             <article class="profile-card card-surface" id="profileActionsCard" style="display: none;">
-                                <h2>Смена контактов</h2>
+                                <h2 data-i18n="profile.contactChanges">Смена контактов</h2>
                                 <div class="profile-form-grid">
                                     <div class="field-block">
-                                        <label for="emailInput">Email</label>
+                                        <label for="emailInput" data-i18n="profile.email">Email</label>
                                         <div class="field-inline">
                                             <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
-                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button">Получить код</button>
+                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
                                         </div>
                                         <div class="field-inline">
                                             <input id="emailCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
-                                            <button id="verifyEmailBtn" class="btn btn-primary" type="button">Подтвердить</button>
+                                            <button id="verifyEmailBtn" class="btn btn-primary" type="button" data-i18n="profile.confirm">Подтвердить</button>
                                         </div>
                                         <small id="emailStatusText">Email не подтвержден</small>
                                     </div>
                                     <div class="field-block">
-                                        <label for="phoneInput">Телефон</label>
+                                        <label for="phoneInput" data-i18n="profile.phone">Телефон</label>
                                         <div class="field-inline">
                                             <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567">
-                                            <button id="requestPhoneCodeBtn" class="btn btn-outline" type="button">Получить код</button>
+                                            <button id="requestPhoneCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
                                         </div>
                                         <div class="field-inline">
                                             <input id="phoneCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
-                                            <button id="verifyPhoneBtn" class="btn btn-primary" type="button">Подтвердить</button>
+                                            <button id="verifyPhoneBtn" class="btn btn-primary" type="button" data-i18n="profile.confirm">Подтвердить</button>
                                         </div>
                                         <small id="phoneStatusText">Телефон не подтвержден</small>
                                     </div>
@@ -170,46 +170,46 @@
                             </article>
 
                             <article class="profile-card card-surface" id="profileSocialsCard" style="display: none;">
-                                <h2>Соцсети</h2>
+                                <h2 data-i18n="profile.socials">Соцсети</h2>
                                 <div class="profile-form-grid">
                                     <div class="field-block"><label for="socialTelegramInput">Telegram</label><input id="socialTelegramInput" class="field-input" type="text" placeholder="@username"></div>
                                     <div class="field-block"><label for="socialInstagramInput">Instagram</label><input id="socialInstagramInput" class="field-input" type="text" placeholder="@insta"></div>
                                     <div class="field-block"><label for="socialWebsiteInput">Website</label><input id="socialWebsiteInput" class="field-input" type="text" placeholder="https://example.com"></div>
                                 </div>
-                                <div class="card-actions"><button id="saveSocialsBtn" class="btn btn-primary" type="button">Сохранить</button></div>
+                                <div class="card-actions"><button id="saveSocialsBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
                             </article>
 
                             <article class="profile-card card-surface" id="profilePersonalCard" style="display: none;">
-                                <h2>Личные данные</h2>
+                                <h2 data-i18n="profile.personalEdit">Личные данные</h2>
                                 <div class="profile-form-grid">
                                     <div class="field-block">
-                                        <label for="dobInput">Дата рождения</label>
+                                        <label for="dobInput" data-i18n="profile.dateOfBirth">Дата рождения</label>
                                         <input id="dobInput" class="field-input" type="date">
                                     </div>
                                     <div class="field-block">
-                                        <label for="genderInput">Пол</label>
+                                        <label for="genderInput" data-i18n="profile.gender">Пол</label>
                                         <select id="genderInput" class="field-input">
-                                            <option value="">Не указан</option>
-                                            <option value="male">Мужской</option>
-                                            <option value="female">Женский</option>
-                                            <option value="other">Другой</option>
+                                            <option value="" data-i18n="profile.genderNotSpecified">Не указан</option>
+                                            <option value="male" data-i18n="profile.genderMale">Мужской</option>
+                                            <option value="female" data-i18n="profile.genderFemale">Женский</option>
+                                            <option value="other" data-i18n="profile.genderOther">Другой</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div class="card-actions"><button id="savePersonalBtn" class="btn btn-primary" type="button">Сохранить</button></div>
+                                <div class="card-actions"><button id="savePersonalBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
                             </article>
 
                             <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
-                                <h2>Настройка уведомлений</h2>
+                                <h2 data-i18n="profile.notifications">Настройка уведомлений</h2>
                                 <div class="notification-grid">
                                     <div class="field-block">
-                                        <h3>Каналы</h3>
+                                        <h3 data-i18n="profile.notificationChannels">Каналы</h3>
                                         <label class="check-row"><input type="checkbox" id="channelInApp"> В приложении</label>
                                         <label class="check-row"><input type="checkbox" id="channelEmail"> Email</label>
                                         <label class="check-row"><input type="checkbox" id="channelTelegram"> Telegram</label>
                                     </div>
                                     <div class="field-block">
-                                        <h3>События</h3>
+                                        <h3 data-i18n="profile.notificationEvents">События</h3>
                                         <label class="check-row"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
                                         <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
                                         <label class="check-row"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
@@ -217,15 +217,15 @@
                                         <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> Системные</label>
                                     </div>
                                     <div class="field-block">
-                                        <h3>Частота</h3>
+                                        <h3 data-i18n="profile.notificationFrequency">Частота</h3>
                                         <select id="notificationFrequency" class="field-input">
-                                            <option value="instant">Мгновенно</option>
-                                            <option value="daily">Ежедневно</option>
-                                            <option value="weekly">Еженедельно</option>
+                                            <option value="instant" data-i18n="profile.freqInstant">Мгновенно</option>
+                                            <option value="daily" data-i18n="profile.freqDaily">Ежедневно</option>
+                                            <option value="weekly" data-i18n="profile.freqWeekly">Еженедельно</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button">Сохранить</button></div>
+                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
                             </article>
                         </div>
 
@@ -236,23 +236,23 @@
                             </article>
 
                             <article class="profile-card card-surface">
-                                <h2>Краткая статистика</h2>
+                                <h2 data-i18n="profile.statistics">Краткая статистика</h2>
                                 <div class="stats-grid" id="statsContent"></div>
                             </article>
 
                             <article class="profile-card card-surface" id="chartsCard" style="display:none;">
-                                <h2>Успеваемость</h2>
+                                <h2 data-i18n="profile.performance">Успеваемость</h2>
                                 <canvas id="performanceChart"></canvas>
                             </article>
 
                             <article class="profile-card card-surface" id="careerTestCard" style="display:none;">
-                                <h2>Профориентация</h2>
-                                <div id="careerTestContent"><p class="no-data">Тест не пройден</p></div>
+                                <h2 data-i18n="career.title">Профориентация</h2>
+                                <div id="careerTestContent"><p class="no-data" data-i18n="profile.noCareerTest">Тест не пройден</p></div>
                                 <canvas id="careerRadarChart" style="display:none;"></canvas>
                             </article>
 
                             <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
-                                <h2>Последние действия</h2>
+                                <h2 data-i18n="profile.recentActions">Последние действия</h2>
                                 <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
                             </article>
                         </div>

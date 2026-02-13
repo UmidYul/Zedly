@@ -169,6 +169,13 @@ router.get('/dashboard/overview', async (req, res) => {
             [schoolId]
         );
 
+        const subjectsResult = await query(
+            `SELECT COUNT(*) as count
+             FROM subjects
+             WHERE school_id = $1 AND is_active = true`,
+            [schoolId]
+        );
+
         let avgScore = 0;
         if (attempt.scoreExpr !== 'NULL') {
             const avgScoreResult = await query(
@@ -239,6 +246,7 @@ router.get('/dashboard/overview', async (req, res) => {
                 students: parseInt(studentsResult.rows[0]?.count || 0),
                 teachers: parseInt(teachersResult.rows[0]?.count || 0),
                 classes: parseInt(classesResult.rows[0]?.count || 0),
+                subjects: parseInt(subjectsResult.rows[0]?.count || 0),
                 tests: parseInt(testsResult.rows[0]?.count || 0),
                 avg_score: avgScore
             },

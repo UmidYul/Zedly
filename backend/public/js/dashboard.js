@@ -1873,7 +1873,9 @@
                 setTimeout(async () => {
                     if (currentUser) {
                         renderNavigation();
-                        await loadPageContent(currentPageId || 'overview');
+                        if (!isProfilePage) {
+                            await loadPageContent(currentPageId || 'overview');
+                        }
                     }
                     refreshTranslations();
                 }, 100);

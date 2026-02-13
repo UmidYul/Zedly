@@ -154,9 +154,9 @@
 
     function renderProfileInfo(user) {
         const genderLabels = {
-            male: 'Мужской',
-            female: 'Женский',
-            other: 'Другой'
+            male: i18n.translate('profile.genderMale'),
+            female: i18n.translate('profile.genderFemale'),
+            other: i18n.translate('profile.genderOther')
         };
         document.getElementById('profileUsername').textContent = user.username || '-';
         document.getElementById('profileEmail').textContent = user.email || '-';
@@ -642,6 +642,19 @@
         document.getElementById('savePersonalBtn')?.addEventListener('click', savePersonalInfo);
     }
 
+    function bindLanguageRefresh() {
+        const langButtons = document.querySelectorAll('.lang-btn');
+        langButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                setTimeout(async () => {
+                    if (!profileUser) return;
+                    renderProfileInfo(profileUser);
+                    await renderStatsByRole(profileUser);
+                }, 120);
+            });
+        });
+    }
+
     async function fetchCurrentUser() {
         const data = await apiFetch('/api/auth/me');
         return data.user || data;
@@ -696,6 +709,8 @@
                 bindOwnActions();
                 await loadActivity();
             }
+
+            bindLanguageRefresh();
         } catch (error) {
             console.error('Profile init error:', error);
             await showAlert('Не удалось загрузить профиль', 'Ошибка');
