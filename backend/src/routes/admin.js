@@ -1991,9 +1991,7 @@ function mapImportRow(row) {
 
 function validateImportRow(row) {
     const hasStudentFullName = String(row.student_name || '').trim().length > 0;
-    const hasSplitName = String(row.first_name || '').trim().length > 0 && String(row.last_name || '').trim().length > 0;
-
-    if (!hasStudentFullName && !hasSplitName) {
+    if (!hasStudentFullName) {
         return 'Missing required field: student name (Ученик)';
     }
 
@@ -2001,11 +1999,7 @@ function validateImportRow(row) {
         return 'Invalid role';
     }
 
-    if (row.role && normalizeRole(row.role) === 'student' && !row.class_name) {
-        return 'Class is required for student role';
-    }
-
-    if (row.student_name && !row.class_name) {
+    if (!row.class_name) {
         return 'Class is required for student import format';
     }
 
@@ -2139,6 +2133,16 @@ function parseImportRows(sheet) {
             const top = topHeader[i] || '';
             const bottom = bottomHeader[i] || '';
             const combined = `${top}${bottom}`;
+            const isRelativesContactColumn = top === 'контактныеданныеродственников';
+            const shouldSkipColumn =
+                isRelativesContactColumn ||
+                top === 'пинфл' ||
+                top === 'родственники';
+
+            if (shouldSkipColumn) {
+                continue;
+            }
+
             const field =
                 IMPORT_HEADER_MAP[combined] ||
                 IMPORT_HEADER_MAP[top] ||
