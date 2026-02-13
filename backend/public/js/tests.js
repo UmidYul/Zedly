@@ -2,6 +2,47 @@
 (function () {
     'use strict';
 
+    function normalizeHexColor(input, fallback = '#2563EB') {
+        const value = String(input || '').trim();
+        const fullHexMatch = value.match(/^#([0-9a-fA-F]{6})$/);
+        if (fullHexMatch) return `#${fullHexMatch[1]}`;
+
+        const shortHexMatch = value.match(/^#([0-9a-fA-F]{3})$/);
+        if (shortHexMatch) {
+            const [r, g, b] = shortHexMatch[1].split('');
+            return `#${r}${r}${g}${g}${b}${b}`;
+        }
+
+        return fallback;
+    }
+
+    function hexToRgb(hex) {
+        const normalized = normalizeHexColor(hex);
+        return {
+            r: parseInt(normalized.slice(1, 3), 16),
+            g: parseInt(normalized.slice(3, 5), 16),
+            b: parseInt(normalized.slice(5, 7), 16)
+        };
+    }
+
+    function getReadableTextColor(hex) {
+        const { r, g, b } = hexToRgb(hex);
+        const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+        return luminance > 0.62 ? '#0F172A' : '#FFFFFF';
+    }
+
+    function buildSubjectBadgeStyle(hex) {
+        const base = normalizeHexColor(hex, '#4A90E2');
+        const text = getReadableTextColor(base);
+        const { r, g, b } = hexToRgb(base);
+
+        return [
+            `background-color: rgba(${r}, ${g}, ${b}, 0.2)`,
+            `border: 1px solid rgba(${r}, ${g}, ${b}, 0.42)`,
+            `color: ${text}`
+        ].join('; ');
+    }
+
     function showAlert(message, title = 'Error') {
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title });
@@ -162,11 +203,12 @@
             tests.forEach(test => {
                 const statusClass = test.is_active ? 'status-active' : 'status-draft';
                 const statusText = test.is_active ? 'Active' : 'Draft';
+                const subjectBadgeStyle = buildSubjectBadgeStyle(test.subject_color);
 
                 html += `
                     <div class="test-card">
                         <div class="test-card-header">
-                            <div class="test-subject" style="background-color: ${test.subject_color || '#4A90E2'}20; color: ${test.subject_color || '#4A90E2'}">
+                            <div class="test-subject" style="${subjectBadgeStyle}">
                                 ${test.subject_name || 'No subject'}
                             </div>
                             <span class="status-badge ${statusClass}">${statusText}</span>
