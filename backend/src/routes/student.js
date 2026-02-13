@@ -1607,6 +1607,10 @@ router.get('/dashboard/overview', async (req, res) => {
         const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
         const subjectColumns = await getTableColumns('subjects');
         const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
+        const subjectCodeColumn = pickColumn(subjectColumns, ['code'], null);
+        const subjectIsActiveFilter = subjectColumns.has('is_active')
+            ? 'AND s.is_active = true'
+            : '';
         const assignmentColumns = await getTableColumns('test_assignments');
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
         const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
@@ -1706,18 +1710,25 @@ router.get('/dashboard/overview', async (req, res) => {
                 s.${subjectNameColumn} as subject_name,
                 s.color as subject_color,
                 COUNT(tatt.id) as attempts,
-                AVG(${scoreExpr})::float as avg_score
-             FROM test_attempts tatt
-             JOIN test_assignments ta ON ta.id = tatt.assignment_id
-             JOIN tests t ON t.id = COALESCE(tatt.test_id, ta.test_id)
-             LEFT JOIN subjects s ON s.id = t.subject_id
-             JOIN class_students cs ON cs.class_id = ta.class_id
-             WHERE cs.student_id = $1 ${classStudentActiveFilter}
-               AND ${completedFilter}
-               AND s.id IS NOT NULL
-             GROUP BY s.id, s.${subjectNameColumn}, s.color
-             ORDER BY s.${subjectNameColumn} ASC`,
-            [studentId]
+                COALESCE(AVG(${scoreExpr}), 0)::float as avg_score
+             FROM subjects s
+             LEFT JOIN tests t
+                ON t.subject_id = s.id
+                AND t.school_id = s.school_id
+             LEFT JOIN test_assignments ta
+                ON ta.test_id = t.id
+             LEFT JOIN class_students cs
+                ON cs.class_id = ta.class_id
+                AND cs.student_id = $2
+                ${classStudentColumns.has('is_active') ? 'AND cs.is_active = true' : ''}
+             LEFT JOIN test_attempts tatt
+                ON tatt.assignment_id = ta.id
+                AND tatt.student_id = $2
+                AND ${completedFilter}
+             WHERE s.school_id = $1 ${subjectIsActiveFilter}
+             GROUP BY s.id, s.${subjectNameColumn}, s.color${subjectCodeColumn ? `, s.${subjectCodeColumn}` : ''}
+             ORDER BY ${subjectCodeColumn ? `s.${subjectCodeColumn} ASC NULLS LAST,` : ''} s.${subjectNameColumn} ASC`,
+            [req.user.school_id, studentId]
         );
 
         // Get career test completion
