@@ -265,30 +265,40 @@
 }
 
 .subject-card {
-    border: 1px solid rgba(37, 99, 235, 0.22);
+    border: 1px solid rgba(59, 130, 246, 0.28);
     border-radius: var(--radius-lg);
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.92));
-    padding: 14px;
-    min-height: 116px;
+    background:
+        radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 42%),
+        linear-gradient(165deg, rgba(255, 255, 255, 0.99), rgba(241, 245, 249, 0.95));
+    padding: 16px;
+    min-height: 122px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
     cursor: pointer;
     text-align: left;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .subject-card:hover {
     border-color: #2563eb;
     transform: translateY(-2px);
-    box-shadow: 0 14px 24px rgba(37, 99, 235, 0.14);
+    box-shadow: 0 16px 30px rgba(37, 99, 235, 0.18);
+}
+
+.subject-card:focus-visible {
+    outline: none;
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2), 0 16px 30px rgba(37, 99, 235, 0.18);
 }
 
 .subject-card__color {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92), 0 0 0 4px rgba(37, 99, 235, 0.2);
 }
 
 .subject-card__name {
@@ -296,13 +306,35 @@
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.25;
+    letter-spacing: 0.01em;
 }
 
 .subject-card__meta {
     margin-top: auto;
     font-size: var(--text-sm);
-    color: var(--text-secondary);
-    font-weight: 600;
+    color: #334155;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .subject-card {
+    border-color: rgba(59, 130, 246, 0.34);
+    background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.22), transparent 42%),
+        linear-gradient(165deg, rgba(21, 27, 45, 0.97), rgba(30, 41, 59, 0.93));
+    box-shadow: 0 10px 20px rgba(2, 6, 23, 0.35);
+}
+
+[data-theme="dark"] .subject-card:hover {
+    border-color: #60a5fa;
+    box-shadow: 0 18px 30px rgba(30, 64, 175, 0.32);
+}
+
+[data-theme="dark"] .subject-card__color {
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.95), 0 0 0 4px rgba(96, 165, 250, 0.25);
+}
+
+[data-theme="dark"] .subject-card__meta {
+    color: #cbd5e1;
 }
 
 .subject-selection-summary {
