@@ -305,8 +305,93 @@
     function setVerificationStatus(type, isVerified) {
         const el = document.getElementById(type === 'email' ? 'emailStatusText' : 'phoneStatusText');
         if (!el) return;
-        el.textContent = isVerified ? 'Статус: подтвержден' : 'Статус: не подтвержден';
+        if (type === 'email') {
+            el.textContent = isVerified ? 'Email подтвержден' : 'Email не подтвержден';
+        } else {
+            el.textContent = isVerified ? 'Телефон подтвержден' : 'Телефон не подтвержден';
+        }
         el.style.color = isVerified ? '#16a34a' : '';
+    }
+
+    function parseActivityDetails(rawDetails) {
+        if (!rawDetails) return {};
+        if (typeof rawDetails === 'object') return rawDetails;
+        if (typeof rawDetails !== 'string') return {};
+        try {
+            return JSON.parse(rawDetails);
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function getEntityLabel(entity) {
+        const map = {
+            user: 'пользователь',
+            users: 'пользователь',
+            profile: 'профиль',
+            test: 'тест',
+            tests: 'тест',
+            subject: 'предмет',
+            subjects: 'предмет',
+            class: 'класс',
+            classes: 'класс',
+            assignment: 'назначение',
+            result: 'результат',
+            login: 'вход'
+        };
+        return map[String(entity || '').toLowerCase()] || 'запись';
+    }
+
+    function getBrowserLabel(userAgent) {
+        const ua = String(userAgent || '');
+        if (!ua) return '';
+        if (/chrome/i.test(ua) && !/edg/i.test(ua) && !/opr/i.test(ua)) return 'Chrome';
+        if (/firefox/i.test(ua)) return 'Firefox';
+        if (/safari/i.test(ua) && !/chrome/i.test(ua)) return 'Safari';
+        if (/edg/i.test(ua)) return 'Edge';
+        if (/opr/i.test(ua) || /opera/i.test(ua)) return 'Opera';
+        return '';
+    }
+
+    function describeActivity(item, details) {
+        const action = String(item.action || '').toLowerCase();
+        const actionType = String(details.action_type || '').toLowerCase();
+        const entityLabel = getEntityLabel(item.entity_type);
+
+        if (actionType === 'login' || action === 'login') return 'Вход в аккаунт';
+        if (actionType === 'logout' || action === 'logout') return 'Выход из аккаунта';
+        if (actionType === 'password_change') return 'Изменение пароля';
+        if (actionType === 'email_change') return 'Изменение email';
+        if (actionType === 'phone_change') return 'Изменение телефона';
+
+        if (action === 'create') return `Создан: ${entityLabel}`;
+        if (action === 'update') return `Обновлен: ${entityLabel}`;
+        if (action === 'delete') return `Удален: ${entityLabel}`;
+        if (action === 'assign') return `Назначен: ${entityLabel}`;
+        if (action === 'export') return 'Экспорт данных';
+        if (action === 'import') return 'Импорт данных';
+
+        return 'Действие в системе';
+    }
+
+    function summarizeActivityDetails(details) {
+        if (!details || typeof details !== 'object') return '';
+        const parts = [];
+
+        if (details.ip) {
+            parts.push(`IP: ${details.ip}`);
+        }
+
+        const browser = getBrowserLabel(details.user_agent);
+        if (browser) {
+            parts.push(`Браузер: ${browser}`);
+        }
+
+        if (details.target_name) {
+            parts.push(`Объект: ${details.target_name}`);
+        }
+
+        return parts.join(' • ');
     }
 
     function fillOwnForms(user) {
@@ -447,17 +532,17 @@
             }
 
             list.innerHTML = activity.map((item) => {
-                const details = item.details
-                    ? (typeof item.details === 'string' ? item.details : JSON.stringify(item.details))
-                    : '';
+                const details = parseActivityDetails(item.details);
+                const actionText = describeActivity(item, details);
+                const detailsText = summarizeActivityDetails(details);
 
                 return `
                     <div class="activity-item">
                         <div class="activity-head">
-                            <span class="activity-action">${escapeHtml(item.action || 'action')} / ${escapeHtml(item.entity_type || '-')}</span>
+                            <span class="activity-action">${escapeHtml(actionText)}</span>
                             <span class="activity-time">${escapeHtml(formatDate(item.created_at))}</span>
                         </div>
-                        ${details ? `<div class="activity-details">${escapeHtml(details)}</div>` : ''}
+                        ${detailsText ? `<div class="activity-details">${escapeHtml(detailsText)}</div>` : ''}
                     </div>
                 `;
             }).join('');

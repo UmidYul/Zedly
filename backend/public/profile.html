@@ -77,7 +77,7 @@
             <section class="profile-grid">
                 <div class="profile-col">
                     <article class="profile-card card-surface">
-                        <h2>Основная информация</h2>
+                        <h2>Ваши данные</h2>
                         <div class="profile-info-grid">
                             <div class="info-row"><span>Логин</span><strong id="profileUsername">-</strong></div>
                             <div class="info-row"><span>Email</span><strong id="profileEmail">-</strong></div>
@@ -90,31 +90,31 @@
                     </article>
 
                     <article class="profile-card card-surface" id="profileActionsCard" style="display: none;">
-                        <h2>Контакты и подтверждение</h2>
+                        <h2>Смена контактов</h2>
                         <div class="profile-form-grid">
                             <div class="field-block">
                                 <label for="emailInput">Email</label>
                                 <div class="field-inline">
                                     <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
-                                    <button id="requestEmailCodeBtn" class="btn btn-outline" type="button">Код</button>
+                                    <button id="requestEmailCodeBtn" class="btn btn-outline" type="button">Получить код</button>
                                 </div>
                                 <div class="field-inline">
                                     <input id="emailCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
                                     <button id="verifyEmailBtn" class="btn btn-primary" type="button">Подтвердить</button>
                                 </div>
-                                <small id="emailStatusText">Статус: не подтвержден</small>
+                                <small id="emailStatusText">Email не подтвержден</small>
                             </div>
                             <div class="field-block">
                                 <label for="phoneInput">Телефон</label>
                                 <div class="field-inline">
                                     <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567">
-                                    <button id="requestPhoneCodeBtn" class="btn btn-outline" type="button">Код</button>
+                                    <button id="requestPhoneCodeBtn" class="btn btn-outline" type="button">Получить код</button>
                                 </div>
                                 <div class="field-inline">
                                     <input id="phoneCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
                                     <button id="verifyPhoneBtn" class="btn btn-primary" type="button">Подтвердить</button>
                                 </div>
-                                <small id="phoneStatusText">Статус: не подтвержден</small>
+                                <small id="phoneStatusText">Телефон не подтвержден</small>
                             </div>
                         </div>
                     </article>
@@ -130,7 +130,7 @@
                     </article>
 
                     <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
-                        <h2>Уведомления</h2>
+                        <h2>Настройка уведомлений</h2>
                         <div class="notification-grid">
                             <div class="field-block">
                                 <h3>Каналы</h3>
@@ -166,7 +166,7 @@
                     </article>
 
                     <article class="profile-card card-surface">
-                        <h2>Статистика</h2>
+                        <h2>Краткая статистика</h2>
                         <div class="stats-grid" id="statsContent"></div>
                     </article>
 
@@ -182,7 +182,7 @@
                     </article>
 
                     <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
-                        <h2>История активности</h2>
+                        <h2>Последние действия</h2>
                         <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
                     </article>
                 </div>
