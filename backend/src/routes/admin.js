@@ -825,34 +825,48 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
  */
 router.get('/import/template/users', async (req, res) => {
     try {
-        const templateRows = [
-            ['№', 'Ученик', 'Пол', 'Дата рождения', 'ПИНФЛ', 'Класс', 'Родственники', 'Контактные данные родственников', ''],
-            ['', '', '', '', '', '', '', 'Телефон', 'Эл. почта'],
-            [1, 'Иванов Иван', 'Мужской', '2010-05-14', '12345678901234', '9А', 'Иванова Мария (мать)', '+998901234567', 'parent@example.com']
-        ];
+        const importType = normalizeImportType(req.query.type);
+        let templateRows;
+        let merges;
+        let cols;
+
+        if (importType === 'teacher') {
+            templateRows = [
+                ['№', 'ФИО', 'Пол', 'Дата рождения', 'ПИНФЛ', 'Должность', 'Классы', 'Телефоны', 'Эл. почта'],
+                [1, 'Иванов Иван Петрович', 'М', '1989-04-22', '12345678901234', 'Учитель', '5-А, 5-Б', '+998901234567', 'teacher@example.com']
+            ];
+            merges = [];
+            cols = [
+                { wch: 6 }, { wch: 32 }, { wch: 10 }, { wch: 16 }, { wch: 18 },
+                { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 26 }
+            ];
+        } else {
+            templateRows = [
+                ['№', 'Ученик', 'Пол', 'Дата рождения', 'ПИНФЛ', 'Класс', 'Родственники', 'Контактные данные родственников', ''],
+                ['', '', '', '', '', '', '', 'Телефон', 'Эл. почта'],
+                [1, 'Иванов Иван', 'Мужской', '2010-05-14', '12345678901234', '9А', 'Иванова Мария (мать)', '+998901234567', 'parent@example.com']
+            ];
+            merges = [
+                XLSX.utils.decode_range('A1:A2'),
+                XLSX.utils.decode_range('B1:B2'),
+                XLSX.utils.decode_range('C1:C2'),
+                XLSX.utils.decode_range('D1:D2'),
+                XLSX.utils.decode_range('E1:E2'),
+                XLSX.utils.decode_range('F1:F2'),
+                XLSX.utils.decode_range('G1:G2'),
+                XLSX.utils.decode_range('H1:I1')
+            ];
+            cols = [
+                { wch: 6 }, { wch: 26 }, { wch: 12 }, { wch: 16 }, { wch: 18 },
+                { wch: 12 }, { wch: 28 }, { wch: 20 }, { wch: 26 }
+            ];
+        }
 
         const sheet = XLSX.utils.aoa_to_sheet(templateRows);
-        sheet['!merges'] = [
-            XLSX.utils.decode_range('A1:A2'),
-            XLSX.utils.decode_range('B1:B2'),
-            XLSX.utils.decode_range('C1:C2'),
-            XLSX.utils.decode_range('D1:D2'),
-            XLSX.utils.decode_range('E1:E2'),
-            XLSX.utils.decode_range('F1:F2'),
-            XLSX.utils.decode_range('G1:G2'),
-            XLSX.utils.decode_range('H1:I1')
-        ];
-        sheet['!cols'] = [
-            { wch: 6 },
-            { wch: 26 },
-            { wch: 12 },
-            { wch: 16 },
-            { wch: 18 },
-            { wch: 12 },
-            { wch: 28 },
-            { wch: 20 },
-            { wch: 26 }
-        ];
+        if (merges.length) {
+            sheet['!merges'] = merges;
+        }
+        sheet['!cols'] = cols;
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, sheet, 'users');
@@ -885,16 +899,18 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
         }
 
         const schoolId = req.user.school_id;
+        const importType = normalizeImportType(req.body.import_type);
         const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const parsedRows = parseImportRows(sheet);
+        const parsedRows = parseImportRows(sheet, importType);
 
         const results = {
             imported: 0,
             created: [],
             errors: [],
-            auto_created_classes: []
+            auto_created_classes: [],
+            skipped: 0
         };
 
         for (let i = 0; i < parsedRows.length; i++) {
@@ -906,19 +922,25 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
             }
 
             try {
-                hydrateStudentNameFields(mapped);
+                if (importType === 'teacher') {
+                    hydrateTeacherNameFields(mapped);
+                    if (!isTeacherPosition(mapped.position)) {
+                        results.skipped += 1;
+                        continue;
+                    }
+                } else {
+                    hydrateStudentNameFields(mapped);
+                }
 
-                const validationError = validateImportRow(mapped);
+                const validationError = validateImportRow(mapped, importType);
                 if (validationError) {
                     results.errors.push({ row: rowNumber, message: validationError });
                     continue;
                 }
 
-                const role = normalizeRole(mapped.role) || (mapped.student_name ? 'student' : null);
-                if (!role) {
-                    results.errors.push({ row: rowNumber, message: 'Invalid role' });
-                    continue;
-                }
+                const role = importType === 'teacher'
+                    ? 'teacher'
+                    : (normalizeRole(mapped.role) || (mapped.student_name ? 'student' : null));
 
                 let username = mapped.username ? mapped.username.trim() : '';
                 if (!username) {
@@ -990,6 +1012,18 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                              VALUES ($1, $2, $3, true)
                              ON CONFLICT (class_id, student_id) DO NOTHING`,
                             [classResult.id, userId, mapped.roll_number || null]
+                        );
+                    }
+                }
+
+                if (role === 'teacher' && mapped.class_names) {
+                    const classesList = parseTeacherClassList(mapped.class_names);
+                    for (const className of classesList) {
+                        await ensureHomeroomTeacherForClass(
+                            schoolId,
+                            className,
+                            userId,
+                            mapped.academic_year
                         );
                     }
                 }
@@ -2076,6 +2110,10 @@ function mapImportRow(row) {
     if (!row || typeof row !== 'object') return null;
     const mapped = {};
     Object.entries(row).forEach(([key, value]) => {
+        if (INTERNAL_IMPORT_FIELDS.has(key)) {
+            mapped[key] = typeof value === 'string' ? value.trim() : value;
+            return;
+        }
         const normalized = normalizeHeader(key);
         const field = IMPORT_HEADER_MAP[normalized];
         if (field) {
@@ -2087,7 +2125,21 @@ function mapImportRow(row) {
     return hasValues ? mapped : null;
 }
 
-function validateImportRow(row) {
+function validateImportRow(row, importType = 'student') {
+    if (importType === 'teacher') {
+        const fullName = String(row.full_name || '').trim();
+        if (!fullName) {
+            return 'Missing required field: ФИО';
+        }
+        if (!row.first_name || !row.last_name) {
+            return 'Could not parse teacher name from ФИО';
+        }
+        if (row.gender && !normalizeGender(row.gender)) {
+            return 'Invalid gender value';
+        }
+        return null;
+    }
+
     const hasStudentFullName = String(row.student_name || '').trim().length > 0;
     if (!hasStudentFullName) {
         return 'Missing required field: student name (Ученик)';
@@ -2185,6 +2237,38 @@ function hydrateStudentNameFields(row) {
     return row;
 }
 
+function hydrateTeacherNameFields(row) {
+    if (!row || typeof row !== 'object') return row;
+    if (row.full_name && (!row.first_name || !row.last_name)) {
+        const fullName = String(row.full_name).trim().replace(/\s+/g, ' ');
+        const parts = fullName.split(' ').filter(Boolean);
+        if (parts.length >= 2) {
+            row.last_name = parts[0];
+            row.first_name = parts[1];
+        } else if (parts.length === 1) {
+            row.last_name = parts[0];
+            row.first_name = 'Teacher';
+        }
+    }
+    return row;
+}
+
+function isTeacherPosition(positionValue) {
+    const value = normalizeHeader(positionValue);
+    if (!value) return false;
+    return value.includes('учитель') || value.includes('teacher') || value.includes('преподаватель');
+}
+
+function parseTeacherClassList(rawValue) {
+    const normalized = String(rawValue || '')
+        .replace(/[;|]/g, ',')
+        .replace(/\n/g, ',');
+    return normalized
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
 function buildImportedUserSettings(row) {
     const dateOfBirth = normalizeDateInput(row.date_of_birth);
     const gender = normalizeGender(row.gender);
@@ -2206,15 +2290,63 @@ function buildImportedUserSettings(row) {
     return { profile_settings: profileSettings };
 }
 
-function parseImportRows(sheet) {
+function parseImportRows(sheet, importType = 'student') {
     const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
     const normalizedMatrix = matrix.map((row) => row.map((cell) => normalizeHeader(cell)));
     const hasToken = (value, token) => String(value || '').includes(token);
 
+    if (importType === 'teacher') {
+        let headerIndex = -1;
+        for (let i = 0; i < normalizedMatrix.length; i++) {
+            const row = normalizedMatrix[i];
+            const hasFio = row.some((cell) => hasToken(cell, 'фио'));
+            const hasPosition = row.some((cell) => hasToken(cell, 'должность'));
+            if (hasFio && hasPosition) {
+                headerIndex = i;
+                break;
+            }
+        }
+
+        if (headerIndex >= 0) {
+            const headers = normalizedMatrix[headerIndex] || [];
+            const findColumn = (predicate) => headers.findIndex((cell) => predicate(cell));
+            const fioIdx = findColumn((cell) => hasToken(cell, 'фио'));
+            const positionIdx = findColumn((cell) => hasToken(cell, 'должность'));
+            const classesIdx = findColumn((cell) => hasToken(cell, 'классы'));
+            const phoneIdx = findColumn((cell) => hasToken(cell, 'телефон'));
+            const emailIdx = findColumn((cell) => hasToken(cell, 'элпочта'));
+            const genderIdx = findColumn((cell) => hasToken(cell, 'пол'));
+            const dobIdx = findColumn((cell) => hasToken(cell, 'датарожд'));
+
+            const rows = [];
+            for (let i = headerIndex + 1; i < matrix.length; i++) {
+                const rawRow = matrix[i] || [];
+                const mapped = {
+                    full_name: fioIdx >= 0 ? rawRow[fioIdx] : '',
+                    position: positionIdx >= 0 ? rawRow[positionIdx] : '',
+                    class_names: classesIdx >= 0 ? rawRow[classesIdx] : '',
+                    phone: phoneIdx >= 0 ? rawRow[phoneIdx] : '',
+                    email: emailIdx >= 0 ? rawRow[emailIdx] : '',
+                    gender: genderIdx >= 0 ? rawRow[genderIdx] : '',
+                    date_of_birth: dobIdx >= 0 ? rawRow[dobIdx] : ''
+                };
+                Object.keys(mapped).forEach((key) => {
+                    if (typeof mapped[key] === 'string') {
+                        mapped[key] = mapped[key].trim();
+                    }
+                });
+                const hasValues = Object.values(mapped).some((val) => String(val || '').trim() !== '');
+                if (!hasValues) continue;
+                rows.push({ row: mapped, rowNumber: i + 1 });
+            }
+            if (rows.length > 0) return rows;
+        }
+    }
+
     let customHeaderIndex = -1;
     for (let i = 0; i < normalizedMatrix.length; i++) {
         const row = normalizedMatrix[i];
-        const hasStudentHeader = row.some((cell) => hasToken(cell, 'Ученик') || hasToken(cell, 'фио'));
+        const hasStudentHeader = row.some((cell) => hasToken(cell, 'ученик') || hasToken(cell, 'фио'));
         const hasClassHeader = row.some((cell) => hasToken(cell, 'класс'));
         if (hasStudentHeader && hasClassHeader) {
             customHeaderIndex = i;
@@ -2392,6 +2524,14 @@ function deriveAcademicYear(rawAcademicYear) {
     return `${startYear}-${endYear}`;
 }
 
+function normalizeImportType(rawType) {
+    const value = String(rawType || '').trim().toLowerCase();
+    if (value === 'teacher' || value === 'teachers') {
+        return 'teacher';
+    }
+    return 'student';
+}
+
 async function ensureActiveClassForImport(schoolId, className, academicYear) {
     if (!className) return null;
     const normalizedName = className.trim();
@@ -2439,6 +2579,63 @@ async function ensureActiveClassForImport(schoolId, className, academicYear) {
     return { ...createdClass.rows[0], autoCreated: true };
 }
 
+async function ensureHomeroomTeacherForClass(schoolId, className, teacherId, academicYear) {
+    if (!className) return null;
+    const normalizedName = className.trim();
+    const normalizedYear = deriveAcademicYear(academicYear);
+
+    const activeClass = await query(
+        `SELECT id, homeroom_teacher_id
+         FROM classes
+         WHERE school_id = $1 AND LOWER(name) = LOWER($2) AND academic_year = $3 AND is_active = true
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [schoolId, normalizedName, normalizedYear]
+    );
+
+    if (activeClass.rows[0]) {
+        if (!activeClass.rows[0].homeroom_teacher_id) {
+            await query(
+                `UPDATE classes
+                 SET homeroom_teacher_id = $2, updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $1`,
+                [activeClass.rows[0].id, teacherId]
+            );
+        }
+        return activeClass.rows[0].id;
+    }
+
+    const inactiveClass = await query(
+        `SELECT id, homeroom_teacher_id
+         FROM classes
+         WHERE school_id = $1 AND LOWER(name) = LOWER($2) AND academic_year = $3 AND is_active = false
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [schoolId, normalizedName, normalizedYear]
+    );
+
+    if (inactiveClass.rows[0]) {
+        const teacherToAssign = inactiveClass.rows[0].homeroom_teacher_id || teacherId;
+        await query(
+            `UPDATE classes
+             SET is_active = true,
+                 homeroom_teacher_id = $2,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1`,
+            [inactiveClass.rows[0].id, teacherToAssign]
+        );
+        return inactiveClass.rows[0].id;
+    }
+
+    const createdClass = await query(
+        `INSERT INTO classes (school_id, name, grade_level, academic_year, homeroom_teacher_id, is_active)
+         VALUES ($1, $2, $3, $4, $5, true)
+         RETURNING id`,
+        [schoolId, normalizedName, deriveGradeLevelFromClassName(normalizedName), normalizedYear, teacherId]
+    );
+    return createdClass.rows[0].id;
+}
+
 const IMPORT_HEADER_MAP = {
     firstname: 'first_name',
     lastname: 'last_name',
@@ -2464,5 +2661,18 @@ const IMPORT_HEADER_MAP = {
     номер: 'roll_number',
     номерпоклассу: 'roll_number'
 };
+
+const INTERNAL_IMPORT_FIELDS = new Set([
+    'student_name',
+    'full_name',
+    'position',
+    'class_names',
+    'date_of_birth',
+    'gender',
+    'phone',
+    'email',
+    'class_name',
+    'academic_year'
+]);
 
 module.exports = router;

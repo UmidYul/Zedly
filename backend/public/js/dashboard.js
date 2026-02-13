@@ -822,10 +822,14 @@
                         </div>
                     </div>
                     <div class="import-body">
+                        <select id="importType" class="select-input">
+                            <option value="student">Ученики</option>
+                            <option value="teacher">Учителя</option>
+                        </select>
                         <input type="file" id="importFile" accept=".xlsx,.xls,.csv" />
                         <button class="btn btn-primary" id="startImportBtn" data-i18n="import.start">Начать импорт</button>
                     </div>
-                    <p class="import-hint" data-i18n="import.hint">Поддерживаемые колонки: №, Ученик, Пол, Дата рождения, Класс, Телефон, Эл. почта</p>
+                    <p class="import-hint" id="importHint" data-i18n="import.hint">Поддерживаемые колонки: №, Ученик, Пол, Дата рождения, Класс, Телефон, Эл. почта</p>
                 </div>
                 <div class="dashboard-section import-results" id="importResults"></div>
             `;

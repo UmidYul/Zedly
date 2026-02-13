@@ -22,6 +22,7 @@
         const importBtn = document.getElementById('startImportBtn');
         const templateBtn = document.getElementById('downloadTemplateBtn');
         const exportBtn = document.getElementById('exportUsersBtn');
+        const importTypeSelect = document.getElementById('importType');
         const resultsContainer = document.getElementById('importResults');
 
         if (importBtn) {
@@ -34,6 +35,11 @@
 
         if (exportBtn) {
             exportBtn.addEventListener('click', exportUsers);
+        }
+
+        if (importTypeSelect) {
+            importTypeSelect.addEventListener('change', updateImportHint);
+            updateImportHint();
         }
 
         if (resultsContainer) {
@@ -63,6 +69,7 @@
 
     async function handleImport() {
         const fileInput = document.getElementById('importFile');
+        const importTypeSelect = document.getElementById('importType');
         const resultsContainer = document.getElementById('importResults');
 
         if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
@@ -72,6 +79,7 @@
 
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
+        formData.append('import_type', (importTypeSelect?.value || 'student'));
 
         renderMessage(resultsContainer, 'Импортируем...', 'info');
 
@@ -96,8 +104,10 @@
     }
 
     async function downloadTemplate() {
+        const importTypeSelect = document.getElementById('importType');
+        const importType = importTypeSelect?.value || 'student';
         try {
-            const response = await fetch(`${API_URL}/import/template/users`);
+            const response = await fetch(`${API_URL}/import/template/users?type=${encodeURIComponent(importType)}`);
             if (!response.ok) {
                 throw new Error('Failed to download template');
             }
@@ -107,6 +117,19 @@
         } catch (error) {
             console.error('Template download error:', error);
             showAlert('Не удалось скачать шаблон');
+        }
+    }
+
+    function updateImportHint() {
+        const importTypeSelect = document.getElementById('importType');
+        const importHint = document.getElementById('importHint');
+        if (!importHint) return;
+
+        const type = importTypeSelect?.value || 'student';
+        if (type === 'teacher') {
+            importHint.textContent = 'Поддерживаемые колонки: №, ФИО, Пол, Дата рождения, ПИНФЛ, Должность, Классы, Телефоны, Эл. почта';
+        } else {
+            importHint.textContent = 'Поддерживаемые колонки: №, Ученик, Пол, Дата рождения, Класс, Телефон, Эл. почта';
         }
     }
 
@@ -149,6 +172,10 @@
                 <div class="import-summary-item">
                     <span>Импортировано:</span>
                     <strong>${data.imported || 0}</strong>
+                </div>
+                <div class="import-summary-item">
+                    <span>Пропущено:</span>
+                    <strong>${data.skipped || 0}</strong>
                 </div>
                 <div class="import-summary-item">
                     <span>Ошибок:</span>
