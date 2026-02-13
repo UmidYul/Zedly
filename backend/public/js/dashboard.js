@@ -406,13 +406,8 @@
             return;
         }
 
-        // Show loading
-        content.innerHTML = `
-                <div style="text-align: center; padding: var(--spacing-3xl);">
-                    <div class="spinner" style="display: inline-block; width: 40px; height: 40px;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('common.loading', 'Loading...')}</p>
-                </div>
-            `;
+        // Show skeleton loading (faster visual feedback than spinner-only)
+        content.innerHTML = getDashboardSkeletonMarkup();
 
         // Load stats from API if overview page
         if (page === 'overview' && currentUser) {
@@ -452,6 +447,41 @@
 
         // Load script and initialize if needed
         await loadPageScript(page);
+    }
+
+    function getDashboardSkeletonMarkup() {
+        return `
+            <div class="page-header-section">
+                <div class="skeleton skeleton-line lg" style="width: 240px;"></div>
+                <div class="skeleton skeleton-line" style="width: 360px;"></div>
+            </div>
+            <div class="stats-grid">
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-line" style="width: 120px;"></div>
+                    <div class="skeleton skeleton-line lg" style="width: 70px;"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-line" style="width: 130px;"></div>
+                    <div class="skeleton skeleton-line lg" style="width: 70px;"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-line" style="width: 140px;"></div>
+                    <div class="skeleton skeleton-line lg" style="width: 70px;"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-line" style="width: 150px;"></div>
+                    <div class="skeleton skeleton-line lg" style="width: 70px;"></div>
+                </div>
+            </div>
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <div class="skeleton skeleton-line" style="width: 180px;"></div>
+                </div>
+                <div class="skeleton skeleton-table-row"></div>
+                <div class="skeleton skeleton-table-row"></div>
+                <div class="skeleton skeleton-table-row"></div>
+            </div>
+        `;
     }
 
     // Load page-specific script

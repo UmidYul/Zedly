@@ -1,0 +1,25 @@
+{
+  "name": "ZEDLY",
+  "short_name": "ZEDLY",
+  "description": "ZEDLY education platform",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0F1729",
+  "theme_color": "#4A90E2",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/images/zedly_logo_bg.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/zedly_logo_bg.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

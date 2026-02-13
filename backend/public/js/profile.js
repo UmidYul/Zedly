@@ -9,6 +9,27 @@
     let isOwnProfile = false;
     let performanceChart = null;
     let careerChart = null;
+    function setProfileLoading(loading) {
+        const stats = document.getElementById('statsContent');
+        const activity = document.getElementById('activityList');
+
+        if (loading && stats) {
+            stats.innerHTML = `
+                <div class="skeleton-card"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line lg" style="width:60%;"></div></div>
+                <div class="skeleton-card"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line lg" style="width:60%;"></div></div>
+                <div class="skeleton-card"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line lg" style="width:60%;"></div></div>
+                <div class="skeleton-card"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line lg" style="width:60%;"></div></div>
+            `;
+        }
+
+        if (loading && activity) {
+            activity.innerHTML = `
+                <div class="skeleton skeleton-table-row"></div>
+                <div class="skeleton skeleton-table-row"></div>
+                <div class="skeleton skeleton-table-row"></div>
+            `;
+        }
+    }
 
     function getToken() {
         return localStorage.getItem('access_token') || localStorage.getItem('accessToken') || '';
@@ -683,6 +704,7 @@
 
     async function init() {
         try {
+            setProfileLoading(true);
             currentUser = await fetchCurrentUser();
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -717,8 +739,10 @@
             }
 
             bindLanguageRefresh();
+            setProfileLoading(false);
         } catch (error) {
             console.error('Profile init error:', error);
+            setProfileLoading(false);
             await showAlert('Не удалось загрузить профиль', 'Ошибка');
         }
     }
