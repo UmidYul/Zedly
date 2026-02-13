@@ -846,6 +846,10 @@
         pointer-events: none;
     }
 
+    .mobile-shell-enabled .sidebar {
+        width: 260px !important;
+    }
+
     .sidebar.open {
         transform: translateX(0) !important;
         visibility: visible;
