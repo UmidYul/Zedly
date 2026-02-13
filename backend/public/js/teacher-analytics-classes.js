@@ -14,6 +14,14 @@
     let performanceChart = null;
     let topicsChart = null;
 
+    function showAlert(message, title = 'Ошибка') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
     // Pagination
     let currentPage = 1;
     const itemsPerPage = 10;
@@ -28,7 +36,7 @@
 
             // Check if user is teacher
             if (currentUser.role !== 'teacher' && currentUser.role !== 'school_admin') {
-                alert('У вас нет доступа к этой странице');
+                showAlert('У вас нет доступа к этой странице');
                 window.location.href = 'dashboard.html';
                 return;
             }
@@ -502,7 +510,7 @@
 
     // Show error
     function showError(message) {
-        alert(message); // TODO: Replace with proper notification system
+        showAlert(message);
     }
 
     // Re-render charts on theme change

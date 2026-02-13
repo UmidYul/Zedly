@@ -9,6 +9,14 @@
     let performanceChart = null;
     let careerChart = null;
 
+    function showAlert(message, title = 'Ошибка') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
     // Initialize
     document.addEventListener('DOMContentLoaded', init);
 
@@ -546,6 +554,6 @@
     }
 
     function showError(message) {
-        alert(message); // TODO: Replace with proper notification system
+        showAlert(message);
     }
 })();

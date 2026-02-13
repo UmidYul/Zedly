@@ -2,6 +2,21 @@
 (function () {
     'use strict';
 
+    function showAlert(message, title = 'Error') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
+    function showConfirm(message, title = 'Confirmation') {
+        if (window.ZedlyDialog?.confirm) {
+            return window.ZedlyDialog.confirm(message, { title });
+        }
+        return Promise.resolve(confirm(message));
+    }
+
     window.ClassesManager = {
         currentPage: 1,
         limit: 10,
@@ -257,12 +272,12 @@
                         const data = await response.json();
                         classData = data.class;
                     } else {
-                        alert('Failed to load class data');
+                        showAlert('Failed to load class data');
                         return;
                     }
                 } catch (error) {
                     console.error('Load class error:', error);
-                    alert('Failed to load class data');
+                    showAlert('Failed to load class data');
                     return;
                 }
             }
@@ -503,7 +518,8 @@
 
         // Delete class
         deleteClass: async function (classId, className) {
-            if (!confirm(`Are you sure you want to deactivate class "${className}"?`)) {
+            const confirmed = await showConfirm(`Are you sure you want to deactivate class "${className}"?`);
+            if (!confirmed) {
                 return;
             }
 
@@ -519,11 +535,11 @@
                 if (response.ok) {
                     this.loadClasses();
                 } else {
-                    alert('Failed to delete class');
+                    showAlert('Failed to delete class');
                 }
             } catch (error) {
                 console.error('Delete class error:', error);
-                alert('Failed to delete class');
+                showAlert('Failed to delete class');
             }
         }
     };

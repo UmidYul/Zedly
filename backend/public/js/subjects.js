@@ -2,6 +2,21 @@
 (function () {
     'use strict';
 
+    function showAlert(message, title = 'Error') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
+    function showConfirm(message, title = 'Confirmation') {
+        if (window.ZedlyDialog?.confirm) {
+            return window.ZedlyDialog.confirm(message, { title });
+        }
+        return Promise.resolve(confirm(message));
+    }
+
     window.SubjectsManager = {
         currentPage: 1,
         limit: 10,
@@ -204,12 +219,12 @@
                         const data = await response.json();
                         subject = data.subject;
                     } else {
-                        alert('Failed to load subject data');
+                        showAlert('Failed to load subject data');
                         return;
                     }
                 } catch (error) {
                     console.error('Load subject error:', error);
-                    alert('Failed to load subject data');
+                    showAlert('Failed to load subject data');
                     return;
                 }
             }
@@ -418,7 +433,8 @@
 
         // Delete subject
         deleteSubject: async function (subjectId, subjectName) {
-            if (!confirm(`Are you sure you want to deactivate subject "${subjectName}"?`)) {
+            const confirmed = await showConfirm(`Are you sure you want to deactivate subject "${subjectName}"?`);
+            if (!confirmed) {
                 return;
             }
 
@@ -434,11 +450,11 @@
                 if (response.ok) {
                     this.loadSubjects();
                 } else {
-                    alert('Failed to delete subject');
+                    showAlert('Failed to delete subject');
                 }
             } catch (error) {
                 console.error('Delete subject error:', error);
-                alert('Failed to delete subject');
+                showAlert('Failed to delete subject');
             }
         }
     };

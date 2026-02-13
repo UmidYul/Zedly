@@ -6,6 +6,14 @@ const SchoolComparisonManager = (function () {
     let currentPeriod = 'month';
     let comparisonData = null;
 
+    function showAlert(message, title = 'Error') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
     async function init() {
         console.log('📊 Initializing School Comparison Manager...');
         attachEventListeners();
@@ -357,7 +365,7 @@ const SchoolComparisonManager = (function () {
 
     async function exportReport() {
         if (!comparisonData) {
-            alert('No data to export');
+            showAlert('No data to export');
             return;
         }
 
@@ -382,7 +390,7 @@ const SchoolComparisonManager = (function () {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Failed to export report:', error);
-            alert('Failed to export report. Please try again.');
+            showAlert('Failed to export report. Please try again.');
         }
     }
 

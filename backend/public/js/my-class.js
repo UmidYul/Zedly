@@ -1,6 +1,13 @@
 (function () {
     'use strict';
 
+    function showConfirm(message, title = 'Подтверждение') {
+        if (window.ZedlyDialog?.confirm) {
+            return window.ZedlyDialog.confirm(message, { title });
+        }
+        return Promise.resolve(window.confirm(message));
+    }
+
     const state = {
         students: [],
         classes: [],
@@ -210,7 +217,7 @@
     }
 
     async function handleResetPassword(studentId) {
-        const confirmed = window.confirm('Сбросить пароль ученика? Будет выдан временный пароль.');
+        const confirmed = await showConfirm('Сбросить пароль ученика? Будет выдан временный пароль.');
         if (!confirmed) return;
 
         const response = await fetch(`/api/teacher/students/${studentId}/reset-password`, {

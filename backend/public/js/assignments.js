@@ -2,6 +2,21 @@
 (function () {
     'use strict';
 
+    function showAlert(message, title = 'Error') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
+    function showConfirm(message, title = 'Confirmation') {
+        if (window.ZedlyDialog?.confirm) {
+            return window.ZedlyDialog.confirm(message, { title });
+        }
+        return Promise.resolve(confirm(message));
+    }
+
     window.AssignmentsManager = {
         currentPage: 1,
         limit: 10,
@@ -317,12 +332,12 @@
                         const data = await response.json();
                         assignmentData = data.assignment;
                     } else {
-                        alert('Failed to load assignment data');
+                        showAlert('Failed to load assignment data');
                         return;
                     }
                 } catch (error) {
                     console.error('Load assignment error:', error);
-                    alert('Failed to load assignment data');
+                    showAlert('Failed to load assignment data');
                     return;
                 }
             }
@@ -676,7 +691,7 @@
                 this.showDetailsModal(data.assignment, data.students);
             } catch (error) {
                 console.error('Load assignment details error:', error);
-                alert('Failed to load assignment details');
+                showAlert('Failed to load assignment details');
             }
         },
 
@@ -813,7 +828,8 @@
 
         // Delete assignment
         deleteAssignment: async function (assignmentId, testTitle) {
-            if (!confirm(`Are you sure you want to delete assignment "${testTitle}"?`)) {
+            const confirmed = await showConfirm(`Are you sure you want to delete assignment "${testTitle}"?`);
+            if (!confirmed) {
                 return;
             }
 
@@ -829,11 +845,11 @@
                 if (response.ok) {
                     this.loadAssignments();
                 } else {
-                    alert('Failed to delete assignment');
+                    showAlert('Failed to delete assignment');
                 }
             } catch (error) {
                 console.error('Delete assignment error:', error);
-                alert('Failed to delete assignment');
+                showAlert('Failed to delete assignment');
             }
         },
 
@@ -843,5 +859,4 @@
         }
     };
 })();
-
 

@@ -15,6 +15,14 @@
     let activeTab = 'heatmap';
     let chartLoadPromise = null;
 
+    function showAlert(message, title = 'Ошибка') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
     function getLocalizedName(item) {
         const lang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
         if (lang === 'uz') {
@@ -594,7 +602,7 @@
             document.body.removeChild(link);
         } catch (error) {
             console.error('Export error:', error);
-            alert('Ошибка при экспорте данных');
+            showAlert('Ошибка при экспорте данных');
         }
     }
 

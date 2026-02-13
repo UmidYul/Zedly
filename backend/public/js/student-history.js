@@ -8,6 +8,14 @@
     let subjects = [];
     let performanceChart = null;
 
+    function showAlert(message, title = 'Ошибка') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
     // Filters
     let selectedSubject = '';
     let selectedStatus = '';
@@ -27,7 +35,7 @@
 
             // Check if user is student
             if (currentUser.role !== 'student') {
-                alert('У вас нет доступа к этой странице');
+                showAlert('У вас нет доступа к этой странице');
                 window.location.href = 'dashboard.html';
                 return;
             }
@@ -445,7 +453,7 @@
     }
 
     function showError(message) {
-        alert(message); // TODO: Replace with proper notification system
+        showAlert(message);
     }
 
     // Re-render chart on theme change

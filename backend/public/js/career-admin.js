@@ -1,6 +1,21 @@
 
 // CareerAdminManager: Handles SchoolAdmin career test management and analytics UI
 const CareerAdminManager = {
+    showAlert(message, title = 'Информация') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    },
+
+    showConfirm(message, title = 'Подтверждение') {
+        if (window.ZedlyDialog?.confirm) {
+            return window.ZedlyDialog.confirm(message, { title });
+        }
+        return Promise.resolve(confirm(message));
+    },
+
     init() {
         // Initialize event listeners for add/edit/delete test buttons
         const addBtn = document.getElementById('addCareerTestBtn');
@@ -58,14 +73,15 @@ const CareerAdminManager = {
     },
 
     editTest(id) {
-        alert('Окно редактирования теста: ' + id);
+        this.showAlert('Окно редактирования теста: ' + id);
     },
 
-    deleteTest(id) {
-        if (confirm('Удалить тест?')) {
-            // TODO: API call to delete
-            alert('Тест удалён (реализовать API)');
-        }
+    async deleteTest(id) {
+        const confirmed = await this.showConfirm('Удалить тест?');
+        if (!confirmed) return;
+
+        // TODO: API call to delete
+        this.showAlert('Тест удалён (реализовать API)');
     },
 
     async loadAnalytics() {

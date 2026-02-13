@@ -2,6 +2,13 @@
 (function () {
     'use strict';
 
+    function showConfirm(message, title = 'Confirmation') {
+        if (window.ZedlyDialog?.confirm) {
+            return window.ZedlyDialog.confirm(message, { title });
+        }
+        return Promise.resolve(confirm(message));
+    }
+
     // Question types configuration
     const QUESTION_TYPES = {
         SINGLE_CHOICE: { id: 'singlechoice', name: 'Single Choice', icon: '⦿', description: 'One correct answer' },
@@ -295,11 +302,12 @@
         },
 
         // Delete question
-        deleteQuestion: function (index) {
-            if (confirm('Are you sure you want to delete this question?')) {
-                this.questions.splice(index, 1);
-                this.updateQuestionsList();
-            }
+        deleteQuestion: async function (index) {
+            const confirmed = await showConfirm('Are you sure you want to delete this question?');
+            if (!confirmed) return;
+
+            this.questions.splice(index, 1);
+            this.updateQuestionsList();
         },
 
         // Show question editor with type-specific forms

@@ -2,6 +2,14 @@
 (function () {
     'use strict';
 
+    function showAlert(message, title = 'Error') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
     window.TeacherResults = {
         assignmentId: null,
         assignment: null,
@@ -202,7 +210,7 @@
         // Export results to CSV
         exportResults: function () {
             if (this.results.length === 0) {
-                alert('No results to export.');
+                showAlert('No results to export.');
                 return;
             }
 

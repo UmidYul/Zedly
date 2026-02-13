@@ -4,6 +4,14 @@
 
     const API_URL = '/api/admin';
 
+    function showAlert(message, title = 'Ошибка') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
     const ImportExportManager = {
         init
     };
@@ -71,7 +79,7 @@
             downloadBlob(blob, 'users_import_template.xlsx');
         } catch (error) {
             console.error('Template download error:', error);
-            alert('Не удалось скачать шаблон');
+            showAlert('Не удалось скачать шаблон');
         }
     }
 
@@ -86,7 +94,7 @@
             downloadBlob(blob, 'users_export.xlsx');
         } catch (error) {
             console.error('Export error:', error);
-            alert('Не удалось выгрузить пользователей');
+            showAlert('Не удалось выгрузить пользователей');
         }
     }
 

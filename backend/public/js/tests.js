@@ -2,6 +2,21 @@
 (function () {
     'use strict';
 
+    function showAlert(message, title = 'Error') {
+        if (window.ZedlyDialog?.alert) {
+            return window.ZedlyDialog.alert(message, { title });
+        }
+        alert(message);
+        return Promise.resolve(true);
+    }
+
+    function showConfirm(message, title = 'Confirmation') {
+        if (window.ZedlyDialog?.confirm) {
+            return window.ZedlyDialog.confirm(message, { title });
+        }
+        return Promise.resolve(confirm(message));
+    }
+
     window.TestsManager = {
         currentPage: 1,
         limit: 10,
@@ -285,7 +300,7 @@
                 this.renderTestPreviewModal(data.test, data.questions || []);
             } catch (error) {
                 console.error('Load test preview error:', error);
-                alert('Failed to load test preview');
+                showAlert('Failed to load test preview');
             }
         },
 
@@ -381,7 +396,8 @@
 
         // Delete test
         deleteTest: async function (testId, testTitle) {
-            if (!confirm(`Are you sure you want to delete "${testTitle}"?`)) {
+            const confirmed = await showConfirm(`Are you sure you want to delete "${testTitle}"?`);
+            if (!confirmed) {
                 return;
             }
 
@@ -395,11 +411,11 @@
                 if (response.ok) {
                     this.loadTests();
                 } else {
-                    alert('Failed to delete test');
+                    showAlert('Failed to delete test');
                 }
             } catch (error) {
                 console.error('Delete test error:', error);
-                alert('Failed to delete test');
+                showAlert('Failed to delete test');
             }
         }
     };
