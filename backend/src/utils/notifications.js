@@ -27,7 +27,44 @@ let telegramBot = null;
 if (process.env.TELEGRAM_BOT_TOKEN) {
     try {
         const useWebhook = process.env.TELEGRAM_USE_WEBHOOK === 'true';
-        telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: !useWebhook });
+        const envPolling = process.env.TELEGRAM_ENABLE_POLLING;
+        const isTestEnv = process.env.NODE_ENV === 'test';
+        const pm2Instance = process.env.NODE_APP_INSTANCE;
+        const isPrimaryInstance = pm2Instance === undefined || pm2Instance === '0';
+
+        // Polling strategy:
+        // - disabled in tests
+        // - disabled when webhook mode is enabled
+        // - in PM2 cluster, default to primary instance only
+        // - TELEGRAM_ENABLE_POLLING=true|false overrides defaults
+        const shouldPoll = !isTestEnv
+            && !useWebhook
+            && (envPolling ? envPolling === 'true' : isPrimaryInstance);
+
+        telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: shouldPoll });
+
+        if (!shouldPoll) {
+            console.log('Telegram polling is disabled for this process.');
+        }
+
+        telegramBot.on('polling_error', async (error) => {
+            const message = String(error?.message || '');
+            const isConflict = error?.code === 'ETELEGRAM' || message.includes('409 Conflict');
+
+            if (isConflict) {
+                console.warn('Telegram polling conflict detected (409). Another instance is already polling updates.');
+                if (typeof telegramBot.stopPolling === 'function') {
+                    try {
+                        await telegramBot.stopPolling();
+                    } catch (stopError) {
+                        console.warn('Failed to stop Telegram polling after conflict:', stopError.message);
+                    }
+                }
+                return;
+            }
+
+            console.error('Telegram polling error:', error);
+        });
     } catch (error) {
         console.error('Failed to initialize Telegram bot:', error.message);
     }
