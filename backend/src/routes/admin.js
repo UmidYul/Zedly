@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const XLSX = require('xlsx');
-const { query } = require('../config/database');
+const { query, getClient } = require('../config/database');
 const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
 const { notifyNewUser, notifySystemChange } = require('../utils/notifications');
 
@@ -725,15 +725,18 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
 
 /**
  * DELETE /api/admin/users/:id
- * Delete user (soft delete)
+ * Delete user (hard delete)
  */
 router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
+    let client;
     try {
         const { id } = req.params;
         const schoolId = req.user.school_id;
+        client = await getClient();
+        await client.query('BEGIN');
 
         // Check if user exists in same school
-        const existingUser = await query(
+        const existingUser = await client.query(
             'SELECT id, username FROM users WHERE id = $1 AND school_id = $2',
             [id, schoolId]
         );
@@ -745,31 +748,30 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
             });
         }
 
+        // Remove teacher-linked data
+        const teacherTestRows = await client.query('SELECT id FROM tests WHERE teacher_id = $1', [id]);
+        for (const test of teacherTestRows.rows) {
+            await deleteTestCascadeById(client, test.id);
+        }
 
+        await deleteAssignmentsByAssignedTeacher(client, id);
 
-        // Remove all class_students links for this user (if student)
-        await query(
-            'DELETE FROM class_students WHERE student_id = $1',
-            [id]
-        );
+        // Remove student-linked data
+        await client.query('DELETE FROM test_attempts WHERE student_id = $1', [id]);
+        await client.query('DELETE FROM class_students WHERE student_id = $1', [id]);
 
-        // Remove all teacher_class_subjects links for this user (if teacher)
-        await query(
-            'DELETE FROM teacher_class_subjects WHERE teacher_id = $1',
-            [id]
-        );
+        // Remove class/subject links and references
+        await client.query('DELETE FROM teacher_class_subjects WHERE teacher_id = $1', [id]);
+        await client.query('UPDATE classes SET homeroom_teacher_id = NULL WHERE homeroom_teacher_id = $1', [id]);
 
-        // Remove audit logs for this user (optional, comment if you want to keep logs)
-        // await query('DELETE FROM audit_logs WHERE user_id = $1', [id]);
+        // Remove audit rows where user is the actor to satisfy FK
+        await client.query('DELETE FROM audit_logs WHERE user_id = $1', [id]);
 
         // Remove user
-        await query(
-            'DELETE FROM users WHERE id = $1',
-            [id]
-        );
+        await client.query('DELETE FROM users WHERE id = $1', [id]);
 
         // Log action
-        await query(
+        await client.query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
             [
@@ -780,6 +782,7 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
                 { username: existingUser.rows[0].username }
             ]
         );
+        await client.query('COMMIT');
 
         try {
             await notifySystemChange({
@@ -794,14 +797,19 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
         }
 
         res.json({
-            message: 'User deactivated successfully'
+            message: 'User deleted successfully'
         });
     } catch (error) {
+        if (client) {
+            try { await client.query('ROLLBACK'); } catch (_) { /* noop */ }
+        }
         console.error('Delete user error:', error);
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to delete user'
         });
+    } finally {
+        if (client) client.release();
     }
 });
 
@@ -885,7 +893,8 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
         const results = {
             imported: 0,
             created: [],
-            errors: []
+            errors: [],
+            auto_created_classes: []
         };
 
         for (let i = 0; i < parsedRows.length; i++) {
@@ -955,7 +964,7 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                 const userId = userResult.rows[0].id;
 
                 if (role === 'student' && mapped.class_name) {
-                    const classResult = await findClassByName(
+                    const classResult = await ensureActiveClassForImport(
                         schoolId,
                         mapped.class_name,
                         mapped.academic_year
@@ -964,6 +973,18 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                     if (!classResult) {
                         results.errors.push({ row: rowNumber, message: `Class not found: ${mapped.class_name}` });
                     } else {
+                        if (classResult.autoCreated) {
+                            const alreadyAdded = results.auto_created_classes.some((item) => item.id === classResult.id);
+                            if (!alreadyAdded) {
+                                results.auto_created_classes.push({
+                                    id: classResult.id,
+                                    name: classResult.name,
+                                    grade_level: classResult.grade_level,
+                                    academic_year: classResult.academic_year
+                                });
+                            }
+                        }
+
                         await query(
                             `INSERT INTO class_students (class_id, student_id, roll_number, is_active)
                              VALUES ($1, $2, $3, true)
@@ -1013,6 +1034,52 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to import users'
+        });
+    }
+});
+
+/**
+ * POST /api/admin/import/credentials/export
+ * Build XLSX file with imported usernames and OTP passwords
+ */
+router.post('/import/credentials/export', async (req, res) => {
+    try {
+        const users = Array.isArray(req.body?.users) ? req.body.users : [];
+
+        if (users.length === 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No credentials to export'
+            });
+        }
+
+        const rows = [
+            ['№', 'Логин', 'OTP пароль', 'Роль'],
+            ...users.map((user, index) => ([
+                index + 1,
+                String(user.username || '').trim(),
+                String(user.otp_password || '').trim(),
+                String(user.role || '').trim()
+            ]))
+        ];
+
+        const sheet = XLSX.utils.aoa_to_sheet(rows);
+        sheet['!cols'] = buildAutoWidthColumns(rows);
+        sheet['!autofilter'] = { ref: `A1:D${rows.length}` };
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, sheet, 'credentials');
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        const datePart = new Date().toISOString().slice(0, 10);
+        res.setHeader('Content-Disposition', `attachment; filename="import_credentials_${datePart}.xlsx"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Export import credentials error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to export credentials'
         });
     }
 });
@@ -1553,15 +1620,18 @@ router.put('/classes/:id', enforceSchoolIsolation, async (req, res) => {
 
 /**
  * DELETE /api/admin/classes/:id
- * Delete class (soft delete)
+ * Delete class (hard delete)
  */
 router.delete('/classes/:id', enforceSchoolIsolation, async (req, res) => {
+    let client;
     try {
         const { id } = req.params;
         const schoolId = req.user.school_id;
+        client = await getClient();
+        await client.query('BEGIN');
 
         // Check if class exists in same school
-        const existingClass = await query(
+        const existingClass = await client.query(
             'SELECT id, name FROM classes WHERE id = $1 AND school_id = $2',
             [id, schoolId]
         );
@@ -1573,28 +1643,41 @@ router.delete('/classes/:id', enforceSchoolIsolation, async (req, res) => {
             });
         }
 
-        // Soft delete
-        await query(
-            'UPDATE classes SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-            [id]
-        );
+        // Delete assignments and all related attempts for this class
+        const assignmentRows = await client.query('SELECT id FROM test_assignments WHERE class_id = $1', [id]);
+        for (const row of assignmentRows.rows) {
+            await deleteAssignmentCascadeById(client, row.id);
+        }
+
+        // Remove class links
+        await client.query('DELETE FROM class_students WHERE class_id = $1', [id]);
+        await client.query('DELETE FROM teacher_class_subjects WHERE class_id = $1', [id]);
+
+        // Hard delete class
+        await client.query('DELETE FROM classes WHERE id = $1', [id]);
 
         // Log action
-        await query(
+        await client.query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
             [req.user.id, 'delete', 'class', id, { name: existingClass.rows[0].name }]
         );
+        await client.query('COMMIT');
 
         res.json({
-            message: 'Class deactivated successfully'
+            message: 'Class deleted successfully'
         });
     } catch (error) {
+        if (client) {
+            try { await client.query('ROLLBACK'); } catch (_) { /* noop */ }
+        }
         console.error('Delete class error:', error);
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to delete class'
         });
+    } finally {
+        if (client) client.release();
     }
 });
 
@@ -1887,15 +1970,18 @@ router.put('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
 
 /**
  * DELETE /api/admin/subjects/:id
- * Delete subject (soft delete)
+ * Delete subject (hard delete)
  */
 router.delete('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
+    let client;
     try {
         const { id } = req.params;
         const schoolId = req.user.school_id;
+        client = await getClient();
+        await client.query('BEGIN');
 
         // Check if subject exists in same school
-        const existingSubject = await query(
+        const existingSubject = await client.query(
             'SELECT id, name FROM subjects WHERE id = $1 AND school_id = $2',
             [id, schoolId]
         );
@@ -1907,28 +1993,40 @@ router.delete('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
             });
         }
 
-        // Soft delete
-        await query(
-            'UPDATE subjects SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-            [id]
-        );
+        // Delete all tests for this subject (and their dependent entities)
+        const testsRows = await client.query('SELECT id FROM tests WHERE subject_id = $1', [id]);
+        for (const row of testsRows.rows) {
+            await deleteTestCascadeById(client, row.id);
+        }
+
+        // Remove teacher-subject-class mappings
+        await client.query('DELETE FROM teacher_class_subjects WHERE subject_id = $1', [id]);
+
+        // Hard delete subject
+        await client.query('DELETE FROM subjects WHERE id = $1', [id]);
 
         // Log action
-        await query(
+        await client.query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
             [req.user.id, 'delete', 'subject', id, { name: existingSubject.rows[0].name }]
         );
+        await client.query('COMMIT');
 
         res.json({
-            message: 'Subject deactivated successfully'
+            message: 'Subject deleted successfully'
         });
     } catch (error) {
+        if (client) {
+            try { await client.query('ROLLBACK'); } catch (_) { /* noop */ }
+        }
         console.error('Delete subject error:', error);
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to delete subject'
         });
+    } finally {
+        if (client) client.release();
     }
 });
 
@@ -2188,6 +2286,45 @@ function parseImportRows(sheet) {
     }));
 }
 
+function buildAutoWidthColumns(rows) {
+    const colCount = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+    const columns = [];
+
+    for (let colIndex = 0; colIndex < colCount; colIndex++) {
+        let maxLen = 8;
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+            const value = rows[rowIndex]?.[colIndex];
+            const text = String(value === undefined || value === null ? '' : value);
+            maxLen = Math.max(maxLen, text.length);
+        }
+        columns.push({ wch: Math.min(maxLen + 2, 48) });
+    }
+
+    return columns;
+}
+
+async function deleteAssignmentCascadeById(client, assignmentId) {
+    await client.query('DELETE FROM test_attempts WHERE assignment_id = $1', [assignmentId]);
+    await client.query('DELETE FROM test_assignments WHERE id = $1', [assignmentId]);
+}
+
+async function deleteAssignmentsByAssignedTeacher(client, teacherId) {
+    const assignments = await client.query('SELECT id FROM test_assignments WHERE assigned_by = $1', [teacherId]);
+    for (const row of assignments.rows) {
+        await deleteAssignmentCascadeById(client, row.id);
+    }
+}
+
+async function deleteTestCascadeById(client, testId) {
+    const assignments = await client.query('SELECT id FROM test_assignments WHERE test_id = $1', [testId]);
+    for (const row of assignments.rows) {
+        await deleteAssignmentCascadeById(client, row.id);
+    }
+    await client.query('DELETE FROM test_attempts WHERE test_id = $1', [testId]);
+    await client.query('DELETE FROM test_questions WHERE test_id = $1', [testId]);
+    await client.query('DELETE FROM tests WHERE id = $1', [testId]);
+}
+
 function normalizeUsername(firstName, lastName) {
     const transliteratedFirst = transliterateToLatin(firstName || '');
     const transliteratedLast = transliterateToLatin(lastName || '');
@@ -2234,27 +2371,72 @@ async function generateUniqueUsername(baseUsername) {
     }
 }
 
-async function findClassByName(schoolId, className, academicYear) {
-    if (!className) return null;
+function deriveGradeLevelFromClassName(className) {
+    const match = String(className || '').trim().match(/^(\d{1,2})/);
+    const grade = match ? parseInt(match[1], 10) : NaN;
+    if (Number.isInteger(grade) && grade >= 1 && grade <= 11) {
+        return grade;
+    }
+    return 1;
+}
 
-    if (academicYear) {
-        const result = await query(
-            `SELECT id FROM classes
-             WHERE school_id = $1 AND LOWER(name) = LOWER($2) AND academic_year = $3
-             LIMIT 1`,
-            [schoolId, className.trim(), academicYear.trim()]
-        );
-        return result.rows[0] || null;
+function deriveAcademicYear(rawAcademicYear) {
+    const value = String(rawAcademicYear || '').trim();
+    if (value) return value;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const startYear = month >= 8 ? year : year - 1;
+    const endYear = startYear + 1;
+    return `${startYear}-${endYear}`;
+}
+
+async function ensureActiveClassForImport(schoolId, className, academicYear) {
+    if (!className) return null;
+    const normalizedName = className.trim();
+    const normalizedYear = deriveAcademicYear(academicYear);
+
+    const activeResult = await query(
+        `SELECT id, name, grade_level, academic_year
+         FROM classes
+         WHERE school_id = $1 AND LOWER(name) = LOWER($2) AND academic_year = $3 AND is_active = true
+         LIMIT 1`,
+        [schoolId, normalizedName, normalizedYear]
+    );
+    if (activeResult.rows[0]) {
+        return { ...activeResult.rows[0], autoCreated: false };
     }
 
-    const result = await query(
-        `SELECT id FROM classes
-         WHERE school_id = $1 AND LOWER(name) = LOWER($2)
-         ORDER BY academic_year DESC
+    const inactiveResult = await query(
+        `SELECT id, name, grade_level, academic_year
+         FROM classes
+         WHERE school_id = $1 AND LOWER(name) = LOWER($2) AND academic_year = $3 AND is_active = false
          LIMIT 1`,
-        [schoolId, className.trim()]
+        [schoolId, normalizedName, normalizedYear]
     );
-    return result.rows[0] || null;
+
+    if (inactiveResult.rows[0]) {
+        const reactivated = await query(
+            `UPDATE classes
+             SET is_active = true,
+                 homeroom_teacher_id = NULL,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1
+             RETURNING id, name, grade_level, academic_year`,
+            [inactiveResult.rows[0].id]
+        );
+        return { ...reactivated.rows[0], autoCreated: true };
+    }
+
+    const createdClass = await query(
+        `INSERT INTO classes (school_id, name, grade_level, academic_year, homeroom_teacher_id, is_active)
+         VALUES ($1, $2, $3, $4, NULL, true)
+         RETURNING id, name, grade_level, academic_year`,
+        [schoolId, normalizedName, deriveGradeLevelFromClassName(normalizedName), normalizedYear]
+    );
+
+    return { ...createdClass.rows[0], autoCreated: true };
 }
 
 const IMPORT_HEADER_MAP = {

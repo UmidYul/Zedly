@@ -518,7 +518,7 @@
 
         // Delete class
         deleteClass: async function (classId, className) {
-            const confirmed = await showConfirm(`Are you sure you want to deactivate class "${className}"?`);
+            const confirmed = await showConfirm(`Are you sure you want to delete class "${className}" permanently?`);
             if (!confirmed) {
                 return;
             }

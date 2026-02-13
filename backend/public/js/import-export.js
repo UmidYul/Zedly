@@ -4,6 +4,7 @@
 
     const API_URL = '/api/admin';
     const IMPORT_CREDENTIALS_KEY = 'zedly_last_import_credentials_v1';
+    let pendingAutoCreatedClasses = [];
 
     function showAlert(message, title = 'Ошибка') {
         if (window.ZedlyDialog?.alert) {
@@ -45,6 +46,15 @@
                     return;
                 }
                 downloadCredentialsXlsx(payload.users);
+            });
+
+            resultsContainer.addEventListener('click', async (event) => {
+                const target = event.target.closest('[data-action="assign-homeroom-now"]');
+                if (!target) return;
+                if (!Array.isArray(pendingAutoCreatedClasses) || pendingAutoCreatedClasses.length === 0) {
+                    return;
+                }
+                await openHomeroomAssignmentModal(pendingAutoCreatedClasses);
             });
 
             renderSavedCredentialsHint(resultsContainer);
@@ -120,6 +130,7 @@
         if (Array.isArray(data.created) && data.created.length > 0) {
             storeCredentials(data.created);
         }
+        pendingAutoCreatedClasses = Array.isArray(data.auto_created_classes) ? data.auto_created_classes : [];
 
         const createdList = (data.created || []).map(user => {
             return `
@@ -155,6 +166,20 @@
                     <ul class="import-list">${createdList}</ul>
                 </div>
             ` : ''}
+            ${pendingAutoCreatedClasses.length ? `
+                <div class="import-section">
+                    <h3>Новые классы без классного руководителя</h3>
+                    <p>Система создала/активировала классы при импорте. Назначьте классного руководителя сейчас.</p>
+                    <div style="margin-bottom: 10px;">
+                        <button class="btn btn-primary" type="button" data-action="assign-homeroom-now">
+                            Назначить классных руководителей
+                        </button>
+                    </div>
+                    <ul class="import-list">
+                        ${pendingAutoCreatedClasses.map(cls => `<li><strong>${cls.name}</strong> (${cls.academic_year || '-'})</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
             ${errorList ? `
                 <div class="import-section">
                     <h3>Ошибки</h3>
@@ -162,6 +187,12 @@
                 </div>
             ` : ''}
         `;
+
+        if (pendingAutoCreatedClasses.length) {
+            setTimeout(() => {
+                openHomeroomAssignmentModal(pendingAutoCreatedClasses);
+            }, 250);
+        }
     }
 
     function renderMessage(container, message, type) {
@@ -239,6 +270,98 @@
             console.error('Credentials export error:', error);
             showAlert('Не удалось скачать файл логинов и OTP');
         }
+    }
+
+    async function fetchTeachers() {
+        const response = await fetch(`${API_URL}/teachers`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch teachers');
+        }
+        const data = await response.json();
+        return Array.isArray(data.teachers) ? data.teachers : [];
+    }
+
+    async function openHomeroomAssignmentModal(classes) {
+        let teachers = [];
+        try {
+            teachers = await fetchTeachers();
+        } catch (error) {
+            console.error('Failed to load teachers for homeroom modal:', error);
+            showAlert('Не удалось загрузить список учителей');
+            return;
+        }
+
+        if (document.getElementById('homeroomAssignModal')) {
+            return;
+        }
+
+        const teacherOptions = teachers.map((t) => `<option value="${t.id}">${(t.name || '').trim() || t.email || t.id}</option>`).join('');
+
+        const rows = classes.map((cls) => `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;margin-bottom:10px;">
+                <div>
+                    <strong>${cls.name}</strong>
+                    <div style="font-size:12px;opacity:.8;">${cls.academic_year || ''}</div>
+                </div>
+                <select data-class-id="${cls.id}" style="width:100%;padding:8px;border-radius:8px;">
+                    <option value="">Без классрука</option>
+                    ${teacherOptions}
+                </select>
+            </div>
+        `).join('');
+
+        const modal = document.createElement('div');
+        modal.id = 'homeroomAssignModal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:4000;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML = `
+            <div style="width:min(720px,100%);max-height:85vh;overflow:auto;background:var(--bg-primary,#111827);color:var(--text-primary,#f9fafb);border:1px solid var(--border,#374151);border-radius:14px;padding:16px;">
+                <h3 style="margin:0 0 6px 0;">Назначение классного руководителя</h3>
+                <p style="margin:0 0 14px 0;color:var(--text-secondary,#9ca3af);">Назначьте классрука для новых классов, созданных при импорте.</p>
+                ${rows}
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+                    <button type="button" data-action="close-homeroom-modal" class="btn btn-secondary">Позже</button>
+                    <button type="button" data-action="save-homeroom-modal" class="btn btn-primary">Сохранить</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', async (event) => {
+            const closeBtn = event.target.closest('[data-action="close-homeroom-modal"]');
+            if (closeBtn || event.target === modal) {
+                modal.remove();
+                return;
+            }
+
+            const saveBtn = event.target.closest('[data-action="save-homeroom-modal"]');
+            if (!saveBtn) return;
+
+            const selects = Array.from(modal.querySelectorAll('select[data-class-id]'));
+            saveBtn.disabled = true;
+            try {
+                for (const select of selects) {
+                    const classId = select.getAttribute('data-class-id');
+                    const teacherId = select.value || null;
+                    const response = await fetch(`${API_URL}/classes/${classId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ homeroom_teacher_id: teacherId })
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Failed to update class ${classId}`);
+                    }
+                }
+                modal.remove();
+                showAlert('Классные руководители сохранены', 'Успешно');
+            } catch (error) {
+                console.error('Save homeroom assignment error:', error);
+                showAlert('Не удалось сохранить назначения');
+            } finally {
+                saveBtn.disabled = false;
+            }
+        });
     }
 
     function downloadBlob(blob, filename) {

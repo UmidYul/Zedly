@@ -661,7 +661,7 @@
 
         // Delete user
         deleteUser: async function (userId, userName) {
-            const confirmed = await this.confirmAction(`Are you sure you want to deactivate "${userName}"?`);
+            const confirmed = await this.confirmAction(`Are you sure you want to delete "${userName}" permanently?`);
             if (!confirmed) {
                 return;
             }

@@ -10,6 +10,27 @@
     const errorMessage = document.getElementById('errorMessage');
     const loginBtn = document.getElementById('loginBtn');
 
+    checkExistingSession();
+
+    async function checkExistingSession() {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        try {
+            const response = await fetch('/api/auth/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                window.location.href = '/dashboard';
+            }
+        } catch (error) {
+            console.warn('Session check failed on login page:', error);
+        }
+    }
+
     // Password toggle
     if (passwordToggle) {
         passwordToggle.addEventListener('click', function () {

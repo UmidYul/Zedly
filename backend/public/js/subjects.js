@@ -433,7 +433,7 @@
 
         // Delete subject
         deleteSubject: async function (subjectId, subjectName) {
-            const confirmed = await showConfirm(`Are you sure you want to deactivate subject "${subjectName}"?`);
+            const confirmed = await showConfirm(`Are you sure you want to delete subject "${subjectName}" permanently?`);
             if (!confirmed) {
                 return;
             }

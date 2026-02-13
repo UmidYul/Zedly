@@ -555,7 +555,7 @@ router.put('/tests/:id', async (req, res) => {
 
 /**
  * DELETE /api/teacher/tests/:id
- * Delete test (soft delete)
+ * Delete test (hard delete)
  */
 router.delete('/tests/:id', async (req, res) => {
     try {
@@ -575,22 +575,15 @@ router.delete('/tests/:id', async (req, res) => {
             });
         }
 
-        // Check if test has attempts
-        const attemptsCheck = await query(
-            'SELECT COUNT(*) FROM test_attempts WHERE test_id = $1',
-            [id]
-        );
-
-        if (parseInt(attemptsCheck.rows[0].count) > 0) {
-            // Soft delete if has attempts
-            await query(
-                'UPDATE tests SET is_published = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-                [id]
-            );
-        } else {
-            // Hard delete if no attempts
-            await query('DELETE FROM tests WHERE id = $1', [id]);
+        const assignmentRows = await query('SELECT id FROM test_assignments WHERE test_id = $1', [id]);
+        for (const row of assignmentRows.rows) {
+            await query('DELETE FROM test_attempts WHERE assignment_id = $1', [row.id]);
+            await query('DELETE FROM test_assignments WHERE id = $1', [row.id]);
         }
+
+        await query('DELETE FROM test_attempts WHERE test_id = $1', [id]);
+        await query('DELETE FROM test_questions WHERE test_id = $1', [id]);
+        await query('DELETE FROM tests WHERE id = $1', [id]);
 
         // Log action
         await query(
