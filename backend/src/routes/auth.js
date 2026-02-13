@@ -27,25 +27,6 @@ function getUserSettings(rawSettings) {
     return {};
 }
 
-function normalizeSocialLinks(links) {
-    if (!links || typeof links !== 'object' || Array.isArray(links)) {
-        return {};
-    }
-
-    const allowedKeys = ['telegram', 'instagram', 'facebook', 'youtube', 'linkedin', 'website'];
-    const normalized = {};
-
-    for (const key of allowedKeys) {
-        const value = links[key];
-        if (value === undefined || value === null) continue;
-        const trimmed = String(value).trim();
-        if (trimmed.length === 0) continue;
-        normalized[key] = trimmed.slice(0, 255);
-    }
-
-    return normalized;
-}
-
 function normalizeNotificationPreferences(prefs) {
     const defaults = {
         channels: {
@@ -569,11 +550,11 @@ router.get('/profile/activity', authenticate, async (req, res) => {
 
 /**
  * PUT /api/auth/profile/settings
- * Update own profile settings (social links + notification preferences)
+ * Update own profile settings (notification preferences + personal info)
  */
 router.put('/profile/settings', authenticate, async (req, res) => {
     try {
-        const { social_links, notification_preferences, personal_info } = req.body;
+        const { notification_preferences, personal_info } = req.body;
 
         const userResult = await query(
             'SELECT id, settings FROM users WHERE id = $1',
@@ -594,10 +575,6 @@ router.put('/profile/settings', authenticate, async (req, res) => {
             ...profileSettings,
             updated_at: new Date().toISOString()
         };
-
-        if (social_links !== undefined) {
-            nextProfileSettings.social_links = normalizeSocialLinks(social_links);
-        }
 
         if (notification_preferences !== undefined) {
             nextProfileSettings.notification_preferences = normalizeNotificationPreferences(notification_preferences);

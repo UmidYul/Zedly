@@ -449,7 +449,6 @@
 
     function fillOwnForms(user) {
         const profile = getProfileSettings(user);
-        const socials = profile.social_links || {};
         const prefs = profile.notification_preferences || {};
         const channels = prefs.channels || {};
         const events = prefs.events || {};
@@ -465,9 +464,6 @@
 
         setVal('emailInput', user.email);
         setVal('phoneInput', user.phone);
-        setVal('socialTelegramInput', socials.telegram);
-        setVal('socialInstagramInput', socials.instagram);
-        setVal('socialWebsiteInput', socials.website);
         setVal('dobInput', toDateInputValue(user.date_of_birth));
         setVal('genderInput', user.gender || '');
         setVal('notificationFrequency', prefs.frequency || 'instant');
@@ -538,13 +534,7 @@
         }
     }
 
-    async function saveProfileSettings() {
-        const social_links = {
-            telegram: document.getElementById('socialTelegramInput')?.value?.trim() || '',
-            instagram: document.getElementById('socialInstagramInput')?.value?.trim() || '',
-            website: document.getElementById('socialWebsiteInput')?.value?.trim() || ''
-        };
-
+    async function saveNotificationSettings() {
         const notification_preferences = {
             channels: {
                 in_app: !!document.getElementById('channelInApp')?.checked,
@@ -565,7 +555,7 @@
             const data = await apiFetch('/api/auth/profile/settings', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ social_links, notification_preferences })
+                body: JSON.stringify({ notification_preferences })
             });
 
             await showAlert(data.message || 'Настройки сохранены', 'Успешно');
@@ -637,8 +627,7 @@
         document.getElementById('verifyEmailBtn')?.addEventListener('click', () => verifyContactCode('email'));
         document.getElementById('requestPhoneCodeBtn')?.addEventListener('click', () => requestContactCode('phone'));
         document.getElementById('verifyPhoneBtn')?.addEventListener('click', () => verifyContactCode('phone'));
-        document.getElementById('saveSocialsBtn')?.addEventListener('click', saveProfileSettings);
-        document.getElementById('saveNotificationsBtn')?.addEventListener('click', saveProfileSettings);
+        document.getElementById('saveNotificationsBtn')?.addEventListener('click', saveNotificationSettings);
         document.getElementById('savePersonalBtn')?.addEventListener('click', savePersonalInfo);
     }
 
@@ -700,7 +689,6 @@
 
             if (isOwnProfile) {
                 document.getElementById('profileActionsCard').style.display = 'block';
-                document.getElementById('profileSocialsCard').style.display = 'block';
                 document.getElementById('profilePersonalCard').style.display = 'block';
                 document.getElementById('profileNotificationsCard').style.display = 'block';
                 document.getElementById('profileActivityCard').style.display = 'block';
