@@ -362,3 +362,85 @@
         text-align: left;
     }
 }
+
+@media (max-width: 768px) {
+    .profile-wrapper {
+        padding: 12px;
+    }
+
+    .profile-top-row {
+        margin-bottom: 10px;
+    }
+
+    .back-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .profile-card {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .profile-card h2 {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+
+    .profile-hero {
+        padding: 14px;
+        border-radius: 12px;
+        gap: 12px;
+    }
+
+    .profile-avatar {
+        width: 72px;
+        height: 72px;
+        font-size: 24px;
+    }
+
+    .profile-hero-meta h1 {
+        font-size: 22px;
+    }
+
+    .profile-mini-stats {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .profile-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .profile-col {
+        gap: 12px;
+    }
+
+    .info-row {
+        padding: 9px 10px;
+    }
+
+    .field-inline {
+        flex-direction: column;
+    }
+
+    .profile-wrapper .btn,
+    .profile-wrapper button.btn {
+        width: 100%;
+    }
+
+    .card-actions {
+        display: grid;
+    }
+
+    .activity-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #performanceChart,
+    #careerRadarChart {
+        max-height: 250px;
+    }
+}
