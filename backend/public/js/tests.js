@@ -65,9 +65,12 @@
         subjectFilter: 'all',
         statusFilter: 'all',
         subjects: [],
+        selectedIds: new Set(),
+        lastRenderedTests: [],
 
         // Initialize tests page
         init: async function () {
+            this.clearSelection();
             await this.loadSubjects();
             this.loadTests();
             this.setupEventListeners();
@@ -147,6 +150,7 @@
         loadTests: async function () {
             const container = document.getElementById('testsContainer');
             if (!container) return;
+            this.clearSelection();
 
             // Show loading
             container.innerHTML = `
@@ -188,6 +192,7 @@
         renderTests: function (tests, pagination) {
             const container = document.getElementById('testsContainer');
             if (!container) return;
+            this.lastRenderedTests = tests;
 
             if (tests.length === 0) {
                 container.innerHTML = `
@@ -198,15 +203,48 @@
                 return;
             }
 
-            let html = '<div class="tests-grid">';
+            let html = `
+                <div class="bulk-toolbar" id="testsBulkToolbar">
+                    <div class="bulk-toolbar-left">
+                        <label class="bulk-inline-checkbox">
+                            <input
+                                type="checkbox"
+                                id="testsSelectAll"
+                                onchange="TestsManager.toggleSelectAllTests(this.checked)"
+                                aria-label="Select all tests"
+                            >
+                            <span>Select all on page</span>
+                        </label>
+                        <span class="bulk-count-pill" id="testsBulkCount">0 selected</span>
+                        <button class="btn btn-sm btn-outline" id="testsClearSelectionBtn" onclick="TestsManager.clearSelection()">Clear</button>
+                    </div>
+                    <div class="bulk-toolbar-right">
+                        <button class="btn btn-sm btn-danger" id="testsBulkDeleteBtn" onclick="TestsManager.bulkDeleteTests()" disabled>
+                            Delete selected
+                        </button>
+                    </div>
+                </div>
+                <div class="tests-grid">
+            `;
 
             tests.forEach(test => {
                 const statusClass = test.is_active ? 'status-active' : 'status-draft';
                 const statusText = test.is_active ? 'Active' : 'Draft';
                 const subjectBadgeStyle = buildSubjectBadgeStyle(test.subject_color);
+                const safeTitle = (test.title || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const isSelected = this.selectedIds.has(test.id);
 
                 html += `
-                    <div class="test-card">
+                    <div class="test-card ${isSelected ? 'bulk-card-selected' : ''}" data-test-id="${test.id}">
+                        <label class="test-bulk-select">
+                            <input
+                                type="checkbox"
+                                class="bulk-row-checkbox"
+                                ${isSelected ? 'checked' : ''}
+                                onchange="TestsManager.toggleSelectTest('${test.id}')"
+                                aria-label="Select ${test.title || 'test'}"
+                            >
+                        </label>
                         <div class="test-card-header">
                             <div class="test-subject" style="${subjectBadgeStyle}">
                                 ${test.subject_name || 'No subject'}
@@ -255,7 +293,7 @@
                                 </svg>
                                 Edit
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="TestsManager.deleteTest('${test.id}', '${test.title.replace(/'/g, "\\'")}')">
+                            <button class="btn btn-sm btn-danger" onclick="TestsManager.deleteTest('${test.id}', '${safeTitle}')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -275,6 +313,92 @@
             }
 
             container.innerHTML = html;
+            this.syncSelectionUi();
+        },
+
+        toggleSelectTest: function (testId) {
+            if (this.selectedIds.has(testId)) {
+                this.selectedIds.delete(testId);
+            } else {
+                this.selectedIds.add(testId);
+            }
+            this.syncSelectionUi();
+        },
+
+        toggleSelectAllTests: function (checked) {
+            const currentIds = this.lastRenderedTests.map(test => test.id);
+            if (checked) {
+                currentIds.forEach(id => this.selectedIds.add(id));
+            } else {
+                currentIds.forEach(id => this.selectedIds.delete(id));
+            }
+            this.syncSelectionUi();
+        },
+
+        clearSelection: function () {
+            this.selectedIds.clear();
+            this.syncSelectionUi();
+        },
+
+        syncSelectionUi: function () {
+            const count = this.selectedIds.size;
+            const countEl = document.getElementById('testsBulkCount');
+            if (countEl) {
+                countEl.textContent = `${count} selected`;
+            }
+
+            const deleteBtn = document.getElementById('testsBulkDeleteBtn');
+            if (deleteBtn) {
+                deleteBtn.disabled = count === 0;
+            }
+
+            const clearBtn = document.getElementById('testsClearSelectionBtn');
+            if (clearBtn) {
+                clearBtn.disabled = count === 0;
+            }
+
+            const selectAllEl = document.getElementById('testsSelectAll');
+            if (selectAllEl) {
+                const currentIds = this.lastRenderedTests.map(test => test.id);
+                const selectedOnPage = currentIds.filter(id => this.selectedIds.has(id)).length;
+                selectAllEl.checked = currentIds.length > 0 && selectedOnPage === currentIds.length;
+                selectAllEl.indeterminate = selectedOnPage > 0 && selectedOnPage < currentIds.length;
+            }
+
+            document.querySelectorAll('.test-card[data-test-id]').forEach(card => {
+                card.classList.toggle('bulk-card-selected', this.selectedIds.has(card.dataset.testId));
+            });
+        },
+
+        bulkDeleteTests: async function () {
+            const ids = Array.from(this.selectedIds);
+            if (ids.length === 0) return;
+
+            const confirmed = await showConfirm(`Are you sure you want to delete ${ids.length} selected tests permanently?`);
+            if (!confirmed) return;
+
+            const token = localStorage.getItem('access_token');
+            let failed = 0;
+
+            const results = await Promise.allSettled(
+                ids.map(id => fetch(`/api/teacher/tests/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }))
+            );
+
+            results.forEach(result => {
+                if (result.status !== 'fulfilled' || !result.value.ok) {
+                    failed += 1;
+                }
+            });
+
+            const deleted = ids.length - failed;
+            this.clearSelection();
+            if (failed > 0) {
+                showAlert(`Deleted: ${deleted}. Failed: ${failed}.`, 'Bulk delete result');
+            }
+            this.loadTests();
         },
 
         // Render pagination
@@ -438,7 +562,7 @@
 
         // Delete test
         deleteTest: async function (testId, testTitle) {
-            const confirmed = await showConfirm(`Are you sure you want to delete "${testTitle}"?`);
+            const confirmed = await showConfirm(`Are you sure you want to delete "${testTitle}" permanently?`);
             if (!confirmed) {
                 return;
             }
@@ -451,6 +575,7 @@
                 });
 
                 if (response.ok) {
+                    this.selectedIds.delete(testId);
                     this.loadTests();
                 } else {
                     showAlert('Failed to delete test');

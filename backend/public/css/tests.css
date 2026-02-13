@@ -25,11 +25,36 @@
     display: flex;
     flex-direction: column;
     color: #0f172a;
+    position: relative;
 }
 
 .test-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+}
+
+.test-bulk-select {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid var(--border-light);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-theme="dark"] .test-bulk-select {
+    background: rgba(15, 23, 42, 0.55);
+}
+
+.bulk-card-selected {
+    border-color: rgba(59, 130, 246, 0.7);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .test-card.active {

@@ -7,6 +7,8 @@
         limit: 10,
         searchTerm: '',
         roleFilter: 'all',
+        selectedIds: new Set(),
+        lastRenderedUsers: [],
 
         // Show custom alert modal
         showAlertModal: function (message, title = 'Info') {
@@ -91,6 +93,7 @@
         // Initialize users page
         init: function () {
             this.currentPage = 1; // Reset to first page
+            this.clearSelection();
             this.loadUsers();
             this.setupEventListeners();
         },
@@ -128,6 +131,7 @@
         loadUsers: async function () {
             const container = document.getElementById('usersContainer');
             if (!container) return;
+            this.clearSelection();
 
             // Show loading
             container.innerHTML = `
@@ -172,6 +176,7 @@
         renderUsers: function (users, pagination) {
             const container = document.getElementById('usersContainer');
             if (!container) return;
+            this.lastRenderedUsers = users;
 
             if (users.length === 0) {
                 container.innerHTML = `
@@ -183,10 +188,29 @@
             }
 
             let html = `
+                <div class="bulk-toolbar" id="usersBulkToolbar">
+                    <div class="bulk-toolbar-left">
+                        <span class="bulk-count-pill" id="usersBulkCount">0 selected</span>
+                        <button class="btn btn-sm btn-outline" id="usersClearSelectionBtn" onclick="UsersManager.clearSelection()">Clear</button>
+                    </div>
+                    <div class="bulk-toolbar-right">
+                        <button class="btn btn-sm btn-danger" id="usersBulkDeleteBtn" onclick="UsersManager.bulkDeleteUsers()" disabled>
+                            Delete selected
+                        </button>
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th class="bulk-checkbox-cell">
+                                    <input
+                                        type="checkbox"
+                                        id="usersSelectAll"
+                                        onchange="UsersManager.toggleSelectAllUsers(this.checked)"
+                                        aria-label="Select all users"
+                                    >
+                                </th>
                                 <th>Full Name</th>
                                 <th>Username</th>
                                 <th>Role</th>
@@ -204,11 +228,23 @@
                 const statusText = user.is_active ? 'Active' : 'Inactive';
                 const roleLabel = this.getRoleLabel(user.role);
                 const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
+                const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+                const safeFullName = fullName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const isSelected = this.selectedIds.has(user.id);
 
                 html += `
-                    <tr>
+                    <tr data-user-id="${user.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
+                        <td class="bulk-checkbox-cell">
+                            <input
+                                type="checkbox"
+                                class="bulk-row-checkbox"
+                                ${isSelected ? 'checked' : ''}
+                                onchange="UsersManager.toggleSelectUser('${user.id}')"
+                                aria-label="Select ${fullName || 'user'}"
+                            >
+                        </td>
                         <td>
-                            <div class="user-name">${user.first_name} ${user.last_name}</div>
+                            <div class="user-name">${fullName}</div>
                         </td>
                         <td>${user.username}</td>
                         <td><span class="role-badge role-${user.role}">${roleLabel}</span></td>
@@ -232,7 +268,7 @@
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon btn-danger" onclick="UsersManager.deleteUser('${user.id}', '${user.first_name} ${user.last_name}')" title="Delete">
+                                <button class="btn-icon btn-danger" onclick="UsersManager.deleteUser('${user.id}', '${safeFullName}')" title="Delete">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"></polyline>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -256,6 +292,96 @@
             }
 
             container.innerHTML = html;
+            this.syncSelectionUi();
+        },
+
+        toggleSelectUser: function (userId) {
+            if (this.selectedIds.has(userId)) {
+                this.selectedIds.delete(userId);
+            } else {
+                this.selectedIds.add(userId);
+            }
+            this.syncSelectionUi();
+        },
+
+        toggleSelectAllUsers: function (checked) {
+            const currentIds = this.lastRenderedUsers.map(user => user.id);
+            if (checked) {
+                currentIds.forEach(id => this.selectedIds.add(id));
+            } else {
+                currentIds.forEach(id => this.selectedIds.delete(id));
+            }
+            this.syncSelectionUi();
+        },
+
+        clearSelection: function () {
+            this.selectedIds.clear();
+            this.syncSelectionUi();
+        },
+
+        syncSelectionUi: function () {
+            const count = this.selectedIds.size;
+            const countEl = document.getElementById('usersBulkCount');
+            if (countEl) {
+                countEl.textContent = `${count} selected`;
+            }
+
+            const deleteBtn = document.getElementById('usersBulkDeleteBtn');
+            if (deleteBtn) {
+                deleteBtn.disabled = count === 0;
+            }
+
+            const clearBtn = document.getElementById('usersClearSelectionBtn');
+            if (clearBtn) {
+                clearBtn.disabled = count === 0;
+            }
+
+            const selectAllEl = document.getElementById('usersSelectAll');
+            if (selectAllEl) {
+                const currentIds = this.lastRenderedUsers.map(user => user.id);
+                const selectedOnPage = currentIds.filter(id => this.selectedIds.has(id)).length;
+                selectAllEl.checked = currentIds.length > 0 && selectedOnPage === currentIds.length;
+                selectAllEl.indeterminate = selectedOnPage > 0 && selectedOnPage < currentIds.length;
+            }
+
+            document.querySelectorAll('tr[data-user-id]').forEach(row => {
+                row.classList.toggle('bulk-row-selected', this.selectedIds.has(row.dataset.userId));
+            });
+        },
+
+        bulkDeleteUsers: async function () {
+            const ids = Array.from(this.selectedIds);
+            if (ids.length === 0) return;
+
+            const confirmed = await this.confirmAction(`Delete ${ids.length} selected users permanently?`);
+            if (!confirmed) return;
+
+            const token = localStorage.getItem('access_token');
+            let failed = 0;
+
+            const results = await Promise.allSettled(
+                ids.map(id => fetch(`/api/admin/users/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }))
+            );
+
+            results.forEach(result => {
+                if (result.status !== 'fulfilled' || !result.value.ok) {
+                    failed += 1;
+                }
+            });
+
+            const deleted = ids.length - failed;
+            this.clearSelection();
+
+            if (failed > 0) {
+                this.showAlertModal(`Deleted: ${deleted}. Failed: ${failed}.`, 'Bulk delete result');
+            }
+
+            this.loadUsers();
         },
 
         // Get role label
@@ -676,6 +802,7 @@
                 });
 
                 if (response.ok) {
+                    this.selectedIds.delete(userId);
                     this.loadUsers();
                 } else {
                     this.showAlertModal('Failed to delete user', 'Error');

@@ -23,6 +23,8 @@
         searchTerm: '',
         gradeFilter: 'all',
         userRole: null,
+        selectedIds: new Set(),
+        lastRenderedClasses: [],
 
         // Initialize classes page
         init: function () {
@@ -38,6 +40,7 @@
                 }
             }
 
+            this.clearSelection();
             this.loadClasses();
             this.setupEventListeners();
         },
@@ -88,6 +91,7 @@
         loadClasses: async function () {
             const container = document.getElementById('classesContainer');
             if (!container) return;
+            this.clearSelection();
 
             // Show loading
             container.innerHTML = `
@@ -132,6 +136,8 @@
         renderClasses: function (classes, pagination) {
             const container = document.getElementById('classesContainer');
             if (!container) return;
+            this.lastRenderedClasses = classes;
+            const canManage = this.userRole === 'school_admin' || this.userRole === 'admin';
 
             if (classes.length === 0) {
                 container.innerHTML = `
@@ -143,10 +149,33 @@
             }
 
             let html = `
+                ${canManage ? `
+                <div class="bulk-toolbar" id="classesBulkToolbar">
+                    <div class="bulk-toolbar-left">
+                        <span class="bulk-count-pill" id="classesBulkCount">0 selected</span>
+                        <button class="btn btn-sm btn-outline" id="classesClearSelectionBtn" onclick="ClassesManager.clearSelection()">Clear</button>
+                    </div>
+                    <div class="bulk-toolbar-right">
+                        <button class="btn btn-sm btn-danger" id="classesBulkDeleteBtn" onclick="ClassesManager.bulkDeleteClasses()" disabled>
+                            Delete selected
+                        </button>
+                    </div>
+                </div>
+                ` : ''}
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
+                                ${canManage ? `
+                                <th class="bulk-checkbox-cell">
+                                    <input
+                                        type="checkbox"
+                                        id="classesSelectAll"
+                                        onchange="ClassesManager.toggleSelectAllClasses(this.checked)"
+                                        aria-label="Select all classes"
+                                    >
+                                </th>
+                                ` : ''}
                                 <th>Class Name</th>
                                 <th>Grade Level</th>
                                 <th>Academic Year</th>
@@ -163,9 +192,22 @@
                 const statusClass = cls.is_active ? 'status-active' : 'status-inactive';
                 const statusText = cls.is_active ? 'Active' : 'Inactive';
                 const teacherName = cls.homeroom_teacher_name || '<span class="text-secondary">Not assigned</span>';
+                const safeClassName = (cls.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const isSelected = this.selectedIds.has(cls.id);
 
                 html += `
-                        <tr>
+                        <tr data-class-id="${cls.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
+                            ${canManage ? `
+                            <td class="bulk-checkbox-cell">
+                                <input
+                                    type="checkbox"
+                                    class="bulk-row-checkbox"
+                                    ${isSelected ? 'checked' : ''}
+                                    onchange="ClassesManager.toggleSelectClass('${cls.id}')"
+                                    aria-label="Select ${cls.name || 'class'}"
+                                >
+                            </td>
+                            ` : ''}
                             <td>
                                 <div class="user-name">
                                     <a href="class-details.html?id=${cls.id}" class="class-link">${cls.name}</a>
@@ -188,7 +230,7 @@
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon btn-danger" onclick="ClassesManager.deleteClass('${cls.id}', '${cls.name}')" title="Delete">
+                                <button class="btn-icon btn-danger" onclick="ClassesManager.deleteClass('${cls.id}', '${safeClassName}')" title="Delete">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"></polyline>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -221,6 +263,96 @@
             }
 
             container.innerHTML = html;
+            if (canManage) {
+                this.syncSelectionUi();
+            }
+        },
+
+        toggleSelectClass: function (classId) {
+            if (this.selectedIds.has(classId)) {
+                this.selectedIds.delete(classId);
+            } else {
+                this.selectedIds.add(classId);
+            }
+            this.syncSelectionUi();
+        },
+
+        toggleSelectAllClasses: function (checked) {
+            const currentIds = this.lastRenderedClasses.map(cls => cls.id);
+            if (checked) {
+                currentIds.forEach(id => this.selectedIds.add(id));
+            } else {
+                currentIds.forEach(id => this.selectedIds.delete(id));
+            }
+            this.syncSelectionUi();
+        },
+
+        clearSelection: function () {
+            this.selectedIds.clear();
+            this.syncSelectionUi();
+        },
+
+        syncSelectionUi: function () {
+            const count = this.selectedIds.size;
+            const countEl = document.getElementById('classesBulkCount');
+            if (countEl) {
+                countEl.textContent = `${count} selected`;
+            }
+
+            const deleteBtn = document.getElementById('classesBulkDeleteBtn');
+            if (deleteBtn) {
+                deleteBtn.disabled = count === 0;
+            }
+
+            const clearBtn = document.getElementById('classesClearSelectionBtn');
+            if (clearBtn) {
+                clearBtn.disabled = count === 0;
+            }
+
+            const selectAllEl = document.getElementById('classesSelectAll');
+            if (selectAllEl) {
+                const currentIds = this.lastRenderedClasses.map(cls => cls.id);
+                const selectedOnPage = currentIds.filter(id => this.selectedIds.has(id)).length;
+                selectAllEl.checked = currentIds.length > 0 && selectedOnPage === currentIds.length;
+                selectAllEl.indeterminate = selectedOnPage > 0 && selectedOnPage < currentIds.length;
+            }
+
+            document.querySelectorAll('tr[data-class-id]').forEach(row => {
+                row.classList.toggle('bulk-row-selected', this.selectedIds.has(row.dataset.classId));
+            });
+        },
+
+        bulkDeleteClasses: async function () {
+            const ids = Array.from(this.selectedIds);
+            if (ids.length === 0) return;
+
+            const confirmed = await showConfirm(`Are you sure you want to delete ${ids.length} selected classes permanently?`);
+            if (!confirmed) return;
+
+            const token = localStorage.getItem('access_token');
+            let failed = 0;
+
+            const results = await Promise.allSettled(
+                ids.map(id => fetch(`${this.getApiBasePath()}/classes/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }))
+            );
+
+            results.forEach(result => {
+                if (result.status !== 'fulfilled' || !result.value.ok) {
+                    failed += 1;
+                }
+            });
+
+            const deleted = ids.length - failed;
+            this.clearSelection();
+            if (failed > 0) {
+                showAlert(`Deleted: ${deleted}. Failed: ${failed}.`, 'Bulk delete result');
+            }
+            this.loadClasses();
         },
 
         // Render pagination
@@ -533,6 +665,7 @@
                 });
 
                 if (response.ok) {
+                    this.selectedIds.delete(classId);
                     this.loadClasses();
                 } else {
                     showAlert('Failed to delete class');
