@@ -9,11 +9,34 @@
     let isRefreshing = false;
     let refreshPromise = null;
 
+    function getAccessToken() {
+        return localStorage.getItem('access_token') || localStorage.getItem('accessToken');
+    }
+
+    function getRefreshToken() {
+        return localStorage.getItem('refresh_token') || localStorage.getItem('refreshToken');
+    }
+
+    function storeAccessToken(token) {
+        if (!token) return;
+        localStorage.setItem('access_token', token);
+        localStorage.setItem('accessToken', token);
+    }
+
+    function clearAuthStorage() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('temp_token');
+    }
+
     /**
      * Refresh access token using refresh token
      */
     async function refreshAccessToken() {
-        const refreshToken = localStorage.getItem('refresh_token');
+        const refreshToken = getRefreshToken();
 
         if (!refreshToken) {
             throw new Error('No refresh token available');
@@ -29,16 +52,14 @@
 
         if (!response.ok) {
             // Refresh failed, clear tokens and redirect to login
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('user');
+            clearAuthStorage();
             throw new Error('Token refresh failed');
         }
 
         const data = await response.json();
 
         // Store new access token
-        localStorage.setItem('access_token', data.access_token);
+        storeAccessToken(data.access_token);
 
         return data.access_token;
     }
@@ -70,7 +91,7 @@
             }
 
             // Add access token to request if available
-            const accessToken = localStorage.getItem('access_token');
+            const accessToken = getAccessToken();
             if (accessToken) {
                 options.headers = {
                     ...options.headers,
@@ -102,7 +123,7 @@
                     }
 
                     // Get new access token
-                    const newAccessToken = localStorage.getItem('access_token');
+                    const newAccessToken = getAccessToken();
 
                     if (!newAccessToken) {
                         throw new Error('No access token after refresh');
@@ -121,10 +142,7 @@
                     console.error('❌ Token refresh failed:', error);
 
                     // Clear tokens
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('temp_token');
+                    clearAuthStorage();
 
                     // Only redirect if not already on login or change-password page
                     if (!window.location.pathname.includes('/login') && 

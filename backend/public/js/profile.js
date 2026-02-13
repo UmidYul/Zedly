@@ -14,6 +14,29 @@
         return localStorage.getItem('access_token') || localStorage.getItem('accessToken') || '';
     }
 
+    function getRefreshToken() {
+        return localStorage.getItem('refresh_token') || localStorage.getItem('refreshToken') || '';
+    }
+
+    async function refreshTokenOnce() {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) return false;
+
+        const response = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken })
+        });
+
+        if (!response.ok) return false;
+
+        const data = await response.json();
+        if (!data?.access_token) return false;
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('accessToken', data.access_token);
+        return true;
+    }
+
     function escapeHtml(value) {
         return String(value ?? '')
             .replace(/&/g, '&amp;')
@@ -32,12 +55,21 @@
     }
 
     async function apiFetch(url, options = {}) {
-        const headers = {
-            ...(options.headers || {}),
-            Authorization: `Bearer ${getToken()}`
+        const makeRequest = async () => {
+            const headers = {
+                ...(options.headers || {}),
+                Authorization: `Bearer ${getToken()}`
+            };
+            return fetch(url, { ...options, headers });
         };
 
-        const response = await fetch(url, { ...options, headers });
+        let response = await makeRequest();
+        if (response.status === 401) {
+            const refreshed = await refreshTokenOnce();
+            if (refreshed) {
+                response = await makeRequest();
+            }
+        }
         let data = {};
         try {
             data = await response.json();
