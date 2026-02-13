@@ -92,6 +92,35 @@
         if (labelEl) labelEl.textContent = label;
     }
 
+    function formatPercent(value) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return '0%';
+        const rounded = Math.round(num * 10) / 10;
+        return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}%`;
+    }
+
+    function getOverviewEndpoint(role) {
+        const endpoints = {
+            superadmin: '/api/superadmin/dashboard/overview',
+            super_admin: '/api/superadmin/dashboard/overview',
+            school_admin: '/api/admin/dashboard/overview',
+            teacher: '/api/teacher/dashboard/overview',
+            student: '/api/student/dashboard/overview'
+        };
+        return endpoints[role] || null;
+    }
+
+    async function loadProfileStats(role) {
+        const endpoint = getOverviewEndpoint(role);
+        if (!endpoint) return null;
+        try {
+            return await apiFetch(endpoint);
+        } catch (error) {
+            console.error('Profile stats load error:', error);
+            return null;
+        }
+    }
+
     function renderProfileHeader(user) {
         const firstName = user.first_name || '';
         const lastName = user.last_name || '';
@@ -132,17 +161,19 @@
         card.style.display = 'block';
     }
 
-    function renderStatsByRole(user) {
+    async function renderStatsByRole(user) {
         const stats = document.getElementById('statsContent');
         if (!stats) return;
 
+        const statsResponse = await loadProfileStats(user.role);
+        const apiStats = statsResponse?.stats || {};
         let cards = [];
         if (user.role === 'student') {
             cards = [
-                { value: '-', label: i18n.translate('profile.testsCompleted') },
-                { value: '-', label: i18n.translate('profile.classRank') },
-                { value: '-', label: i18n.translate('profile.avgScore') },
-                { value: '-', label: i18n.translate('profile.testsAssigned') }
+                { value: String(apiStats.tests_completed ?? '-'), label: i18n.translate('profile.testsCompleted') },
+                { value: String(apiStats.class_rank ?? '-'), label: i18n.translate('profile.classRank') },
+                { value: apiStats.avg_score !== undefined ? formatPercent(apiStats.avg_score) : '-', label: i18n.translate('profile.avgScore') },
+                { value: String(apiStats.tests_assigned ?? '-'), label: i18n.translate('profile.testsAssigned') }
             ];
             document.getElementById('chartsCard').style.display = 'block';
             renderPerformanceChart([]);
@@ -154,26 +185,26 @@
             }
         } else if (user.role === 'teacher') {
             cards = [
-                { value: '-', label: i18n.translate('profile.testsCreated') },
-                { value: '-', label: i18n.translate('profile.testsAssigned') },
-                { value: '-', label: i18n.translate('profile.studentsCount') },
-                { value: '-', label: i18n.translate('profile.avgClassScore') }
+                { value: String(apiStats.tests_created ?? '-'), label: i18n.translate('profile.testsCreated') },
+                { value: String(apiStats.assignments_total ?? '-'), label: i18n.translate('profile.testsAssigned') },
+                { value: String(apiStats.student_count ?? '-'), label: i18n.translate('profile.studentsCount') },
+                { value: apiStats.avg_percentage !== undefined ? formatPercent(apiStats.avg_percentage) : '-', label: i18n.translate('profile.avgClassScore') }
             ];
             document.getElementById('chartsCard').style.display = 'block';
             renderPerformanceChart([]);
         } else if (user.role === 'school_admin') {
             cards = [
-                { value: '-', label: i18n.translate('profile.totalUsers') },
-                { value: '-', label: i18n.translate('profile.totalClasses') },
-                { value: '-', label: i18n.translate('profile.totalSubjects') },
-                { value: '-', label: i18n.translate('profile.totalTests') }
+                { value: String((apiStats.students || 0) + (apiStats.teachers || 0)), label: i18n.translate('profile.totalUsers') },
+                { value: String(apiStats.classes ?? '-'), label: i18n.translate('profile.totalClasses') },
+                { value: String(apiStats.subjects ?? '-'), label: i18n.translate('profile.totalSubjects') },
+                { value: String(apiStats.tests ?? '-'), label: i18n.translate('profile.totalTests') }
             ];
         } else {
             cards = [
-                { value: '-', label: i18n.translate('profile.totalSchools') },
-                { value: '-', label: i18n.translate('profile.totalUsers') },
-                { value: '-', label: i18n.translate('profile.totalStudents') },
-                { value: '-', label: i18n.translate('profile.totalTeachers') }
+                { value: String(apiStats.schools ?? '-'), label: i18n.translate('profile.totalSchools') },
+                { value: String((apiStats.students || 0) + (apiStats.teachers || 0)), label: i18n.translate('profile.totalUsers') },
+                { value: String(apiStats.students ?? '-'), label: i18n.translate('profile.totalStudents') },
+                { value: String(apiStats.teachers ?? '-'), label: i18n.translate('profile.totalTeachers') }
             ];
         }
 
@@ -601,7 +632,7 @@
 
             renderProfileHeader(profileUser);
             renderProfileInfo(profileUser);
-            renderStatsByRole(profileUser);
+            await renderStatsByRole(profileUser);
 
             if (isOwnProfile) {
                 document.getElementById('profileActionsCard').style.display = 'block';

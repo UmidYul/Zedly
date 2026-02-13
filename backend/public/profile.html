@@ -1,201 +1,256 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="profile.title">Профиль - ZEDLY</title>
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/notifications.css">
+    <link rel="stylesheet" href="/css/profile.css">
 </head>
-<body>
-    <header class="header">
-        <div class="header-left">
-            <button class="menu-toggle" id="menuToggle" aria-label="Toggle Menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <div class="logo"><h1>ZEDLY</h1></div>
-        </div>
-        <div class="header-right">
-            <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme"><span class="icon">🌙</span></button>
-            <button class="lang-toggle" id="langToggle" aria-label="Toggle Language"><span class="lang-text">RU</span></button>
-        </div>
-    </header>
 
-    <aside class="sidebar" id="sidebar">
-        <nav class="sidebar-nav" id="sidebarNav"></nav>
-        <div class="sidebar-footer">
-            <div class="user-menu">
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <div class="user-details">
-                        <div class="user-name" id="userName">User</div>
-                        <div class="user-role" id="userRole">Role</div>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="sidebar-user-avatar" id="userAvatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="8" r="4"></circle>
+                            <path d="M4 20a8 8 0 0 1 16 0"></path>
+                        </svg>
+                    </div>
+                    <div class="sidebar-user-meta">
+                        <div class="sidebar-user-name" id="userName">User</div>
+                        <div class="sidebar-user-role" id="userRole">Role</div>
                     </div>
                 </div>
-                <button class="logout-btn" id="logoutBtn" data-i18n="dashboard.logout">Выйти</button>
-            </div>
-        </div>
-    </aside>
-
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <main class="main-content profile-page">
-        <div class="content-wrapper profile-wrapper">
-            <div class="profile-top-row">
-                <button class="back-btn" onclick="history.back()">
-                    <span>←</span>
-                    <span data-i18n="common.back">Назад</span>
+                <button class="sidebar-logout-btn" id="logoutBtn" data-i18n-title="dashboard.logout">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span data-i18n="dashboard.logout">Выйти</span>
                 </button>
             </div>
+        </aside>
 
-            <section class="profile-hero card-surface">
-                <div class="profile-avatar" id="profileAvatarText">U</div>
-                <div class="profile-hero-meta">
-                    <h1 id="profileName">Имя Фамилия</h1>
-                    <p id="profileRole">Роль</p>
-                    <p id="profileSchool">Школа</p>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <button class="menu-toggle" id="menuToggle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
                 </div>
-                <div class="profile-mini-stats">
-                    <div class="mini-stat">
-                        <span class="mini-stat-value" id="statMini1Value">-</span>
-                        <span class="mini-stat-label" id="statMini1Label">Показатель 1</span>
+
+                <div class="header-center">
+                    <div class="header-logo">
+                        <img src="/images/zedly_logo_bg.png" alt="ZEDLY">
+                        <span>ZEDLY</span>
                     </div>
-                    <div class="mini-stat">
-                        <span class="mini-stat-value" id="statMini2Value">-</span>
-                        <span class="mini-stat-label" id="statMini2Label">Показатель 2</span>
+                </div>
+
+                <div class="header-right">
+                    <div class="header-actions">
+                        <button class="icon-btn" id="telegramConnectBtn" title="Telegram">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 3L3 10l7 2 2 7 9-16z"></path>
+                            </svg>
+                        </button>
+
+                        <button class="icon-btn" id="notificationsBtn" title="Notifications">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            <span class="badge" id="notificationBadge">0</span>
+                        </button>
+
+                        <div class="lang-switch">
+                            <button class="lang-btn active" data-lang="ru">RU</button>
+                            <button class="lang-btn" data-lang="uz">UZ</button>
+                        </div>
+
+                        <button class="theme-toggle icon-btn" id="themeToggle">
+                            <svg class="theme-icon" width="20" height="20" viewBox="0 0 20 20">
+                                <path class="sun" d="M10 2v2m0 12v2M4.22 4.22l1.42 1.42m8.72 8.72l1.42 1.42M2 10h2m12 0h2M4.22 15.78l1.42-1.42m8.72-8.72l1.42-1.42M10 5.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z" />
+                                <path class="moon" d="M10 2c1.34 0 2.62.26 3.77.74A6 6 0 017.5 14a6 6 0 01-5.26-6.49A8 8 0 0010 2z" />
+                            </svg>
+                        </button>
                     </div>
-                    <div class="mini-stat">
-                        <span class="mini-stat-value" id="statMini3Value">-</span>
-                        <span class="mini-stat-label" id="statMini3Label">Показатель 3</span>
+                </div>
+            </header>
+
+            <div class="dashboard-content" id="dashboardContent">
+                <div class="content-wrapper profile-wrapper">
+                    <div class="profile-top-row">
+                        <button class="back-btn" onclick="history.back()">
+                            <span>←</span>
+                            <span data-i18n="common.back">Назад</span>
+                        </button>
                     </div>
+
+                    <section class="profile-hero card-surface">
+                        <div class="profile-avatar" id="profileAvatarText">U</div>
+                        <div class="profile-hero-meta">
+                            <h1 id="profileName">Имя Фамилия</h1>
+                            <p id="profileRole">Роль</p>
+                            <p id="profileSchool">Школа</p>
+                        </div>
+                        <div class="profile-mini-stats">
+                            <div class="mini-stat">
+                                <span class="mini-stat-value" id="statMini1Value">-</span>
+                                <span class="mini-stat-label" id="statMini1Label">Показатель 1</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-stat-value" id="statMini2Value">-</span>
+                                <span class="mini-stat-label" id="statMini2Label">Показатель 2</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-stat-value" id="statMini3Value">-</span>
+                                <span class="mini-stat-label" id="statMini3Label">Показатель 3</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="profile-grid">
+                        <div class="profile-col">
+                            <article class="profile-card card-surface">
+                                <h2>Ваши данные</h2>
+                                <div class="profile-info-grid">
+                                    <div class="info-row"><span>Логин</span><strong id="profileUsername">-</strong></div>
+                                    <div class="info-row"><span>Email</span><strong id="profileEmail">-</strong></div>
+                                    <div class="info-row"><span>Телефон</span><strong id="profilePhone">-</strong></div>
+                                    <div class="info-row"><span>Дата рождения</span><strong id="profileDOB">-</strong></div>
+                                    <div class="info-row"><span>Пол</span><strong id="profileGender">-</strong></div>
+                                    <div class="info-row"><span>Регистрация</span><strong id="profileCreatedAt">-</strong></div>
+                                    <div class="info-row"><span>Последний вход</span><strong id="profileLastLogin">-</strong></div>
+                                </div>
+                            </article>
+
+                            <article class="profile-card card-surface" id="profileActionsCard" style="display: none;">
+                                <h2>Смена контактов</h2>
+                                <div class="profile-form-grid">
+                                    <div class="field-block">
+                                        <label for="emailInput">Email</label>
+                                        <div class="field-inline">
+                                            <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
+                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button">Получить код</button>
+                                        </div>
+                                        <div class="field-inline">
+                                            <input id="emailCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
+                                            <button id="verifyEmailBtn" class="btn btn-primary" type="button">Подтвердить</button>
+                                        </div>
+                                        <small id="emailStatusText">Email не подтвержден</small>
+                                    </div>
+                                    <div class="field-block">
+                                        <label for="phoneInput">Телефон</label>
+                                        <div class="field-inline">
+                                            <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567">
+                                            <button id="requestPhoneCodeBtn" class="btn btn-outline" type="button">Получить код</button>
+                                        </div>
+                                        <div class="field-inline">
+                                            <input id="phoneCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
+                                            <button id="verifyPhoneBtn" class="btn btn-primary" type="button">Подтвердить</button>
+                                        </div>
+                                        <small id="phoneStatusText">Телефон не подтвержден</small>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="profile-card card-surface" id="profileSocialsCard" style="display: none;">
+                                <h2>Соцсети</h2>
+                                <div class="profile-form-grid">
+                                    <div class="field-block"><label for="socialTelegramInput">Telegram</label><input id="socialTelegramInput" class="field-input" type="text" placeholder="@username"></div>
+                                    <div class="field-block"><label for="socialInstagramInput">Instagram</label><input id="socialInstagramInput" class="field-input" type="text" placeholder="@insta"></div>
+                                    <div class="field-block"><label for="socialWebsiteInput">Website</label><input id="socialWebsiteInput" class="field-input" type="text" placeholder="https://example.com"></div>
+                                </div>
+                                <div class="card-actions"><button id="saveSocialsBtn" class="btn btn-primary" type="button">Сохранить</button></div>
+                            </article>
+
+                            <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
+                                <h2>Настройка уведомлений</h2>
+                                <div class="notification-grid">
+                                    <div class="field-block">
+                                        <h3>Каналы</h3>
+                                        <label class="check-row"><input type="checkbox" id="channelInApp"> В приложении</label>
+                                        <label class="check-row"><input type="checkbox" id="channelEmail"> Email</label>
+                                        <label class="check-row"><input type="checkbox" id="channelTelegram"> Telegram</label>
+                                    </div>
+                                    <div class="field-block">
+                                        <h3>События</h3>
+                                        <label class="check-row"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
+                                        <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
+                                        <label class="check-row"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
+                                        <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
+                                        <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> Системные</label>
+                                    </div>
+                                    <div class="field-block">
+                                        <h3>Частота</h3>
+                                        <select id="notificationFrequency" class="field-input">
+                                            <option value="instant">Мгновенно</option>
+                                            <option value="daily">Ежедневно</option>
+                                            <option value="weekly">Еженедельно</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button">Сохранить</button></div>
+                            </article>
+                        </div>
+
+                        <div class="profile-col">
+                            <article class="profile-card card-surface" id="profileRoleInfoCard" style="display:none;">
+                                <h2 id="roleSpecificTitle">Дополнительная информация</h2>
+                                <div class="profile-info-grid" id="roleSpecificContent"></div>
+                            </article>
+
+                            <article class="profile-card card-surface">
+                                <h2>Краткая статистика</h2>
+                                <div class="stats-grid" id="statsContent"></div>
+                            </article>
+
+                            <article class="profile-card card-surface" id="chartsCard" style="display:none;">
+                                <h2>Успеваемость</h2>
+                                <canvas id="performanceChart"></canvas>
+                            </article>
+
+                            <article class="profile-card card-surface" id="careerTestCard" style="display:none;">
+                                <h2>Профориентация</h2>
+                                <div id="careerTestContent"><p class="no-data">Тест не пройден</p></div>
+                                <canvas id="careerRadarChart" style="display:none;"></canvas>
+                            </article>
+
+                            <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
+                                <h2>Последние действия</h2>
+                                <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
+                            </article>
+                        </div>
+                    </section>
                 </div>
-            </section>
+            </div>
+        </main>
+    </div>
 
-            <section class="profile-grid">
-                <div class="profile-col">
-                    <article class="profile-card card-surface">
-                        <h2>Ваши данные</h2>
-                        <div class="profile-info-grid">
-                            <div class="info-row"><span>Логин</span><strong id="profileUsername">-</strong></div>
-                            <div class="info-row"><span>Email</span><strong id="profileEmail">-</strong></div>
-                            <div class="info-row"><span>Телефон</span><strong id="profilePhone">-</strong></div>
-                            <div class="info-row"><span>Дата рождения</span><strong id="profileDOB">-</strong></div>
-                            <div class="info-row"><span>Пол</span><strong id="profileGender">-</strong></div>
-                            <div class="info-row"><span>Регистрация</span><strong id="profileCreatedAt">-</strong></div>
-                            <div class="info-row"><span>Последний вход</span><strong id="profileLastLogin">-</strong></div>
-                        </div>
-                    </article>
-
-                    <article class="profile-card card-surface" id="profileActionsCard" style="display: none;">
-                        <h2>Смена контактов</h2>
-                        <div class="profile-form-grid">
-                            <div class="field-block">
-                                <label for="emailInput">Email</label>
-                                <div class="field-inline">
-                                    <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
-                                    <button id="requestEmailCodeBtn" class="btn btn-outline" type="button">Получить код</button>
-                                </div>
-                                <div class="field-inline">
-                                    <input id="emailCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
-                                    <button id="verifyEmailBtn" class="btn btn-primary" type="button">Подтвердить</button>
-                                </div>
-                                <small id="emailStatusText">Email не подтвержден</small>
-                            </div>
-                            <div class="field-block">
-                                <label for="phoneInput">Телефон</label>
-                                <div class="field-inline">
-                                    <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567">
-                                    <button id="requestPhoneCodeBtn" class="btn btn-outline" type="button">Получить код</button>
-                                </div>
-                                <div class="field-inline">
-                                    <input id="phoneCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
-                                    <button id="verifyPhoneBtn" class="btn btn-primary" type="button">Подтвердить</button>
-                                </div>
-                                <small id="phoneStatusText">Телефон не подтвержден</small>
-                            </div>
-                        </div>
-                    </article>
-
-                    <article class="profile-card card-surface" id="profileSocialsCard" style="display: none;">
-                        <h2>Соцсети</h2>
-                        <div class="profile-form-grid">
-                            <div class="field-block"><label for="socialTelegramInput">Telegram</label><input id="socialTelegramInput" class="field-input" type="text" placeholder="@username"></div>
-                            <div class="field-block"><label for="socialInstagramInput">Instagram</label><input id="socialInstagramInput" class="field-input" type="text" placeholder="@insta"></div>
-                            <div class="field-block"><label for="socialWebsiteInput">Website</label><input id="socialWebsiteInput" class="field-input" type="text" placeholder="https://example.com"></div>
-                        </div>
-                        <div class="card-actions"><button id="saveSocialsBtn" class="btn btn-primary" type="button">Сохранить</button></div>
-                    </article>
-
-                    <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
-                        <h2>Настройка уведомлений</h2>
-                        <div class="notification-grid">
-                            <div class="field-block">
-                                <h3>Каналы</h3>
-                                <label class="check-row"><input type="checkbox" id="channelInApp"> В приложении</label>
-                                <label class="check-row"><input type="checkbox" id="channelEmail"> Email</label>
-                                <label class="check-row"><input type="checkbox" id="channelTelegram"> Telegram</label>
-                            </div>
-                            <div class="field-block">
-                                <h3>События</h3>
-                                <label class="check-row"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
-                                <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
-                                <label class="check-row"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
-                                <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
-                                <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> Системные</label>
-                            </div>
-                            <div class="field-block">
-                                <h3>Частота</h3>
-                                <select id="notificationFrequency" class="field-input">
-                                    <option value="instant">Мгновенно</option>
-                                    <option value="daily">Ежедневно</option>
-                                    <option value="weekly">Еженедельно</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button">Сохранить</button></div>
-                    </article>
-                </div>
-
-                <div class="profile-col">
-                    <article class="profile-card card-surface" id="profileRoleInfoCard" style="display:none;">
-                        <h2 id="roleSpecificTitle">Дополнительная информация</h2>
-                        <div class="profile-info-grid" id="roleSpecificContent"></div>
-                    </article>
-
-                    <article class="profile-card card-surface">
-                        <h2>Краткая статистика</h2>
-                        <div class="stats-grid" id="statsContent"></div>
-                    </article>
-
-                    <article class="profile-card card-surface" id="chartsCard" style="display:none;">
-                        <h2>Успеваемость</h2>
-                        <canvas id="performanceChart"></canvas>
-                    </article>
-
-                    <article class="profile-card card-surface" id="careerTestCard" style="display:none;">
-                        <h2>Профориентация</h2>
-                        <div id="careerTestContent"><p class="no-data">Тест не пройден</p></div>
-                        <canvas id="careerRadarChart" style="display:none;"></canvas>
-                    </article>
-
-                    <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
-                        <h2>Последние действия</h2>
-                        <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
-                    </article>
-                </div>
-            </section>
-        </div>
-    </main>
-
-    <script src="js/i18n.js"></script>
-    <script src="js/theme.js"></script>
-    <script src="js/auth-interceptor.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/auth-interceptor.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/dashboard.js"></script>
     <script src="/js/alert-modal.js"></script>
+    <script src="/js/telegram-connect.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/profile.js"></script>
+    <script src="/js/profile.js"></script>
 </body>
+
 </html>

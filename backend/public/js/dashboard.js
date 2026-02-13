@@ -4,7 +4,8 @@
 
     let currentUser = null;
     let teacherHasHomeroom = false;
-    let currentPageId = window.location.pathname.includes('profile.html') ? 'profile' : 'overview';
+    const isProfilePage = window.location.pathname.includes('profile.html');
+    let currentPageId = isProfilePage ? 'profile' : 'overview';
 
     // Navigation items for each role
     const navigationConfig = {
@@ -152,7 +153,9 @@
             refreshTranslations();
             return;
         }
-        await loadDashboardContent();
+        if (!isProfilePage) {
+            await loadDashboardContent();
+        }
 
         refreshTranslations();
         try {
@@ -194,7 +197,9 @@
                 renderNavigation();
 
                 console.log('📄 Loading dashboard content...');
-                loadDashboardContent();
+                if (!isProfilePage) {
+                    loadDashboardContent();
+                }
 
                 console.log('✅ Dashboard fully loaded');
             } catch (uiError) {
@@ -263,8 +268,11 @@
                     return;
                 }
                 const iconSvg = icons[item.icon] || icons.grid;
+                const itemHref = isProfilePage && item.id !== 'profile' && String(item.href || '').startsWith('#')
+                    ? `/dashboard#${item.id}`
+                    : item.href;
                 html += `
-                    <a href="${item.href}" class="nav-item" data-page="${item.id}">
+                    <a href="${itemHref}" class="nav-item" data-page="${item.id}">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             ${iconSvg}
                         </svg>
@@ -371,6 +379,10 @@
 
     // Load dashboard content based on role
     function loadDashboardContent() {
+        if (isProfilePage) {
+            return;
+        }
+
         if (!currentUser) {
             console.warn('⚠️ No current user, skipping content load');
             return;

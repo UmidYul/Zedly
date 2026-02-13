@@ -1,18 +1,9 @@
-.profile-page {
-    position: relative;
-    z-index: 1;
-    margin-left: 240px !important;
-    width: calc(100% - 240px);
-    padding: 24px;
-    min-height: 100vh;
-    box-sizing: border-box;
-    overflow-x: hidden;
-}
-
 .profile-wrapper {
+    padding: 24px;
     max-width: 1320px;
     margin: 0 auto;
     width: 100%;
+    box-sizing: border-box;
 }
 
 .card-surface {
@@ -197,8 +188,8 @@
 
 .field-input:focus {
     outline: none;
-    border-color: rgba(59, 130, 246, 0.65);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    border-color: rgba(37, 99, 235, 0.55);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .field-block small {
@@ -217,6 +208,32 @@
 
 .card-actions {
     margin-top: 10px;
+}
+
+.profile-wrapper .btn,
+.profile-wrapper button.btn {
+    border-radius: 10px;
+}
+
+.profile-wrapper .btn.btn-primary {
+    background: #1f2937;
+    border: 1px solid #111827;
+    color: #f9fafb;
+}
+
+.profile-wrapper .btn.btn-primary:hover {
+    background: #111827;
+    border-color: #030712;
+}
+
+.profile-wrapper .btn.btn-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.profile-wrapper .btn.btn-outline:hover {
+    background: var(--bg-secondary);
 }
 
 .stats-grid {
@@ -299,11 +316,6 @@
 }
 
 @media (max-width: 1100px) {
-    .profile-page {
-        margin-left: 0 !important;
-        width: 100%;
-    }
-
     .profile-grid {
         grid-template-columns: 1fr;
     }
@@ -318,9 +330,7 @@
 }
 
 @media (max-width: 700px) {
-    .profile-page {
-        margin-left: 0 !important;
-        width: 100%;
+    .profile-wrapper {
         padding: 14px;
     }
 
