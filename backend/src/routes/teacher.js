@@ -897,7 +897,7 @@ router.get('/classes/:id', async (req, res) => {
              FROM class_students cs
              JOIN users u ON cs.student_id = u.id
              WHERE cs.class_id = $1 AND cs.is_active = true
-             ORDER BY cs.roll_number ASC`,
+             ORDER BY u.last_name ASC, u.first_name ASC, u.id ASC`,
             [id]
         );
 
@@ -1012,7 +1012,7 @@ router.get('/classes/:id/analytics', async (req, res) => {
              LEFT JOIN test_attempts att ON att.assignment_id = ta.id AND att.student_id = u.id
              WHERE cs.class_id = $1 AND cs.is_active = true
              GROUP BY u.id, cs.roll_number
-             ORDER BY cs.roll_number ASC`,
+             ORDER BY u.last_name ASC, u.first_name ASC, u.id ASC`,
             [id, teacherId]
         );
 
@@ -1275,7 +1275,7 @@ router.get('/assignments/:id', async (req, res) => {
              FROM class_students cs
              JOIN users u ON cs.student_id = u.id
              WHERE cs.class_id = $2 AND cs.is_active = true
-             ORDER BY cs.roll_number ASC`,
+             ORDER BY u.last_name ASC, u.first_name ASC, u.id ASC`,
             [id, assignmentResult.rows[0].class_id]
         );
 

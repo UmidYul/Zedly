@@ -1337,7 +1337,7 @@ router.get('/classes/:id/students', enforceSchoolIsolation, async (req, res) => 
              FROM class_students cs
              JOIN users u ON cs.student_id = u.id
              WHERE cs.class_id = $1 AND cs.is_active = true
-             ORDER BY cs.roll_number ASC`,
+             ORDER BY u.last_name ASC, u.first_name ASC, u.id ASC`,
             [id]
         );
 
@@ -2189,7 +2189,9 @@ function parseImportRows(sheet) {
 }
 
 function normalizeUsername(firstName, lastName) {
-    const base = `${firstName || ''}.${lastName || ''}`
+    const transliteratedFirst = transliterateToLatin(firstName || '');
+    const transliteratedLast = transliterateToLatin(lastName || '');
+    const base = `${transliteratedLast}.${transliteratedFirst}`
         .toLowerCase()
         .replace(/[^a-z0-9.]/g, '')
         .replace(/\.+/g, '.')
@@ -2197,6 +2199,22 @@ function normalizeUsername(firstName, lastName) {
 
     if (base) return base;
     return `user${Math.floor(Math.random() * 9000) + 1000}`;
+}
+
+function transliterateToLatin(value) {
+    const map = {
+        а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh', з: 'z', и: 'i', й: 'y',
+        к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f',
+        х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+        қ: 'q', ғ: 'g', ҳ: 'h', ў: 'o', ң: 'ng'
+    };
+
+    return String(value || '')
+        .toLowerCase()
+        .split('')
+        .map((ch) => (map[ch] !== undefined ? map[ch] : ch))
+        .join('')
+        .replace(/[^a-z0-9\s.-]/g, '');
 }
 
 async function generateUniqueUsername(baseUsername) {
