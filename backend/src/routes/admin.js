@@ -1718,12 +1718,27 @@ router.post('/subjects', async (req, res) => {
             ]
         );
 
-        // Log action
-        await query(
-            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [req.user.id, 'create', 'subject', result.rows[0].id, { name: name.trim(), code: code.trim() }]
-        );
+        // Log action (best effort): audit failures must not break successful subject creation
+        try {
+            const actorUserId = Number(req.user?.id);
+            if (Number.isInteger(actorUserId) && actorUserId > 0) {
+                await query(
+                    `INSERT INTO audit_logs (school_id, user_id, action, entity_type, entity_id, details)
+                     SELECT $1, $2, $3, $4, $5, $6
+                     WHERE EXISTS (SELECT 1 FROM users WHERE id = $2)`,
+                    [
+                        schoolId || null,
+                        actorUserId,
+                        'create',
+                        'subject',
+                        result.rows[0].id,
+                        { name: name.trim(), code: code.trim() }
+                    ]
+                );
+            }
+        } catch (auditError) {
+            console.warn('Create subject audit log skipped:', auditError.message);
+        }
 
         res.status(201).json({
             message: 'Subject created successfully',
