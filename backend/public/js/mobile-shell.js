@@ -130,6 +130,7 @@
   }
 
   function init() {
+    document.body.classList.add('mobile-shell-enabled');
     initContentTransitions();
     bindBottomNavClicks();
     initPwaButtons();
