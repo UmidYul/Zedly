@@ -198,7 +198,13 @@
                 { value: String(apiStats.tests_assigned ?? '-'), label: i18n.translate('profile.testsAssigned') }
             ];
             document.getElementById('chartsCard').style.display = 'block';
-            renderPerformanceChart([]);
+            const subjectSeries = Array.isArray(statsResponse?.subjects)
+                ? statsResponse.subjects.map((subject) => ({
+                    label: subject.subject_name || '-',
+                    value: Number(subject.avg_score || 0)
+                }))
+                : [];
+            renderPerformanceChart(subjectSeries);
             if (isOwnProfile) {
                 document.getElementById('careerTestCard').style.display = 'block';
                 loadCareerResults().catch((error) => {
@@ -265,8 +271,8 @@
             performanceChart.destroy();
         }
 
-        const labels = values.length ? values.map((v) => v.label) : ['Математика', 'Физика', 'Химия', 'Биология', 'Информатика'];
-        const data = values.length ? values.map((v) => v.value) : [0, 0, 0, 0, 0];
+        const labels = values.map((v) => v.label);
+        const data = values.map((v) => v.value);
 
         performanceChart = new Chart(canvas, {
             type: 'line',
@@ -395,17 +401,6 @@
         return map[String(entity || '').toLowerCase()] || 'запись';
     }
 
-    function getBrowserLabel(userAgent) {
-        const ua = String(userAgent || '');
-        if (!ua) return '';
-        if (/chrome/i.test(ua) && !/edg/i.test(ua) && !/opr/i.test(ua)) return 'Chrome';
-        if (/firefox/i.test(ua)) return 'Firefox';
-        if (/safari/i.test(ua) && !/chrome/i.test(ua)) return 'Safari';
-        if (/edg/i.test(ua)) return 'Edge';
-        if (/opr/i.test(ua) || /opera/i.test(ua)) return 'Opera';
-        return '';
-    }
-
     function describeActivity(item, details) {
         const action = String(item.action || '').toLowerCase();
         const actionType = String(details.action_type || '').toLowerCase();
@@ -430,15 +425,6 @@
     function summarizeActivityDetails(details) {
         if (!details || typeof details !== 'object') return '';
         const parts = [];
-
-        if (details.ip) {
-            parts.push(`IP: ${details.ip}`);
-        }
-
-        const browser = getBrowserLabel(details.user_agent);
-        if (browser) {
-            parts.push(`Браузер: ${browser}`);
-        }
 
         if (details.target_name) {
             parts.push(`Объект: ${details.target_name}`);

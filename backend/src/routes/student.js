@@ -1605,6 +1605,8 @@ router.get('/dashboard/overview', async (req, res) => {
 
         const testColumns = await getTableColumns('tests');
         const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
+        const subjectColumns = await getTableColumns('subjects');
+        const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
         const assignmentColumns = await getTableColumns('test_assignments');
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
         const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
@@ -1660,6 +1662,63 @@ router.get('/dashboard/overview', async (req, res) => {
             `, [studentId]);
         }
         const avgScore = avgScoreResult.rows[0]?.avg || 0;
+
+        let classRank = null;
+        const classResult = await query(
+            `SELECT class_id
+             FROM class_students cs
+             WHERE cs.student_id = $1 ${classStudentActiveFilter}
+             ORDER BY cs.class_id ASC
+             LIMIT 1`,
+            [studentId]
+        );
+        const classId = classResult.rows[0]?.class_id || null;
+        if (classId && scoreExpr !== 'NULL') {
+            const rankResult = await query(
+                `WITH ranked AS (
+                    SELECT
+                        cs.student_id,
+                        COUNT(tatt.id) as attempts,
+                        AVG(${scoreExpr})::float as avg_score
+                    FROM class_students cs
+                    LEFT JOIN test_attempts tatt
+                        ON tatt.student_id = cs.student_id
+                        AND ${completedFilter}
+                    WHERE cs.class_id = $1 ${classStudentActiveFilter}
+                    GROUP BY cs.student_id
+                    HAVING COUNT(tatt.id) > 0
+                )
+                SELECT rank
+                FROM (
+                    SELECT student_id, RANK() OVER (ORDER BY avg_score DESC NULLS LAST, attempts DESC) as rank
+                    FROM ranked
+                ) r
+                WHERE student_id = $2
+                LIMIT 1`,
+                [classId, studentId]
+            );
+            classRank = rankResult.rows[0]?.rank || null;
+        }
+
+        const subjectPerformanceResult = await query(
+            `SELECT
+                s.id,
+                s.${subjectNameColumn} as subject_name,
+                s.color as subject_color,
+                COUNT(tatt.id) as attempts,
+                AVG(${scoreExpr})::float as avg_score
+             FROM test_attempts tatt
+             JOIN test_assignments ta ON ta.id = tatt.assignment_id
+             JOIN tests t ON t.id = COALESCE(tatt.test_id, ta.test_id)
+             LEFT JOIN subjects s ON s.id = t.subject_id
+             JOIN class_students cs ON cs.class_id = ta.class_id
+             WHERE cs.student_id = $1 ${classStudentActiveFilter}
+               AND ${completedFilter}
+               AND s.id IS NOT NULL
+             GROUP BY s.id, s.${subjectNameColumn}, s.color
+             ORDER BY s.${subjectNameColumn} ASC`,
+            [studentId]
+        );
 
         // Get career test completion
         let careerTestCompleted = false;
@@ -1741,8 +1800,16 @@ router.get('/dashboard/overview', async (req, res) => {
                 tests_assigned: testsAssigned,
                 tests_completed: testsCompleted,
                 avg_score: Math.round(avgScore),
+                class_rank: classRank,
                 career_test_completed: careerTestCompleted
             },
+            subjects: subjectPerformanceResult.rows.map(row => ({
+                subject_id: row.id,
+                subject_name: row.subject_name,
+                subject_color: row.subject_color,
+                attempts: parseInt(row.attempts || 0),
+                avg_score: parseFloat(row.avg_score || 0)
+            })),
             recent_attempts: recentAttempts.map(row => ({
                 test_title: row.title,
                 class_name: row.class_name,
