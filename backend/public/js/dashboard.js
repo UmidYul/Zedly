@@ -1853,15 +1853,27 @@
         const menuToggle = document.getElementById('menuToggle');
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
+        const mobileBreakpoint = 968;
+
+        function syncMobileSidebarState() {
+            if (!sidebar || !overlay) return;
+            if (window.innerWidth > mobileBreakpoint) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            }
+        }
 
         // Check if elements exist before adding listeners
         if (menuToggle && sidebar && overlay) {
             menuToggle.addEventListener('click', () => {
+                if (window.innerWidth > mobileBreakpoint) return;
                 sidebar.classList.toggle('open');
                 overlay.classList.toggle('active');
             });
 
             overlay.addEventListener('click', closeMobileMenu);
+            window.addEventListener('resize', syncMobileSidebarState);
+            syncMobileSidebarState();
         }
     }
 
