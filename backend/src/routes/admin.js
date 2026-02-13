@@ -2020,7 +2020,7 @@ function normalizeHeader(header) {
     return String(header)
         .trim()
         .toLowerCase()
-        .replace(/[\s_.-]+/g, '');
+        .replace(/[^\p{L}\p{N}]+/gu, '');
 }
 
 function normalizeRole(role) {
@@ -2128,24 +2128,36 @@ function parseImportRows(sheet) {
     }
 
     if (customHeaderIndex >= 0) {
+        const topHeader = normalizedMatrix[customHeaderIndex] || [];
         const nextRow = normalizedMatrix[customHeaderIndex + 1] || [];
         const hasSecondHeaderRow = nextRow.includes('телефон') || nextRow.includes('элпочта');
+        const bottomHeader = hasSecondHeaderRow ? nextRow : [];
+        const maxColumns = Math.max(topHeader.length, bottomHeader.length);
+        const columnMap = {};
+
+        for (let i = 0; i < maxColumns; i++) {
+            const top = topHeader[i] || '';
+            const bottom = bottomHeader[i] || '';
+            const combined = `${top}${bottom}`;
+            const field =
+                IMPORT_HEADER_MAP[combined] ||
+                IMPORT_HEADER_MAP[top] ||
+                IMPORT_HEADER_MAP[bottom];
+            if (field) {
+                columnMap[i] = field;
+            }
+        }
+
         const dataStart = customHeaderIndex + (hasSecondHeaderRow ? 2 : 1);
         const customRows = [];
 
         for (let i = dataStart; i < matrix.length; i++) {
             const row = matrix[i] || [];
-            const mapped = {
-                no: row[0],
-                student_name: row[1],
-                gender: row[2],
-                date_of_birth: row[3],
-                pinfl: row[4],
-                class_name: row[5],
-                relative_name: row[6],
-                relative_phone: row[7],
-                relative_email: row[8]
-            };
+            const mapped = {};
+            Object.entries(columnMap).forEach(([index, field]) => {
+                const value = row[Number(index)];
+                mapped[field] = typeof value === 'string' ? value.trim() : value;
+            });
             const hasValues = Object.values(mapped).some((val) => String(val || '').trim() !== '');
             if (!hasValues) {
                 continue;
@@ -2229,6 +2241,7 @@ const IMPORT_HEADER_MAP = {
     имя: 'first_name',
     фамилия: 'last_name',
     ученик: 'student_name',
+    ученикфамилияимя: 'student_name',
     фио: 'student_name',
     роль: 'role',
     пол: 'gender',
