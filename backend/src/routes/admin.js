@@ -742,33 +742,14 @@ router.delete('/users/:id', enforceSchoolIsolation, async (req, res) => {
         );
 
         if (existingUser.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({
                 error: 'not_found',
                 message: 'User not found'
             });
         }
 
-        // Remove teacher-linked data
-        const teacherTestRows = await client.query('SELECT id FROM tests WHERE teacher_id = $1', [id]);
-        for (const test of teacherTestRows.rows) {
-            await deleteTestCascadeById(client, test.id);
-        }
-
-        await deleteAssignmentsByAssignedTeacher(client, id);
-
-        // Remove student-linked data
-        await client.query('DELETE FROM test_attempts WHERE student_id = $1', [id]);
-        await client.query('DELETE FROM class_students WHERE student_id = $1', [id]);
-
-        // Remove class/subject links and references
-        await client.query('DELETE FROM teacher_class_subjects WHERE teacher_id = $1', [id]);
-        await client.query('UPDATE classes SET homeroom_teacher_id = NULL WHERE homeroom_teacher_id = $1', [id]);
-
-        // Remove audit rows where user is the actor to satisfy FK
-        await client.query('DELETE FROM audit_logs WHERE user_id = $1', [id]);
-
-        // Remove user
-        await client.query('DELETE FROM users WHERE id = $1', [id]);
+        await deleteUserCascadeById(client, id);
 
         // Log action
         await client.query(
@@ -1671,6 +1652,7 @@ router.delete('/classes/:id', enforceSchoolIsolation, async (req, res) => {
         );
 
         if (existingClass.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({
                 error: 'not_found',
                 message: 'Class not found'
@@ -1681,6 +1663,22 @@ router.delete('/classes/:id', enforceSchoolIsolation, async (req, res) => {
         const assignmentRows = await client.query('SELECT id FROM test_assignments WHERE class_id = $1', [id]);
         for (const row of assignmentRows.rows) {
             await deleteAssignmentCascadeById(client, row.id);
+        }
+
+        // Delete all students in this class from users table (full delete).
+        // If student has links in other classes, requirement still says remove class students completely.
+        const studentRows = await client.query(
+            `SELECT DISTINCT u.id
+             FROM class_students cs
+             JOIN users u ON u.id = cs.student_id
+             WHERE cs.class_id = $1
+               AND u.school_id = $2
+               AND u.role = 'student'`,
+            [id, schoolId]
+        );
+
+        for (const row of studentRows.rows) {
+            await deleteUserCascadeById(client, row.id);
         }
 
         // Remove class links
@@ -2455,6 +2453,30 @@ async function deleteTestCascadeById(client, testId) {
     await client.query('DELETE FROM test_attempts WHERE test_id = $1', [testId]);
     await client.query('DELETE FROM test_questions WHERE test_id = $1', [testId]);
     await client.query('DELETE FROM tests WHERE id = $1', [testId]);
+}
+
+async function deleteUserCascadeById(client, userId) {
+    // Remove teacher-linked data
+    const teacherTestRows = await client.query('SELECT id FROM tests WHERE teacher_id = $1', [userId]);
+    for (const test of teacherTestRows.rows) {
+        await deleteTestCascadeById(client, test.id);
+    }
+
+    await deleteAssignmentsByAssignedTeacher(client, userId);
+
+    // Remove student-linked data
+    await client.query('DELETE FROM test_attempts WHERE student_id = $1', [userId]);
+    await client.query('DELETE FROM class_students WHERE student_id = $1', [userId]);
+
+    // Remove class/subject links and references
+    await client.query('DELETE FROM teacher_class_subjects WHERE teacher_id = $1', [userId]);
+    await client.query('UPDATE classes SET homeroom_teacher_id = NULL WHERE homeroom_teacher_id = $1', [userId]);
+
+    // Remove audit rows where user is the actor to satisfy FK
+    await client.query('DELETE FROM audit_logs WHERE user_id = $1', [userId]);
+
+    // Remove user
+    await client.query('DELETE FROM users WHERE id = $1', [userId]);
 }
 
 function normalizeUsername(firstName, lastName) {

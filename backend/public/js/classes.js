@@ -25,6 +25,7 @@
         userRole: null,
         selectedIds: new Set(),
         lastRenderedClasses: [],
+        pageSizeStorageKey: 'classes_page_limit',
 
         // Initialize classes page
         init: function () {
@@ -40,9 +41,15 @@
                 }
             }
 
+            this.limit = this.getSavedLimit();
             this.clearSelection();
             this.loadClasses();
             this.setupEventListeners();
+        },
+
+        getSavedLimit: function () {
+            const saved = parseInt(localStorage.getItem(this.pageSizeStorageKey), 10);
+            return [10, 20, 50, 100].includes(saved) ? saved : 10;
         },
 
         // Get API base path based on user role
@@ -71,6 +78,19 @@
             if (gradeFilter) {
                 gradeFilter.addEventListener('change', (e) => {
                     this.gradeFilter = e.target.value;
+                    this.currentPage = 1;
+                    this.loadClasses();
+                });
+            }
+
+            const pageSizeSelect = document.getElementById('classesPerPage');
+            if (pageSizeSelect) {
+                pageSizeSelect.value = String(this.limit);
+                pageSizeSelect.addEventListener('change', (e) => {
+                    const nextLimit = parseInt(e.target.value, 10);
+                    if (![10, 20, 50, 100].includes(nextLimit)) return;
+                    this.limit = nextLimit;
+                    localStorage.setItem(this.pageSizeStorageKey, String(nextLimit));
                     this.currentPage = 1;
                     this.loadClasses();
                 });

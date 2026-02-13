@@ -1187,6 +1187,15 @@
                         />
                     </div>
                     <div class="toolbar-right">
+                        <div class="page-size-control">
+                            <label for="usersPerPage" class="page-size-label">Rows:</label>
+                            <select id="usersPerPage" class="select-input page-size-select">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
                         <select id="roleFilter" class="select-input">
                             <option value="all">All Roles</option>
                             <option value="school_admin">School Admin</option>
@@ -1219,6 +1228,15 @@
                         />
                     </div>
                     <div class="toolbar-right">
+                        <div class="page-size-control">
+                            <label for="classesPerPage" class="page-size-label">Rows:</label>
+                            <select id="classesPerPage" class="select-input page-size-select">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
                         <select id="gradeFilter" class="select-input">
                             <option value="all">All Grades</option>
                             <option value="1">1 класс</option>

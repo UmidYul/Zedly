@@ -9,6 +9,7 @@
         roleFilter: 'all',
         selectedIds: new Set(),
         lastRenderedUsers: [],
+        pageSizeStorageKey: 'users_page_limit',
 
         // Show custom alert modal
         showAlertModal: function (message, title = 'Info') {
@@ -93,9 +94,15 @@
         // Initialize users page
         init: function () {
             this.currentPage = 1; // Reset to first page
+            this.limit = this.getSavedLimit();
             this.clearSelection();
             this.loadUsers();
             this.setupEventListeners();
+        },
+
+        getSavedLimit: function () {
+            const saved = parseInt(localStorage.getItem(this.pageSizeStorageKey), 10);
+            return [10, 20, 50, 100].includes(saved) ? saved : 10;
         },
 
         // Setup event listeners
@@ -115,6 +122,19 @@
             if (roleFilter) {
                 roleFilter.addEventListener('change', (e) => {
                     this.roleFilter = e.target.value;
+                    this.currentPage = 1;
+                    this.loadUsers();
+                });
+            }
+
+            const pageSizeSelect = document.getElementById('usersPerPage');
+            if (pageSizeSelect) {
+                pageSizeSelect.value = String(this.limit);
+                pageSizeSelect.addEventListener('change', (e) => {
+                    const nextLimit = parseInt(e.target.value, 10);
+                    if (![10, 20, 50, 100].includes(nextLimit)) return;
+                    this.limit = nextLimit;
+                    localStorage.setItem(this.pageSizeStorageKey, String(nextLimit));
                     this.currentPage = 1;
                     this.loadUsers();
                 });
