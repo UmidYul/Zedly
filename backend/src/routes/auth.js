@@ -91,6 +91,33 @@ function normalizeNotificationPreferences(prefs) {
     return normalized;
 }
 
+function normalizePersonalInfo(info) {
+    if (!info || typeof info !== 'object' || Array.isArray(info)) {
+        return {};
+    }
+
+    const normalized = {};
+
+    if (info.date_of_birth !== undefined) {
+        const rawDate = String(info.date_of_birth || '').trim();
+        if (!rawDate) {
+            normalized.date_of_birth = null;
+        } else if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+            normalized.date_of_birth = rawDate;
+        }
+    }
+
+    if (info.gender !== undefined) {
+        const rawGender = String(info.gender || '').trim().toLowerCase();
+        const allowed = new Set(['male', 'female', 'other', '']);
+        if (allowed.has(rawGender)) {
+            normalized.gender = rawGender || null;
+        }
+    }
+
+    return normalized;
+}
+
 function generateVerificationCode() {
     return String(Math.floor(100000 + Math.random() * 900000));
 }
@@ -496,6 +523,8 @@ router.get('/me', authenticate, async (req, res) => {
                 phone: user.phone,
                 telegram_id: user.telegram_id,
                 settings: settings,
+                date_of_birth: profileSettings?.personal_info?.date_of_birth || null,
+                gender: profileSettings?.personal_info?.gender || null,
                 email_verified: !!contactVerification.email_verified,
                 phone_verified: !!contactVerification.phone_verified,
                 created_at: user.created_at,
@@ -544,7 +573,7 @@ router.get('/profile/activity', authenticate, async (req, res) => {
  */
 router.put('/profile/settings', authenticate, async (req, res) => {
     try {
-        const { social_links, notification_preferences } = req.body;
+        const { social_links, notification_preferences, personal_info } = req.body;
 
         const userResult = await query(
             'SELECT id, settings FROM users WHERE id = $1',
@@ -563,10 +592,23 @@ router.put('/profile/settings', authenticate, async (req, res) => {
 
         const nextProfileSettings = {
             ...profileSettings,
-            social_links: normalizeSocialLinks(social_links),
-            notification_preferences: normalizeNotificationPreferences(notification_preferences),
             updated_at: new Date().toISOString()
         };
+
+        if (social_links !== undefined) {
+            nextProfileSettings.social_links = normalizeSocialLinks(social_links);
+        }
+
+        if (notification_preferences !== undefined) {
+            nextProfileSettings.notification_preferences = normalizeNotificationPreferences(notification_preferences);
+        }
+
+        if (personal_info !== undefined) {
+            nextProfileSettings.personal_info = {
+                ...(profileSettings.personal_info || {}),
+                ...normalizePersonalInfo(personal_info)
+            };
+        }
 
         const nextSettings = {
             ...settings,

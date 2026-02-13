@@ -68,6 +68,23 @@
         });
     }
 
+    function toDateInputValue(value) {
+        if (!value) return '';
+        const date = new Date(value);
+        if (!Number.isNaN(date.getTime())) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+            return String(value);
+        }
+
+        return '';
+    }
+
     function getInitials(firstName, lastName) {
         const first = firstName ? String(firstName).charAt(0).toUpperCase() : '';
         const last = lastName ? String(lastName).charAt(0).toUpperCase() : '';
@@ -136,11 +153,16 @@
     }
 
     function renderProfileInfo(user) {
+        const genderLabels = {
+            male: 'Мужской',
+            female: 'Женский',
+            other: 'Другой'
+        };
         document.getElementById('profileUsername').textContent = user.username || '-';
         document.getElementById('profileEmail').textContent = user.email || '-';
         document.getElementById('profilePhone').textContent = user.phone || '-';
         document.getElementById('profileDOB').textContent = user.date_of_birth ? formatDate(user.date_of_birth) : '-';
-        document.getElementById('profileGender').textContent = user.gender || '-';
+        document.getElementById('profileGender').textContent = genderLabels[user.gender] || '-';
         document.getElementById('profileCreatedAt').textContent = formatDate(user.created_at);
         document.getElementById('profileLastLogin').textContent = user.last_login ? formatDate(user.last_login) : 'Никогда';
     }
@@ -446,6 +468,8 @@
         setVal('socialTelegramInput', socials.telegram);
         setVal('socialInstagramInput', socials.instagram);
         setVal('socialWebsiteInput', socials.website);
+        setVal('dobInput', toDateInputValue(user.date_of_birth));
+        setVal('genderInput', user.gender || '');
         setVal('notificationFrequency', prefs.frequency || 'instant');
 
         setChecked('channelInApp', channels.in_app, true);
@@ -550,6 +574,32 @@
         }
     }
 
+    async function savePersonalInfo() {
+        const date_of_birth = document.getElementById('dobInput')?.value || null;
+        const gender = document.getElementById('genderInput')?.value || null;
+
+        try {
+            const data = await apiFetch('/api/auth/profile/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    personal_info: {
+                        date_of_birth,
+                        gender
+                    }
+                })
+            });
+
+            profileUser.date_of_birth = data?.profile?.personal_info?.date_of_birth || date_of_birth;
+            profileUser.gender = data?.profile?.personal_info?.gender || gender;
+            renderProfileInfo(profileUser);
+
+            await showAlert('Личные данные сохранены', 'Успешно');
+        } catch (error) {
+            await showAlert(error.message || 'Не удалось сохранить личные данные', 'Ошибка');
+        }
+    }
+
     async function loadActivity() {
         const list = document.getElementById('activityList');
         if (!list) return;
@@ -589,6 +639,7 @@
         document.getElementById('verifyPhoneBtn')?.addEventListener('click', () => verifyContactCode('phone'));
         document.getElementById('saveSocialsBtn')?.addEventListener('click', saveProfileSettings);
         document.getElementById('saveNotificationsBtn')?.addEventListener('click', saveProfileSettings);
+        document.getElementById('savePersonalBtn')?.addEventListener('click', savePersonalInfo);
     }
 
     async function fetchCurrentUser() {
@@ -637,6 +688,7 @@
             if (isOwnProfile) {
                 document.getElementById('profileActionsCard').style.display = 'block';
                 document.getElementById('profileSocialsCard').style.display = 'block';
+                document.getElementById('profilePersonalCard').style.display = 'block';
                 document.getElementById('profileNotificationsCard').style.display = 'block';
                 document.getElementById('profileActivityCard').style.display = 'block';
 
