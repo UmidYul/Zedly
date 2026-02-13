@@ -2116,7 +2116,7 @@ function parseImportRows(sheet) {
     let customHeaderIndex = -1;
     for (let i = 0; i < normalizedMatrix.length; i++) {
         const row = normalizedMatrix[i];
-        const hasStudentHeader = row.some((cell) => hasToken(cell, 'ученик') || hasToken(cell, 'фио'));
+        const hasStudentHeader = row.some((cell) => hasToken(cell, 'Ученик') || hasToken(cell, 'фио'));
         const hasClassHeader = row.some((cell) => hasToken(cell, 'класс'));
         if (hasStudentHeader && hasClassHeader) {
             customHeaderIndex = i;
