@@ -413,7 +413,7 @@
 - [ ] API role isolation audit for teacher/school_admin
 - [x] Import validation report (row-level errors + skipped/success counters)
 - [x] Data normalization pipeline (phone/class/date/gender)
-- [ ] Audit log coverage for critical actions (import/delete/reset/assign)
+- [x] Audit log coverage for critical actions (import/delete/reset/assign)
 
 ### P1 Week 1-2
 - [ ] In-app + Telegram notifications for assignments/deadlines
@@ -447,6 +447,12 @@
 - [x] Admin user create/update now validates assigned class IDs against current school (`school_id`)
 - [x] Admin teacher assignments now validate `subject_id` by school and clear stale links on role downgrade
 - [x] Removed duplicate student `GET /subjects` route conflict (`/subjects/all` + `/subjects`)
+- [x] Admin `PUT /users/:id` now supports updating `student_class_id` (with school validation)
+- [x] User edit modal now pre-fills student class and enforces class selection for student role
+- [x] Admin `GET /users/:id` now returns `student_class_id`; role change from student clears stale class links
+- [x] User modal role-switch UX hardened: student class `required` toggles correctly and hidden class value is reset
+- [x] Teacher critical endpoints now write failure audit logs (`assign/reset` create/update/delete failed)
+- [x] Admin student-class update hardened: validate new class before unlinking old one; compatibility for DBs without `class_students.is_active`
 
 
 

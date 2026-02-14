@@ -496,7 +496,12 @@
                 await this.loadSubjectsAndClasses();
             }
             if (this.classes && this.classes.length) {
-                classOptionsHtml = this.classes.map(c => `<option value="${c.id}">${c.name} (Grade ${c.grade_level})</option>`).join('');
+                const selectedStudentClassId = String(user?.student_class_id || '');
+                classOptionsHtml = this.classes.map(c => `
+                    <option value="${c.id}" ${selectedStudentClassId === String(c.id) ? 'selected' : ''}>
+                        ${c.name} (Grade ${c.grade_level})
+                    </option>
+                `).join('');
             }
 
             // Create modal HTML
@@ -740,7 +745,7 @@
             };
             // Add student_class_id if student
             if (data.role === 'student') {
-                data.student_class_id = formData.get('student_class_id');
+                data.student_class_id = formData.get('student_class_id') || null;
             }
 
             // Add teacher assignments if role is teacher
@@ -761,6 +766,12 @@
             if (!data.first_name || !data.last_name || !data.username || !data.role) {
                 formAlert.className = 'alert alert-error';
                 formAlert.textContent = 'Please fill all required fields';
+                return;
+            }
+
+            if (data.role === 'student' && !data.student_class_id) {
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = 'Please select class for student';
                 return;
             }
 
@@ -1041,10 +1052,16 @@
             const teacherFields = document.getElementById('teacherFields');
             const studentFields = document.getElementById('studentFields');
             const studentClassSelect = document.getElementById('studentClassSelect');
+            if (!teacherFields || !studentFields) return;
+
             if (role === 'teacher') {
                 teacherFields.style.display = 'block';
                 studentFields.style.display = 'none';
-                if (studentClassSelect) studentClassSelect.disabled = true;
+                if (studentClassSelect) {
+                    studentClassSelect.disabled = true;
+                    studentClassSelect.required = false;
+                    studentClassSelect.value = '';
+                }
                 if (!this.subjects.length || !this.classes.length) {
                     await this.loadSubjectsAndClasses();
                 }
@@ -1057,12 +1074,18 @@
             } else if (role === 'student') {
                 teacherFields.style.display = 'none';
                 studentFields.style.display = 'block';
-                if (studentClassSelect) studentClassSelect.disabled = false;
-                // Optionally, set class select value if editing
+                if (studentClassSelect) {
+                    studentClassSelect.disabled = false;
+                    studentClassSelect.required = true;
+                }
             } else {
                 teacherFields.style.display = 'none';
                 studentFields.style.display = 'none';
-                if (studentClassSelect) studentClassSelect.disabled = true;
+                if (studentClassSelect) {
+                    studentClassSelect.disabled = true;
+                    studentClassSelect.required = false;
+                    studentClassSelect.value = '';
+                }
             }
         },
 

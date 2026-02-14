@@ -380,6 +380,21 @@ router.get('/users/:id', enforceSchoolIsolation, async (req, res) => {
                 [id]
             );
             user.teacher_assignments = assignmentsResult.rows || [];
+        } else if (user.role === 'student') {
+            const classStudentColumns = await getTableColumns('class_students');
+            const classStudentActiveFilter = classStudentColumns.has('is_active')
+                ? 'AND is_active = true'
+                : '';
+            const classResult = await query(
+                `SELECT class_id
+                 FROM class_students
+                 WHERE student_id = $1
+                   ${classStudentActiveFilter}
+                 ORDER BY class_id ASC
+                 LIMIT 1`,
+                [id]
+            );
+            user.student_class_id = classResult.rows[0]?.class_id || null;
         }
 
         res.json({ user });
@@ -781,6 +796,7 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
 
         const effectiveRole = role !== undefined ? role : result.rows[0].role;
         let teacherAssignmentsApplied = 0;
+        let studentClassUpdated = false;
 
         // Update teacher assignments if provided
         if (effectiveRole === 'teacher' && Array.isArray(req.body.teacher_assignments)) {
@@ -825,6 +841,41 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             await query('DELETE FROM teacher_class_subjects WHERE teacher_id = $1', [id]);
         }
 
+        // Update student class assignment when explicitly provided.
+        if (effectiveRole === 'student' && Object.prototype.hasOwnProperty.call(req.body, 'student_class_id')) {
+            const studentClassId = req.body.student_class_id;
+
+            if (studentClassId) {
+                const classAccessCheck = await query(
+                    'SELECT id FROM classes WHERE id = $1 AND school_id = $2',
+                    [studentClassId, schoolId]
+                );
+                if (classAccessCheck.rows.length === 0) {
+                    return res.status(400).json({
+                        error: 'validation_error',
+                        message: 'Invalid class for this school'
+                    });
+                }
+            }
+
+            await query('DELETE FROM class_students WHERE student_id = $1', [id]);
+
+            if (studentClassId) {
+                await query(
+                    `INSERT INTO class_students (class_id, student_id, is_active)
+                     VALUES ($1, $2, true)
+                     ON CONFLICT (class_id, student_id) DO UPDATE SET is_active = true`,
+                    [studentClassId, id]
+                );
+            }
+
+            studentClassUpdated = true;
+        } else if (role !== undefined && role !== 'student') {
+            // If role changed from student to another role, drop stale class links.
+            await query('DELETE FROM class_students WHERE student_id = $1', [id]);
+            studentClassUpdated = true;
+        }
+
         const auditDetails = {
             username,
             role,
@@ -837,6 +888,7 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             date_of_birth: personalInfoPatch.data.date_of_birth,
             gender: personalInfoPatch.data.gender,
             settings_updated: shouldUpdateSettings,
+            student_class_updated: studentClassUpdated,
             teacher_assignments_updated: Array.isArray(req.body.teacher_assignments),
             teacher_assignments_applied: teacherAssignmentsApplied
         };

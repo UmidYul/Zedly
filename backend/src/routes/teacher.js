@@ -18,6 +18,18 @@ function generateOtp() {
     return otp;
 }
 
+async function writeAuditSafe(userId, action, entityType, entityId, details) {
+    try {
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [userId, action, entityType, entityId, details]
+        );
+    } catch (auditError) {
+        console.error('Audit log write error:', auditError);
+    }
+}
+
 
 async function getAttemptOverviewExpressions(alias = 'att') {
     const result = await query(`
@@ -1068,10 +1080,14 @@ router.get('/classes/:id/analytics', async (req, res) => {
  * Reset password for a student in teacher's homeroom class
  */
 router.post('/students/:id/reset-password', async (req, res) => {
+    let teacherId = null;
+    let schoolId = null;
+    let studentId = null;
     try {
         const { id } = req.params;
-        const teacherId = req.user.id;
-        const schoolId = req.user.school_id;
+        studentId = id;
+        teacherId = req.user.id;
+        schoolId = req.user.school_id;
 
         const studentResult = await query(
             `SELECT
@@ -1144,6 +1160,17 @@ router.post('/students/:id/reset-password', async (req, res) => {
         });
     } catch (error) {
         console.error('Reset student password error:', error);
+        await writeAuditSafe(
+            teacherId || req.user?.id || null,
+            'update_failed',
+            'user',
+            studentId || null,
+            {
+                action_type: 'password_reset',
+                school_id: schoolId || req.user?.school_id || null,
+                error: error.message || 'Failed to reset password'
+            }
+        );
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to reset password'
@@ -1303,15 +1330,21 @@ router.get('/assignments/:id', async (req, res) => {
  * Create new test assignment
  */
 router.post('/assignments', async (req, res) => {
+    let teacherId = null;
+    let schoolId = null;
+    let testId = null;
+    let classIdsContext = [];
     try {
         const { test_id, class_id, class_ids, start_date, end_date } = req.body;
-        const teacherId = req.user.id;
-        const schoolId = req.user.school_id;
+        testId = test_id;
+        teacherId = req.user.id;
+        schoolId = req.user.school_id;
         const normalizedClassIds = Array.from(new Set(
             (Array.isArray(class_ids) && class_ids.length > 0 ? class_ids : [class_id])
                 .map((id) => String(id || '').trim())
                 .filter(Boolean)
         ));
+        classIdsContext = normalizedClassIds;
 
         // Validation
         if (!test_id || normalizedClassIds.length === 0 || !start_date || !end_date) {
@@ -1443,6 +1476,17 @@ router.post('/assignments', async (req, res) => {
         });
     } catch (error) {
         console.error('Create assignment error:', error);
+        await writeAuditSafe(
+            teacherId || req.user?.id || null,
+            'create_failed',
+            'test_assignment',
+            testId || null,
+            {
+                school_id: schoolId || req.user?.school_id || null,
+                class_ids: classIdsContext,
+                error: error.message || 'Failed to create assignment'
+            }
+        );
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to create assignment'
@@ -1455,10 +1499,13 @@ router.post('/assignments', async (req, res) => {
  * Update test assignment
  */
 router.put('/assignments/:id', async (req, res) => {
+    let teacherId = null;
+    let assignmentId = null;
     try {
         const { id } = req.params;
+        assignmentId = id;
         const { start_date, end_date, is_active } = req.body;
-        const teacherId = req.user.id;
+        teacherId = req.user.id;
 
         // Check ownership
         const assignmentCheck = await query(
@@ -1491,6 +1538,13 @@ router.put('/assignments/:id', async (req, res) => {
         res.json({ message: 'Assignment updated successfully' });
     } catch (error) {
         console.error('Update assignment error:', error);
+        await writeAuditSafe(
+            teacherId || req.user?.id || null,
+            'update_failed',
+            'test_assignment',
+            assignmentId || null,
+            { error: error.message || 'Failed to update assignment' }
+        );
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to update assignment'
@@ -1503,9 +1557,12 @@ router.put('/assignments/:id', async (req, res) => {
  * Delete test assignment (soft delete by setting is_active to false)
  */
 router.delete('/assignments/:id', async (req, res) => {
+    let teacherId = null;
+    let assignmentId = null;
     try {
         const { id } = req.params;
-        const teacherId = req.user.id;
+        assignmentId = id;
+        teacherId = req.user.id;
 
         // Check ownership
         const assignmentCheck = await query(
@@ -1547,6 +1604,13 @@ router.delete('/assignments/:id', async (req, res) => {
         res.json({ message: 'Assignment deleted successfully' });
     } catch (error) {
         console.error('Delete assignment error:', error);
+        await writeAuditSafe(
+            teacherId || req.user?.id || null,
+            'delete_failed',
+            'test_assignment',
+            assignmentId || null,
+            { error: error.message || 'Failed to delete assignment' }
+        );
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to delete assignment'
