@@ -4,59 +4,134 @@
 
     let notifications = [];
     let unreadCount = 0;
+    const READ_STATE_KEY = 'zedly_notifications_read_v1';
+    let readIds = new Set();
+    let listenersAttached = false;
+    let lastLoadedAt = 0;
+    const REFRESH_INTERVAL_MS = 30 * 1000;
 
-    // Sample notifications data (later will come from API)
-    const mockNotifications = [
-        {
-            id: 1,
-            type: 'test',
-            title: 'Новый тест по математике',
-            message: 'Учитель Иванов И.И. создал новый тест для 10А класса',
-            timestamp: Date.now() - 1000 * 60 * 15, // 15 minutes ago
-            read: false,
-            icon: '📝'
-        },
-        {
-            id: 2,
-            type: 'password_reset',
-            title: 'Пароль был сброшен',
-            message: 'Ваш пароль был сброшен администратором. Используйте временный пароль для входа.',
-            timestamp: Date.now() - 1000 * 60 * 60 * 2, // 2 hours ago
-            read: false,
-            icon: '🔑'
-        },
-        {
-            id: 3,
-            type: 'achievement',
-            title: 'Отличный результат!',
-            message: 'Вы набрали 95% на тесте по физике',
-            timestamp: Date.now() - 1000 * 60 * 60 * 24, // 1 day ago
-            read: true,
-            icon: '🎉'
-        },
-        {
-            id: 4,
-            type: 'info',
-            title: 'Обновление системы',
-            message: 'Система будет недоступна завтра с 02:00 до 04:00',
-            timestamp: Date.now() - 1000 * 60 * 60 * 48, // 2 days ago
-            read: true,
-            icon: 'ℹ️'
+    function getReadState() {
+        try {
+            const raw = localStorage.getItem(READ_STATE_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            if (!Array.isArray(parsed)) return new Set();
+            return new Set(parsed.map((id) => String(id)));
+        } catch (error) {
+            console.warn('Failed to parse notification read state:', error);
+            return new Set();
         }
-    ];
+    }
 
-    function initNotifications() {
-        notifications = mockNotifications;
+    function saveReadState() {
+        try {
+            localStorage.setItem(READ_STATE_KEY, JSON.stringify(Array.from(readIds)));
+        } catch (error) {
+            console.warn('Failed to save notification read state:', error);
+        }
+    }
+
+    function parseDetails(rawDetails) {
+        if (!rawDetails) return {};
+        if (typeof rawDetails === 'object') return rawDetails;
+        if (typeof rawDetails === 'string') {
+            try {
+                return JSON.parse(rawDetails);
+            } catch (error) {
+                return {};
+            }
+        }
+        return {};
+    }
+
+    function resolveIcon(action, entityType) {
+        const key = `${action || ''}:${entityType || ''}`.toLowerCase();
+        if (key.includes('password') || key.includes('reset')) return '??';
+        if (key.includes('login')) return '??';
+        if (key.includes('test')) return '??';
+        if (key.includes('assignment')) return '??';
+        if (key.includes('user') || key.includes('profile')) return '??';
+        return '??';
+    }
+
+    function buildMessage(item, details) {
+        const parts = [];
+        if (details.username) parts.push(`user: ${details.username}`);
+        if (details.role) parts.push(`role: ${details.role}`);
+        if (details.action_type) parts.push(`type: ${details.action_type}`);
+        if (details.entityName) parts.push(`entity: ${details.entityName}`);
+        if (details.id) parts.push(`id: ${details.id}`);
+        if (parts.length > 0) return parts.join(' � ');
+
+        const entity = item.entity_type ? String(item.entity_type) : 'system';
+        return `Action on ${entity}`;
+    }
+
+    function mapActivityToNotification(item) {
+        const details = parseDetails(item.details);
+        const id = String(item.id);
+        const action = String(item.action || '').replace(/_/g, ' ').trim() || 'activity';
+        const title = action.charAt(0).toUpperCase() + action.slice(1);
+
+        return {
+            id,
+            type: item.entity_type || 'system',
+            title,
+            message: buildMessage(item, details),
+            timestamp: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
+            read: readIds.has(id),
+            icon: resolveIcon(item.action, item.entity_type)
+        };
+    }
+
+    async function loadNotifications(force = false) {
+        const now = Date.now();
+        if (!force && now - lastLoadedAt < REFRESH_INTERVAL_MS) {
+            return;
+        }
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            notifications = [];
+            updateUnreadCount();
+            renderNotifications();
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/profile/activity?limit=20', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch notifications: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const activity = Array.isArray(data.activity) ? data.activity : [];
+            notifications = activity.map(mapActivityToNotification);
+            lastLoadedAt = now;
+        } catch (error) {
+            console.error('Notifications load error:', error);
+            notifications = [];
+        }
+
         updateUnreadCount();
         renderNotifications();
+    }
+
+    async function initNotifications() {
+        readIds = getReadState();
+        await loadNotifications(true);
         attachEventListeners();
     }
 
     function updateUnreadCount() {
-        unreadCount = notifications.filter(n => !n.read).length;
+        unreadCount = notifications.filter((n) => !n.read).length;
         const badge = document.getElementById('notificationBadge');
         if (badge) {
-            badge.textContent = unreadCount;
+            badge.textContent = String(unreadCount);
             badge.style.display = unreadCount > 0 ? 'flex' : 'none';
         }
     }
@@ -64,7 +139,6 @@
     function renderNotifications() {
         let dropdown = document.getElementById('notificationsDropdown');
 
-        // Create dropdown if it doesn't exist
         if (!dropdown) {
             dropdown = document.createElement('div');
             dropdown.id = 'notificationsDropdown';
@@ -72,12 +146,12 @@
             dropdown.style.display = 'none';
 
             const notificationsBtn = document.getElementById('notificationsBtn');
-            if (notificationsBtn) {
+            if (notificationsBtn && notificationsBtn.parentElement) {
                 notificationsBtn.parentElement.appendChild(dropdown);
             }
         }
 
-        const translate = window.ZedlyI18n?.translate || (key => key);
+        const translate = window.ZedlyI18n?.translate || ((key) => key);
 
         dropdown.innerHTML = `
             <div class="notifications-header">
@@ -86,7 +160,7 @@
             </div>
             <div class="notifications-list">
                 ${notifications.length > 0
-                ? notifications.map(notification => `
+                    ? notifications.map((notification) => `
                         <div class="notification-item ${notification.read ? 'read' : 'unread'}" data-id="${notification.id}">
                             <div class="notification-icon">${notification.icon}</div>
                             <div class="notification-content">
@@ -101,14 +175,14 @@
                             </button>` : ''}
                         </div>
                     `).join('')
-                : `<div class="notifications-empty">
+                    : `<div class="notifications-empty">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                         </svg>
                         <p>${translate('notifications.empty')}</p>
                     </div>`
-            }
+                }
             </div>
             ${notifications.length > 0 ? `
                 <div class="notifications-footer">
@@ -125,7 +199,7 @@
         const hours = Math.floor(minutes / 60);
         const days = Math.floor(hours / 24);
 
-        const translate = window.ZedlyI18n?.translate || (key => key);
+        const translate = window.ZedlyI18n?.translate || ((key) => key);
 
         if (minutes < 1) return translate('time.justNow');
         if (minutes < 60) return `${minutes} ${translate('time.minutesAgo')}`;
@@ -136,22 +210,26 @@
     }
 
     function attachEventListeners() {
+        if (listenersAttached) return;
+
         const notificationsBtn = document.getElementById('notificationsBtn');
         const dropdown = document.getElementById('notificationsDropdown');
 
         if (notificationsBtn && dropdown) {
-            notificationsBtn.addEventListener('click', (e) => {
+            notificationsBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
+                await loadNotifications();
                 toggleDropdown();
             });
 
-            // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
                 if (dropdown.style.display === 'block' && !dropdown.contains(e.target)) {
                     closeDropdown();
                 }
             });
         }
+
+        listenersAttached = true;
     }
 
     function toggleDropdown() {
@@ -171,7 +249,10 @@
 
     function markAsRead(notificationId) {
         const targetId = String(notificationId);
-        const notification = notifications.find(n => String(n.id) === targetId);
+        readIds.add(targetId);
+        saveReadState();
+
+        const notification = notifications.find((n) => String(n.id) === targetId);
         if (notification) {
             notification.read = true;
             updateUnreadCount();
@@ -180,44 +261,46 @@
     }
 
     function markAllAsRead() {
-        notifications.forEach(n => n.read = true);
+        notifications.forEach((n) => {
+            n.read = true;
+            readIds.add(String(n.id));
+        });
+        saveReadState();
         updateUnreadCount();
         renderNotifications();
     }
 
     function viewAll() {
         closeDropdown();
-        // Navigate to full notifications page (to be implemented)
-        console.log('Navigate to all notifications');
+        window.location.hash = 'profile';
     }
 
     function addNotification(notification) {
+        const id = String(Date.now());
         notifications.unshift({
             ...notification,
-            id: Date.now(),
+            id,
             timestamp: Date.now(),
             read: false,
-            icon: notification.icon || '🔔'
+            icon: notification.icon || '??'
         });
         updateUnreadCount();
         renderNotifications();
     }
 
-    // Expose public API
     window.ZedlyNotifications = {
         init: initNotifications,
-        markAsRead: markAsRead,
-        markAllAsRead: markAllAsRead,
-        viewAll: viewAll,
+        markAsRead,
+        markAllAsRead,
+        viewAll,
         add: addNotification,
-        close: closeDropdown
+        close: closeDropdown,
+        refresh: () => loadNotifications(true)
     };
 
-    // Auto-initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initNotifications);
     } else {
         initNotifications();
     }
-
 })();
