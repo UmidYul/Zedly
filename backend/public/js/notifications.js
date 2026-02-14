@@ -43,14 +43,74 @@
         return {};
     }
 
+    const ICONS = {
+        password: `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 15v4"></path>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+                <rect x="5" y="11" width="14" height="10" rx="2"></rect>
+            </svg>
+        `,
+        login: `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M10 17l5-5-5-5"></path>
+                <path d="M15 12H3"></path>
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            </svg>
+        `,
+        logout: `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M14 17l5-5-5-5"></path>
+                <path d="M19 12H7"></path>
+                <path d="M11 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"></path>
+            </svg>
+        `,
+        test: `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M9 3h6"></path>
+                <path d="M10 8h4"></path>
+                <path d="M6 3h12v18H6z"></path>
+            </svg>
+        `,
+        assignment: `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M8 7h8"></path>
+                <path d="M8 12h8"></path>
+                <path d="M8 17h5"></path>
+                <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+            </svg>
+        `,
+        user: `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"></circle>
+                <path d="M4 20a8 8 0 0 1 16 0"></path>
+            </svg>
+        `,
+        default: `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 8v4"></path>
+                <path d="M12 16h.01"></path>
+            </svg>
+        `,
+        deadline: `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="13" r="8"></circle>
+                <path d="M12 9v4l2.5 2.5"></path>
+                <path d="M9 2h6"></path>
+            </svg>
+        `
+    };
+
     function resolveIcon(action, entityType) {
         const key = `${action || ''}:${entityType || ''}`.toLowerCase();
-        if (key.includes('password') || key.includes('reset')) return '??';
-        if (key.includes('login')) return '??';
-        if (key.includes('test')) return '??';
-        if (key.includes('assignment')) return '??';
-        if (key.includes('user') || key.includes('profile')) return '??';
-        return '??';
+        if (key.includes('password') || key.includes('reset')) return ICONS.password;
+        if (key.includes('login')) return ICONS.login;
+        if (key.includes('logout')) return ICONS.logout;
+        if (key.includes('test')) return ICONS.test;
+        if (key.includes('assignment')) return ICONS.assignment;
+        if (key.includes('user') || key.includes('profile')) return ICONS.user;
+        return ICONS.default;
     }
 
     function buildMessage(item, details) {
@@ -60,7 +120,7 @@
         if (details.action_type) parts.push(`type: ${details.action_type}`);
         if (details.entityName) parts.push(`entity: ${details.entityName}`);
         if (details.id) parts.push(`id: ${details.id}`);
-        if (parts.length > 0) return parts.join(' · ');
+        if (parts.length > 0) return parts.join(' Â· ');
 
         const entity = item.entity_type ? String(item.entity_type) : 'system';
         return `Action on ${entity}`;
@@ -113,7 +173,7 @@
             message: testTitle + className + ' | ' + deadlineText + etaText,
             timestamp: endDate ? endDate.getTime() : Date.now(),
             read: false,
-            icon: '!'
+            icon: ICONS.deadline
         };
     }
 
@@ -364,7 +424,7 @@
             id,
             timestamp: Date.now(),
             read: false,
-            icon: notification.icon || '??'
+            icon: notification.icon || ICONS.default
         });
         updateUnreadCount();
         renderNotifications();
@@ -386,4 +446,5 @@
         initNotifications();
     }
 })();
+
 
