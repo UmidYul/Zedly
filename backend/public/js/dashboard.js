@@ -525,6 +525,7 @@
             'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
             'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' },
             'my-class': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' },
+            'students': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/students.js'], manager: 'StudentsPage' },
             'reports': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/reports.js'], manager: 'ReportsManager' },
             'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' }
         };
@@ -850,6 +851,129 @@
                             <div class="modal-actions">
                                 <button class="btn btn-outline" type="button" id="modalCopy">Скопировать</button>
                                 <button class="btn btn-primary" type="button" id="modalOk">Готово</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (page === 'students' && role === 'teacher') {
+            return `
+                <div class="students-page" id="studentsPage">
+                    <section class="students-hero dashboard-section">
+                        <div>
+                            <h1 class="section-title">Ученики</h1>
+                            <p class="page-subtitle">Срез по классу, поиск, отчеты учеников и быстрые действия</p>
+                        </div>
+                        <div class="students-hero-actions">
+                            <button class="btn btn-secondary" id="studentsRefreshBtn" type="button">Обновить</button>
+                            <button class="btn btn-outline" id="studentsExportBtn" type="button">Экспорт CSV</button>
+                        </div>
+                    </section>
+
+                    <section class="students-toolbar dashboard-section">
+                        <div class="students-filter-grid">
+                            <div class="filter-group">
+                                <label for="studentsClassFilter">Класс</label>
+                                <select id="studentsClassFilter" class="filter-select">
+                                    <option value="">Выберите класс</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="studentsSubjectFilter">Предмет</label>
+                                <select id="studentsSubjectFilter" class="filter-select">
+                                    <option value="">Все предметы</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="studentsSearchInput">Поиск</label>
+                                <input id="studentsSearchInput" class="form-input" type="text" placeholder="Имя или логин">
+                            </div>
+                            <div class="filter-group">
+                                <label for="studentsScoreBandFilter">Уровень</label>
+                                <select id="studentsScoreBandFilter" class="filter-select">
+                                    <option value="all">Все</option>
+                                    <option value="high">Сильные (>=85)</option>
+                                    <option value="mid">Средние (60-84)</option>
+                                    <option value="risk">Риск (<60)</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="studentsSortFilter">Сортировка</label>
+                                <select id="studentsSortFilter" class="filter-select">
+                                    <option value="score_desc">По баллу (убыв.)</option>
+                                    <option value="score_asc">По баллу (возр.)</option>
+                                    <option value="tests_desc">По тестам (убыв.)</option>
+                                    <option value="name_asc">По имени (А-Я)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="students-kpi-grid" id="studentsKpiGrid">
+                        <div class="report-kpi tone-blue"><span>Ученики</span><strong id="studentsKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-violet"><span>Средний балл</span><strong id="studentsKpiAvg">0%</strong></div>
+                        <div class="report-kpi tone-green"><span>Пройдено тестов</span><strong id="studentsKpiCompleted">0</strong></div>
+                        <div class="report-kpi tone-rose"><span>В зоне риска</span><strong id="studentsKpiRisk">0</strong></div>
+                    </section>
+
+                    <section class="students-grid-top">
+                        <div class="dashboard-section students-card">
+                            <div class="section-header"><h2 class="section-title">Результаты по предметам</h2></div>
+                            <div class="students-chart-wrap"><canvas id="studentsSubjectChart"></canvas></div>
+                        </div>
+                        <div class="dashboard-section students-card">
+                            <div class="section-header"><h2 class="section-title">Динамика по назначениям</h2></div>
+                            <div class="students-chart-wrap"><canvas id="studentsAssignmentsChart"></canvas></div>
+                        </div>
+                    </section>
+
+                    <section class="students-grid-bottom">
+                        <div class="dashboard-section students-card">
+                            <div class="section-header">
+                                <h2 class="section-title">Список учеников</h2>
+                                <div class="students-bulk">
+                                    <label class="table-checkbox"><input type="checkbox" id="studentsSelectAll"> Выбрать всех</label>
+                                    <span id="studentsSelectedInfo">Выбрано: 0</span>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Ученик</th>
+                                            <th>Логин</th>
+                                            <th>Класс</th>
+                                            <th>Тесты</th>
+                                            <th>Средний балл</th>
+                                            <th>Статус</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentsTableBody">
+                                        <tr><td colspan="8" class="empty-row">Загрузка...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="students-pagination" id="studentsPagination"></div>
+                        </div>
+                        <div class="dashboard-section students-card">
+                            <div class="section-header"><h2 class="section-title">Инсайты</h2></div>
+                            <ul class="reports-insights-list" id="studentsInsights"></ul>
+                        </div>
+                    </section>
+
+                    <div class="modal-overlay hidden" id="studentsDetailModal">
+                        <div class="modal students-modal">
+                            <div class="modal-header">
+                                <h3 id="studentsModalTitle">Отчет ученика</h3>
+                                <button class="modal-close" type="button" id="studentsModalClose">×</button>
+                            </div>
+                            <div class="modal-body" id="studentsModalBody"></div>
+                            <div class="modal-actions">
+                                <button class="btn btn-primary" type="button" id="studentsModalOk">Закрыть</button>
                             </div>
                         </div>
                     </div>

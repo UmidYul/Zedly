@@ -1,0 +1,564 @@
+// Students Page (Teacher)
+(function () {
+    'use strict';
+
+    const API = '/api';
+    const PAGE_SIZE = 10;
+
+    const state = {
+        classes: [],
+        subjects: [],
+        selectedClassId: '',
+        selectedSubjectId: '',
+        students: [],
+        assignments: [],
+        subjectPerformance: [],
+        filtered: [],
+        search: '',
+        scoreBand: 'all',
+        sort: 'score_desc',
+        page: 1,
+        selectedIds: new Set(),
+        charts: {
+            subject: null,
+            assignments: null
+        }
+    };
+
+    function token() {
+        return localStorage.getItem('access_token') || '';
+    }
+
+    async function apiGet(url) {
+        const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${token()}` }
+        });
+        if (!response.ok) throw new Error(`GET ${url} failed: ${response.status}`);
+        return response.json();
+    }
+
+    async function apiPost(url, body) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token()}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body || {})
+        });
+        if (!response.ok) {
+            let msg = `POST ${url} failed`;
+            try {
+                const data = await response.json();
+                msg = data.message || msg;
+            } catch (error) {
+                // ignore json parse failure
+            }
+            throw new Error(msg);
+        }
+        return response.json();
+    }
+
+    function byId(id) {
+        return document.getElementById(id);
+    }
+
+    function setText(id, value) {
+        const el = byId(id);
+        if (el) el.textContent = value;
+    }
+
+    function formatPercent(value) {
+        const n = Number(value || 0);
+        return `${Math.round(n)}%`;
+    }
+
+    function safeName(student) {
+        return `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.username || '—';
+    }
+
+    function scoreBand(score) {
+        const n = Number(score || 0);
+        if (n >= 85) return 'high';
+        if (n >= 60) return 'mid';
+        return 'risk';
+    }
+
+    function scoreBandLabel(score) {
+        const b = scoreBand(score);
+        if (b === 'high') return 'Сильный';
+        if (b === 'mid') return 'Средний';
+        return 'Риск';
+    }
+
+    function escapeHtml(v) {
+        return String(v || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    async function loadFilters() {
+        const [classesRes, subjectsRes] = await Promise.all([
+            apiGet(`${API}/teacher/classes?page=1&limit=100`),
+            apiGet(`${API}/teacher/subjects`)
+        ]);
+        state.classes = classesRes.classes || [];
+        state.subjects = subjectsRes.subjects || [];
+
+        const classSelect = byId('studentsClassFilter');
+        const subjectSelect = byId('studentsSubjectFilter');
+        if (classSelect) {
+            classSelect.innerHTML = '<option value="">Выберите класс</option>' +
+                state.classes.map((cls) =>
+                    `<option value="${cls.id}">${escapeHtml(cls.name)}</option>`
+                ).join('');
+        }
+        if (subjectSelect) {
+            subjectSelect.innerHTML = '<option value="">Все предметы</option>' +
+                state.subjects.map((s) =>
+                    `<option value="${s.id}">${escapeHtml(s.name)}</option>`
+                ).join('');
+        }
+    }
+
+    async function loadClassAnalytics() {
+        if (!state.selectedClassId) {
+            state.students = [];
+            state.assignments = [];
+            state.subjectPerformance = [];
+            applyFiltersAndRender();
+            return;
+        }
+        const params = new URLSearchParams();
+        if (state.selectedSubjectId) params.set('subject_id', state.selectedSubjectId);
+        const data = await apiGet(`${API}/teacher/classes/${state.selectedClassId}/analytics?${params.toString()}`);
+        state.students = (data.students || []).map((s) => ({ ...s, class_name: data.class?.name || '' }));
+        state.assignments = data.assignments || [];
+        state.subjectPerformance = data.subject_performance || [];
+        state.selectedIds.clear();
+        state.page = 1;
+        applyFiltersAndRender();
+    }
+
+    function applyFiltersAndRender() {
+        const query = state.search.trim().toLowerCase();
+        const scoreFilter = state.scoreBand;
+        const selectedClass = state.classes.find((c) => String(c.id) === String(state.selectedClassId));
+        const className = selectedClass?.name || '—';
+
+        let rows = state.students.filter((student) => {
+            const haystack = `${safeName(student)} ${student.username || ''}`.toLowerCase();
+            if (query && !haystack.includes(query)) return false;
+            if (scoreFilter !== 'all' && scoreBand(student.avg_score) !== scoreFilter) return false;
+            return true;
+        });
+
+        rows.forEach((r) => {
+            r.class_name = className;
+        });
+
+        rows.sort((a, b) => {
+            if (state.sort === 'score_desc') return Number(b.avg_score || 0) - Number(a.avg_score || 0);
+            if (state.sort === 'score_asc') return Number(a.avg_score || 0) - Number(b.avg_score || 0);
+            if (state.sort === 'tests_desc') return Number(b.tests_completed || 0) - Number(a.tests_completed || 0);
+            return safeName(a).localeCompare(safeName(b), 'ru');
+        });
+
+        state.filtered = rows;
+        renderKpi();
+        renderCharts();
+        renderTable();
+        renderInsights();
+        updateSelectedInfo();
+    }
+
+    function renderKpi() {
+        const total = state.filtered.length;
+        const completed = state.filtered.reduce((acc, s) => acc + Number(s.tests_completed || 0), 0);
+        const avg = total ? state.filtered.reduce((acc, s) => acc + Number(s.avg_score || 0), 0) / total : 0;
+        const risk = state.filtered.filter((s) => scoreBand(s.avg_score) === 'risk').length;
+
+        setText('studentsKpiTotal', String(total));
+        setText('studentsKpiAvg', formatPercent(avg));
+        setText('studentsKpiCompleted', String(completed));
+        setText('studentsKpiRisk', String(risk));
+    }
+
+    function renderCharts() {
+        renderSubjectChart();
+        renderAssignmentsChart();
+    }
+
+    function renderSubjectChart() {
+        const canvas = byId('studentsSubjectChart');
+        if (!canvas || !window.Chart) return;
+        const labels = state.subjectPerformance.map((x) => x.subject_name || '—');
+        const values = state.subjectPerformance.map((x) => Number(x.avg_score || 0));
+
+        if (state.charts.subject) state.charts.subject.destroy();
+        state.charts.subject = new window.Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Средний балл',
+                    data: values,
+                    borderWidth: 1,
+                    borderColor: 'rgba(59,130,246,0.9)',
+                    backgroundColor: 'rgba(59,130,246,0.35)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+
+    function renderAssignmentsChart() {
+        const canvas = byId('studentsAssignmentsChart');
+        if (!canvas || !window.Chart) return;
+        const src = [...state.assignments].slice(0, 12).reverse();
+        const labels = src.map((x) => (x.test_title || 'Тест').slice(0, 24));
+        const values = src.map((x) => Number(x.avg_percentage || 0));
+
+        if (state.charts.assignments) state.charts.assignments.destroy();
+        state.charts.assignments = new window.Chart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Средний балл',
+                    data: values,
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34,197,94,0.18)',
+                    tension: 0.28,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+
+    function getPagedRows() {
+        const start = (state.page - 1) * PAGE_SIZE;
+        return state.filtered.slice(start, start + PAGE_SIZE);
+    }
+
+    function renderTable() {
+        const tbody = byId('studentsTableBody');
+        if (!tbody) return;
+
+        const pageRows = getPagedRows();
+        if (!pageRows.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Нет данных по выбранным фильтрам</td></tr>';
+            renderPagination();
+            return;
+        }
+
+        tbody.innerHTML = pageRows.map((s) => {
+            const studentId = String(s.id);
+            const checked = state.selectedIds.has(studentId) ? 'checked' : '';
+            return `
+                <tr>
+                    <td><input type="checkbox" class="students-row-checkbox" data-id="${studentId}" ${checked}></td>
+                    <td>${escapeHtml(safeName(s))}</td>
+                    <td>${escapeHtml(s.username || '-')}</td>
+                    <td>${escapeHtml(s.class_name || '-')}</td>
+                    <td>${Number(s.tests_completed || 0)}</td>
+                    <td><strong>${formatPercent(s.avg_score)}</strong></td>
+                    <td><span class="students-band ${scoreBand(s.avg_score)}">${scoreBandLabel(s.avg_score)}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="btn btn-outline students-action-btn" data-action="report" data-id="${studentId}" type="button">Отчет</button>
+                            <button class="btn btn-secondary students-action-btn" data-action="reset" data-id="${studentId}" type="button">Сброс пароля</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const container = byId('studentsPagination');
+        if (!container) return;
+        const totalPages = Math.max(1, Math.ceil(state.filtered.length / PAGE_SIZE));
+        state.page = Math.min(state.page, totalPages);
+
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <button class="btn btn-outline" type="button" ${state.page === 1 ? 'disabled' : ''} data-page="${state.page - 1}">Назад</button>
+            <span>Страница ${state.page} из ${totalPages}</span>
+            <button class="btn btn-outline" type="button" ${state.page >= totalPages ? 'disabled' : ''} data-page="${state.page + 1}">Вперед</button>
+        `;
+    }
+
+    function updateSelectedInfo() {
+        setText('studentsSelectedInfo', `Выбрано: ${state.selectedIds.size}`);
+        const selectAll = byId('studentsSelectAll');
+        if (!selectAll) return;
+        const allIds = state.filtered.map((x) => String(x.id));
+        const allChecked = allIds.length > 0 && allIds.every((id) => state.selectedIds.has(id));
+        selectAll.checked = allChecked;
+    }
+
+    function renderInsights() {
+        const el = byId('studentsInsights');
+        if (!el) return;
+        if (!state.filtered.length) {
+            el.innerHTML = '<li>Выберите класс, чтобы увидеть аналитику.</li>';
+            return;
+        }
+
+        const top = state.filtered[0];
+        const weakest = [...state.filtered].sort((a, b) => Number(a.avg_score || 0) - Number(b.avg_score || 0))[0];
+        const riskCount = state.filtered.filter((s) => scoreBand(s.avg_score) === 'risk').length;
+        const activeCount = state.filtered.filter((s) => Number(s.tests_completed || 0) >= 3).length;
+
+        el.innerHTML = `
+            <li>Лучший результат: ${escapeHtml(safeName(top))} (${formatPercent(top.avg_score)})</li>
+            <li>Требует внимания: ${escapeHtml(safeName(weakest))} (${formatPercent(weakest.avg_score)})</li>
+            <li>Ученики в зоне риска: ${riskCount}</li>
+            <li>Активных по тестам (>=3): ${activeCount}</li>
+        `;
+    }
+
+    function openModal(title, html) {
+        const overlay = byId('studentsDetailModal');
+        const titleEl = byId('studentsModalTitle');
+        const bodyEl = byId('studentsModalBody');
+        if (!overlay || !titleEl || !bodyEl) return;
+        titleEl.textContent = title;
+        bodyEl.innerHTML = html;
+        overlay.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        const overlay = byId('studentsDetailModal');
+        if (overlay) overlay.classList.add('hidden');
+    }
+
+    async function openStudentReport(studentId) {
+        try {
+            openModal('Отчет ученика', '<p class="text-secondary">Загрузка...</p>');
+            const report = await apiGet(`${API}/analytics/student/${encodeURIComponent(studentId)}/report`);
+            const overall = report.overall || {};
+            const ranking = report.ranking || {};
+            const strengths = report.strengths || [];
+            const weaknesses = report.weaknesses || [];
+            const student = report.student || {};
+
+            openModal(
+                `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Отчет ученика',
+                `
+                    <div class="students-report-grid">
+                        <div class="report-kpi"><span>Попыток</span><strong>${Number(overall.total_attempts || 0)}</strong></div>
+                        <div class="report-kpi"><span>Средний балл</span><strong>${formatPercent(overall.avg_score)}</strong></div>
+                        <div class="report-kpi"><span>Лучший</span><strong>${formatPercent(overall.max_score)}</strong></div>
+                        <div class="report-kpi"><span>Ранг в классе</span><strong>${ranking.rank || '-'} / ${ranking.total_students || '-'}</strong></div>
+                    </div>
+                    <div class="students-report-block">
+                        <h4>Сильные стороны</h4>
+                        <ul>${strengths.map((x) => `<li>${escapeHtml(x.subject)}: ${formatPercent(x.avg_score)}</li>`).join('') || '<li>Недостаточно данных</li>'}</ul>
+                    </div>
+                    <div class="students-report-block">
+                        <h4>Зоны роста</h4>
+                        <ul>${weaknesses.map((x) => `<li>${escapeHtml(x.subject)}: ${formatPercent(x.avg_score)}</li>`).join('') || '<li>Недостаточно данных</li>'}</ul>
+                    </div>
+                `
+            );
+        } catch (error) {
+            openModal('Отчет ученика', `<p class="text-secondary">${escapeHtml(error.message || 'Не удалось загрузить отчет')}</p>`);
+        }
+    }
+
+    async function resetStudentPassword(studentId) {
+        if (!confirm('Сбросить пароль этому ученику?')) return;
+        try {
+            const data = await apiPost(`${API}/teacher/students/${encodeURIComponent(studentId)}/reset-password`, {});
+            const userName = data.user?.name || data.user?.username || 'Ученик';
+            openModal(
+                'Временный пароль',
+                `
+                    <p>${escapeHtml(userName)}</p>
+                    <div class="password-box">${escapeHtml(data.tempPassword || '-')}</div>
+                    <p class="text-secondary">Передайте пароль ученику и попросите сменить после входа.</p>
+                `
+            );
+        } catch (error) {
+            alert(error.message || 'Не удалось сбросить пароль');
+        }
+    }
+
+    function exportCsv() {
+        const base = state.selectedIds.size
+            ? state.filtered.filter((s) => state.selectedIds.has(String(s.id)))
+            : state.filtered;
+        if (!base.length) {
+            alert('Нет данных для экспорта');
+            return;
+        }
+        const header = ['name', 'username', 'class', 'tests_completed', 'avg_score', 'status'];
+        const lines = [header.join(',')].concat(base.map((s) => {
+            const cols = [
+                safeName(s),
+                s.username || '',
+                s.class_name || '',
+                Number(s.tests_completed || 0),
+                Number(s.avg_score || 0).toFixed(1),
+                scoreBandLabel(s.avg_score)
+            ];
+            return cols.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
+        }));
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `students_${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function bindEvents() {
+        const classFilter = byId('studentsClassFilter');
+        const subjectFilter = byId('studentsSubjectFilter');
+        const search = byId('studentsSearchInput');
+        const scoreBandFilter = byId('studentsScoreBandFilter');
+        const sortFilter = byId('studentsSortFilter');
+        const refresh = byId('studentsRefreshBtn');
+        const exportBtn = byId('studentsExportBtn');
+        const tbody = byId('studentsTableBody');
+        const pagination = byId('studentsPagination');
+        const selectAll = byId('studentsSelectAll');
+
+        if (classFilter) {
+            classFilter.addEventListener('change', async () => {
+                state.selectedClassId = classFilter.value;
+                await loadClassAnalytics();
+            });
+        }
+
+        if (subjectFilter) {
+            subjectFilter.addEventListener('change', async () => {
+                state.selectedSubjectId = subjectFilter.value;
+                await loadClassAnalytics();
+            });
+        }
+
+        if (search) {
+            search.addEventListener('input', () => {
+                state.search = search.value || '';
+                state.page = 1;
+                applyFiltersAndRender();
+            });
+        }
+
+        if (scoreBandFilter) {
+            scoreBandFilter.addEventListener('change', () => {
+                state.scoreBand = scoreBandFilter.value;
+                state.page = 1;
+                applyFiltersAndRender();
+            });
+        }
+
+        if (sortFilter) {
+            sortFilter.addEventListener('change', () => {
+                state.sort = sortFilter.value;
+                applyFiltersAndRender();
+            });
+        }
+
+        if (refresh) refresh.addEventListener('click', loadClassAnalytics);
+        if (exportBtn) exportBtn.addEventListener('click', exportCsv);
+
+        if (selectAll) {
+            selectAll.addEventListener('change', () => {
+                if (selectAll.checked) {
+                    state.filtered.forEach((x) => state.selectedIds.add(String(x.id)));
+                } else {
+                    state.filtered.forEach((x) => state.selectedIds.delete(String(x.id)));
+                }
+                renderTable();
+                updateSelectedInfo();
+            });
+        }
+
+        if (tbody) {
+            tbody.addEventListener('change', (e) => {
+                const input = e.target.closest('.students-row-checkbox');
+                if (!input) return;
+                const id = input.dataset.id;
+                if (!id) return;
+                if (input.checked) state.selectedIds.add(id);
+                else state.selectedIds.delete(id);
+                updateSelectedInfo();
+            });
+
+            tbody.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.students-action-btn');
+                if (!btn) return;
+                const id = btn.dataset.id;
+                const action = btn.dataset.action;
+                if (!id || !action) return;
+                if (action === 'report') await openStudentReport(id);
+                if (action === 'reset') await resetStudentPassword(id);
+            });
+        }
+
+        if (pagination) {
+            pagination.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-page]');
+                if (!btn) return;
+                const nextPage = Number(btn.dataset.page || state.page);
+                state.page = nextPage;
+                renderTable();
+            });
+        }
+
+        const modalClose = byId('studentsModalClose');
+        const modalOk = byId('studentsModalOk');
+        const modal = byId('studentsDetailModal');
+        if (modalClose) modalClose.addEventListener('click', closeModal);
+        if (modalOk) modalOk.addEventListener('click', closeModal);
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+    }
+
+    async function init() {
+        if (!byId('studentsPage')) return;
+        try {
+            await loadFilters();
+            bindEvents();
+            applyFiltersAndRender();
+        } catch (error) {
+            console.error('Students page init error:', error);
+            alert('Не удалось инициализировать страницу Ученики');
+        }
+    }
+
+    window.StudentsPage = { init };
+})();
+
