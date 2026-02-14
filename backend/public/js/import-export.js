@@ -7,7 +7,7 @@
     const EXPORT_META_KEY = 'zedly_last_export_meta_v1';
     let pendingAutoCreatedClasses = [];
 
-    function showAlert(message, title = 'Ошибка') {
+    function showAlert(message, title = 'РћС€РёР±РєР°') {
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title });
         }
@@ -95,7 +95,7 @@
                 if (!target) return;
                 const payload = getStoredCredentials();
                 if (!payload || !Array.isArray(payload.users) || payload.users.length === 0) {
-                    showAlert('Нет сохраненных данных импорта');
+                    showAlert('РќРµС‚ СЃРѕС…СЂР°РЅРµРЅРЅС‹С… РґР°РЅРЅС‹С… РёРјРїРѕСЂС‚Р°');
                     return;
                 }
                 downloadCredentialsXlsx(payload.users);
@@ -120,7 +120,7 @@
         const resultsContainer = document.getElementById('importResults');
 
         if (!resolvedInput || !resolvedInput.files || resolvedInput.files.length === 0) {
-            renderMessage(resultsContainer, 'Выберите файл для импорта', 'warning');
+            renderMessage(resultsContainer, 'Р’С‹Р±РµСЂРёС‚Рµ С„Р°Р№Р» РґР»СЏ РёРјРїРѕСЂС‚Р°', 'warning');
             return;
         }
 
@@ -128,7 +128,7 @@
         formData.append('file', resolvedInput.files[0]);
         formData.append('import_type', resolvedType);
 
-        renderMessage(resultsContainer, 'Импортируем...', 'info');
+        renderMessage(resultsContainer, 'РРјРїРѕСЂС‚РёСЂСѓРµРј...', 'info');
 
         try {
             const response = await fetch(`${API_URL}/import/users`, {
@@ -139,14 +139,14 @@
             const data = await response.json();
 
             if (!response.ok) {
-                renderMessage(resultsContainer, data.message || 'Ошибка импорта', 'error');
+                renderMessage(resultsContainer, data.message || 'РћС€РёР±РєР° РёРјРїРѕСЂС‚Р°', 'error');
                 return;
             }
 
             renderImportResults(resultsContainer, data);
         } catch (error) {
             console.error('Import error:', error);
-            renderMessage(resultsContainer, 'Ошибка импорта', 'error');
+            renderMessage(resultsContainer, 'РћС€РёР±РєР° РёРјРїРѕСЂС‚Р°', 'error');
         }
     }
 
@@ -162,7 +162,7 @@
             downloadBlob(blob, 'users_import_template.xlsx');
         } catch (error) {
             console.error('Template download error:', error);
-            showAlert('Не удалось скачать шаблон');
+            showAlert('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєР°С‡Р°С‚СЊ С€Р°Р±Р»РѕРЅ');
         }
     }
 
@@ -173,9 +173,9 @@
 
         const type = importTypeSelect?.value || 'student';
         if (type === 'teacher') {
-            importHint.textContent = 'Поддерживаемые колонки: №, ФИО, Пол, Дата рождения, ПИНФЛ, Должность, Классы, Телефоны, Эл. почта';
+            importHint.textContent = 'РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ РєРѕР»РѕРЅРєРё: в„–, Р¤РРћ, РџРѕР», Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ, РџРРќР¤Р›, Р”РѕР»Р¶РЅРѕСЃС‚СЊ, РљР»Р°СЃСЃС‹, РўРµР»РµС„РѕРЅС‹, Р­Р». РїРѕС‡С‚Р°';
         } else {
-            importHint.textContent = 'Поддерживаемые колонки: №, Ученик, Пол, Дата рождения, Класс, Телефон, Эл. почта';
+            importHint.textContent = 'РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ РєРѕР»РѕРЅРєРё: в„–, РЈС‡РµРЅРёРє, РџРѕР», Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ, РљР»Р°СЃСЃ, РўРµР»РµС„РѕРЅ, Р­Р». РїРѕС‡С‚Р°';
         }
     }
 
@@ -356,42 +356,42 @@
         `).join('' );
 
         const errorList = (data.errors || []).map((err) =>
-            `<li>������ ${err.row}: ${err.message}</li>`
+            `<li>Строка ${err.row}: ${err.message}</li>`
         ).join('' );
 
         const skippedList = (data.skipped_rows || []).map((item) =>
-            `<li>������ ${item.row}: ${item.reason}</li>`
+            `<li>Строка ${item.row}: ${item.reason}</li>`
         ).join('' );
 
-        container.innerHTML = `
+                container.innerHTML = `
             <div class="import-summary">
                 <div class="import-summary-item">
-                    <span>����� �����:</span>
+                    <span>Всего строк:</span>
                     <strong>${data.total_rows || 0}</strong>
                 </div>
                 <div class="import-summary-item">
-                    <span>����������:</span>
+                    <span>Обработано:</span>
                     <strong>${data.processed_rows || 0}</strong>
                 </div>
                 <div class="import-summary-item">
-                    <span>�������������:</span>
+                    <span>Импортировано:</span>
                     <strong>${data.imported || 0}</strong>
                 </div>
                 <div class="import-summary-item">
-                    <span>���������:</span>
+                    <span>Пропущено:</span>
                     <strong>${data.skipped || 0}</strong>
                 </div>
                 <div class="import-summary-item">
-                    <span>������:</span>
+                    <span>Ошибок:</span>
                     <strong>${data.failed || (data.errors || []).length}</strong>
                 </div>
             </div>
             ${createdList ? `
                 <div class="import-section">
-                    <h3>��������� ������������ (OTP)</h3>
+                    <h3>Созданные пользователи (OTP)</h3>
                     <div style="margin-bottom: 10px;">
                         <button class="btn btn-secondary" type="button" data-action="download-import-credentials">
-                            ������� ������ � OTP (XLSX)
+                            Скачать логины и OTP (XLSX)
                         </button>
                     </div>
                     <ul class="import-list">${createdList}</ul>
@@ -399,11 +399,11 @@
             ` : ''}
             ${pendingAutoCreatedClasses.length ? `
                 <div class="import-section">
-                    <h3>����� ������ ��� ��������� ������������</h3>
-                    <p>������� �������/������������ ������ ��� �������. ��������� ��������� ������������ ������.</p>
+                    <h3>Новые классы без классрука</h3>
+                    <p>Выберите классного руководителя для классов. Это можно сделать позже.</p>
                     <div style="margin-bottom: 10px;">
                         <button class="btn btn-primary" type="button" data-action="assign-homeroom-now">
-                            ��������� �������� �������������
+                            Назначить классных руководителей
                         </button>
                     </div>
                     <ul class="import-list">
@@ -413,16 +413,16 @@
             ` : ''}
             ${errorList ? `
                 <div class="import-section">
-                    <h3>������</h3>
+                    <h3>Ошибки</h3>
                     <ul class="import-list import-errors">${errorList}</ul>
-                    ${data.errors_truncated ? '<p class="text-secondary">�������� ������ 300 ������.</p>' : ''}
+                    ${data.errors_truncated ? '<p class="text-secondary">Показаны первые 300 ошибок.</p>' : ''}
                 </div>
             ` : ''}
             ${skippedList ? `
                 <div class="import-section">
-                    <h3>����������� ������</h3>
+                    <h3>Пропущенные строки</h3>
                     <ul class="import-list">${skippedList}</ul>
-                    ${data.skipped_truncated ? '<p class="text-secondary">�������� ������ 300 ����������� �����.</p>' : ''}
+                    ${data.skipped_truncated ? '<p class="text-secondary">Показаны первые 300 пропущенных строк.</p>' : ''}
                 </div>
             ` : ''}
         `;
@@ -476,10 +476,10 @@
         const dateLabel = new Date(payload.createdAt).toLocaleString('ru-RU');
         container.innerHTML = `
             <div class="import-message info">
-                Последний импорт: ${dateLabel}. Доступен файл с логинами и OTP.
+                РџРѕСЃР»РµРґРЅРёР№ РёРјРїРѕСЂС‚: ${dateLabel}. Р”РѕСЃС‚СѓРїРµРЅ С„Р°Р№Р» СЃ Р»РѕРіРёРЅР°РјРё Рё OTP.
                 <div style="margin-top: 10px;">
                     <button class="btn btn-secondary" type="button" data-action="download-import-credentials">
-                        Скачать логины и OTP (XLSX)
+                        РЎРєР°С‡Р°С‚СЊ Р»РѕРіРёРЅС‹ Рё OTP (XLSX)
                     </button>
                 </div>
             </div>
@@ -507,7 +507,7 @@
             downloadBlob(blob, filename);
         } catch (error) {
             console.error('Credentials export error:', error);
-            showAlert('Не удалось скачать файл логинов и OTP');
+            showAlert('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєР°С‡Р°С‚СЊ С„Р°Р№Р» Р»РѕРіРёРЅРѕРІ Рё OTP');
         }
     }
 
@@ -526,7 +526,7 @@
             teachers = await fetchTeachers();
         } catch (error) {
             console.error('Failed to load teachers for homeroom modal:', error);
-            showAlert('Не удалось загрузить список учителей');
+            showAlert('РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃРїРёСЃРѕРє СѓС‡РёС‚РµР»РµР№');
             return;
         }
 
@@ -543,7 +543,7 @@
                     <div style="font-size:12px;opacity:.8;">${cls.academic_year || ''}</div>
                 </div>
                 <select data-class-id="${cls.id}" style="width:100%;padding:8px;border-radius:8px;">
-                    <option value="">Без классрука</option>
+                    <option value="">Р‘РµР· РєР»Р°СЃСЃСЂСѓРєР°</option>
                     ${teacherOptions}
                 </select>
             </div>
@@ -554,12 +554,12 @@
         modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:4000;display:flex;align-items:center;justify-content:center;padding:16px;';
         modal.innerHTML = `
             <div style="width:min(720px,100%);max-height:85vh;overflow:auto;background:var(--bg-primary,#111827);color:var(--text-primary,#f9fafb);border:1px solid var(--border,#374151);border-radius:14px;padding:16px;">
-                <h3 style="margin:0 0 6px 0;">Назначение классного руководителя</h3>
-                <p style="margin:0 0 14px 0;color:var(--text-secondary,#9ca3af);">Назначьте классрука для новых классов, созданных при импорте.</p>
+                <h3 style="margin:0 0 6px 0;">РќР°Р·РЅР°С‡РµРЅРёРµ РєР»Р°СЃСЃРЅРѕРіРѕ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЏ</h3>
+                <p style="margin:0 0 14px 0;color:var(--text-secondary,#9ca3af);">РќР°Р·РЅР°С‡СЊС‚Рµ РєР»Р°СЃСЃСЂСѓРєР° РґР»СЏ РЅРѕРІС‹С… РєР»Р°СЃСЃРѕРІ, СЃРѕР·РґР°РЅРЅС‹С… РїСЂРё РёРјРїРѕСЂС‚Рµ.</p>
                 ${rows}
                 <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
-                    <button type="button" data-action="close-homeroom-modal" class="btn btn-secondary">Позже</button>
-                    <button type="button" data-action="save-homeroom-modal" class="btn btn-primary">Сохранить</button>
+                    <button type="button" data-action="close-homeroom-modal" class="btn btn-secondary">РџРѕР·Р¶Рµ</button>
+                    <button type="button" data-action="save-homeroom-modal" class="btn btn-primary">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
                 </div>
             </div>
         `;
@@ -593,10 +593,10 @@
                     }
                 }
                 modal.remove();
-                showAlert('Классные руководители сохранены', 'Успешно');
+                showAlert('РљР»Р°СЃСЃРЅС‹Рµ СЂСѓРєРѕРІРѕРґРёС‚РµР»Рё СЃРѕС…СЂР°РЅРµРЅС‹', 'РЈСЃРїРµС€РЅРѕ');
             } catch (error) {
                 console.error('Save homeroom assignment error:', error);
-                showAlert('Не удалось сохранить назначения');
+                showAlert('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РЅР°Р·РЅР°С‡РµРЅРёСЏ');
             } finally {
                 saveBtn.disabled = false;
             }
