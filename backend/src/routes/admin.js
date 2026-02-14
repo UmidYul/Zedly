@@ -1458,9 +1458,10 @@ router.post('/classes', async (req, res) => {
     try {
         const { name, grade_level, academic_year, homeroom_teacher_id } = req.body;
         const schoolId = req.user.school_id;
+        const normalizedClassName = normalizeClassName(name);
 
         // Validation
-        if (!name || !grade_level || !academic_year) {
+        if (!normalizedClassName || !grade_level || !academic_year) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'Name, grade level and academic year are required'
@@ -1493,7 +1494,7 @@ router.post('/classes', async (req, res) => {
         // Check duplicate class name in same school
         const duplicateCheck = await query(
             'SELECT id FROM classes WHERE school_id = $1 AND name = $2 AND academic_year = $3',
-            [schoolId, name.trim(), academic_year.trim()]
+            [schoolId, normalizedClassName, academic_year.trim()]
         );
 
         if (duplicateCheck.rows.length > 0) {
@@ -1508,14 +1509,14 @@ router.post('/classes', async (req, res) => {
             `INSERT INTO classes (school_id, name, grade_level, academic_year, homeroom_teacher_id, is_active)
              VALUES ($1, $2, $3, $4, $5, true)
              RETURNING id, name, grade_level, academic_year, homeroom_teacher_id, is_active, created_at`,
-            [schoolId, name.trim(), grade_level, academic_year.trim(), homeroom_teacher_id || null]
+            [schoolId, normalizedClassName, grade_level, academic_year.trim(), homeroom_teacher_id || null]
         );
 
         // Log action
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
-            [req.user.id, 'create', 'class', result.rows[0].id, { name: name.trim(), grade_level }]
+            [req.user.id, 'create', 'class', result.rows[0].id, { name: normalizedClassName, grade_level }]
         );
 
         res.status(201).json({
@@ -1540,6 +1541,7 @@ router.put('/classes/:id', enforceSchoolIsolation, async (req, res) => {
         const { id } = req.params;
         const { name, grade_level, academic_year, homeroom_teacher_id, is_active } = req.body;
         const schoolId = req.user.school_id;
+        const normalizedClassName = name === undefined ? undefined : normalizeClassName(name);
 
         // Check if class exists in same school
         const existingClass = await query(
@@ -1555,10 +1557,10 @@ router.put('/classes/:id', enforceSchoolIsolation, async (req, res) => {
         }
 
         // Check duplicate name
-        if (name) {
+        if (normalizedClassName) {
             const duplicateCheck = await query(
                 'SELECT id FROM classes WHERE school_id = $1 AND name = $2 AND academic_year = $3 AND id != $4',
-                [schoolId, name.trim(), academic_year, id]
+                [schoolId, normalizedClassName, academic_year, id]
             );
 
             if (duplicateCheck.rows.length > 0) {
@@ -1574,8 +1576,8 @@ router.put('/classes/:id', enforceSchoolIsolation, async (req, res) => {
         const params = [];
         let paramCount = 1;
 
-        if (name !== undefined) {
-            params.push(name.trim());
+        if (normalizedClassName !== undefined) {
+            params.push(normalizedClassName);
             updates.push(`name = $${paramCount++}`);
         }
 
@@ -2139,6 +2141,16 @@ function mapImportRow(row) {
     if (mapped.phone !== undefined && mapped.phone !== null && String(mapped.phone).trim() !== '') {
         mapped.phone = normalizeUzPhone(mapped.phone);
     }
+    if (mapped.class_name !== undefined && mapped.class_name !== null && String(mapped.class_name).trim() !== '') {
+        mapped.class_name = normalizeClassName(mapped.class_name);
+    }
+    if (mapped.class_names !== undefined && mapped.class_names !== null && String(mapped.class_names).trim() !== '') {
+        mapped.class_names = String(mapped.class_names)
+            .split(',')
+            .map((item) => normalizeClassName(item))
+            .filter(Boolean)
+            .join(', ');
+    }
 
     const hasValues = Object.values(mapped).some(val => String(val || '').trim() !== '');
     return hasValues ? mapped : null;
@@ -2317,7 +2329,7 @@ function parseTeacherClassList(rawValue) {
         .replace(/\n/g, ',');
     return normalized
         .split(',')
-        .map((item) => item.trim())
+        .map((item) => normalizeClassName(item))
         .filter(Boolean);
 }
 
@@ -2688,6 +2700,59 @@ function deriveGradeLevelFromClassName(className) {
     return 1;
 }
 
+function mapClassLetterToCyrillic(letterValue) {
+    const letter = String(letterValue || '').trim().toUpperCase();
+    const latinToCyr = {
+        A: '\u0410',
+        B: '\u0411',
+        C: '\u0421',
+        D: '\u0414',
+        E: '\u0415',
+        F: '\u0424',
+        G: '\u0413',
+        H: '\u0425',
+        I: '\u0418',
+        J: '\u0416',
+        K: '\u041A',
+        L: '\u041B',
+        M: '\u041C',
+        N: '\u041D',
+        O: '\u041E',
+        P: '\u041F',
+        Q: '\u049A',
+        R: '\u0420',
+        S: '\u0421',
+        T: '\u0422',
+        U: '\u0423',
+        V: '\u0412',
+        W: '\u0428',
+        X: '\u0425',
+        Y: '\u0419',
+        Z: '\u0417'
+    };
+    return latinToCyr[letter] || letter;
+}
+
+function normalizeClassName(rawClassName) {
+    const value = String(rawClassName || '').trim();
+    if (!value) return '';
+
+    // Normalize separators and extra spaces.
+    const cleaned = value
+        .replace(/[???_]/g, '-')
+        .replace(/\\s+/g, ' ')
+        .trim();
+
+    const match = cleaned.match(/^(\d{1,2})\s*[-\s]?\s*([A-Za-zА-Яа-яЁё])$/u);
+    if (match) {
+        const grade = String(parseInt(match[1], 10));
+        const suffix = mapClassLetterToCyrillic(match[2]);
+        return `${grade}-${suffix}`;
+    }
+
+    return cleaned.toUpperCase();
+}
+
 function deriveAcademicYear(rawAcademicYear) {
     const value = String(rawAcademicYear || '').trim();
     if (value) return value;
@@ -2710,7 +2775,7 @@ function normalizeImportType(rawType) {
 
 async function ensureActiveClassForImport(schoolId, className, academicYear) {
     if (!className) return null;
-    const normalizedName = className.trim();
+    const normalizedName = normalizeClassName(className);
     const normalizedYear = deriveAcademicYear(academicYear);
 
     const activeResult = await query(
@@ -2757,7 +2822,7 @@ async function ensureActiveClassForImport(schoolId, className, academicYear) {
 
 async function ensureHomeroomTeacherForClass(schoolId, className, teacherId, academicYear) {
     if (!className) return null;
-    const normalizedName = className.trim();
+    const normalizedName = normalizeClassName(className);
     const normalizedYear = deriveAcademicYear(academicYear);
 
     const activeClass = await query(
@@ -2867,4 +2932,6 @@ const INTERNAL_IMPORT_FIELDS = new Set([
 ]);
 
 module.exports = router;
+
+
 
