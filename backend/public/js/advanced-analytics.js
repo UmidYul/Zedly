@@ -35,6 +35,18 @@
         return document.getElementById('advancedAnalyticsRoot');
     }
 
+    function getCurrentUserRole() {
+        try {
+            const raw = localStorage.getItem('user');
+            if (!raw) return '';
+            const user = JSON.parse(raw);
+            return user?.role || '';
+        } catch (error) {
+            console.warn('Failed to parse current user:', error);
+            return '';
+        }
+    }
+
     function ensureChartJs() {
         if (window.Chart) {
             return Promise.resolve();
@@ -659,6 +671,53 @@
         }
     }
 
+    async function loadGradeLevelOptions() {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+
+            const role = getCurrentUserRole();
+            const endpoint = role === 'teacher'
+                ? `${API_URL}/teacher/classes?page=1&limit=1000&search=&grade=all`
+                : `${API_URL}/admin/classes?page=1&limit=1000&search=&grade=all`;
+
+            const response = await fetch(endpoint, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            const select = document.getElementById('gradeLevelFilter');
+            if (!select) return;
+
+            const classes = Array.isArray(data?.classes) ? data.classes : [];
+            const grades = [...new Set(
+                classes
+                    .map(item => Number(item?.grade_level))
+                    .filter(value => Number.isFinite(value) && value > 0)
+            )].sort((a, b) => a - b);
+
+            // Keep only "All grades" option, then append real values from school data.
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
+            grades.forEach((grade) => {
+                const option = document.createElement('option');
+                option.value = String(grade);
+                option.textContent = `${grade} класс`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Failed to load grade levels:', error);
+        }
+    }
+
     async function init() {
         const root = getRoot();
         if (!root || root.dataset.initialized === 'true') return;
@@ -687,6 +746,7 @@
         refreshTranslations();
 
         await loadSubjectOptions();
+        await loadGradeLevelOptions();
         await loadOverview();
         await loadHeatmap();
     }

@@ -1021,9 +1021,6 @@
                                 <label data-i18n="grade_level">Параллель</label>
                                 <select id="gradeLevelFilter">
                                     <option value="">Все параллели</option>
-                                    <option value="9">9 класс</option>
-                                    <option value="10">10 класс</option>
-                                    <option value="11">11 класс</option>
                                 </select>
                             </div>
                             <div class="filter-group">
