@@ -328,16 +328,17 @@
         },
 
         toggleSelectUser: function (userId) {
-            if (this.selectedIds.has(userId)) {
-                this.selectedIds.delete(userId);
+            const normalizedId = String(userId);
+            if (this.selectedIds.has(normalizedId)) {
+                this.selectedIds.delete(normalizedId);
             } else {
-                this.selectedIds.add(userId);
+                this.selectedIds.add(normalizedId);
             }
             this.syncSelectionUi();
         },
 
         toggleSelectAllUsers: function (checked) {
-            const currentIds = this.lastRenderedUsers.map(user => user.id);
+            const currentIds = this.lastRenderedUsers.map(user => String(user.id));
             if (checked) {
                 currentIds.forEach(id => this.selectedIds.add(id));
             } else {
@@ -370,14 +371,18 @@
 
             const selectAllEl = document.getElementById('usersSelectAll');
             if (selectAllEl) {
-                const currentIds = this.lastRenderedUsers.map(user => user.id);
+                const currentIds = this.lastRenderedUsers.map(user => String(user.id));
                 const selectedOnPage = currentIds.filter(id => this.selectedIds.has(id)).length;
                 selectAllEl.checked = currentIds.length > 0 && selectedOnPage === currentIds.length;
                 selectAllEl.indeterminate = selectedOnPage > 0 && selectedOnPage < currentIds.length;
             }
 
             document.querySelectorAll('tr[data-user-id]').forEach(row => {
-                row.classList.toggle('bulk-row-selected', this.selectedIds.has(row.dataset.userId));
+                const rowId = String(row.dataset.userId || '');
+                const isSelected = this.selectedIds.has(rowId);
+                row.classList.toggle('bulk-row-selected', isSelected);
+                const checkbox = row.querySelector('.bulk-row-checkbox');
+                if (checkbox) checkbox.checked = isSelected;
             });
         },
 
