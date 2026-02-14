@@ -12,6 +12,8 @@
         overview: null,
         comparison: null,
         risk: null,
+        riskStudents: [],
+        riskPagination: { page: 1, limit: 20, total: 0, has_more: false },
         chart: null
     };
 
@@ -330,7 +332,7 @@
         }
 
         const summary = state.risk?.summary || {};
-        const students = Array.isArray(state.risk?.students) ? state.risk.students : [];
+        const students = Array.isArray(state.riskStudents) ? state.riskStudents : [];
         const classes = Array.isArray(state.risk?.classes) ? state.risk.classes : [];
 
         summaryEl.innerHTML = `
@@ -369,7 +371,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${students.slice(0, 50).map((row) => `
+                        ${students.map((row) => `
                             <tr>
                                 <td>${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
                                 <td>${escapeHtml(row.class_name || '-')}</td>
@@ -382,7 +384,28 @@
                     </tbody>
                 </table>
             </div>
+            <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                <span class="text-secondary">Shown: ${fmtInt(students.length)} / ${fmtInt(state.riskPagination.total || 0)}</span>
+                ${state.riskPagination.has_more ? '<button class="btn btn-outline" type="button" id="reportsRiskLoadMoreBtn">Show more</button>' : ''}
+            </div>
         `;
+
+        const loadMoreBtn = document.getElementById('reportsRiskLoadMoreBtn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', async () => {
+                try {
+                    loadMoreBtn.disabled = true;
+                    loadMoreBtn.textContent = 'Loading...';
+                    await loadRiskPage((state.riskPagination.page || 1) + 1, true);
+                    renderRiskDashboard();
+                } catch (error) {
+                    console.error('Load more risk students error:', error);
+                } finally {
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.textContent = 'Show more';
+                }
+            });
+        }
     }
 
     function buildRowDetails(row) {
@@ -544,17 +567,40 @@
             state.overview = overview;
             state.comparison = comparison;
             state.risk = null;
+            state.riskStudents = [];
+            state.riskPagination = { page: 1, limit: 20, total: 0, has_more: false };
             return;
         }
 
-        const [overview, comparison, risk] = await Promise.all([
+        const [overview, comparison] = await Promise.all([
             apiGet(`${API}/analytics/school/overview?period=${encodeURIComponent(period)}`),
-            apiGet(`${API}/analytics/school/comparison?type=classes`),
-            apiGet(`${API}/analytics/school/risk-dashboard?period=${encodeURIComponent(period)}&risk_threshold=60&min_attempts=1`)
+            apiGet(`${API}/analytics/school/comparison?type=classes`)
         ]);
         state.overview = overview;
         state.comparison = comparison;
+        await loadRiskPage(1, false);
+    }
+
+    async function loadRiskPage(page = 1, append = false) {
+        if (state.role === 'superadmin') {
+            state.risk = null;
+            state.riskStudents = [];
+            state.riskPagination = { page: 1, limit: 20, total: 0, has_more: false };
+            return;
+        }
+
+        const period = Number(state.period) || 30;
+        const limit = state.riskPagination.limit || 20;
+        const risk = await apiGet(`${API}/analytics/school/risk-dashboard?period=${encodeURIComponent(period)}&risk_threshold=60&min_attempts=1&page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`);
         state.risk = risk;
+        const incoming = Array.isArray(risk.students) ? risk.students : [];
+        state.riskStudents = append ? state.riskStudents.concat(incoming) : incoming;
+        state.riskPagination = {
+            page: risk.pagination?.page || page,
+            limit: risk.pagination?.limit || limit,
+            total: risk.pagination?.total || 0,
+            has_more: Boolean(risk.pagination?.has_more)
+        };
     }
 
     async function handleDataExport() {

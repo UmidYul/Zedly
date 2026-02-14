@@ -420,6 +420,11 @@ router.get('/school/risk-dashboard', authorize('school_admin', 'teacher'), async
         const minAttempts = Number.isFinite(minAttemptsRaw)
             ? Math.min(Math.max(minAttemptsRaw, 0), 30)
             : 1;
+        const pageRaw = Number.parseInt(String(req.query.page ?? 1), 10);
+        const limitRaw = Number.parseInt(String(req.query.limit ?? 20), 10);
+        const page = Number.isFinite(pageRaw) ? Math.max(pageRaw, 1) : 1;
+        const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 20;
+        const offset = (page - 1) * limit;
         const { grade_level, subject_id } = req.query;
 
         const attempt = await getAttemptExpressions();
@@ -437,6 +442,8 @@ router.get('/school/risk-dashboard', authorize('school_admin', 'teacher'), async
         const teacherParam = isTeacher ? addParam(req.user.id) : null;
         const riskThresholdParam = addParam(riskThreshold);
         const minAttemptsParam = addParam(minAttempts);
+        const limitParam = addParam(limit);
+        const offsetParam = addParam(offset);
 
         const scopeFilters = [
             'u.school_id = $1',
@@ -526,6 +533,12 @@ router.get('/school/risk-dashboard', authorize('school_admin', 'teacher'), async
                 (SELECT AVG(avg_score) FROM enriched WHERE attempts_completed > 0) as average_score,
                 (SELECT COUNT(*) FROM enriched WHERE attempts_completed = 0) as no_data_count,
                 (
+                    SELECT COUNT(*)
+                    FROM enriched
+                    WHERE risk_level <> 'safe'
+                      AND (attempts_completed >= ${minAttemptsParam} OR attempts_completed = 0)
+                ) as total_risk_students,
+                (
                     SELECT COALESCE(json_agg(x), '[]'::json)
                     FROM (
                         SELECT
@@ -539,7 +552,7 @@ router.get('/school/risk-dashboard', authorize('school_admin', 'teacher'), async
                             CASE risk_level WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END,
                             avg_score ASC NULLS FIRST,
                             attempts_completed ASC
-                        LIMIT 120
+                        LIMIT ${limitParam} OFFSET ${offsetParam}
                     ) x
                 ) as students,
                 (
@@ -575,7 +588,13 @@ router.get('/school/risk-dashboard', authorize('school_admin', 'teacher'), async
             risk_threshold: riskThreshold,
             min_attempts: minAttempts,
             students: Array.isArray(row.students) ? row.students : [],
-            classes: Array.isArray(row.classes) ? row.classes : []
+            classes: Array.isArray(row.classes) ? row.classes : [],
+            pagination: {
+                page,
+                limit,
+                total: parseInt(row.total_risk_students || 0, 10),
+                has_more: offset + limit < parseInt(row.total_risk_students || 0, 10)
+            }
         });
     } catch (error) {
         console.error('Risk dashboard analytics error:', error);
@@ -720,7 +739,14 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 JOIN class_students cs ON cs.student_id = u.id
                     AND cs.is_active = true
                 JOIN classes c ON c.id = cs.class_id
-                LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
+                LEFT JOIN test_attempts ta ON ta.student_id = u.id
+                    AND ${attempt.completedFilter}
+                    AND EXISTS (
+                        SELECT 1
+                        FROM tests t_scope
+                        WHERE t_scope.id = ta.test_id
+                          AND t_scope.school_id = $1
+                    )
                 WHERE ${conditions.join(' AND ')}
                 GROUP BY u.id, u.first_name, u.last_name, c.name
                 HAVING COUNT(ta.id) > 0
@@ -791,14 +817,27 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
                 SUM(${attempt.passedCase}) as passed_count
             FROM users u
             JOIN class_students cs ON cs.student_id = u.id
-            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
+            LEFT JOIN test_attempts ta ON ta.student_id = u.id
+                AND ${attempt.completedFilter}
+                AND EXISTS (
+                    SELECT 1
+                    FROM test_assignments tas
+                    WHERE tas.id = ta.assignment_id
+                      AND tas.class_id = $1
+                )
+                AND EXISTS (
+                    SELECT 1
+                    FROM tests t_scope
+                    WHERE t_scope.id = ta.test_id
+                      AND t_scope.school_id = $2
+                )
             LEFT JOIN tests t ON t.id = ta.test_id
             LEFT JOIN subjects s ON s.id = t.subject_id
             WHERE cs.class_id = $1
               AND cs.is_active = true
             GROUP BY u.id, u.first_name, u.last_name, ${nameRu}
             ORDER BY u.last_name, u.first_name, ${nameRu}
-        `, [id]);
+        `, [id, schoolId]);
 
         // Subject breakdown for the class
         const subjectBreakdown = await query(`
@@ -816,10 +855,17 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
             JOIN class_students cs ON cs.student_id = ta.student_id
             WHERE cs.class_id = $1
               AND cs.is_active = true
+              AND t.school_id = $2
+              AND EXISTS (
+                    SELECT 1
+                    FROM test_assignments tas
+                    WHERE tas.id = ta.assignment_id
+                      AND tas.class_id = $1
+              )
               AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             ORDER BY avg_score DESC
-        `, [id]);
+        `, [id, schoolId]);
 
         // Time-based progress
         const progressOverTime = await query(`
@@ -829,13 +875,21 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
                 COUNT(ta.id) as attempts
             FROM test_attempts ta
             JOIN class_students cs ON cs.student_id = ta.student_id
+            JOIN tests t ON t.id = ta.test_id
                         WHERE cs.class_id = $1
                             AND cs.is_active = true
+                            AND t.school_id = $2
+                            AND EXISTS (
+                                SELECT 1
+                                FROM test_assignments tas
+                                WHERE tas.id = ta.assignment_id
+                                  AND tas.class_id = $1
+                            )
                             AND ${attempt.completedFilter}
                             AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '90 days'
                         GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
             ORDER BY week
-        `, [id]);
+        `, [id, schoolId]);
 
         // Student rankings
         const rankings = await query(`
@@ -848,13 +902,26 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
                 RANK() OVER (ORDER BY AVG(${attempt.score}) DESC) as rank
             FROM users u
             JOIN class_students cs ON cs.student_id = u.id
-            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
+            LEFT JOIN test_attempts ta ON ta.student_id = u.id
+                AND ${attempt.completedFilter}
+                AND EXISTS (
+                    SELECT 1
+                    FROM test_assignments tas
+                    WHERE tas.id = ta.assignment_id
+                      AND tas.class_id = $1
+                )
+                AND EXISTS (
+                    SELECT 1
+                    FROM tests t_scope
+                    WHERE t_scope.id = ta.test_id
+                      AND t_scope.school_id = $2
+                )
             WHERE cs.class_id = $1
               AND cs.is_active = true
             GROUP BY u.id, u.first_name, u.last_name
             HAVING COUNT(ta.id) > 0
             ORDER BY rank
-        `, [id]);
+        `, [id, schoolId]);
 
         res.json({
             class: classInfo,
@@ -952,8 +1019,11 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                 SUM(${attempt.passedCase}) as passed_count,
                 AVG(${attempt.timeSpent}) / 60 as avg_time_minutes
             FROM test_attempts ta
-            WHERE ta.student_id = $1 AND ${attempt.completedFilter}
-        `, [id]);
+            JOIN tests t ON t.id = ta.test_id
+            WHERE ta.student_id = $1
+              AND t.school_id = $2
+              AND ${attempt.completedFilter}
+        `, [id, schoolId]);
 
         // Performance by subject
         const subjectPerformance = await query(`
@@ -967,10 +1037,12 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
-            WHERE ta.student_id = $1 AND ${attempt.completedFilter}
+            WHERE ta.student_id = $1
+              AND t.school_id = $2
+              AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             ORDER BY avg_score DESC
-        `, [id]);
+        `, [id, schoolId]);
 
         // Progress over time
         const progress = await query(`
@@ -979,11 +1051,14 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                                 AVG(${attempt.score}) as avg_score,
                 COUNT(*) as attempts
                         FROM test_attempts ta
-                        WHERE ta.student_id = $1 AND ${attempt.completedFilter}
+                        JOIN tests t ON t.id = ta.test_id
+                        WHERE ta.student_id = $1
+                          AND t.school_id = $2
+                          AND ${attempt.completedFilter}
                             AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '90 days'
                         GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
             ORDER BY week
-        `, [id]);
+        `, [id, schoolId]);
 
         // Strengths and weaknesses (by subject)
         const strengths = await query(`
@@ -993,12 +1068,14 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
-            WHERE ta.student_id = $1 AND ${attempt.completedFilter}
+            WHERE ta.student_id = $1
+              AND t.school_id = $2
+              AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             HAVING COUNT(*) >= 3
             ORDER BY avg_score DESC
             LIMIT 3
-        `, [id]);
+        `, [id, schoolId]);
 
         const weaknesses = await query(`
             SELECT
@@ -1007,12 +1084,14 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
-            WHERE ta.student_id = $1 AND ${attempt.completedFilter}
+            WHERE ta.student_id = $1
+              AND t.school_id = $2
+              AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             HAVING COUNT(*) >= 3
             ORDER BY avg_score ASC
             LIMIT 3
-        `, [id]);
+        `, [id, schoolId]);
 
         // Class ranking
         const ranking = await query(`
@@ -1033,7 +1112,9 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                     ta.student_id,
                     AVG(${attempt.score}) as avg_score
                 FROM test_attempts ta
+                JOIN tests t ON t.id = ta.test_id
                 WHERE ta.student_id IN (SELECT student_id FROM class_students)
+                  AND t.school_id = $2
                   AND ${attempt.completedFilter}
                 GROUP BY ta.student_id
             )
@@ -1042,7 +1123,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                 COUNT(*) OVER () as total_students
             FROM student_scores
             WHERE student_id = $1
-        `, [id]);
+        `, [id, schoolId]);
 
         res.json({
             student: studentInfo.rows[0],

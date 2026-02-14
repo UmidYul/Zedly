@@ -369,6 +369,42 @@
         URL.revokeObjectURL(url);
     }
 
+    function handlePdfExport() {
+        const root = byId('calendarPage');
+        if (!root) return;
+
+        const printWindow = window.open('', '_blank', 'width=1200,height=800');
+        if (!printWindow) {
+            alert('Popup blocked. Allow popups to export PDF.');
+            return;
+        }
+
+        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+            .map((link) => `<link rel="stylesheet" href="${link.href}">`)
+            .join('');
+        const clone = root.cloneNode(true);
+
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Calendar PDF</title>
+                ${styles}
+                <style>
+                    body { background: #fff !important; padding: 16px; }
+                    .calendar-page { width: 100% !important; max-width: 100% !important; }
+                    .dashboard-section { break-inside: avoid; page-break-inside: avoid; }
+                </style>
+            </head>
+            <body>${clone.outerHTML}</body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+        }, 350);
+    }
+
     function bindEvents() {
         const prev = byId('calendarPrevBtn');
         const next = byId('calendarNextBtn');
@@ -377,6 +413,7 @@
         const statusFilter = byId('calendarStatusFilter');
         const search = byId('calendarSearchInput');
         const exportBtn = byId('calendarExportIcsBtn');
+        const pdfBtn = byId('calendarPdfBtn');
         const grid = byId('calendarGrid');
         const dayEvents = byId('calendarDayEvents');
         const table = byId('calendarUpcomingTableBody');
@@ -420,6 +457,7 @@
             });
         }
         if (exportBtn) exportBtn.addEventListener('click', exportIcs);
+        if (pdfBtn) pdfBtn.addEventListener('click', handlePdfExport);
 
         if (grid) {
             grid.addEventListener('click', (e) => {
@@ -468,4 +506,3 @@
 
     window.CalendarPage = { init };
 })();
-

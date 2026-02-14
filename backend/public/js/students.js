@@ -439,6 +439,59 @@
         URL.revokeObjectURL(url);
     }
 
+    function handlePdfExport() {
+        const root = byId('studentsPage');
+        if (!root) return;
+
+        const printWindow = window.open('', '_blank', 'width=1200,height=800');
+        if (!printWindow) {
+            alert('Popup blocked. Allow popups to export PDF.');
+            return;
+        }
+
+        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+            .map((link) => `<link rel="stylesheet" href="${link.href}">`)
+            .join('');
+
+        const clone = root.cloneNode(true);
+        ['studentsSubjectChart', 'studentsAssignmentsChart'].forEach((id) => {
+            const sourceCanvas = byId(id);
+            const targetCanvas = clone.querySelector(`#${id}`);
+            if (!sourceCanvas || !targetCanvas) return;
+            try {
+                const image = document.createElement('img');
+                image.alt = `${id} chart`;
+                image.src = sourceCanvas.toDataURL('image/png', 1.0);
+                image.style.width = '100%';
+                image.style.maxHeight = '360px';
+                image.style.objectFit = 'contain';
+                targetCanvas.replaceWith(image);
+            } catch (error) {
+                // keep canvas fallback if rendering export image fails
+            }
+        });
+
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Students PDF</title>
+                ${styles}
+                <style>
+                    body { background: #fff !important; padding: 16px; }
+                    .students-page { width: 100% !important; max-width: 100% !important; }
+                    .dashboard-section { break-inside: avoid; page-break-inside: avoid; }
+                </style>
+            </head>
+            <body>${clone.outerHTML}</body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+        }, 350);
+    }
+
     function bindEvents() {
         const classFilter = byId('studentsClassFilter');
         const subjectFilter = byId('studentsSubjectFilter');
@@ -447,6 +500,7 @@
         const sortFilter = byId('studentsSortFilter');
         const refresh = byId('studentsRefreshBtn');
         const exportBtn = byId('studentsExportBtn');
+        const pdfBtn = byId('studentsPdfBtn');
         const tbody = byId('studentsTableBody');
         const pagination = byId('studentsPagination');
         const selectAll = byId('studentsSelectAll');
@@ -490,6 +544,7 @@
 
         if (refresh) refresh.addEventListener('click', loadClassAnalytics);
         if (exportBtn) exportBtn.addEventListener('click', exportCsv);
+        if (pdfBtn) pdfBtn.addEventListener('click', handlePdfExport);
 
         if (selectAll) {
             selectAll.addEventListener('change', () => {
@@ -561,4 +616,3 @@
 
     window.StudentsPage = { init };
 })();
-

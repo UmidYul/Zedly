@@ -10,6 +10,7 @@
     "db:seed": "node scripts/seed.js",
     "db:backup": "node scripts/backup.js",
     "test": "jest --coverage",
+    "test:smoke": "jest src/tests/smoke.e2e.test.js --runInBand",
     "lint": "eslint src/**/*.js",
     "cron:reports": "node src/jobs/reports.js",
     "cron:backups": "node src/jobs/backups.js"

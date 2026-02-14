@@ -870,6 +870,7 @@
                         <div class="students-hero-actions">
                             <button class="btn btn-secondary" id="studentsRefreshBtn" type="button">Обновить</button>
                             <button class="btn btn-outline" id="studentsExportBtn" type="button">Экспорт CSV</button>
+                            <button class="btn btn-outline" id="studentsPdfBtn" type="button">Export PDF</button>
                         </div>
                     </section>
 
@@ -993,6 +994,7 @@
                         <div class="calendar-hero-actions">
                             <button class="btn btn-secondary" id="calendarTodayBtn" type="button">Сегодня</button>
                             <button class="btn btn-outline" id="calendarExportIcsBtn" type="button">Экспорт .ics</button>
+                            <button class="btn btn-outline" id="calendarPdfBtn" type="button">Export PDF</button>
                         </div>
                     </section>
 
@@ -2477,4 +2479,5 @@
         console.log('Dashboard initialized ✓');
     });
 })();
+
 

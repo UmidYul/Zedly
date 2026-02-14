@@ -419,7 +419,7 @@
 - [x] In-app + Telegram notifications for assignments/deadlines
 - [x] Assignment templates
 - [x] Risk dashboard (students at risk)
-- [ ] Report export parity (PDF "as on screen" for key pages)
+- [x] Report export parity (PDF "as on screen" for key pages)
 
 ### P2 Week 2
 - [ ] E2E smoke tests (login/import/assign/take/report)
@@ -456,6 +456,13 @@
 - [x] In-app notifications now include live deadline items from active assignments (student/teacher) in bell dropdown
 - [x] Added backend cron job for Telegram deadline reminders with daily dedupe via `audit_logs` (`deadline_reminder`)
 - [x] Risk dashboard API (`/api/analytics/school/risk-dashboard`) + Reports UI block (At Risk Students)
+- [x] Risk dashboard optimized for large schools: paginated loading (`page/limit`) + incremental "Show more"
+- [x] PDF export parity extended to Students + Calendar pages (print-as-screen)
+- [x] Analytics hardening: student report (`GET /api/analytics/student/:id/report`) now scopes attempts/subjects/progress/ranking by `tests.school_id`
+- [x] Analytics hardening: class detailed (`GET /api/analytics/class/:id/detailed`) now scopes attempts to current class assignments + school tests
+- [x] Analytics hardening: comparison students (`GET /api/analytics/school/comparison?type=students`) now scopes attempts by school tests
+- [x] E2E smoke scaffold added (`backend/src/tests/smoke.e2e.test.js` + `npm run test:smoke`) for login/import/assign/take/report flows
+
 
 
 
