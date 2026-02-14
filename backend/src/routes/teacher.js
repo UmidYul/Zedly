@@ -1291,14 +1291,20 @@ router.get('/assignments/:id', async (req, res) => {
  */
 router.post('/assignments', async (req, res) => {
     try {
-        const { test_id, class_id, start_date, end_date } = req.body;
+        const { test_id, class_id, class_ids, start_date, end_date } = req.body;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+        const normalizedClassIds = Array.from(new Set(
+            (Array.isArray(class_ids) && class_ids.length > 0 ? class_ids : [class_id])
+                .map((id) => String(id || '').trim())
+                .filter(Boolean)
+        ));
 
         // Validation
-        if (!test_id || !class_id || !start_date || !end_date) {
+        if (!test_id || normalizedClassIds.length === 0 || !start_date || !end_date) {
             return res.status(400).json({
                 error: 'validation_error',
-                message: 'Test, class, start date and end date are required'
+                message: 'Test, classes, start date and end date are required'
             });
         }
 
@@ -1315,56 +1321,66 @@ router.post('/assignments', async (req, res) => {
             });
         }
 
-        // Verify teacher has access to class
-        const schoolId = req.user.school_id;
-        const classCheck = await query(
-            `SELECT 1 FROM classes c
+        // Verify teacher has access to all selected classes
+        const classAccessResult = await query(
+            `SELECT DISTINCT c.id
+             FROM classes c
              LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
-             WHERE c.id = $1
-               AND c.school_id = $2
-               AND (c.homeroom_teacher_id = $3 OR tcs.teacher_id = $3)
-             LIMIT 1`,
-            [class_id, schoolId, teacherId]
+             WHERE c.school_id = $1
+               AND c.id = ANY($2::uuid[])
+               AND (c.homeroom_teacher_id = $3 OR tcs.teacher_id = $3)`,
+            [schoolId, normalizedClassIds, teacherId]
         );
 
-        if (classCheck.rows.length === 0) {
+        const accessibleIds = new Set(classAccessResult.rows.map((row) => String(row.id)));
+        const inaccessibleIds = normalizedClassIds.filter((id) => !accessibleIds.has(String(id)));
+        if (inaccessibleIds.length > 0) {
             return res.status(400).json({
                 error: 'validation_error',
-                message: 'You do not have access to this class'
+                message: 'You do not have access to one or more selected classes'
             });
         }
 
-        // Check if assignment already exists
+        // Check already active assignments for the selected classes
         const existingCheck = await query(
-            'SELECT id FROM test_assignments WHERE test_id = $1 AND class_id = $2 AND is_active = true',
-            [test_id, class_id]
+            `SELECT class_id
+             FROM test_assignments
+             WHERE test_id = $1
+               AND class_id = ANY($2::uuid[])
+               AND is_active = true`,
+            [test_id, normalizedClassIds]
         );
+        const existingClassIds = new Set(existingCheck.rows.map((row) => String(row.class_id)));
+        const classIdsToCreate = normalizedClassIds.filter((id) => !existingClassIds.has(String(id)));
 
-        if (existingCheck.rows.length > 0) {
+        if (classIdsToCreate.length === 0) {
             return res.status(400).json({
                 error: 'validation_error',
-                message: 'This test is already assigned to this class'
+                message: 'This test is already assigned to selected classes'
             });
         }
 
-        // Create assignment
-        const result = await query(
-            `INSERT INTO test_assignments (test_id, class_id, assigned_by, start_date, end_date, is_active)
-             VALUES ($1, $2, $3, $4, $5, true)
-             RETURNING id, created_at`,
-            [test_id, class_id, teacherId, start_date, end_date]
-        );
+        const createdAssignments = [];
 
-        // Log action
-        await query(
-            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [teacherId, 'create', 'test_assignment', result.rows[0].id, { test_id, class_id }]
-        );
+        for (const targetClassId of classIdsToCreate) {
+            const result = await query(
+                `INSERT INTO test_assignments (test_id, class_id, assigned_by, start_date, end_date, is_active)
+                 VALUES ($1, $2, $3, $4, $5, true)
+                 RETURNING id, class_id, created_at`,
+                [test_id, targetClassId, teacherId, start_date, end_date]
+            );
+            const assignment = result.rows[0];
+            createdAssignments.push(assignment);
 
-        // Send notifications to students in the class
+            await query(
+                `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [teacherId, 'create', 'test_assignment', assignment.id, { test_id, class_id: targetClassId }]
+            );
+        }
+
+        // Send notifications to students in created classes
         try {
-            // Get test info and students
             const testInfo = await query(
                 `SELECT t.id, t.title, t.duration_minutes as time_limit, t.subject_id, s.name as subject_name
                  FROM tests t
@@ -1373,28 +1389,30 @@ router.post('/assignments', async (req, res) => {
                 [test_id]
             );
 
-            const studentsResult = await query(
-                `SELECT u.id, u.role, u.first_name, u.last_name, u.email, u.telegram_id, u.settings
-                 FROM users u
-                 JOIN class_students cs ON cs.student_id = u.id
-                 WHERE cs.class_id = $1 AND u.is_active = true`,
-                [class_id]
-            );
-
-            const test = {
-                ...testInfo.rows[0],
-                assignment_id: result.rows[0].id
-            };
+            const baseTest = testInfo.rows[0] || {};
             const language = req.query.lang || 'ru';
 
-            // Send notifications to each student
-            for (const student of studentsResult.rows) {
-                if (student.email || student.telegram_id) {
-                    // Use student's preferred language if available
-                    const studentLang = (student.settings && student.settings.language) || language;
-                    notifyNewTest(student, test, studentLang).catch(err => {
-                        console.error('Notification error for student:', student.id, err);
-                    });
+            for (const assignment of createdAssignments) {
+                const studentsResult = await query(
+                    `SELECT u.id, u.role, u.first_name, u.last_name, u.email, u.telegram_id, u.settings
+                     FROM users u
+                     JOIN class_students cs ON cs.student_id = u.id
+                     WHERE cs.class_id = $1 AND u.is_active = true`,
+                    [assignment.class_id]
+                );
+
+                const testPayload = {
+                    ...baseTest,
+                    assignment_id: assignment.id
+                };
+
+                for (const student of studentsResult.rows) {
+                    if (student.email || student.telegram_id) {
+                        const studentLang = (student.settings && student.settings.language) || language;
+                        notifyNewTest(student, testPayload, studentLang).catch(err => {
+                            console.error('Notification error for student:', student.id, err);
+                        });
+                    }
                 }
             }
         } catch (notifyError) {
@@ -1403,8 +1421,10 @@ router.post('/assignments', async (req, res) => {
         }
 
         res.status(201).json({
-            message: 'Assignment created successfully',
-            assignment: result.rows[0]
+            message: createdAssignments.length === normalizedClassIds.length
+                ? 'Assignments created successfully'
+                : `Assignments created: ${createdAssignments.length}, skipped: ${normalizedClassIds.length - createdAssignments.length}`,
+            assignments: createdAssignments
         });
     } catch (error) {
         console.error('Create assignment error:', error);

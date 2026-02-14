@@ -402,12 +402,11 @@
 
                                 <div class="form-group">
                                     <label class="form-label">
-                                        Class <span class="required">*</span>
+                                        Classes <span class="required">*</span>
                                     </label>
-                                    <select class="form-input" name="class_id" required ${isEdit ? 'disabled' : ''}>
-                                        <option value="">Select class</option>
-                                        
+                                    <select class="form-input" name="class_ids" multiple size="8" required ${isEdit ? 'disabled' : ''}>
                                     </select>
+                                    <span class="form-hint">Hold Ctrl (Cmd on Mac) to select multiple classes</span>
                                 </div>
                                 ` : `
                                 <div class="alert alert-info">
@@ -481,16 +480,16 @@
 
             if (!isEdit) {
                 const testSelect = document.querySelector('#assignmentForm select[name="test_id"]');
-                const classSelect = document.querySelector('#assignmentForm select[name="class_id"]');
+                const classSelect = document.querySelector('#assignmentForm select[name="class_ids"]');
 
                 const setClassOptions = (classes = []) => {
                     if (!classSelect) return;
                     if (!classes.length) {
-                        classSelect.innerHTML = `<option value="">No classes available</option>`;
+                        classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
                         return;
                     }
                     classSelect.innerHTML = `
-                        <option value="">Select class</option>
+                        
                         ${classes.map(cls =>
                             `<option value="${cls.id}">${cls.name} - ${cls.grade_level} класс</option>`
                         ).join('')}
@@ -500,7 +499,7 @@
                 const loadClassesForSubject = async (subjectId) => {
                     if (!subjectId) {
                         if (classSelect) {
-                            classSelect.innerHTML = `<option value="">Select test first</option>`;
+                            classSelect.innerHTML = `<option value="" disabled>Select test first</option>`;
                         }
                         return;
                     }
@@ -538,7 +537,7 @@
 
                 const initialSubjectId = testSelect?.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
                 if (!initialSubjectId) {
-                    if (classSelect) classSelect.innerHTML = `<option value="">Select test first</option>`;
+                    if (classSelect) classSelect.innerHTML = `<option value="" disabled>Select test first</option>`;
                 } else {
                     loadClassesForSubject(initialSubjectId);
                 }
@@ -594,7 +593,10 @@
 
             if (!assignmentId) {
                 data.test_id = formData.get('test_id');
-                data.class_id = formData.get('class_id');
+                const classSelect = form.querySelector('select[name="class_ids"]');
+                data.class_ids = classSelect
+                    ? Array.from(classSelect.selectedOptions).map((opt) => opt.value).filter(Boolean)
+                    : [];
             }
 
             data.start_date = toIso(formData.get('start_date'));
@@ -605,9 +607,9 @@
             }
 
             // Validation
-            if (!assignmentId && (!data.test_id || !data.class_id)) {
+            if (!assignmentId && (!data.test_id || !Array.isArray(data.class_ids) || data.class_ids.length === 0)) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Please select both test and class';
+                formAlert.textContent = 'Please select a test and at least one class';
                 return;
             }
 
@@ -859,4 +861,5 @@
         }
     };
 })();
+
 
