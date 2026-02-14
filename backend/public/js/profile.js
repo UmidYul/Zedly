@@ -9,6 +9,7 @@
     let isOwnProfile = false;
     let performanceChart = null;
     let careerChart = null;
+    const PROFILE_ACTIVITY_LIMIT = 10;
     function setProfileLoading(loading) {
         const stats = document.getElementById('statsContent');
         const activity = document.getElementById('activityList');
@@ -634,7 +635,7 @@
         if (!list) return;
 
         try {
-            const data = await apiFetch('/api/auth/profile/activity?limit=30');
+            const data = await apiFetch(`/api/auth/profile/activity?limit=${PROFILE_ACTIVITY_LIMIT}`);
             const activity = Array.isArray(data.activity) ? data.activity : [];
             if (!activity.length) {
                 list.innerHTML = '<p class="no-data">Нет активности</p>';
