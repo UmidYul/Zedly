@@ -422,6 +422,33 @@ function initTelegramStartListener() {
 
         try {
             if (!startToken) {
+                const linkedUserResult = await query(
+                    `SELECT id, username
+                     FROM users
+                     WHERE telegram_id = $1
+                     LIMIT 1`,
+                    [String(chatId)]
+                );
+
+                if (linkedUserResult.rows.length > 0) {
+                    const linkedUser = linkedUserResult.rows[0];
+                    const activePhoneRequest = getPhoneRequestForUser(linkedUser.id);
+                    if (activePhoneRequest && activePhoneRequest.status === 'pending') {
+                        await sendPhoneRequestToTelegram(linkedUser.id, chatId);
+                        await sendTelegram(
+                            chatId,
+                            `Запрос на подтверждение номера уже активен для <b>${linkedUser.username}</b>. Отправьте ваш контакт кнопкой ниже.`
+                        );
+                        return;
+                    }
+
+                    await sendTelegram(
+                        chatId,
+                        `Аккаунт <b>${linkedUser.username}</b> уже подключен к Telegram. Для смены номера запустите действие из кабинета.`
+                    );
+                    return;
+                }
+
                 await sendTelegram(
                     chatId,
                     'Привет! Для привязки аккаунта вернитесь в кабинет ZEDLY и нажмите кнопку подключения Telegram еще раз, затем нажмите кнопку START по открывшейся ссылке.'
