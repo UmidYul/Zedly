@@ -9,6 +9,8 @@
     let isOwnProfile = false;
     let performanceChart = null;
     let careerChart = null;
+    let phoneRequestPollTimer = null;
+    let activePhoneRequestId = '';
     const PROFILE_ACTIVITY_LIMIT = 10;
     function setProfileLoading(loading) {
         const stats = document.getElementById('statsContent');
@@ -574,6 +576,80 @@
         }
     }
 
+    function stopPhoneRequestPolling() {
+        if (phoneRequestPollTimer) {
+            clearInterval(phoneRequestPollTimer);
+            phoneRequestPollTimer = null;
+        }
+    }
+
+    async function pollPhoneRequestStatus() {
+        if (!activePhoneRequestId) return;
+        try {
+            const status = await apiFetch(`/api/telegram/me/phone/status?request_id=${encodeURIComponent(activePhoneRequestId)}`);
+            if (!status?.found) {
+                stopPhoneRequestPolling();
+                activePhoneRequestId = '';
+                return;
+            }
+
+            if (status.status === 'pending') {
+                return;
+            }
+
+            stopPhoneRequestPolling();
+
+            if (status.status === 'completed' && status.phone) {
+                const phoneValue = String(status.phone);
+                profileUser.phone = phoneValue;
+                profileUser.phone_verified = true;
+
+                const phoneInput = document.getElementById('phoneInput');
+                if (phoneInput) phoneInput.value = phoneValue;
+                document.getElementById('profilePhone').textContent = phoneValue;
+                setVerificationStatus('phone', true);
+
+                await showAlert('Номер телефона обновлен через Telegram', 'Успешно');
+            } else {
+                await showAlert('Не удалось подтвердить номер через Telegram. Повторите попытку.', 'Ошибка');
+            }
+
+            activePhoneRequestId = '';
+        } catch (error) {
+            console.error('Phone request status polling error:', error);
+        }
+    }
+
+    async function requestPhoneFromTelegram() {
+        try {
+            const btn = document.getElementById('requestPhoneFromTelegramBtn');
+            if (btn) btn.disabled = true;
+
+            const data = await apiFetch('/api/telegram/me/phone/request', {
+                method: 'POST'
+            });
+
+            activePhoneRequestId = String(data?.request_id || '').trim();
+            stopPhoneRequestPolling();
+            if (activePhoneRequestId) {
+                phoneRequestPollTimer = setInterval(pollPhoneRequestStatus, 2500);
+            }
+
+            await showAlert(
+                'Запрос отправлен в Telegram. Откройте бота и отправьте контакт аккаунта.',
+                'Информация'
+            );
+        } catch (error) {
+            await showAlert(
+                error.message || 'Не удалось отправить запрос в Telegram',
+                'Ошибка'
+            );
+        } finally {
+            const btn = document.getElementById('requestPhoneFromTelegramBtn');
+            if (btn) btn.disabled = false;
+        }
+    }
+
     async function saveNotificationSettings() {
         const notification_preferences = {
             channels: {
@@ -665,8 +741,7 @@
     function bindOwnActions() {
         document.getElementById('requestEmailCodeBtn')?.addEventListener('click', () => requestContactCode('email'));
         document.getElementById('verifyEmailBtn')?.addEventListener('click', () => verifyContactCode('email'));
-        document.getElementById('requestPhoneCodeBtn')?.addEventListener('click', () => requestContactCode('phone'));
-        document.getElementById('verifyPhoneBtn')?.addEventListener('click', () => verifyContactCode('phone'));
+        document.getElementById('requestPhoneFromTelegramBtn')?.addEventListener('click', requestPhoneFromTelegram);
         document.getElementById('saveNotificationsBtn')?.addEventListener('click', saveNotificationSettings);
         document.getElementById('savePersonalBtn')?.addEventListener('click', savePersonalInfo);
     }

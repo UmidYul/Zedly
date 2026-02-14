@@ -630,12 +630,8 @@
                                     <div class="field-block">
                                         <label for="phoneInput" data-i18n="profile.phone">Телефон</label>
                                         <div class="field-inline">
-                                            <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567">
-                                            <button id="requestPhoneCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
-                                        </div>
-                                        <div class="field-inline">
-                                            <input id="phoneCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
-                                            <button id="verifyPhoneBtn" class="btn btn-primary" type="button" data-i18n="profile.confirm">Подтвердить</button>
+                                            <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567" readonly>
+                                            <button id="requestPhoneFromTelegramBtn" class="btn btn-outline" type="button">Запросить через Telegram</button>
                                         </div>
                                         <small id="phoneStatusText">Телефон не подтвержден</small>
                                     </div>

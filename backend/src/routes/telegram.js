@@ -11,8 +11,12 @@ const USERS_COLUMNS_CACHE = {
     hasUpdatedAt: false
 };
 const TELEGRAM_LINK_TTL_MS = 15 * 60 * 1000;
+const PHONE_REQUEST_TTL_MS = 10 * 60 * 1000;
+const PHONE_REQUEST_RESULT_TTL_MS = 5 * 60 * 1000;
 const pendingLinkTokens = new Map();
 const consumedLinkTokens = new Map();
+const phoneRequests = new Map();
+const activePhoneRequestByUser = new Map();
 let telegramStartListenerInitialized = false;
 
 function getAppUrl() {
@@ -88,6 +92,106 @@ function markTokenConsumed(token, expiresAt) {
             consumedLinkTokens.delete(savedToken);
         }
     }
+}
+
+function cleanupPhoneRequests() {
+    const now = Date.now();
+    for (const [requestId, requestState] of phoneRequests.entries()) {
+        if (!requestState || Number(requestState.expiresAt) <= now) {
+            phoneRequests.delete(requestId);
+        }
+    }
+    for (const [userId, requestId] of activePhoneRequestByUser.entries()) {
+        const requestState = phoneRequests.get(requestId);
+        if (!requestState || requestState.status !== 'pending') {
+            activePhoneRequestByUser.delete(userId);
+        }
+    }
+}
+
+function createPhoneRequest(userId, chatId) {
+    cleanupPhoneRequests();
+    const normalizedUserId = String(userId);
+    const existingRequestId = activePhoneRequestByUser.get(normalizedUserId);
+    if (existingRequestId) {
+        const existingState = phoneRequests.get(existingRequestId);
+        if (existingState) {
+            existingState.status = 'cancelled';
+            existingState.reason = 'superseded';
+            existingState.completedAt = new Date().toISOString();
+            existingState.expiresAt = Date.now() + PHONE_REQUEST_RESULT_TTL_MS;
+            phoneRequests.set(existingRequestId, existingState);
+        }
+    }
+
+    const requestId = crypto.randomBytes(16).toString('hex');
+    const expiresAt = Date.now() + PHONE_REQUEST_TTL_MS;
+    const requestState = {
+        requestId,
+        userId: normalizedUserId,
+        chatId: String(chatId),
+        status: 'pending',
+        reason: null,
+        phone: null,
+        createdAt: new Date().toISOString(),
+        completedAt: null,
+        expiresAt
+    };
+
+    phoneRequests.set(requestId, requestState);
+    activePhoneRequestByUser.set(normalizedUserId, requestId);
+    return requestState;
+}
+
+function getPhoneRequestForUser(userId, requestId) {
+    cleanupPhoneRequests();
+    const normalizedUserId = String(userId);
+    const candidateRequestId = String(requestId || '').trim() || activePhoneRequestByUser.get(normalizedUserId);
+    if (!candidateRequestId) {
+        return null;
+    }
+    const requestState = phoneRequests.get(candidateRequestId);
+    if (!requestState) {
+        return null;
+    }
+    if (String(requestState.userId) !== normalizedUserId) {
+        return null;
+    }
+    return requestState;
+}
+
+function finalizePhoneRequest(userId, updates = {}) {
+    cleanupPhoneRequests();
+    const normalizedUserId = String(userId);
+    const activeRequestId = activePhoneRequestByUser.get(normalizedUserId);
+    if (!activeRequestId) {
+        return null;
+    }
+
+    const requestState = phoneRequests.get(activeRequestId);
+    if (!requestState) {
+        activePhoneRequestByUser.delete(normalizedUserId);
+        return null;
+    }
+
+    const nextStatus = String(updates.status || '').trim() || 'failed';
+    requestState.status = nextStatus;
+    requestState.reason = updates.reason || null;
+    requestState.phone = updates.phone || null;
+    requestState.completedAt = new Date().toISOString();
+    requestState.expiresAt = Date.now() + PHONE_REQUEST_RESULT_TTL_MS;
+
+    phoneRequests.set(activeRequestId, requestState);
+    activePhoneRequestByUser.delete(normalizedUserId);
+    return requestState;
+}
+
+function normalizeTelegramPhone(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const prefixed = raw.startsWith('+') ? raw : `+${raw}`;
+    const normalized = prefixed.replace(/[^\d+]/g, '');
+    return normalized.length >= 7 ? normalized : '';
 }
 
 const ROLE_EVENT_MAP = {
@@ -291,6 +395,151 @@ function initTelegramStartListener() {
             await sendTelegram(chatId, 'Произошла ошибка при привязке. Попробуйте снова позже.');
         }
     });
+
+    telegramBot.on('message', async (msg) => {
+        try {
+            const contact = msg?.contact;
+            if (!contact?.phone_number) {
+                return;
+            }
+
+            const chatId = String(msg.chat?.id || '');
+            if (!chatId) {
+                return;
+            }
+
+            const userResult = await query(
+                `SELECT id, username, settings
+                 FROM users
+                 WHERE telegram_id = $1
+                 LIMIT 1`,
+                [chatId]
+            );
+
+            if (!userResult.rows.length) {
+                await sendTelegram(chatId, 'Сначала привяжите аккаунт через кабинет ZEDLY.');
+                return;
+            }
+
+            const user = userResult.rows[0];
+            const requestState = getPhoneRequestForUser(user.id);
+            if (!requestState || requestState.status !== 'pending') {
+                return;
+            }
+
+            const fromId = String(msg.from?.id || '');
+            const contactUserId = String(contact.user_id || '');
+            if (!fromId || !contactUserId || fromId !== contactUserId) {
+                finalizePhoneRequest(user.id, { status: 'failed', reason: 'contact_mismatch' });
+                await sendTelegram(chatId, 'Отправьте ваш собственный контакт из Telegram-аккаунта.');
+                return;
+            }
+
+            const normalizedPhone = normalizeTelegramPhone(contact.phone_number);
+            if (!normalizedPhone) {
+                finalizePhoneRequest(user.id, { status: 'failed', reason: 'invalid_phone' });
+                await sendTelegram(chatId, 'Не удалось распознать номер телефона. Повторите попытку.');
+                return;
+            }
+
+            const duplicateCheck = await query(
+                `SELECT id
+                 FROM users
+                 WHERE phone = $1 AND id != $2
+                 LIMIT 1`,
+                [normalizedPhone, user.id]
+            );
+
+            if (duplicateCheck.rows.length > 0) {
+                finalizePhoneRequest(user.id, { status: 'failed', reason: 'duplicate_phone' });
+                await sendTelegram(chatId, 'Этот номер уже используется в другом аккаунте.');
+                return;
+            }
+
+            const rawSettings = user.settings && typeof user.settings === 'object' ? user.settings : {};
+            const profileSettings = rawSettings.profile && typeof rawSettings.profile === 'object' ? rawSettings.profile : {};
+            const verification = profileSettings.contact_verification && typeof profileSettings.contact_verification === 'object'
+                ? profileSettings.contact_verification
+                : {};
+            const pendingVerification = verification.pending && typeof verification.pending === 'object'
+                ? verification.pending
+                : {};
+            const nextSettings = {
+                ...rawSettings,
+                profile: {
+                    ...profileSettings,
+                    contact_verification: {
+                        ...verification,
+                        pending: {
+                            ...pendingVerification,
+                            phone: null
+                        },
+                        phone_verified: true
+                    }
+                }
+            };
+
+            const columns = await loadUsersColumns();
+            if (columns.hasSettings && columns.hasUpdatedAt) {
+                await query(
+                    `UPDATE users
+                     SET phone = $1,
+                         settings = $2,
+                         updated_at = CURRENT_TIMESTAMP
+                     WHERE id = $3`,
+                    [normalizedPhone, nextSettings, user.id]
+                );
+            } else if (columns.hasSettings) {
+                await query(
+                    `UPDATE users
+                     SET phone = $1,
+                         settings = $2
+                     WHERE id = $3`,
+                    [normalizedPhone, nextSettings, user.id]
+                );
+            } else if (columns.hasUpdatedAt) {
+                await query(
+                    `UPDATE users
+                     SET phone = $1,
+                         updated_at = CURRENT_TIMESTAMP
+                     WHERE id = $2`,
+                    [normalizedPhone, user.id]
+                );
+            } else {
+                await query(
+                    `UPDATE users
+                     SET phone = $1
+                     WHERE id = $2`,
+                    [normalizedPhone, user.id]
+                );
+            }
+
+            await query(
+                `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [
+                    user.id,
+                    'update',
+                    'user',
+                    user.id,
+                    { action_type: 'phone_verified_via_telegram' }
+                ]
+            );
+
+            finalizePhoneRequest(user.id, { status: 'completed', phone: normalizedPhone });
+            await sendTelegram(
+                chatId,
+                `Номер телефона успешно обновлен: <b>${normalizedPhone}</b>`,
+                {
+                    reply_markup: {
+                        remove_keyboard: true
+                    }
+                }
+            );
+        } catch (error) {
+            console.error('Telegram contact handling error:', error);
+        }
+    });
 }
 
 initTelegramStartListener();
@@ -359,6 +608,103 @@ router.get('/me/status', authenticate, async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to load Telegram status'
+        });
+    }
+});
+
+/**
+ * POST /api/telegram/me/phone/request
+ * Request phone number from Telegram account contact share
+ */
+router.post('/me/phone/request', authenticate, async (req, res) => {
+    try {
+        if (!telegramBot) {
+            return res.status(400).json({
+                error: 'not_configured',
+                message: 'Telegram bot is not configured'
+            });
+        }
+
+        const state = await getCurrentUserTelegramState(req.user.id);
+        if (!state) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'User not found'
+            });
+        }
+
+        if (!state.user.telegram_id) {
+            return res.status(400).json({
+                error: 'telegram_not_connected',
+                message: 'Connect Telegram account first'
+            });
+        }
+
+        const requestState = createPhoneRequest(state.user.id, state.user.telegram_id);
+        const sent = await sendTelegram(
+            state.user.telegram_id,
+            'Подтвердите номер телефона аккаунта. Нажмите кнопку ниже и отправьте контакт.',
+            {
+                reply_markup: {
+                    keyboard: [[{ text: 'Отправить номер телефона', request_contact: true }]],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                }
+            }
+        );
+
+        if (!sent) {
+            finalizePhoneRequest(state.user.id, { status: 'failed', reason: 'send_failed' });
+            return res.status(500).json({
+                error: 'server_error',
+                message: 'Failed to send phone request to Telegram'
+            });
+        }
+
+        res.json({
+            message: 'Phone request sent to Telegram bot',
+            request_id: requestState.requestId,
+            expires_at: new Date(requestState.expiresAt).toISOString()
+        });
+    } catch (error) {
+        console.error('Telegram phone request start error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to start phone request flow'
+        });
+    }
+});
+
+/**
+ * GET /api/telegram/me/phone/status
+ * Get current phone request status
+ */
+router.get('/me/phone/status', authenticate, async (req, res) => {
+    try {
+        const requestId = String(req.query.request_id || '').trim();
+        const requestState = getPhoneRequestForUser(req.user.id, requestId);
+        if (!requestState) {
+            return res.json({
+                found: false,
+                status: 'not_found'
+            });
+        }
+
+        res.json({
+            found: true,
+            request_id: requestState.requestId,
+            status: requestState.status,
+            reason: requestState.reason,
+            phone: requestState.phone,
+            created_at: requestState.createdAt,
+            completed_at: requestState.completedAt,
+            expires_at: new Date(requestState.expiresAt).toISOString()
+        });
+    } catch (error) {
+        console.error('Telegram phone request status error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to get phone request status'
         });
     }
 });
