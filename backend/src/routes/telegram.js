@@ -20,6 +20,10 @@ let telegramStartListenerInitialized = false;
 const TELEGRAM_LINK_VERSION = 1;
 const TELEGRAM_LINK_SIGNATURE_BYTES = 10;
 
+function getTelegramLinkSecret() {
+    return process.env.TELEGRAM_LINK_SECRET || 'zedly-telegram-link-secret';
+}
+
 function getAppUrl() {
     const raw = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
     return raw.replace(/\/+$/, '').replace(/\/api$/i, '');
@@ -49,7 +53,7 @@ function createLinkToken(userId) {
 
 function createLinkTokenWithPayload(userId, payload = {}) {
     const expiresAt = Date.now() + TELEGRAM_LINK_TTL_MS;
-    const secret = process.env.TELEGRAM_LINK_SECRET || process.env.JWT_SECRET || 'zedly-telegram-link-secret';
+    const secret = getTelegramLinkSecret();
     const uuid = String(userId || '').trim().toLowerCase();
     const uuidMatch = uuid.match(/^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/);
     if (!uuidMatch) {
@@ -93,7 +97,7 @@ function verifyLinkToken(token) {
     }
     const body = raw.subarray(0, 22);
     const receivedSig = raw.subarray(22);
-    const secret = process.env.TELEGRAM_LINK_SECRET || process.env.JWT_SECRET || 'zedly-telegram-link-secret';
+    const secret = getTelegramLinkSecret();
     const expectedSig = crypto
         .createHmac('sha256', secret)
         .update(body)
