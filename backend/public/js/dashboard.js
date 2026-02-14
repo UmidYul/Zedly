@@ -14,7 +14,7 @@
                 section: 'dashboard.nav.main',
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
-                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '/profile.html' },
+                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
                     { icon: 'building', label: 'dashboard.nav.schools', id: 'schools', href: '#schools' },
                     { icon: 'users', label: 'School Admins', id: 'school-admins', href: '#school-admins' },
                     { icon: 'target', label: 'dashboard.nav.careerResults', id: 'career-results', href: '#career-results' }
@@ -41,7 +41,7 @@
                 section: 'dashboard.nav.main',
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
-                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '/profile.html' },
+                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
                     { icon: 'users', label: 'dashboard.nav.users', id: 'users', href: '#users' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
                     { icon: 'book', label: 'dashboard.nav.subjects', id: 'subjects', href: '#subjects' }
@@ -69,7 +69,7 @@
                 section: 'dashboard.nav.main',
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
-                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '/profile.html' },
+                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'assignment', label: 'dashboard.nav.assignments', id: 'assignments', href: '#assignments' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
@@ -97,7 +97,7 @@
                 section: 'dashboard.nav.main',
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
-                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '/profile.html' },
+                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'star', label: 'dashboard.nav.results', id: 'results', href: '#results' }
                     // { icon: 'target', label: 'dashboard.nav.career', id: 'career', href: '#career' } // скрыто
@@ -536,6 +536,8 @@
             'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
             'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' },
             'my-class': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' }
+            ,
+            'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -592,6 +594,158 @@
     // Get page content (placeholder - will be replaced with actual components)
     function getPageContent(page) {
         const role = currentUser?.role || 'student';
+        if (page === 'profile') {
+            return `
+                <div class="content-wrapper profile-wrapper">
+                    <section class="profile-hero card-surface">
+                        <div class="profile-avatar" id="profileAvatarText">U</div>
+                        <div class="profile-hero-meta">
+                            <h1 id="profileName">Имя Фамилия</h1>
+                            <p id="profileRole">Роль</p>
+                            <p id="profileSchool">Школа</p>
+                        </div>
+                        <div class="profile-mini-stats">
+                            <div class="mini-stat">
+                                <span class="mini-stat-value" id="statMini1Value">-</span>
+                                <span class="mini-stat-label" id="statMini1Label">Показатель 1</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-stat-value" id="statMini2Value">-</span>
+                                <span class="mini-stat-label" id="statMini2Label">Показатель 2</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-stat-value" id="statMini3Value">-</span>
+                                <span class="mini-stat-label" id="statMini3Label">Показатель 3</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="profile-grid">
+                        <div class="profile-col">
+                            <article class="profile-card card-surface">
+                                <h2 data-i18n="profile.yourData">Ваши данные</h2>
+                                <div class="profile-info-grid">
+                                    <div class="info-row"><span data-i18n="profile.username">Логин</span><strong id="profileUsername">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.email">Email</span><strong id="profileEmail">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.phone">Телефон</span><strong id="profilePhone">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.dateOfBirth">Дата рождения</span><strong id="profileDOB">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.gender">Пол</span><strong id="profileGender">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.registered">Регистрация</span><strong id="profileCreatedAt">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.lastLogin">Последний вход</span><strong id="profileLastLogin">-</strong></div>
+                                </div>
+                            </article>
+
+                            <article class="profile-card card-surface" id="profileActionsCard" style="display: none;">
+                                <h2 data-i18n="profile.contactChanges">Смена контактов</h2>
+                                <div class="profile-form-grid">
+                                    <div class="field-block">
+                                        <label for="emailInput" data-i18n="profile.email">Email</label>
+                                        <div class="field-inline">
+                                            <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
+                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
+                                        </div>
+                                        <div class="field-inline">
+                                            <input id="emailCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
+                                            <button id="verifyEmailBtn" class="btn btn-primary" type="button" data-i18n="profile.confirm">Подтвердить</button>
+                                        </div>
+                                        <small id="emailStatusText">Email не подтвержден</small>
+                                    </div>
+                                    <div class="field-block">
+                                        <label for="phoneInput" data-i18n="profile.phone">Телефон</label>
+                                        <div class="field-inline">
+                                            <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567">
+                                            <button id="requestPhoneCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
+                                        </div>
+                                        <div class="field-inline">
+                                            <input id="phoneCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
+                                            <button id="verifyPhoneBtn" class="btn btn-primary" type="button" data-i18n="profile.confirm">Подтвердить</button>
+                                        </div>
+                                        <small id="phoneStatusText">Телефон не подтвержден</small>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="profile-card card-surface" id="profilePersonalCard" style="display: none;">
+                                <h2 data-i18n="profile.personalEdit">Личные данные</h2>
+                                <div class="profile-form-grid">
+                                    <div class="field-block">
+                                        <label for="dobInput" data-i18n="profile.dateOfBirth">Дата рождения</label>
+                                        <input id="dobInput" class="field-input" type="date">
+                                    </div>
+                                    <div class="field-block">
+                                        <label for="genderInput" data-i18n="profile.gender">Пол</label>
+                                        <select id="genderInput" class="field-input">
+                                            <option value="" data-i18n="profile.genderNotSpecified">Не указан</option>
+                                            <option value="male" data-i18n="profile.genderMale">Мужской</option>
+                                            <option value="female" data-i18n="profile.genderFemale">Женский</option>
+                                            <option value="other" data-i18n="profile.genderOther">Другой</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="card-actions"><button id="savePersonalBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
+                            </article>
+
+                            <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
+                                <h2 data-i18n="profile.notifications">Настройка уведомлений</h2>
+                                <div class="notification-grid">
+                                    <div class="field-block">
+                                        <h3 data-i18n="profile.notificationChannels">Каналы</h3>
+                                        <label class="check-row"><input type="checkbox" id="channelInApp"> В приложении</label>
+                                        <label class="check-row"><input type="checkbox" id="channelEmail"> Email</label>
+                                        <label class="check-row"><input type="checkbox" id="channelTelegram"> Telegram</label>
+                                    </div>
+                                    <div class="field-block">
+                                        <h3 data-i18n="profile.notificationEvents">События</h3>
+                                        <label class="check-row"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
+                                        <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
+                                        <label class="check-row"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
+                                        <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
+                                        <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> Системные</label>
+                                    </div>
+                                    <div class="field-block">
+                                        <h3 data-i18n="profile.notificationFrequency">Частота</h3>
+                                        <select id="notificationFrequency" class="field-input">
+                                            <option value="instant" data-i18n="profile.freqInstant">Мгновенно</option>
+                                            <option value="daily" data-i18n="profile.freqDaily">Ежедневно</option>
+                                            <option value="weekly" data-i18n="profile.freqWeekly">Еженедельно</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
+                            </article>
+                        </div>
+
+                        <div class="profile-col">
+                            <article class="profile-card card-surface" id="profileRoleInfoCard" style="display:none;">
+                                <h2 id="roleSpecificTitle">Дополнительная информация</h2>
+                                <div class="profile-info-grid" id="roleSpecificContent"></div>
+                            </article>
+
+                            <article class="profile-card card-surface">
+                                <h2 data-i18n="profile.statistics">Краткая статистика</h2>
+                                <div class="stats-grid" id="statsContent"></div>
+                            </article>
+
+                            <article class="profile-card card-surface" id="chartsCard" style="display:none;">
+                                <h2 data-i18n="profile.performance">Успеваемость</h2>
+                                <canvas id="performanceChart"></canvas>
+                            </article>
+
+                            <article class="profile-card card-surface" id="careerTestCard" style="display:none;">
+                                <h2 data-i18n="career.title">Профориентация</h2>
+                                <div id="careerTestContent"><p class="no-data" data-i18n="profile.noCareerTest">Тест не пройден</p></div>
+                                <canvas id="careerRadarChart" style="display:none;"></canvas>
+                            </article>
+
+                            <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
+                                <h2 data-i18n="profile.recentActions">Последние действия</h2>
+                                <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
         // Career Results (SuperAdmin, read-only)
         if (page === 'career-results' && role === 'superadmin') {
             return `

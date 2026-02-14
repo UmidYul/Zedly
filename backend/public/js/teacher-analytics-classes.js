@@ -484,7 +484,7 @@
 
     // View profile
     window.viewProfile = function (userId) {
-        window.location.href = `profile.html?id=${userId}`;
+        window.location.href = `/dashboard?page=profile&id=${encodeURIComponent(userId)}`;
     };
 
     // Get rank class

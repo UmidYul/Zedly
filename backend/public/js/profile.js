@@ -704,6 +704,9 @@
     }
 
     async function init() {
+        if (!document.getElementById('profileName')) {
+            return;
+        }
         try {
             setProfileLoading(true);
             currentUser = await fetchCurrentUser();
@@ -748,5 +751,9 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    window.ProfilePage = { init };
+
+    if (window.location.pathname.includes('profile.html')) {
+        document.addEventListener('DOMContentLoaded', init);
+    }
 })();
