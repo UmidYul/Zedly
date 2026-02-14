@@ -17,6 +17,8 @@ const consumedLinkTokens = new Map();
 const phoneRequests = new Map();
 const activePhoneRequestByUser = new Map();
 let telegramStartListenerInitialized = false;
+const TELEGRAM_LINK_VERSION = 1;
+const TELEGRAM_LINK_SIGNATURE_BYTES = 10;
 
 function getAppUrl() {
     const raw = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
@@ -42,34 +44,32 @@ async function loadUsersColumns() {
 }
 
 function createLinkToken(userId) {
-    const expiresAt = Date.now() + TELEGRAM_LINK_TTL_MS;
-    const payload = {
-        user_id: String(userId),
-        expires_at: expiresAt
-    };
-    const encodedPayload = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-    const secret = process.env.TELEGRAM_LINK_SECRET || process.env.JWT_SECRET || 'zedly-telegram-link-secret';
-    const signature = crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
-    const token = `${encodedPayload}.${signature}`;
-
-    return {
-        token,
-        expiresAt
-    };
+    return createLinkTokenWithPayload(userId, {});
 }
 
 function createLinkTokenWithPayload(userId, payload = {}) {
     const expiresAt = Date.now() + TELEGRAM_LINK_TTL_MS;
-    const safePayload = payload && typeof payload === 'object' ? payload : {};
-    const tokenPayload = {
-        user_id: String(userId),
-        expires_at: expiresAt,
-        payload: safePayload
-    };
-    const encodedPayload = Buffer.from(JSON.stringify(tokenPayload), 'utf8').toString('base64url');
     const secret = process.env.TELEGRAM_LINK_SECRET || process.env.JWT_SECRET || 'zedly-telegram-link-secret';
-    const signature = crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
-    const token = `${encodedPayload}.${signature}`;
+    const uuid = String(userId || '').trim().toLowerCase();
+    const uuidMatch = uuid.match(/^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/);
+    if (!uuidMatch) {
+        throw new Error('Telegram link supports UUID user IDs only');
+    }
+
+    const flags = payload && typeof payload === 'object' && payload.request_phone ? 1 : 0;
+    const expiresAtSec = Math.floor(expiresAt / 1000);
+    const body = Buffer.alloc(22);
+    body.writeUInt8(TELEGRAM_LINK_VERSION, 0);
+    body.writeUInt8(flags, 1);
+    body.writeUInt32BE(expiresAtSec, 2);
+    Buffer.from(uuid.replace(/-/g, ''), 'hex').copy(body, 6);
+
+    const signature = crypto
+        .createHmac('sha256', secret)
+        .update(body)
+        .digest()
+        .subarray(0, TELEGRAM_LINK_SIGNATURE_BYTES);
+    const token = Buffer.concat([body, signature]).toString('base64url');
     return { token, expiresAt };
 }
 
@@ -82,39 +82,43 @@ function verifyLinkToken(token) {
     if (consumedLinkTokens.has(cleanToken)) {
         return { valid: false, reason: 'used' };
     }
-    const tokenParts = cleanToken.split('.');
-    if (tokenParts.length !== 2) {
-        return { valid: false, reason: 'invalid' };
-    }
-
-    const [encodedPayload, receivedSignature] = tokenParts;
-    const secret = process.env.TELEGRAM_LINK_SECRET || process.env.JWT_SECRET || 'zedly-telegram-link-secret';
-    const expectedSignature = crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
-    if (!expectedSignature || !receivedSignature) {
-        return { valid: false, reason: 'invalid' };
-    }
-    const expectedBuf = Buffer.from(expectedSignature);
-    const receivedBuf = Buffer.from(receivedSignature);
-    if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
-        return { valid: false, reason: 'invalid' };
-    }
-
-    let tokenData = null;
+    let raw = null;
     try {
-        tokenData = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+        raw = Buffer.from(cleanToken, 'base64url');
     } catch (error) {
         return { valid: false, reason: 'invalid' };
     }
+    if (!raw || raw.length !== 22 + TELEGRAM_LINK_SIGNATURE_BYTES) {
+        return { valid: false, reason: 'invalid' };
+    }
+    const body = raw.subarray(0, 22);
+    const receivedSig = raw.subarray(22);
+    const secret = process.env.TELEGRAM_LINK_SECRET || process.env.JWT_SECRET || 'zedly-telegram-link-secret';
+    const expectedSig = crypto
+        .createHmac('sha256', secret)
+        .update(body)
+        .digest()
+        .subarray(0, TELEGRAM_LINK_SIGNATURE_BYTES);
+    if (expectedSig.length !== receivedSig.length || !crypto.timingSafeEqual(expectedSig, receivedSig)) {
+        return { valid: false, reason: 'invalid' };
+    }
 
-    const expiresAt = Number(tokenData?.expires_at);
+    const version = body.readUInt8(0);
+    if (version !== TELEGRAM_LINK_VERSION) {
+        return { valid: false, reason: 'invalid' };
+    }
+
+    const flags = body.readUInt8(1);
+    const expiresAt = body.readUInt32BE(2) * 1000;
     if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
         return { valid: false, reason: 'expired' };
     }
-    const userId = String(tokenData?.user_id || '').trim();
-    if (!userId) {
-        return { valid: false, reason: 'invalid' };
-    }
-    const payload = tokenData.payload && typeof tokenData.payload === 'object' ? tokenData.payload : {};
+
+    const uuidHex = body.subarray(6, 22).toString('hex');
+    const userId = `${uuidHex.slice(0, 8)}-${uuidHex.slice(8, 12)}-${uuidHex.slice(12, 16)}-${uuidHex.slice(16, 20)}-${uuidHex.slice(20, 32)}`;
+    const payload = {
+        request_phone: (flags & 1) === 1
+    };
     return { valid: true, userId, expiresAt, payload };
 }
 
