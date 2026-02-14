@@ -127,22 +127,73 @@ router.use(authenticate);
 router.get('/school/overview', authorize('school_admin', 'teacher'), async (req, res) => {
     try {
         const schoolId = req.user.school_id;
-        const { period = '30' } = req.query; // days
+        const { period = '30', grade_level, subject_id } = req.query; // days
         const { nameRu, nameUz } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
         const classGradeColumn = await getClassGradeColumn();
+        const params = [schoolId];
+        const addParam = (value) => {
+            params.push(value);
+            return `$${params.length}`;
+        };
+        const gradeParam = grade_level ? addParam(grade_level) : null;
+        const subjectParam = subject_id ? addParam(subject_id) : null;
+
+        const gradeJoin = gradeParam ? `
+                JOIN users u ON u.id = ta.student_id
+                JOIN class_students cs ON cs.student_id = u.id
+                JOIN classes c ON c.id = cs.class_id
+        ` : '';
+        const gradeWhere = gradeParam ? `AND c.${classGradeColumn} = ${gradeParam}` : '';
+        const subjectWhere = subjectParam ? `AND t.subject_id = ${subjectParam}` : '';
+
+        const totalStudentsExpression = gradeParam
+            ? `(SELECT COUNT(DISTINCT u.id)
+                FROM users u
+                JOIN class_students cs ON cs.student_id = u.id
+                JOIN classes c ON c.id = cs.class_id
+                WHERE u.school_id = $1
+                  AND u.role = 'student'
+                  AND u.is_active = true
+                  AND c.${classGradeColumn} = ${gradeParam})`
+            : `(SELECT COUNT(*) FROM users WHERE school_id = $1 AND role = 'student' AND is_active = true)`;
+
+        const totalTestsExpression = (gradeParam || subjectParam)
+            ? `(SELECT COUNT(DISTINCT t.id)
+                FROM tests t
+                JOIN test_attempts ta ON ta.test_id = t.id
+                ${gradeJoin}
+                WHERE t.school_id = $1
+                  AND ${attempt.completedFilter}
+                  ${gradeWhere}
+                  ${subjectWhere})`
+            : `(SELECT COUNT(*) FROM tests WHERE school_id = $1)`;
 
         // Overall statistics
         const overallStats = await query(`
             SELECT
-                (SELECT COUNT(*) FROM users WHERE school_id = $1 AND role = 'student' AND is_active = true) as total_students,
+                ${totalStudentsExpression} as total_students,
                 (SELECT COUNT(*) FROM users WHERE school_id = $1 AND role = 'teacher' AND is_active = true) as total_teachers,
                 (SELECT COUNT(*) FROM classes WHERE school_id = $1) as total_classes,
                 (SELECT COUNT(*) FROM subjects WHERE school_id = $1) as total_subjects,
-                (SELECT COUNT(*) FROM tests WHERE school_id = $1) as total_tests,
-                (SELECT COUNT(*) FROM test_attempts ta JOIN tests t ON t.id = ta.test_id WHERE t.school_id = $1 AND ${attempt.completedFilter}) as total_attempts,
-                (SELECT AVG(${attempt.score}) FROM test_attempts ta JOIN tests t ON t.id = ta.test_id WHERE t.school_id = $1 AND ${attempt.completedFilter}) as average_score
-        `, [schoolId]);
+                ${totalTestsExpression} as total_tests,
+                (SELECT COUNT(*)
+                 FROM test_attempts ta
+                 JOIN tests t ON t.id = ta.test_id
+                 ${gradeJoin}
+                 WHERE t.school_id = $1
+                   AND ${attempt.completedFilter}
+                   ${gradeWhere}
+                   ${subjectWhere}) as total_attempts,
+                (SELECT AVG(${attempt.score})
+                 FROM test_attempts ta
+                 JOIN tests t ON t.id = ta.test_id
+                 ${gradeJoin}
+                 WHERE t.school_id = $1
+                   AND ${attempt.completedFilter}
+                   ${gradeWhere}
+                   ${subjectWhere}) as average_score
+        `, params);
 
         // Recent activity (last N days)
         const recentActivity = await query(`
@@ -152,12 +203,15 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
                                 AVG(${attempt.score}) as avg_score
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
+            ${gradeJoin}
             WHERE t.school_id = $1 
                             AND ${attempt.completedFilter}
+                            ${gradeWhere}
+                            ${subjectWhere}
                             AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '${period} days'
                         GROUP BY DATE(${attempt.completedAt})
             ORDER BY date DESC
-        `, [schoolId]);
+        `, params);
 
         // Top performing classes
         const topClasses = await query(`
@@ -172,12 +226,15 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
             FROM classes c
             LEFT JOIN class_students cs ON cs.class_id = c.id
             LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
+            LEFT JOIN tests t ON t.id = ta.test_id
             WHERE c.school_id = $1
+              ${gradeParam ? `AND c.${classGradeColumn} = ${gradeParam}` : ''}
+              ${subjectWhere}
             GROUP BY c.id, c.name, c.${classGradeColumn}
             HAVING COUNT(ta.id) > 0
             ORDER BY avg_score DESC
             LIMIT 10
-        `, [schoolId]);
+        `, params);
 
         // Subject performance
         const subjectPerformance = await query(`
@@ -196,10 +253,15 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
             FROM subjects s
             LEFT JOIN tests t ON t.subject_id = s.id AND t.school_id = $1
             LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
+            LEFT JOIN users u ON u.id = ta.student_id
+            LEFT JOIN class_students cs ON cs.student_id = u.id
+            LEFT JOIN classes c ON c.id = cs.class_id
             WHERE s.school_id = $1
+              ${subjectParam ? `AND s.id = ${subjectParam}` : ''}
+              ${gradeWhere}
             GROUP BY s.id, ${nameRu}, ${nameUz}, s.code, s.color
             ORDER BY test_count DESC, avg_score DESC
-        `, [schoolId]);
+        `, params);
 
         res.json({
             overview: overallStats.rows[0],
@@ -279,7 +341,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
 router.get('/school/comparison', authorize('school_admin', 'teacher'), async (req, res) => {
     try {
         const schoolId = req.user.school_id;
-        const { type = 'classes', subject_id } = req.query;
+        const { type = 'classes', subject_id, grade_level } = req.query;
         const { nameRu, nameUz } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
         const classGradeColumn = await getClassGradeColumn();
@@ -287,6 +349,17 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
         let comparisonData;
 
         if (type === 'classes') {
+            const params = [schoolId];
+            const conditions = ['c.school_id = $1'];
+            if (grade_level) {
+                params.push(grade_level);
+                conditions.push(`c.${classGradeColumn} = $${params.length}`);
+            }
+            if (subject_id) {
+                params.push(subject_id);
+                conditions.push(`t.subject_id = $${params.length}`);
+            }
+
             // Compare classes
             comparisonData = await query(`
                 SELECT
@@ -305,12 +378,22 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
                 LEFT JOIN tests t ON t.id = ta.test_id
                 LEFT JOIN subjects s ON s.id = t.subject_id
-                WHERE c.school_id = $1
-                  ${subject_id ? 'AND t.subject_id = $2' : ''}
+                WHERE ${conditions.join(' AND ')}
                 GROUP BY c.id, c.name, c.${classGradeColumn}
                 ORDER BY NULLIF(REGEXP_REPLACE(c.${classGradeColumn}::text, '[^0-9]', '', 'g'), '')::int NULLS LAST, c.name
-            `, subject_id ? [schoolId, subject_id] : [schoolId]);
+            `, params);
         } else if (type === 'subjects') {
+            const params = [schoolId];
+            const conditions = ['s.school_id = $1'];
+            if (subject_id) {
+                params.push(subject_id);
+                conditions.push(`s.id = $${params.length}`);
+            }
+            if (grade_level) {
+                params.push(grade_level);
+                conditions.push(`c.${classGradeColumn} = $${params.length}`);
+            }
+
             // Compare subjects
             comparisonData = await query(`
                 SELECT
@@ -330,12 +413,26 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 FROM subjects s
                 LEFT JOIN tests t ON t.subject_id = s.id
                 LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
-                WHERE s.school_id = $1
+                LEFT JOIN users u ON u.id = ta.student_id
+                LEFT JOIN class_students cs ON cs.student_id = u.id
+                LEFT JOIN classes c ON c.id = cs.class_id
+                WHERE ${conditions.join(' AND ')}
                 GROUP BY s.id, ${nameRu}, ${nameUz}, s.code, s.color
                 HAVING COUNT(ta.id) > 0
                 ORDER BY avg_score DESC
-            `, [schoolId]);
+            `, params);
         } else if (type === 'students') {
+            const params = [schoolId];
+            const conditions = ['u.school_id = $1', `u.role = 'student'`];
+            if (grade_level) {
+                params.push(grade_level);
+                conditions.push(`c.${classGradeColumn} = $${params.length}`);
+            }
+            if (subject_id) {
+                params.push(subject_id);
+                conditions.push(`EXISTS (SELECT 1 FROM tests t WHERE t.id = ta.test_id AND t.subject_id = $${params.length})`);
+            }
+
             // Compare student performance
             comparisonData = await query(`
                 SELECT
@@ -354,13 +451,12 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 JOIN class_students cs ON cs.student_id = u.id
                 JOIN classes c ON c.id = cs.class_id
                 LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
-                WHERE u.school_id = $1 AND u.role = 'student'
-                  ${subject_id ? 'AND EXISTS (SELECT 1 FROM tests t WHERE t.id = ta.test_id AND t.subject_id = $2)' : ''}
+                WHERE ${conditions.join(' AND ')}
                 GROUP BY u.id, u.first_name, u.last_name, c.name
                 HAVING COUNT(ta.id) > 0
                 ORDER BY avg_score DESC
                 LIMIT 100
-            `, subject_id ? [schoolId, subject_id] : [schoolId]);
+            `, params);
         }
 
         res.json({

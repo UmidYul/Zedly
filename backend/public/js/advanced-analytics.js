@@ -110,6 +110,22 @@
         switchTab(activeTab);
     }
 
+    function buildOverviewUrl() {
+        const params = new URLSearchParams({
+            period: String(currentFilters.period || 30)
+        });
+
+        if (currentFilters.grade_level) {
+            params.set('grade_level', currentFilters.grade_level);
+        }
+
+        if (currentFilters.subject_id) {
+            params.set('subject_id', currentFilters.subject_id);
+        }
+
+        return `${API_URL}/analytics/school/overview?${params.toString()}`;
+    }
+
     async function loadOverview() {
         try {
             const token = localStorage.getItem('access_token');
@@ -118,7 +134,7 @@
                 return;
             }
 
-            const response = await fetch(`${API_URL}/analytics/school/overview?period=${currentFilters.period}` , {
+            const response = await fetch(buildOverviewUrl(), {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -264,6 +280,9 @@
             }
 
             let url = `${API_URL}/analytics/school/comparison?type=${type}`;
+            if (currentFilters.grade_level) {
+                url += `&grade_level=${currentFilters.grade_level}`;
+            }
             if (currentFilters.subject_id) {
                 url += `&subject_id=${currentFilters.subject_id}`;
             }
@@ -381,7 +400,7 @@
                 return;
             }
 
-            const response = await fetch(`${API_URL}/analytics/school/overview?period=${currentFilters.period}` , {
+            const response = await fetch(buildOverviewUrl(), {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -503,7 +522,7 @@
                 return;
             }
 
-            const response = await fetch(`${API_URL}/analytics/school/overview` , {
+            const response = await fetch(buildOverviewUrl(), {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
