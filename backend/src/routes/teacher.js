@@ -55,9 +55,9 @@ async function getAttemptOverviewExpressions(alias = 'att') {
     return { score: scoreExpr, completedAt, completedFilter };
 }
 
-// All routes require teacher or school_admin role
+// All routes require teacher role only
 router.use(authenticate);
-router.use(authorize('teacher', 'school_admin'));
+router.use(authorize('teacher'));
 
 const questionUploadsDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'questions');
 if (!fs.existsSync(questionUploadsDir)) {

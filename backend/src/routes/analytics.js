@@ -123,6 +123,14 @@ function buildTeacherClassScopeSql(teacherParamRef, classAlias = 'c') {
     )`;
 }
 
+function sanitizePeriodDays(rawValue, fallback = 30) {
+    const parsed = Number.parseInt(String(rawValue ?? fallback), 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    if (parsed < 1) return 1;
+    if (parsed > 365) return 365;
+    return parsed;
+}
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -141,6 +149,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
         const schoolId = req.user.school_id;
         const isTeacher = req.user.role === 'teacher';
         const { period = '30', grade_level, subject_id } = req.query; // days
+        const periodDays = sanitizePeriodDays(period, 30);
         const { nameRu, nameUz } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
         const classGradeColumn = await getClassGradeColumn();
@@ -188,13 +197,40 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
                   ${subjectWhere})`
             : `(SELECT COUNT(*) FROM tests WHERE school_id = $1)`;
 
+        const totalTeachersExpression = teacherParam
+            ? `(SELECT COUNT(DISTINCT u.id)
+                FROM users u
+                JOIN teacher_class_subjects tcs ON tcs.teacher_id = u.id
+                JOIN classes c ON c.id = tcs.class_id
+                WHERE u.school_id = $1
+                  AND u.role = 'teacher'
+                  AND u.is_active = true
+                  AND ${buildTeacherClassScopeSql(teacherParam, 'c')})`
+            : `(SELECT COUNT(*) FROM users WHERE school_id = $1 AND role = 'teacher' AND is_active = true)`;
+
+        const totalClassesExpression = teacherParam
+            ? `(SELECT COUNT(DISTINCT c.id)
+                FROM classes c
+                WHERE c.school_id = $1
+                  AND ${buildTeacherClassScopeSql(teacherParam, 'c')})`
+            : `(SELECT COUNT(*) FROM classes WHERE school_id = $1)`;
+
+        const totalSubjectsExpression = teacherParam
+            ? `(SELECT COUNT(DISTINCT s.id)
+                FROM teacher_class_subjects tcs
+                JOIN subjects s ON s.id = tcs.subject_id
+                WHERE tcs.teacher_id = ${teacherParam}
+                  AND s.school_id = $1
+                  AND s.is_active = true)`
+            : `(SELECT COUNT(*) FROM subjects WHERE school_id = $1)`;
+
         // Overall statistics
         const overallStats = await query(`
             SELECT
                 ${totalStudentsExpression} as total_students,
-                (SELECT COUNT(*) FROM users WHERE school_id = $1 AND role = 'teacher' AND is_active = true) as total_teachers,
-                (SELECT COUNT(*) FROM classes WHERE school_id = $1) as total_classes,
-                (SELECT COUNT(*) FROM subjects WHERE school_id = $1) as total_subjects,
+                ${totalTeachersExpression} as total_teachers,
+                ${totalClassesExpression} as total_classes,
+                ${totalSubjectsExpression} as total_subjects,
                 ${totalTestsExpression} as total_tests,
                 (SELECT COUNT(*)
                  FROM test_attempts ta
@@ -230,7 +266,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
                             ${gradeWhere}
                             ${teacherWhere}
                             ${subjectWhere}
-                            AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '${period} days'
+                            AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '${periodDays} days'
                         GROUP BY DATE(${attempt.completedAt})
             ORDER BY date DESC
         `, params);
@@ -311,6 +347,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
         const schoolId = req.user.school_id;
         const isTeacher = req.user.role === 'teacher';
         const { grade_level, period = '90' } = req.query;
+        const periodDays = sanitizePeriodDays(period, 90);
         const { nameRu } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
         const classGradeColumn = await getClassGradeColumn();
@@ -345,7 +382,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
             JOIN classes c ON c.id = cs.class_id
                         WHERE t.school_id = $1
                             AND ${attempt.completedFilter}
-                            AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '${period} days'
+                            AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '${periodDays} days'
               ${gradeFilter}
               ${teacherFilter}
                         GROUP BY ${nameRu}, EXTRACT(WEEK FROM ${attempt.completedAt}), DATE_TRUNC('week', ${attempt.completedAt})
@@ -354,7 +391,7 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
 
         res.json({
             heatmap: heatmapData.rows,
-            period: period,
+            period: periodDays,
             grade_level: grade_level || 'all'
         });
     } catch (error) {
@@ -413,6 +450,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${attempt.score}) as median_score
                 FROM classes c
                 JOIN class_students cs ON cs.class_id = c.id
+                    AND cs.is_active = true
                 LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
                 LEFT JOIN tests t ON t.id = ta.test_id
                 LEFT JOIN subjects s ON s.id = t.subject_id
@@ -457,7 +495,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 LEFT JOIN tests t ON t.subject_id = s.id
                 LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
                 LEFT JOIN users u ON u.id = ta.student_id
-                LEFT JOIN class_students cs ON cs.student_id = u.id
+                LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
                 LEFT JOIN classes c ON c.id = cs.class_id
                 WHERE ${conditions.join(' AND ')}
                 GROUP BY s.id, ${nameRu}, ${nameUz}, s.code, s.color
@@ -497,6 +535,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                     AVG(${attempt.timeSpent}) / 60 as avg_time_minutes
                 FROM users u
                 JOIN class_students cs ON cs.student_id = u.id
+                    AND cs.is_active = true
                 JOIN classes c ON c.id = cs.class_id
                 LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
                 WHERE ${conditions.join(' AND ')}
@@ -528,14 +567,23 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
     try {
         const { id } = req.params;
         const schoolId = req.user.school_id;
+        const isTeacher = req.user.role === 'teacher';
         const { nameRu } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
         const classGradeColumn = await getClassGradeColumn();
 
         // Verify access
+        const accessParams = [id, schoolId];
+        const teacherScopeCondition = isTeacher
+            ? ` AND ${buildTeacherClassScopeSql(`$${accessParams.push(req.user.id)}`, 'classes')}`
+            : '';
         const classCheck = await query(
-            `SELECT id, name, ${classGradeColumn} as grade_level FROM classes WHERE id = $1 AND school_id = $2`,
-            [id, schoolId]
+            `SELECT id, name, ${classGradeColumn} as grade_level
+             FROM classes
+             WHERE id = $1
+               AND school_id = $2
+               ${teacherScopeCondition}`,
+            accessParams
         );
 
         if (classCheck.rows.length === 0) {
@@ -564,6 +612,7 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
             LEFT JOIN tests t ON t.id = ta.test_id
             LEFT JOIN subjects s ON s.id = t.subject_id
             WHERE cs.class_id = $1
+              AND cs.is_active = true
             GROUP BY u.id, u.first_name, u.last_name, ${nameRu}
             ORDER BY u.last_name, u.first_name, ${nameRu}
         `, [id]);
@@ -582,7 +631,9 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
             JOIN class_students cs ON cs.student_id = ta.student_id
-            WHERE cs.class_id = $1 AND ${attempt.completedFilter}
+            WHERE cs.class_id = $1
+              AND cs.is_active = true
+              AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             ORDER BY avg_score DESC
         `, [id]);
@@ -595,7 +646,9 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
                 COUNT(ta.id) as attempts
             FROM test_attempts ta
             JOIN class_students cs ON cs.student_id = ta.student_id
-                        WHERE cs.class_id = $1 AND ${attempt.completedFilter}
+                        WHERE cs.class_id = $1
+                            AND cs.is_active = true
+                            AND ${attempt.completedFilter}
                             AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '90 days'
                         GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
             ORDER BY week
@@ -614,6 +667,7 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
             JOIN class_students cs ON cs.student_id = u.id
             LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
             WHERE cs.class_id = $1
+              AND cs.is_active = true
             GROUP BY u.id, u.first_name, u.last_name
             HAVING COUNT(ta.id) > 0
             ORDER BY rank
@@ -645,13 +699,44 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const schoolId = req.user.school_id;
         const { nameRu } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
+        const classGradeColumn = await getClassGradeColumn();
 
         // If student, can only view own report
-        if (req.user.role === 'student' && req.user.id !== id) {
+        if (req.user.role === 'student' && String(req.user.id) !== String(id)) {
             return res.status(403).json({
                 error: 'forbidden',
                 message: 'Access denied'
             });
+        }
+
+        // If teacher, can only view students from own scoped classes.
+        if (req.user.role === 'teacher') {
+            const teacherScopeResult = await query(
+                `SELECT 1
+                 FROM class_students cs
+                 JOIN classes c ON c.id = cs.class_id
+                 WHERE cs.student_id = $1
+                   AND cs.is_active = true
+                   AND c.school_id = $2
+                   AND (
+                        c.homeroom_teacher_id = $3
+                        OR EXISTS (
+                            SELECT 1
+                            FROM teacher_class_subjects tcs
+                            WHERE tcs.class_id = c.id
+                              AND tcs.teacher_id = $3
+                        )
+                   )
+                 LIMIT 1`,
+                [id, schoolId, req.user.id]
+            );
+
+            if (teacherScopeResult.rows.length === 0) {
+                return res.status(403).json({
+                    error: 'forbidden',
+                    message: 'Access denied'
+                });
+            }
         }
 
         // Get student info
@@ -660,9 +745,11 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                 u.id, u.first_name, u.last_name, u.email,
                 c.name as class_name, c.${classGradeColumn} as grade_level
             FROM users u
-            LEFT JOIN class_students cs ON cs.student_id = u.id
+            LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
             LEFT JOIN classes c ON c.id = cs.class_id
-            WHERE u.id = $1 AND u.school_id = $2
+            WHERE u.id = $1
+              AND u.school_id = $2
+              AND u.role = 'student'
         `, [id, schoolId]);
 
         if (studentInfo.rows.length === 0) {
@@ -750,8 +837,13 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                 SELECT cs.student_id
                 FROM class_students cs
                 WHERE cs.class_id = (
-                    SELECT class_id FROM class_students WHERE student_id = $1 LIMIT 1
+                    SELECT class_id
+                    FROM class_students
+                    WHERE student_id = $1
+                      AND is_active = true
+                    LIMIT 1
                 )
+                  AND cs.is_active = true
             ),
             student_scores AS (
                 SELECT
@@ -794,9 +886,23 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
 router.get('/export/school', authorize('school_admin', 'teacher'), async (req, res) => {
     try {
         const schoolId = req.user.school_id;
+        const isTeacher = req.user.role === 'teacher';
+        const teacherId = req.user.id;
         const { nameRu } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
         const classGradeColumn = await getClassGradeColumn();
+        const teacherScopeWhere = isTeacher
+            ? `AND (
+                    c.homeroom_teacher_id = $2
+                    OR EXISTS (
+                        SELECT 1
+                        FROM teacher_class_subjects tcs_scope
+                        WHERE tcs_scope.class_id = c.id
+                          AND tcs_scope.teacher_id = $2
+                    )
+                )`
+            : '';
+        const teacherScopeParams = isTeacher ? [schoolId, teacherId] : [schoolId];
 
         // Get comprehensive data
         const studentsData = await query(`
@@ -813,9 +919,10 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
             JOIN classes c ON c.id = cs.class_id
             LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
             WHERE u.school_id = $1 AND u.role = 'student'
+              ${teacherScopeWhere}
             GROUP BY u.id, u.first_name, u.last_name, c.name
             ORDER BY c.name, u.last_name, u.first_name
-        `, [schoolId]);
+        `, teacherScopeParams);
 
         const classesData = await query(`
             SELECT
@@ -827,9 +934,10 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
             LEFT JOIN class_students cs ON cs.class_id = c.id
             LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
             WHERE c.school_id = $1
+              ${teacherScopeWhere}
             GROUP BY c.id, c.name, c.${classGradeColumn}
             ORDER BY NULLIF(REGEXP_REPLACE(c.${classGradeColumn}::text, '[^0-9]', '', 'g'), '')::int NULLS LAST, c.name
-        `, [schoolId]);
+        `, teacherScopeParams);
 
         const subjectsData = await query(`
             SELECT
@@ -841,9 +949,16 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
             LEFT JOIN tests t ON t.subject_id = s.id
             LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
             WHERE s.school_id = $1
+              ${isTeacher ? `
+                AND EXISTS (
+                    SELECT 1
+                    FROM teacher_class_subjects tcs_scope
+                    WHERE tcs_scope.subject_id = s.id
+                      AND tcs_scope.teacher_id = $2
+                )` : ''}
             GROUP BY ${nameRu}
             ORDER BY subject
-        `, [schoolId]);
+        `, teacherScopeParams);
 
         // Create workbook
         const workbook = XLSX.utils.book_new();

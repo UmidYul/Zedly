@@ -406,10 +406,44 @@ router.post('/users', async (req, res) => {
             last_name,
             email,
             phone,
-            telegram_id
+            telegram_id,
+            date_of_birth,
+            gender,
+            personal_info,
+            settings
         } = req.body;
         const schoolId = req.user.school_id;
         const normalizedPhone = phone ? normalizeUzPhone(phone) : null;
+        const settingsInput = normalizeSettingsInput(settings);
+        if (settingsInput.error) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: settingsInput.error
+            });
+        }
+
+        const rawDateOfBirth = personal_info && Object.prototype.hasOwnProperty.call(personal_info, 'date_of_birth')
+            ? personal_info.date_of_birth
+            : date_of_birth;
+        const rawGender = personal_info && Object.prototype.hasOwnProperty.call(personal_info, 'gender')
+            ? personal_info.gender
+            : gender;
+        const personalInfoInput = {};
+        if (rawDateOfBirth !== undefined) personalInfoInput.date_of_birth = rawDateOfBirth;
+        if (rawGender !== undefined) personalInfoInput.gender = rawGender;
+
+        const personalInfoPatch = normalizePersonalInfoPatch(personalInfoInput);
+        if (personalInfoPatch.error) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: personalInfoPatch.error
+            });
+        }
+
+        const userSettings = mergeSettingsWithPersonalInfo(
+            settingsInput.provided ? settingsInput.value : {},
+            personalInfoPatch.data
+        );
 
         // Validation
         if (!username || !role || !first_name || !last_name) {
@@ -451,9 +485,9 @@ router.post('/users', async (req, res) => {
             `INSERT INTO users (
                 school_id, role, username, password_hash,
                 first_name, last_name, email, phone, telegram_id,
-                is_active, must_change_password
+                is_active, must_change_password, settings
             )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $11)
              RETURNING id, username, role, first_name, last_name, email, phone, telegram_id, created_at`,
             [
                 schoolId,
@@ -465,11 +499,14 @@ router.post('/users', async (req, res) => {
                 email || null,
                 normalizedPhone,
                 telegram_id || null,
-                isTemporaryPassword
+                isTemporaryPassword,
+                userSettings
             ]
         );
 
         const userId = result.rows[0].id;
+        let teacherAssignmentsApplied = 0;
+        let studentClassAssigned = false;
 
         // If teacher, save teacher assignments
         if (role === 'teacher' && req.body.teacher_assignments && Array.isArray(req.body.teacher_assignments)) {
@@ -492,6 +529,7 @@ router.post('/users', async (req, res) => {
                              ON CONFLICT (teacher_id, class_id, subject_id, academic_year) DO NOTHING`,
                             [userId, classId, subject_id, academicYear]
                         );
+                        teacherAssignmentsApplied += 1;
                     }
                 }
             }
@@ -504,6 +542,7 @@ router.post('/users', async (req, res) => {
                  ON CONFLICT (class_id, student_id) DO NOTHING`,
                 [req.body.student_class_id, userId]
             );
+            studentClassAssigned = true;
         }
 
         // Log action
@@ -515,7 +554,12 @@ router.post('/users', async (req, res) => {
                 'create',
                 'user',
                 userId,
-                { username: username.trim(), role }
+                {
+                    username: username.trim(),
+                    role,
+                    teacher_assignments_applied: teacherAssignmentsApplied,
+                    student_class_assigned: studentClassAssigned
+                }
             ]
         );
 
@@ -571,16 +615,43 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             email,
             phone,
             telegram_id,
-            is_active
+            is_active,
+            date_of_birth,
+            gender,
+            personal_info,
+            settings
         } = req.body;
         const schoolId = req.user.school_id;
         const normalizedPhone = phone === undefined
             ? undefined
             : (phone ? normalizeUzPhone(phone) : null);
+        const settingsInput = normalizeSettingsInput(settings);
+        if (settingsInput.error) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: settingsInput.error
+            });
+        }
+        const rawDateOfBirth = personal_info && Object.prototype.hasOwnProperty.call(personal_info, 'date_of_birth')
+            ? personal_info.date_of_birth
+            : date_of_birth;
+        const rawGender = personal_info && Object.prototype.hasOwnProperty.call(personal_info, 'gender')
+            ? personal_info.gender
+            : gender;
+        const personalInfoInput = {};
+        if (rawDateOfBirth !== undefined) personalInfoInput.date_of_birth = rawDateOfBirth;
+        if (rawGender !== undefined) personalInfoInput.gender = rawGender;
+        const personalInfoPatch = normalizePersonalInfoPatch(personalInfoInput);
+        if (personalInfoPatch.error) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: personalInfoPatch.error
+            });
+        }
 
         // Check if user exists in same school
         const existingUser = await query(
-            'SELECT id FROM users WHERE id = $1 AND school_id = $2',
+            'SELECT id, settings FROM users WHERE id = $1 AND school_id = $2',
             [id, schoolId]
         );
 
@@ -664,6 +735,16 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             updates.push(`is_active = $${paramCount++}`);
         }
 
+        const shouldUpdateSettings = settingsInput.provided || Object.keys(personalInfoPatch.data).length > 0;
+        if (shouldUpdateSettings) {
+            const baseSettings = settingsInput.provided
+                ? settingsInput.value
+                : parseSettingsValue(existingUser.rows[0].settings);
+            const mergedSettings = mergeSettingsWithPersonalInfo(baseSettings, personalInfoPatch.data);
+            params.push(mergedSettings);
+            updates.push(`settings = $${paramCount++}`);
+        }
+
         updates.push(`updated_at = CURRENT_TIMESTAMP`);
         params.push(id);
 
@@ -675,6 +756,8 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
              RETURNING id, username, role, first_name, last_name, email, phone, is_active, updated_at`,
             params
         );
+
+        let teacherAssignmentsApplied = 0;
 
         // Update teacher assignments if provided
         if (role === 'teacher' && Array.isArray(req.body.teacher_assignments)) {
@@ -699,16 +782,36 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
                              ON CONFLICT (teacher_id, class_id, subject_id, academic_year) DO NOTHING`,
                             [id, classId, subject_id, academicYear]
                         );
+                        teacherAssignmentsApplied += 1;
                     }
                 }
             }
+        }
+
+        const auditDetails = {
+            username,
+            role,
+            first_name,
+            last_name,
+            email,
+            phone: normalizedPhone,
+            telegram_id,
+            is_active,
+            date_of_birth: personalInfoPatch.data.date_of_birth,
+            gender: personalInfoPatch.data.gender,
+            settings_updated: shouldUpdateSettings,
+            teacher_assignments_updated: Array.isArray(req.body.teacher_assignments),
+            teacher_assignments_applied: teacherAssignmentsApplied
+        };
+        if (password !== undefined) {
+            auditDetails.password_changed = true;
         }
 
         // Log action
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
-            [req.user.id, 'update', 'user', id, req.body]
+            [req.user.id, 'update', 'user', id, auditDetails]
         );
 
         try {
@@ -895,11 +998,14 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
         const parsedRows = parseImportRows(sheet, importType);
 
         const results = {
+            total_rows: parsedRows.length,
+            processed_rows: 0,
             imported: 0,
             created: [],
             errors: [],
             auto_created_classes: [],
-            skipped: 0
+            skipped: 0,
+            skipped_rows: []
         };
 
         for (let i = 0; i < parsedRows.length; i++) {
@@ -907,6 +1013,8 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
             const mapped = mapImportRow(row);
 
             if (!mapped) {
+                results.skipped += 1;
+                results.skipped_rows.push({ row: rowNumber, reason: 'Empty row' });
                 continue;
             }
 
@@ -915,11 +1023,17 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                     hydrateTeacherNameFields(mapped);
                     if (!isTeacherPosition(mapped.position)) {
                         results.skipped += 1;
+                        results.skipped_rows.push({
+                            row: rowNumber,
+                            reason: 'Position is not teacher'
+                        });
                         continue;
                     }
                 } else {
                     hydrateStudentNameFields(mapped);
                 }
+
+                results.processed_rows += 1;
 
                 const validationError = validateImportRow(mapped, importType);
                 if (validationError) {
@@ -1032,9 +1146,44 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                 });
             } catch (rowError) {
                 console.error('Import row error:', rowError);
-                results.errors.push({ row: rowNumber, message: 'Failed to import row' });
+                results.errors.push({
+                    row: rowNumber,
+                    message: rowError?.message ? `Failed to import row: ${rowError.message}` : 'Failed to import row'
+                });
             }
         }
+
+        // Keep payload reasonable on very large imports.
+        if (results.errors.length > 300) {
+            results.errors = results.errors.slice(0, 300);
+            results.errors_truncated = true;
+        }
+        if (results.skipped_rows.length > 300) {
+            results.skipped_rows = results.skipped_rows.slice(0, 300);
+            results.skipped_truncated = true;
+        }
+        results.failed = results.errors.length;
+
+        await query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'import',
+                'user_import_batch',
+                req.user.id,
+                {
+                    school_id: schoolId,
+                    import_type: importType,
+                    total_rows: results.total_rows,
+                    processed_rows: results.processed_rows,
+                    imported: results.imported,
+                    skipped: results.skipped,
+                    failed: results.failed,
+                    auto_created_classes: (results.auto_created_classes || []).length
+                }
+            ]
+        );
 
         res.json({
             message: 'Import completed',
@@ -1054,6 +1203,24 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
         }
     } catch (error) {
         console.error('Import users error:', error);
+        try {
+            await query(
+                `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [
+                    req.user?.id || null,
+                    'import_failed',
+                    'user_import_batch',
+                    req.user?.id || null,
+                    {
+                        school_id: req.user?.school_id || null,
+                        error: error.message || 'Failed to import users'
+                    }
+                ]
+            );
+        } catch (auditError) {
+            console.error('Import failure audit log error:', auditError);
+        }
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to import users'
@@ -2331,6 +2498,105 @@ function parseTeacherClassList(rawValue) {
         .split(',')
         .map((item) => normalizeClassName(item))
         .filter(Boolean);
+}
+
+function parseSettingsValue(value) {
+    if (!value) return {};
+    if (typeof value === 'object' && !Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed;
+            }
+            return {};
+        } catch (error) {
+            return {};
+        }
+    }
+    return {};
+}
+
+function normalizeSettingsInput(rawSettings) {
+    if (rawSettings === undefined) {
+        return { provided: false, value: {} };
+    }
+    if (rawSettings === null) {
+        return { provided: true, value: {} };
+    }
+    if (typeof rawSettings === 'object' && !Array.isArray(rawSettings)) {
+        return { provided: true, value: rawSettings };
+    }
+    if (typeof rawSettings === 'string') {
+        const trimmed = rawSettings.trim();
+        if (!trimmed) {
+            return { provided: true, value: {} };
+        }
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                return { error: 'Settings must be a JSON object' };
+            }
+            return { provided: true, value: parsed };
+        } catch (error) {
+            return { error: 'Invalid settings JSON' };
+        }
+    }
+    return { error: 'Settings must be an object' };
+}
+
+function normalizePersonalInfoPatch(rawPersonalInfo) {
+    const normalized = {};
+
+    if (Object.prototype.hasOwnProperty.call(rawPersonalInfo, 'date_of_birth')) {
+        const rawDate = rawPersonalInfo.date_of_birth;
+        if (rawDate === null || String(rawDate).trim() === '') {
+            normalized.date_of_birth = null;
+        } else {
+            const parsedDate = normalizeDateInput(rawDate);
+            if (!parsedDate) {
+                return { error: 'Invalid date_of_birth format' };
+            }
+            normalized.date_of_birth = parsedDate;
+        }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(rawPersonalInfo, 'gender')) {
+        const rawGender = rawPersonalInfo.gender;
+        if (rawGender === null || String(rawGender).trim() === '') {
+            normalized.gender = null;
+        } else {
+            const parsedGender = normalizeGender(rawGender);
+            if (!parsedGender) {
+                return { error: 'Invalid gender value' };
+            }
+            normalized.gender = parsedGender;
+        }
+    }
+
+    return { data: normalized };
+}
+
+function mergeSettingsWithPersonalInfo(baseSettings, personalInfoPatch) {
+    const settings = parseSettingsValue(baseSettings);
+    if (Object.keys(personalInfoPatch).length === 0) {
+        return settings;
+    }
+    const profile = (settings.profile && typeof settings.profile === 'object' && !Array.isArray(settings.profile))
+        ? settings.profile
+        : {};
+    const existingPersonalInfo = (profile.personal_info && typeof profile.personal_info === 'object' && !Array.isArray(profile.personal_info))
+        ? profile.personal_info
+        : {};
+
+    settings.profile = {
+        ...profile,
+        personal_info: {
+            ...existingPersonalInfo,
+            ...personalInfoPatch
+        }
+    };
+    return settings;
 }
 
 function buildImportedUserSettings(row) {

@@ -404,3 +404,54 @@
 ## Следующей шаги
 
 **КРИТИЧНО:** Сначала нужно создать недостающие SQL файлы и инициализировать БД. Потом все остальное должно работать!
+
+---
+
+## 2026-02-14 MVP Roadmap (Execution Started)
+
+### P0 Week 1 (must-have before release)
+- [ ] API role isolation audit for teacher/school_admin
+- [x] Import validation report (row-level errors + skipped/success counters)
+- [x] Data normalization pipeline (phone/class/date/gender)
+- [ ] Audit log coverage for critical actions (import/delete/reset/assign)
+
+### P1 Week 1-2
+- [ ] In-app + Telegram notifications for assignments/deadlines
+- [ ] Assignment templates
+- [ ] Risk dashboard (students at risk)
+- [ ] Report export parity (PDF "as on screen" for key pages)
+
+### P2 Week 2
+- [ ] E2E smoke tests (login/import/assign/take/report)
+- [ ] Error tracking integration
+- [ ] Large-table performance pass
+- [ ] Backup/restore verification
+
+### In progress right now
+- [x] Teacher scope fix: `GET /api/analytics/student/:id/report` now blocks access outside teacher classes
+- [x] Teacher scope fix: `GET /api/analytics/class/:id/detailed` now enforces teacher class scope
+- [x] Teacher scope fix: `GET /api/analytics/export/school` now exports only teacher-scoped data
+- [ ] Next: continue role-scope audit across remaining analytics/teacher endpoints
+- [x] Analytics student report restricted to `student` role and active class links
+- [x] Teacher API locked to teacher role only (`/api/teacher/*`)
+- [x] Import report enhanced: total/processed/failed/empty rows + skipped rows list + truncation guards
+- [x] Period filter hardening in analytics (period clamped 1..365)
+- [x] Teacher overview KPIs in analytics now respect teacher scope (classes/subjects/teachers)
+- [x] Class detailed analytics now ignores inactive class links
+- [x] Import batch audit logging added (success + failed)
+- [x] Audit logs now avoid raw password payload and include assignment counters
+- [x] Admin create/update users now normalize/store `gender` + `date_of_birth` in `settings.profile.personal_info`
+
+
+
+
+
+
+
+
+
+
+
+
+
+

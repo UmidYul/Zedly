@@ -349,39 +349,49 @@
         }
         pendingAutoCreatedClasses = Array.isArray(data.auto_created_classes) ? data.auto_created_classes : [];
 
-        const createdList = (data.created || []).map(user => {
-            return `
-                <li>
-                    <strong>${user.username}</strong> (${user.role}) - OTP: <code>${user.otp_password}</code>
-                </li>
-            `;
-        }).join('');
+        const createdList = (data.created || []).map((user) => `
+            <li>
+                <strong>${user.username}</strong> (${user.role}) - OTP: <code>${user.otp_password}</code>
+            </li>
+        `).join('' );
 
-        const errorList = (data.errors || []).map(err => {
-            return `<li>РЎС‚СЂРѕРєР° ${err.row}: ${err.message}</li>`;
-        }).join('');
+        const errorList = (data.errors || []).map((err) =>
+            `<li>Строка ${err.row}: ${err.message}</li>`
+        ).join('' );
+
+        const skippedList = (data.skipped_rows || []).map((item) =>
+            `<li>Строка ${item.row}: ${item.reason}</li>`
+        ).join('' );
 
         container.innerHTML = `
             <div class="import-summary">
                 <div class="import-summary-item">
-                    <span>РРјРїРѕСЂС‚РёСЂРѕРІР°РЅРѕ:</span>
+                    <span>Всего строк:</span>
+                    <strong>${data.total_rows || 0}</strong>
+                </div>
+                <div class="import-summary-item">
+                    <span>Обработано:</span>
+                    <strong>${data.processed_rows || 0}</strong>
+                </div>
+                <div class="import-summary-item">
+                    <span>Импортировано:</span>
                     <strong>${data.imported || 0}</strong>
                 </div>
                 <div class="import-summary-item">
-                    <span>РџСЂРѕРїСѓС‰РµРЅРѕ:</span>
+                    <span>Пропущено:</span>
                     <strong>${data.skipped || 0}</strong>
                 </div>
                 <div class="import-summary-item">
-                    <span>РћС€РёР±РѕРє:</span>
-                    <strong>${(data.errors || []).length}</strong>
+                    <span>Ошибок:</span>
+                    <strong>${data.failed || (data.errors || []).length}</strong>
                 </div>
             </div>
             ${createdList ? `
                 <div class="import-section">
-                    <h3>РЎРѕР·РґР°РЅРЅС‹Рµ РїРѕР»СЊР·РѕРІР°С‚РµР»Рё (OTP)</h3>
+                    <h3>Созданные пользователи (OTP)</h3>
                     <div style="margin-bottom: 10px;">
                         <button class="btn btn-secondary" type="button" data-action="download-import-credentials">
-                            РЎРєР°С‡Р°С‚СЊ Р»РѕРіРёРЅС‹ Рё OTP (XLSX)
+                            Скачать логины и OTP (XLSX)
                         </button>
                     </div>
                     <ul class="import-list">${createdList}</ul>
@@ -389,22 +399,30 @@
             ` : ''}
             ${pendingAutoCreatedClasses.length ? `
                 <div class="import-section">
-                    <h3>РќРѕРІС‹Рµ РєР»Р°СЃСЃС‹ Р±РµР· РєР»Р°СЃСЃРЅРѕРіРѕ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЏ</h3>
-                    <p>РЎРёСЃС‚РµРјР° СЃРѕР·РґР°Р»Р°/Р°РєС‚РёРІРёСЂРѕРІР°Р»Р° РєР»Р°СЃСЃС‹ РїСЂРё РёРјРїРѕСЂС‚Рµ. РќР°Р·РЅР°С‡СЊС‚Рµ РєР»Р°СЃСЃРЅРѕРіРѕ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЏ СЃРµР№С‡Р°СЃ.</p>
+                    <h3>Новые классы без классного руководителя</h3>
+                    <p>Система создала/активировала классы при импорте. Назначьте классного руководителя сейчас.</p>
                     <div style="margin-bottom: 10px;">
                         <button class="btn btn-primary" type="button" data-action="assign-homeroom-now">
-                            РќР°Р·РЅР°С‡РёС‚СЊ РєР»Р°СЃСЃРЅС‹С… СЂСѓРєРѕРІРѕРґРёС‚РµР»РµР№
+                            Назначить классных руководителей
                         </button>
                     </div>
                     <ul class="import-list">
-                        ${pendingAutoCreatedClasses.map(cls => `<li><strong>${cls.name}</strong> (${cls.academic_year || '-'})</li>`).join('')}
+                        ${pendingAutoCreatedClasses.map((cls) => `<li><strong>${cls.name}</strong> (${cls.academic_year || '-'})</li>`).join('' )}
                     </ul>
                 </div>
             ` : ''}
             ${errorList ? `
                 <div class="import-section">
-                    <h3>РћС€РёР±РєРё</h3>
+                    <h3>Ошибки</h3>
                     <ul class="import-list import-errors">${errorList}</ul>
+                    ${data.errors_truncated ? '<p class="text-secondary">Показаны первые 300 ошибок.</p>' : ''}
+                </div>
+            ` : ''}
+            ${skippedList ? `
+                <div class="import-section">
+                    <h3>Пропущенные строки</h3>
+                    <ul class="import-list">${skippedList}</ul>
+                    ${data.skipped_truncated ? '<p class="text-secondary">Показаны первые 300 пропущенных строк.</p>' : ''}
                 </div>
             ` : ''}
         `;
