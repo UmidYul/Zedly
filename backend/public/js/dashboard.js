@@ -595,20 +595,6 @@
                             <p id="profileRole">Роль</p>
                             <p id="profileSchool">Школа</p>
                         </div>
-                        <div class="profile-mini-stats">
-                            <div class="mini-stat">
-                                <span class="mini-stat-value" id="statMini1Value">-</span>
-                                <span class="mini-stat-label" id="statMini1Label">Показатель 1</span>
-                            </div>
-                            <div class="mini-stat">
-                                <span class="mini-stat-value" id="statMini2Value">-</span>
-                                <span class="mini-stat-label" id="statMini2Label">Показатель 2</span>
-                            </div>
-                            <div class="mini-stat">
-                                <span class="mini-stat-value" id="statMini3Value">-</span>
-                                <span class="mini-stat-label" id="statMini3Label">Показатель 3</span>
-                            </div>
-                        </div>
                     </section>
 
                     <section class="profile-grid">
