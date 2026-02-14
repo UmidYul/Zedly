@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const { query, getClient } = require('../config/database');
 const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
 const { notifyNewUser, notifySystemChange } = require('../utils/notifications');
@@ -809,7 +810,6 @@ router.get('/import/template/users', async (req, res) => {
         const importType = normalizeImportType(req.query.type);
         let templateRows;
         let merges;
-        let cols;
         let headerRows = 1;
 
         if (importType === 'teacher') {
@@ -818,10 +818,6 @@ router.get('/import/template/users', async (req, res) => {
                 [1, 'Иванов Иван Петрович', 'М', '1989-04-22', '12345678901234', 'Учитель', '5-А, 5-Б', '+998901234567', 'teacher@example.com']
             ];
             merges = [];
-            cols = [
-                { wch: 6 }, { wch: 32 }, { wch: 10 }, { wch: 16 }, { wch: 18 },
-                { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 26 }
-            ];
         } else {
             templateRows = [
                 ['№', 'Ученик', 'Пол', 'Дата рождения', 'ПИНФЛ', 'Класс', 'Родственники', 'Контактные данные родственников', ''],
@@ -829,39 +825,30 @@ router.get('/import/template/users', async (req, res) => {
                 [1, 'Иванов Иван', 'Мужской', '2010-05-14', '12345678901234', '9А', 'Иванова Мария (мать)', '+998901234567', 'parent@example.com']
             ];
             merges = [
-                XLSX.utils.decode_range('A1:A2'),
-                XLSX.utils.decode_range('B1:B2'),
-                XLSX.utils.decode_range('C1:C2'),
-                XLSX.utils.decode_range('D1:D2'),
-                XLSX.utils.decode_range('E1:E2'),
-                XLSX.utils.decode_range('F1:F2'),
-                XLSX.utils.decode_range('G1:G2'),
-                XLSX.utils.decode_range('H1:I1')
-            ];
-            cols = [
-                { wch: 6 }, { wch: 26 }, { wch: 12 }, { wch: 16 }, { wch: 18 },
-                { wch: 12 }, { wch: 28 }, { wch: 20 }, { wch: 26 }
+                'A1:A2',
+                'B1:B2',
+                'C1:C2',
+                'D1:D2',
+                'E1:E2',
+                'F1:F2',
+                'G1:G2',
+                'H1:I1'
             ];
             headerRows = 2;
         }
 
-        const sheet = XLSX.utils.aoa_to_sheet(templateRows);
-        if (merges.length) {
-            sheet['!merges'] = merges;
-        }
-        sheet['!cols'] = cols;
-        applySheetFormatting(sheet, templateRows, {
+        const buffer = await buildStyledWorkbookBuffer({
+            sheetName: 'users',
+            rows: templateRows,
             headerRows,
+            merges,
             columnFormats: {
-                3: 'yyyy-mm-dd',
-                7: '@'
-            }
+                4: 'yyyy-mm-dd',
+                8: '@'
+            },
+            autoFilter: false,
+            freezeHeader: true
         });
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, sheet, 'users');
-
-        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
 
         res.setHeader('Content-Disposition', 'attachment; filename="users_import_template.xlsx"');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -1087,12 +1074,13 @@ router.post('/import/credentials/export', async (req, res) => {
             ]))
         ];
 
-        const sheet = XLSX.utils.aoa_to_sheet(rows);
-        applySheetFormatting(sheet, rows, { headerRows: 1, applyAutoFilter: true });
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, sheet, 'credentials');
-        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
+        const buffer = await buildStyledWorkbookBuffer({
+            sheetName: 'credentials',
+            rows,
+            headerRows: 1,
+            autoFilter: true,
+            freezeHeader: true
+        });
 
         const datePart = new Date().toISOString().slice(0, 10);
         res.setHeader('Content-Disposition', `attachment; filename="import_credentials_${datePart}.xlsx"`);
@@ -1154,18 +1142,16 @@ router.get('/export/users', async (req, res) => {
             ...exportRows.map((row) => headers.map((key) => row[key] ?? ''))
         ];
 
-        const sheet = XLSX.utils.aoa_to_sheet(rows);
-        applySheetFormatting(sheet, rows, {
+        const buffer = await buildStyledWorkbookBuffer({
+            sheetName: 'users',
+            rows,
             headerRows: 1,
-            applyAutoFilter: true,
+            autoFilter: true,
+            freezeHeader: true,
             columnFormats: {
-                5: '@'
+                6: '@'
             }
         });
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, sheet, 'users');
-
-        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
 
         res.setHeader('Content-Disposition', 'attachment; filename="users_export.xlsx"');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -2435,28 +2421,6 @@ function parseImportRows(sheet, importType = 'student') {
     }));
 }
 
-function buildAutoWidthColumns(rows) {
-    const colCount = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
-    const columns = [];
-
-    for (let colIndex = 0; colIndex < colCount; colIndex++) {
-        let maxLen = 8;
-        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-            const value = rows[rowIndex]?.[colIndex];
-            const text = String(value === undefined || value === null ? '' : value);
-            maxLen = Math.max(maxLen, text.length);
-        }
-        columns.push({ wch: Math.min(maxLen + 2, 48) });
-    }
-
-    return columns;
-}
-
-function toExcelDateSerial(date) {
-    const utc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-    return utc / 86400000 + 25569;
-}
-
 function parseIsoDateString(value) {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -2467,83 +2431,88 @@ function parseIsoDateString(value) {
     const day = Number(match[3]);
     if (!year || !month || !day) return null;
     const date = new Date(Date.UTC(year, month - 1, day));
-    if (Number.isNaN(date.getTime())) return null;
-    return date;
+    return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function applySheetFormatting(sheet, rows, options = {}) {
-    const {
-        headerRows = 1,
-        applyAutoFilter = false,
-        columnFormats = {},
-        freezeHeader = true
-    } = options;
-    if (!sheet || !Array.isArray(rows) || rows.length === 0) return;
+async function buildStyledWorkbookBuffer({
+    sheetName,
+    rows,
+    headerRows = 1,
+    merges = [],
+    columnFormats = {},
+    autoFilter = false,
+    freezeHeader = true
+}) {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(sheetName);
+    const maxCol = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
 
-    sheet['!cols'] = buildAutoWidthColumns(rows);
-
-    if (applyAutoFilter) {
-        const colCount = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
-        if (colCount > 0) {
-            const endCol = XLSX.utils.encode_col(colCount - 1);
-            sheet['!autofilter'] = { ref: `A1:${endCol}${rows.length}` };
-        }
-    }
-
-    if (freezeHeader && headerRows > 0) {
-        const topLeftCell = `A${headerRows + 1}`;
-        // Keep both notations for compatibility with different SheetJS builds/readers.
-        sheet['!freeze'] = { xSplit: 0, ySplit: headerRows, topLeftCell, activePane: 'bottomLeft', state: 'frozen' };
-        sheet['!pane'] = { xSplit: 0, ySplit: headerRows, topLeftCell, activePane: 'bottomLeft', state: 'frozen' };
-    }
-
-    const ref = sheet['!ref'];
-    if (!ref) return;
-
-    const range = XLSX.utils.decode_range(ref);
-    const border = {
-        top: { style: 'thin', color: { rgb: 'D1D5DB' } },
-        bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
-        left: { style: 'thin', color: { rgb: 'D1D5DB' } },
-        right: { style: 'thin', color: { rgb: 'D1D5DB' } }
-    };
-
-    for (let r = range.s.r; r <= range.e.r; r++) {
-        for (let c = range.s.c; c <= range.e.c; c++) {
-            const address = XLSX.utils.encode_cell({ r, c });
-            const cell = sheet[address];
-            if (!cell) continue;
-
-            const isHeader = r < headerRows;
-            const style = {
-                border,
-                alignment: {
-                    vertical: 'center',
-                    horizontal: isHeader ? 'center' : 'left',
-                    wrapText: true
-                }
-            };
-            if (isHeader) {
-                style.font = { bold: true, color: { rgb: 'FFFFFF' } };
-                style.fill = { patternType: 'solid', fgColor: { rgb: '4A90E2' } };
-            } else {
-                const colFormat = columnFormats[c];
-                if (colFormat) {
-                    style.numFmt = colFormat;
-
-                    // Convert ISO date strings so Excel date format works reliably.
-                    if (typeof cell.v === 'string' && /y{2,4}/i.test(colFormat)) {
-                        const parsedDate = parseIsoDateString(cell.v);
-                        if (parsedDate) {
-                            cell.v = toExcelDateSerial(parsedDate);
-                            cell.t = 'n';
-                        }
-                    }
+    const normalizedRows = rows.map((row, rowIdx) => {
+        const normalized = Array.isArray(row) ? [...row] : [];
+        if (rowIdx >= headerRows) {
+            for (let c = 0; c < normalized.length; c++) {
+                const fmt = columnFormats[c + 1];
+                if (fmt && typeof normalized[c] === 'string' && /y{2,4}/i.test(fmt)) {
+                    const parsed = parseIsoDateString(normalized[c]);
+                    if (parsed) normalized[c] = parsed;
                 }
             }
-            cell.s = Object.assign({}, cell.s || {}, style);
+        }
+        return normalized;
+    });
+
+    normalizedRows.forEach((row) => worksheet.addRow(row));
+    merges.forEach((range) => worksheet.mergeCells(range));
+
+    if (freezeHeader && headerRows > 0) {
+        worksheet.views = [{ state: 'frozen', ySplit: headerRows }];
+    }
+
+    if (autoFilter && rows.length > 0 && maxCol > 0) {
+        worksheet.autoFilter = {
+            from: { row: 1, column: 1 },
+            to: { row: 1, column: maxCol }
+        };
+    }
+
+    const border = {
+        top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        right: { style: 'thin', color: { argb: 'FFD1D5DB' } }
+    };
+
+    for (let r = 1; r <= rows.length; r++) {
+        for (let c = 1; c <= maxCol; c++) {
+            const cell = worksheet.getCell(r, c);
+            const isHeader = r <= headerRows;
+            cell.border = border;
+            cell.alignment = { vertical: 'middle', horizontal: isHeader ? 'center' : 'left', wrapText: true };
+
+            if (isHeader) {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4A90E2' } };
+            }
         }
     }
+
+    for (let c = 1; c <= maxCol; c++) {
+        const fmt = columnFormats[c];
+        if (fmt) worksheet.getColumn(c).numFmt = fmt;
+
+        let maxLen = 8;
+        for (let r = 0; r < normalizedRows.length; r++) {
+            const value = normalizedRows[r]?.[c - 1];
+            const text = value instanceof Date
+                ? value.toISOString().slice(0, 10)
+                : String(value ?? '');
+            maxLen = Math.max(maxLen, text.length);
+        }
+        worksheet.getColumn(c).width = Math.min(maxLen + 2, 48);
+    }
+
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(arrayBuffer);
 }
 
 async function deleteAssignmentCascadeById(client, assignmentId) {
