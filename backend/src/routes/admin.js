@@ -513,6 +513,17 @@ router.post('/users', async (req, res) => {
             for (const assignment of req.body.teacher_assignments) {
                 const { subject_id, class_ids } = assignment;
                 if (subject_id && Array.isArray(class_ids)) {
+                    const subjectCheck = await query(
+                        'SELECT id FROM subjects WHERE id = $1 AND school_id = $2',
+                        [subject_id, schoolId]
+                    );
+                    if (subjectCheck.rows.length === 0) {
+                        return res.status(400).json({
+                            error: 'validation_error',
+                            message: 'Invalid subject for this school'
+                        });
+                    }
+
                     for (const classId of class_ids) {
                         // fetch academic_year for this classId
                         const classResult = await query(
@@ -779,6 +790,17 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             for (const assignment of req.body.teacher_assignments) {
                 const { subject_id, class_ids } = assignment;
                 if (subject_id && Array.isArray(class_ids)) {
+                    const subjectCheck = await query(
+                        'SELECT id FROM subjects WHERE id = $1 AND school_id = $2',
+                        [subject_id, schoolId]
+                    );
+                    if (subjectCheck.rows.length === 0) {
+                        return res.status(400).json({
+                            error: 'validation_error',
+                            message: 'Invalid subject for this school'
+                        });
+                    }
+
                     for (const classId of class_ids) {
                         const classResult = await query(
                             'SELECT academic_year FROM classes WHERE id = $1 AND school_id = $2',
@@ -798,6 +820,9 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
                     }
                 }
             }
+        } else if (role !== undefined && role !== 'teacher') {
+            // If role changed from teacher to another role, drop stale teaching assignments.
+            await query('DELETE FROM teacher_class_subjects WHERE teacher_id = $1', [id]);
         }
 
         const auditDetails = {

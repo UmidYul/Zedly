@@ -241,15 +241,16 @@ function buildCareerRecommendations(topInterests) {
  */
 
 /**
- * GET /api/student/subjects
- * Get all subjects in student's school
+ * GET /api/student/subjects/all
+ * Get all active subjects in student's school
  */
-router.get('/subjects', async (req, res) => {
+router.get('/subjects/all', async (req, res) => {
     try {
         const schoolId = req.user.school_id;
         const subjectColumns = await getTableColumns('subjects');
         const nameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
         const colorColumn = pickColumn(subjectColumns, ['color'], null);
+        const activeFilter = subjectColumns.has('is_active') ? 'AND is_active = true' : '';
 
         const result = await query(
             `SELECT
@@ -258,6 +259,7 @@ router.get('/subjects', async (req, res) => {
                 ${colorColumn ? colorColumn : 'NULL'} as color
              FROM subjects
              WHERE school_id = $1
+               ${activeFilter}
              ORDER BY ${nameColumn} ASC`,
             [schoolId]
         );

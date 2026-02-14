@@ -445,6 +445,8 @@
 - [x] Teacher assignment/class counters + notifications now ignore inactive class links (`cs.is_active = true`)
 - [x] Student leaderboard class scope now blocks arbitrary чужой `class_id` access
 - [x] Admin user create/update now validates assigned class IDs against current school (`school_id`)
+- [x] Admin teacher assignments now validate `subject_id` by school and clear stale links on role downgrade
+- [x] Removed duplicate student `GET /subjects` route conflict (`/subjects/all` + `/subjects`)
 
 
 
