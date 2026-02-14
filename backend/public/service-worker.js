@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zedly-shell-v2';
+const CACHE_NAME = 'zedly-shell-v3';
 const APP_SHELL = [
   '/',
   '/dashboard',
@@ -13,6 +13,8 @@ const APP_SHELL = [
   '/js/mobile-shell.js',
   '/js/pwa.js',
   '/images/zedly_logo_bg.png',
+  '/images/pwa-icon-192.png',
+  '/images/pwa-icon-512.png',
   '/manifest.webmanifest'
 ];
 
