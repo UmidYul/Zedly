@@ -54,6 +54,16 @@ function createLinkToken(userId) {
     };
 }
 
+function createLinkTokenWithPayload(userId, payload = {}) {
+    const base = createLinkToken(userId);
+    const tokenData = pendingLinkTokens.get(base.token);
+    if (tokenData) {
+        tokenData.payload = payload && typeof payload === 'object' ? payload : {};
+        pendingLinkTokens.set(base.token, tokenData);
+    }
+    return base;
+}
+
 function verifyLinkToken(token) {
     if (!token || typeof token !== 'string') {
         return { valid: false, reason: 'invalid' };
@@ -75,7 +85,8 @@ function verifyLinkToken(token) {
         return { valid: false, reason: 'expired' };
     }
 
-    return { valid: true, userId: tokenData.userId, expiresAt };
+    const payload = tokenData.payload && typeof tokenData.payload === 'object' ? tokenData.payload : {};
+    return { valid: true, userId: tokenData.userId, expiresAt, payload };
 }
 
 function markTokenConsumed(token, expiresAt) {
@@ -194,6 +205,32 @@ function normalizeTelegramPhone(value) {
     return normalized.length >= 7 ? normalized : '';
 }
 
+async function sendPhoneRequestToTelegram(userId, chatId) {
+    const requestState = createPhoneRequest(userId, chatId);
+    const sent = await sendTelegram(
+        chatId,
+        'Подтвердите номер телефона аккаунта. Нажмите кнопку ниже и отправьте контакт.',
+        {
+            reply_markup: {
+                keyboard: [[{ text: 'Отправить номер телефона', request_contact: true }]],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        }
+    );
+
+    if (!sent) {
+        finalizePhoneRequest(userId, { status: 'failed', reason: 'send_failed' });
+        return { ok: false };
+    }
+
+    return {
+        ok: true,
+        requestId: requestState.requestId,
+        expiresAt: requestState.expiresAt
+    };
+}
+
 const ROLE_EVENT_MAP = {
     student: [
         { key: 'new_test', label: 'Новый тест', description: 'Когда учитель назначает вам новый тест' },
@@ -310,7 +347,13 @@ async function connectTelegramByToken(chatId, token) {
     }
 
     markTokenConsumed(token, verification.expiresAt);
-    return { ok: true, username: state.user.username, role: state.user.role };
+    return {
+        ok: true,
+        username: state.user.username,
+        role: state.user.role,
+        userId: state.user.id,
+        payload: verification.payload || {}
+    };
 }
 
 function initTelegramStartListener() {
@@ -378,6 +421,19 @@ function initTelegramStartListener() {
             }
 
             console.log('Telegram link connected', { chat_id: chatId, username: result.username, role: result.role });
+            const shouldRequestPhone = !!result.payload?.request_phone;
+            if (shouldRequestPhone) {
+                const phoneRequest = await sendPhoneRequestToTelegram(result.userId, chatId);
+                if (!phoneRequest.ok) {
+                    await sendTelegram(chatId, 'Telegram connected, but failed to request phone. Please try again from dashboard.');
+                    return;
+                }
+                await sendTelegram(
+                    chatId,
+                    `✅ <b>Telegram подключен</b>\n\n👤 Пользователь: <b>${result.username}</b>\n🎓 Роль: <b>${result.role}</b>\n\nТеперь отправьте ваш контакт кнопкой ниже.`
+                );
+                return;
+            }
 
             await sendTelegram(
                 chatId,
@@ -633,38 +689,41 @@ router.post('/me/phone/request', authenticate, async (req, res) => {
             });
         }
 
-        if (!state.user.telegram_id) {
-            return res.status(400).json({
-                error: 'telegram_not_connected',
-                message: 'Connect Telegram account first'
+        const botInfo = await telegramBot.getMe();
+        if (!botInfo?.username) {
+            return res.status(500).json({
+                error: 'server_error',
+                message: 'Telegram bot username is unavailable'
             });
         }
 
-        const requestState = createPhoneRequest(state.user.id, state.user.telegram_id);
-        const sent = await sendTelegram(
-            state.user.telegram_id,
-            'Подтвердите номер телефона аккаунта. Нажмите кнопку ниже и отправьте контакт.',
-            {
-                reply_markup: {
-                    keyboard: [[{ text: 'Отправить номер телефона', request_contact: true }]],
-                    resize_keyboard: true,
-                    one_time_keyboard: true
-                }
-            }
-        );
+        if (!state.user.telegram_id) {
+            const { token, expiresAt } = createLinkTokenWithPayload(state.user.id, { request_phone: true });
+            const link = `https://t.me/${botInfo.username}?start=${encodeURIComponent(token)}`;
+            return res.json({
+                message: 'Telegram link flow started',
+                needs_link: true,
+                link,
+                token_expires_at: new Date(expiresAt).toISOString()
+            });
+        }
 
-        if (!sent) {
-            finalizePhoneRequest(state.user.id, { status: 'failed', reason: 'send_failed' });
+        const phoneRequest = await sendPhoneRequestToTelegram(state.user.id, state.user.telegram_id);
+        if (!phoneRequest.ok) {
             return res.status(500).json({
                 error: 'server_error',
                 message: 'Failed to send phone request to Telegram'
             });
         }
 
+        const link = `https://t.me/${botInfo.username}`;
+
         res.json({
             message: 'Phone request sent to Telegram bot',
-            request_id: requestState.requestId,
-            expires_at: new Date(requestState.expiresAt).toISOString()
+            needs_link: false,
+            link,
+            request_id: phoneRequest.requestId,
+            expires_at: new Date(phoneRequest.expiresAt).toISOString()
         });
     } catch (error) {
         console.error('Telegram phone request start error:', error);

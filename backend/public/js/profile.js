@@ -586,8 +586,14 @@
     async function pollPhoneRequestStatus() {
         if (!activePhoneRequestId) return;
         try {
-            const status = await apiFetch(`/api/telegram/me/phone/status?request_id=${encodeURIComponent(activePhoneRequestId)}`);
+            const statusUrl = activePhoneRequestId === '__AUTO__'
+                ? '/api/telegram/me/phone/status'
+                : `/api/telegram/me/phone/status?request_id=${encodeURIComponent(activePhoneRequestId)}`;
+            const status = await apiFetch(statusUrl);
             if (!status?.found) {
+                if (activePhoneRequestId === '__AUTO__') {
+                    return;
+                }
                 stopPhoneRequestPolling();
                 activePhoneRequestId = '';
                 return;
@@ -629,16 +635,16 @@
                 method: 'POST'
             });
 
-            activePhoneRequestId = String(data?.request_id || '').trim();
+            activePhoneRequestId = String(data?.request_id || '').trim() || '__AUTO__';
             stopPhoneRequestPolling();
             if (activePhoneRequestId) {
                 phoneRequestPollTimer = setInterval(pollPhoneRequestStatus, 2500);
             }
 
-            await showAlert(
-                'Запрос отправлен в Telegram. Откройте бота и отправьте контакт аккаунта.',
-                'Информация'
-            );
+            const tgLink = String(data?.link || '').trim();
+            if (tgLink) {
+                window.location.href = tgLink;
+            }
         } catch (error) {
             await showAlert(
                 error.message || 'Не удалось отправить запрос в Telegram',
