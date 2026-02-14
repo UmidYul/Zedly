@@ -524,8 +524,8 @@
             'leaderboard': { src: '/js/student-leaderboard.js', manager: 'StudentLeaderboard' },
             'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
             'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' },
-            'my-class': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' }
-            ,
+            'my-class': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' },
+            'reports': { src: '/js/reports.js', manager: 'ReportsManager' },
             'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' }
         };
 
@@ -1759,6 +1759,76 @@
                     <div id="superadminStatsBreakdown"></div>
                 </div>
                 <div class="dashboard-section" id="superadminStatsNote"></div>
+            `;
+        }
+
+        if (page === 'reports') {
+            return `
+                <div class="reports-page">
+                    <div class="page-header-section reports-header">
+                        <h1 class="page-main-title">Reports Center</h1>
+                        <p class="page-subtitle">Interactive reporting, comparisons and export-ready summaries</p>
+                    </div>
+
+                    <div class="reports-toolbar dashboard-section">
+                        <div class="toolbar-filters">
+                            <div class="filter-group">
+                                <label for="reportsPeriodFilter">Period</label>
+                                <select id="reportsPeriodFilter" class="filter-select">
+                                    <option value="7">Last 7 days</option>
+                                    <option value="30" selected>Last 30 days</option>
+                                    <option value="90">Last 90 days</option>
+                                    <option value="365">Last year</option>
+                                </select>
+                            </div>
+                            <div class="filter-group" id="reportsMetricWrap" style="display:none;">
+                                <label for="reportsMetricFilter">Metric</label>
+                                <select id="reportsMetricFilter" class="filter-select">
+                                    <option value="avg_score">Average score</option>
+                                    <option value="test_completion">Completion rate</option>
+                                    <option value="student_count">Students</option>
+                                    <option value="teacher_count">Teachers</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn btn-secondary" id="reportsRefreshBtn" type="button">Refresh</button>
+                            <button class="btn btn-primary" id="reportsExportBtn" type="button">Export</button>
+                        </div>
+                    </div>
+
+                    <div class="reports-grid-kpi" id="reportsSummaryGrid"></div>
+
+                    <div class="reports-grid-main">
+                        <div class="dashboard-section reports-card">
+                            <div class="section-header">
+                                <h2 class="section-title">Top Entities</h2>
+                            </div>
+                            <div id="reportsTopTable"></div>
+                        </div>
+
+                        <div class="dashboard-section reports-card">
+                            <div class="section-header">
+                                <h2 class="section-title">Recent Activity</h2>
+                            </div>
+                            <div id="reportsActivityList"></div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-section reports-card">
+                        <div class="section-header">
+                            <h2 class="section-title">Comparison Breakdown</h2>
+                        </div>
+                        <div id="reportsCompareTable"></div>
+                    </div>
+
+                    <div class="dashboard-section reports-card">
+                        <div class="section-header">
+                            <h2 class="section-title">Insights</h2>
+                        </div>
+                        <div id="reportsInsights"></div>
+                    </div>
+                </div>
             `;
         }
 

@@ -902,6 +902,118 @@
     gap: var(--spacing-sm);
 }
 
+/* Reports Center */
+.reports-page {
+    width: min(1200px, 100%);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.reports-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.reports-grid-kpi {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.report-kpi {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.report-kpi span {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.report-kpi strong {
+    font-size: 1.25rem;
+    line-height: 1.1;
+}
+
+.report-kpi.tone-blue { border-color: rgba(59, 130, 246, 0.35); }
+.report-kpi.tone-green { border-color: rgba(34, 197, 94, 0.35); }
+.report-kpi.tone-cyan { border-color: rgba(6, 182, 212, 0.35); }
+.report-kpi.tone-orange { border-color: rgba(245, 158, 11, 0.35); }
+.report-kpi.tone-violet { border-color: rgba(99, 102, 241, 0.35); }
+.report-kpi.tone-rose { border-color: rgba(244, 63, 94, 0.35); }
+
+.reports-grid-main {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-md);
+}
+
+.reports-card {
+    min-height: 220px;
+}
+
+.reports-activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.reports-activity-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.reports-activity-item p {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+}
+
+.reports-insights-list {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--text-secondary);
+    display: grid;
+    gap: 8px;
+}
+
+@media (max-width: 1200px) {
+    .reports-grid-kpi {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .reports-grid-kpi {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .reports-grid-main {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .reports-grid-kpi {
+        grid-template-columns: 1fr;
+    }
+}
+
 .export-preview-item {
     border: 1px solid var(--border);
     background: var(--bg-secondary);
