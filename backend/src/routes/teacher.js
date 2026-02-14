@@ -18,6 +18,67 @@ function generateOtp() {
     return otp;
 }
 
+const MAX_ASSIGNMENT_TEMPLATES = 30;
+
+function sanitizeAssignmentTemplate(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+
+    const name = String(raw.name || '').trim();
+    const testId = String(raw.test_id || '').trim();
+    const classIds = Array.from(new Set(
+        (Array.isArray(raw.class_ids) ? raw.class_ids : [])
+            .map((id) => String(id || '').trim())
+            .filter(Boolean)
+    ));
+    const startHour = String(raw.start_hour || '08:00').trim();
+    const durationDays = parseInt(raw.duration_days, 10);
+
+    const validHour = /^([01]\d|2[0-3]):([0-5]\d)$/.test(startHour) ? startHour : '08:00';
+    const validDuration = Number.isFinite(durationDays)
+        ? Math.min(Math.max(durationDays, 1), 180)
+        : 7;
+
+    if (!name || !testId || classIds.length === 0) {
+        return null;
+    }
+
+    return {
+        id: String(raw.id || `tpl_${Date.now()}_${Math.round(Math.random() * 1e6)}`),
+        name: name.slice(0, 80),
+        test_id: testId,
+        class_ids: classIds,
+        start_hour: validHour,
+        duration_days: validDuration,
+        updated_at: new Date().toISOString()
+    };
+}
+
+async function loadTeacherAssignmentTemplates(teacherId) {
+    const result = await query(
+        'SELECT settings FROM users WHERE id = $1 AND role = $2 LIMIT 1',
+        [teacherId, 'teacher']
+    );
+    const settings = result.rows[0]?.settings && typeof result.rows[0].settings === 'object'
+        ? result.rows[0].settings
+        : {};
+    const templates = Array.isArray(settings.assignment_templates)
+        ? settings.assignment_templates.map(sanitizeAssignmentTemplate).filter(Boolean)
+        : [];
+    return { settings, templates };
+}
+
+async function saveTeacherAssignmentTemplates(teacherId, settings, templates) {
+    const nextSettings = {
+        ...(settings && typeof settings === 'object' ? settings : {}),
+        assignment_templates: templates.slice(0, MAX_ASSIGNMENT_TEMPLATES)
+    };
+    await query(
+        'UPDATE users SET settings = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [nextSettings, teacherId]
+    );
+    return nextSettings.assignment_templates;
+}
+
 async function writeAuditSafe(userId, action, entityType, entityId, details) {
     try {
         await query(
@@ -1174,6 +1235,146 @@ router.post('/students/:id/reset-password', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to reset password'
+        });
+    }
+});
+
+/**
+ * ========================================
+ * ASSIGNMENT TEMPLATES
+ * ========================================
+ */
+
+/**
+ * GET /api/teacher/assignment-templates
+ * Get teacher assignment templates
+ */
+router.get('/assignment-templates', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+        const { templates } = await loadTeacherAssignmentTemplates(teacherId);
+        res.json({ templates });
+    } catch (error) {
+        console.error('Get assignment templates error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch assignment templates'
+        });
+    }
+});
+
+/**
+ * POST /api/teacher/assignment-templates
+ * Create/update teacher assignment template
+ */
+router.post('/assignment-templates', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+        const template = sanitizeAssignmentTemplate(req.body);
+
+        if (!template) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Template name, test and classes are required'
+            });
+        }
+
+        const testCheck = await query(
+            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2',
+            [template.test_id, teacherId]
+        );
+        if (testCheck.rows.length === 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid test for template'
+            });
+        }
+
+        const classAccessResult = await query(
+            `SELECT DISTINCT c.id
+             FROM classes c
+             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             WHERE c.school_id = $1
+               AND c.id = ANY($2::uuid[])
+               AND (c.homeroom_teacher_id = $3 OR tcs.teacher_id = $3)`,
+            [schoolId, template.class_ids, teacherId]
+        );
+        const accessibleIds = new Set(classAccessResult.rows.map((row) => String(row.id)));
+        const inaccessibleIds = template.class_ids.filter((id) => !accessibleIds.has(String(id)));
+        if (inaccessibleIds.length > 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'You do not have access to one or more classes in template'
+            });
+        }
+
+        const { settings, templates } = await loadTeacherAssignmentTemplates(teacherId);
+        const idx = templates.findIndex((item) => String(item.id) === String(template.id));
+        if (idx >= 0) {
+            templates[idx] = template;
+        } else {
+            templates.unshift(template);
+        }
+
+        const saved = await saveTeacherAssignmentTemplates(teacherId, settings, templates);
+        await writeAuditSafe(teacherId, 'update', 'assignment_template', template.id, {
+            template_name: template.name,
+            test_id: template.test_id,
+            class_count: template.class_ids.length
+        });
+
+        res.status(idx >= 0 ? 200 : 201).json({
+            message: idx >= 0 ? 'Template updated successfully' : 'Template created successfully',
+            template,
+            templates: saved
+        });
+    } catch (error) {
+        console.error('Save assignment template error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to save assignment template'
+        });
+    }
+});
+
+/**
+ * DELETE /api/teacher/assignment-templates/:id
+ * Delete teacher assignment template
+ */
+router.delete('/assignment-templates/:id', async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+        const templateId = String(req.params.id || '').trim();
+
+        if (!templateId) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Template ID is required'
+            });
+        }
+
+        const { settings, templates } = await loadTeacherAssignmentTemplates(teacherId);
+        const nextTemplates = templates.filter((item) => String(item.id) !== templateId);
+        if (nextTemplates.length === templates.length) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Template not found'
+            });
+        }
+
+        await saveTeacherAssignmentTemplates(teacherId, settings, nextTemplates);
+        await writeAuditSafe(teacherId, 'delete', 'assignment_template', templateId, {});
+
+        res.json({
+            message: 'Template deleted successfully',
+            templates: nextTemplates
+        });
+    } catch (error) {
+        console.error('Delete assignment template error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to delete assignment template'
         });
     }
 });

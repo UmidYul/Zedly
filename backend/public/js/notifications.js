@@ -82,6 +82,76 @@
             icon: resolveIcon(item.action, item.entity_type)
         };
     }
+    function getCurrentUserRole() {
+        try {
+            const raw = localStorage.getItem('user');
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && parsed.role ? parsed.role : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function mapDeadlineToNotification(item, role) {
+        const endDateRaw = item && (item.end_date || item.deadline) ? (item.end_date || item.deadline) : null;
+        const endDate = endDateRaw ? new Date(endDateRaw) : null;
+        const now = new Date();
+        const msLeft = endDate ? (endDate.getTime() - now.getTime()) : null;
+        const hoursLeft = msLeft !== null ? Math.max(0, Math.floor(msLeft / (1000 * 60 * 60))) : null;
+
+        const title = role === 'student' ? 'Assignment deadline' : 'Class deadline';
+        const testTitle = (item && (item.test_title || item.title)) ? (item.test_title || item.title) : 'Test';
+        const className = item && item.class_name ? ' | ' + item.class_name : '';
+        const deadlineText = endDate ? ('Due: ' + endDate.toLocaleString()) : 'Due date is not set';
+        const etaText = hoursLeft !== null ? (' | ' + hoursLeft + 'h left') : '';
+
+        return {
+            id: 'deadline:' + String(item && item.id ? item.id : testTitle) + ':' + String(endDateRaw || ''),
+            type: 'deadline',
+            title: title,
+            message: testTitle + className + ' | ' + deadlineText + etaText,
+            timestamp: endDate ? endDate.getTime() : Date.now(),
+            read: false,
+            icon: '!'
+        };
+    }
+
+    async function loadDeadlineNotifications(token) {
+        const role = getCurrentUserRole();
+        if (!role || !['student', 'teacher'].includes(role)) {
+            return [];
+        }
+
+        const endpoint = role === 'student'
+            ? '/api/student/assignments?status=active'
+            : '/api/teacher/assignments?status=active&page=1&limit=20';
+
+        const response = await fetch(endpoint, {
+            headers: { Authorization: 'Bearer ' + token }
+        });
+        if (!response.ok) {
+            throw new Error('Failed to fetch deadline notifications: ' + response.status);
+        }
+
+        const data = await response.json();
+        const rawItems = Array.isArray(data.assignments) ? data.assignments : [];
+
+        const now = Date.now();
+        const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+        return rawItems
+            .filter((item) => !!(item && item.end_date))
+            .filter((item) => {
+                const ts = new Date(item.end_date).getTime();
+                if (!Number.isFinite(ts)) return false;
+                const diff = ts - now;
+                return diff <= sevenDaysMs;
+            })
+            .sort((a, b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime())
+            .slice(0, 10)
+            .map((item) => mapDeadlineToNotification(item, role));
+    }
 
     async function loadNotifications(force = false) {
         const now = Date.now();
@@ -110,7 +180,19 @@
 
             const data = await response.json();
             const activity = Array.isArray(data.activity) ? data.activity : [];
-            notifications = activity.map(mapActivityToNotification);
+            const activityNotifications = activity.map(mapActivityToNotification);
+            let deadlineNotifications = [];
+            try {
+                deadlineNotifications = await loadDeadlineNotifications(token);
+            } catch (deadlineError) {
+                console.warn('Deadline notifications load error:', deadlineError);
+            }
+
+            const merged = [...deadlineNotifications, ...activityNotifications];
+            notifications = merged.map((item) => ({
+                ...item,
+                read: readIds.has(String(item.id))
+            }));
             lastLoadedAt = now;
         } catch (error) {
             console.error('Notifications load error:', error);
@@ -304,3 +386,4 @@
         initNotifications();
     }
 })();
+

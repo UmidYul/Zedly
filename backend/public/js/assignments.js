@@ -24,6 +24,7 @@
         classFilter: 'all',
         statusFilter: 'all',
         subjectClassesCache: {},
+        assignmentTemplates: [],
 
         // Initialize assignments page
         init: function () {
@@ -94,6 +95,58 @@
             if (addBtn) {
                 addBtn.addEventListener('click', () => this.showAssignmentModal());
             }
+        },
+
+        loadAssignmentTemplates: async function () {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/teacher/assignment-templates', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    this.assignmentTemplates = [];
+                    return [];
+                }
+                const data = await response.json();
+                this.assignmentTemplates = Array.isArray(data.templates) ? data.templates : [];
+                return this.assignmentTemplates;
+            } catch (error) {
+                console.error('Load assignment templates error:', error);
+                this.assignmentTemplates = [];
+                return [];
+            }
+        },
+
+        saveAssignmentTemplate: async function ({ id = null, name, test_id, class_ids, start_hour, duration_days }) {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/teacher/assignment-templates', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id, name, test_id, class_ids, start_hour, duration_days })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to save assignment template');
+            }
+            this.assignmentTemplates = Array.isArray(result.templates) ? result.templates : this.assignmentTemplates;
+            return result;
+        },
+
+        deleteAssignmentTemplate: async function (templateId) {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`/api/teacher/assignment-templates/${encodeURIComponent(templateId)}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to delete assignment template');
+            }
+            this.assignmentTemplates = Array.isArray(result.templates) ? result.templates : [];
+            return result;
         },
 
         // Load assignments from API
@@ -342,16 +395,22 @@
                 }
             }
 
-            // Load tests for dropdown
+            // Load tests/templates for dropdown
             let testsList = [];
+            let templatesList = [];
 
             try {
                 const token = localStorage.getItem('access_token');
 
                 // Load published tests
-                const testsResponse = await fetch('/api/teacher/tests?status=active&limit=100', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const [testsResponse] = await Promise.all([
+                    fetch('/api/teacher/tests?status=active&limit=100', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    this.loadAssignmentTemplates().then((rows) => {
+                        templatesList = rows;
+                    })
+                ]);
                 if (testsResponse.ok) {
                     const data = await testsResponse.json();
                     testsList = data.tests;
@@ -388,6 +447,25 @@
                         <div class="modal-body">
                             <form id="assignmentForm" onsubmit="AssignmentsManager.submitAssignment(event, ${assignmentId})">
                                 ${!isEdit ? `
+                                <div class="form-group">
+                                    <label class="form-label">Assignment Template</label>
+                                    <div class="form-row" style="align-items:flex-end;">
+                                        <div class="form-group" style="margin-bottom:0;flex:1;">
+                                            <select class="form-input" name="template_id" id="assignmentTemplateSelect">
+                                                <option value="">Without template</option>
+                                                ${templatesList.map((tpl) =>
+                                                    `<option value="${tpl.id}">${tpl.name}</option>`
+                                                ).join('')}
+                                            </select>
+                                        </div>
+                                        <div style="display:flex;gap:8px;">
+                                            <button type="button" class="btn btn-outline" id="applyTemplateBtn">Apply</button>
+                                            <button type="button" class="btn btn-outline" id="deleteTemplateBtn">Delete</button>
+                                        </div>
+                                    </div>
+                                    <span class="form-hint">Template fills test, classes and dates automatically.</span>
+                                </div>
+
                                 <div class="form-group">
                                     <label class="form-label">
                                         Test <span class="required">*</span>
@@ -443,6 +521,22 @@
                                     </div>
                                 </div>
 
+                                <div class="form-group">
+                                    <div class="form-check" style="margin-bottom:8px;">
+                                        <input type="checkbox" class="form-check-input" id="saveAsTemplate" name="save_as_template" />
+                                        <label class="form-check-label" for="saveAsTemplate">Save as template</label>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        name="template_name"
+                                        id="templateNameInput"
+                                        placeholder="Template name"
+                                        maxlength="80"
+                                        disabled
+                                    />
+                                </div>
+
                                 ${isEdit ? `
                                 <div class="form-group">
                                     <div class="form-check">
@@ -481,6 +575,17 @@
             if (!isEdit) {
                 const testSelect = document.querySelector('#assignmentForm select[name="test_id"]');
                 const classSelect = document.querySelector('#assignmentForm select[name="class_ids"]');
+                const templateSelect = document.getElementById('assignmentTemplateSelect');
+                const applyTemplateBtn = document.getElementById('applyTemplateBtn');
+                const deleteTemplateBtn = document.getElementById('deleteTemplateBtn');
+                const saveAsTemplateInput = document.getElementById('saveAsTemplate');
+                const templateNameInput = document.getElementById('templateNameInput');
+                const startInput = document.querySelector('#assignmentForm input[name="start_date"]');
+                const endInput = document.querySelector('#assignmentForm input[name="end_date"]');
+                const templatesById = {};
+                (templatesList || []).forEach((tpl) => {
+                    templatesById[String(tpl.id)] = tpl;
+                });
 
                 const setClassOptions = (classes = []) => {
                     if (!classSelect) return;
@@ -528,6 +633,42 @@
                     }
                 };
 
+                const applyTemplateToForm = async (templateId) => {
+                    const template = templatesById[String(templateId)];
+                    if (!template) {
+                        return;
+                    }
+                    if (templateNameInput && !templateNameInput.value.trim()) {
+                        templateNameInput.value = template.name || '';
+                    }
+                    if (testSelect) {
+                        testSelect.value = template.test_id || '';
+                        const subjectId = testSelect.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
+                        await loadClassesForSubject(subjectId);
+                    }
+                    if (classSelect) {
+                        const wanted = new Set((Array.isArray(template.class_ids) ? template.class_ids : []).map(String));
+                        Array.from(classSelect.options).forEach((opt) => {
+                            opt.selected = wanted.has(String(opt.value));
+                        });
+                    }
+                    const now = new Date();
+                    const [h, m] = String(template.start_hour || '08:00').split(':').map((v) => parseInt(v, 10));
+                    const start = new Date(now);
+                    start.setHours(Number.isFinite(h) ? h : 8, Number.isFinite(m) ? m : 0, 0, 0);
+                    if (start < now) {
+                        start.setDate(start.getDate() + 1);
+                    }
+                    const duration = Number.isFinite(parseInt(template.duration_days, 10))
+                        ? Math.min(Math.max(parseInt(template.duration_days, 10), 1), 180)
+                        : 7;
+                    const end = new Date(start);
+                    end.setDate(end.getDate() + duration);
+
+                    if (startInput) startInput.value = formatForInput(start);
+                    if (endInput) endInput.value = formatForInput(end);
+                };
+
                 if (testSelect) {
                     testSelect.addEventListener('change', () => {
                         const subjectId = testSelect.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
@@ -540,6 +681,52 @@
                     if (classSelect) classSelect.innerHTML = `<option value="" disabled>Select test first</option>`;
                 } else {
                     loadClassesForSubject(initialSubjectId);
+                }
+
+                if (saveAsTemplateInput && templateNameInput) {
+                    saveAsTemplateInput.addEventListener('change', () => {
+                        templateNameInput.disabled = !saveAsTemplateInput.checked;
+                        if (saveAsTemplateInput.checked && !templateNameInput.value.trim()) {
+                            const selectedTemplate = templatesById[String(templateSelect?.value || '')];
+                            templateNameInput.value = selectedTemplate?.name || '';
+                        }
+                    });
+                }
+
+                if (applyTemplateBtn && templateSelect) {
+                    applyTemplateBtn.addEventListener('click', async () => {
+                        if (!templateSelect.value) {
+                            await showAlert('Select a template first');
+                            return;
+                        }
+                        await applyTemplateToForm(templateSelect.value);
+                    });
+                }
+
+                if (deleteTemplateBtn && templateSelect) {
+                    deleteTemplateBtn.addEventListener('click', async () => {
+                        const templateId = templateSelect.value;
+                        if (!templateId) {
+                            await showAlert('Select a template to delete');
+                            return;
+                        }
+                        const ok = await showConfirm('Delete selected assignment template?', 'Delete template');
+                        if (!ok) return;
+                        try {
+                            await this.deleteAssignmentTemplate(templateId);
+                            const selected = String(templateId);
+                            const options = Array.from(templateSelect.options);
+                            options.forEach((opt) => {
+                                if (String(opt.value) === selected) {
+                                    opt.remove();
+                                }
+                            });
+                            templateSelect.value = '';
+                            delete templatesById[selected];
+                        } catch (error) {
+                            await showAlert(error.message || 'Failed to delete template');
+                        }
+                    });
                 }
             }
 
@@ -625,6 +812,12 @@
                 return;
             }
 
+            if (!assignmentId && formData.get('save_as_template') === 'on' && !String(formData.get('template_name') || '').trim()) {
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = 'Enter template name';
+                return;
+            }
+
             // Show loading
             submitBtn.classList.add('loading');
             submitBtn.disabled = true;
@@ -649,6 +842,29 @@
                 const result = await response.json();
 
                 if (response.ok) {
+                    if (!assignmentId && formData.get('save_as_template') === 'on') {
+                        const templateName = String(formData.get('template_name') || '').trim();
+                        if (templateName) {
+                            const selectedTemplateId = String(formData.get('template_id') || '').trim();
+                            const startDate = new Date(data.start_date);
+                            const endDate = new Date(data.end_date);
+                            const dayMs = 24 * 60 * 60 * 1000;
+                            const durationDays = Math.max(1, Math.round((endDate - startDate) / dayMs));
+                            try {
+                                await this.saveAssignmentTemplate({
+                                    id: selectedTemplateId || null,
+                                    name: templateName,
+                                    test_id: data.test_id,
+                                    class_ids: data.class_ids,
+                                    start_hour: `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`,
+                                    duration_days: durationDays
+                                });
+                            } catch (templateError) {
+                                console.error('Save assignment template error:', templateError);
+                            }
+                        }
+                    }
+
                     formAlert.className = 'alert alert-success';
                     formAlert.textContent = result.message;
 

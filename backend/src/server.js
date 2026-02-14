@@ -239,6 +239,13 @@ if (require.main === module) {
         console.log('   GET  /dashboard');
         console.log('');
     });
+
+    try {
+        const { startDeadlineReminderJob } = require('./jobs/deadlineReminders');
+        startDeadlineReminderJob();
+    } catch (jobError) {
+        console.error('Failed to start deadline reminder job:', jobError.message);
+    }
 }
 
 module.exports = app;

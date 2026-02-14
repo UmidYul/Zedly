@@ -416,8 +416,8 @@
 - [x] Audit log coverage for critical actions (import/delete/reset/assign)
 
 ### P1 Week 1-2
-- [ ] In-app + Telegram notifications for assignments/deadlines
-- [ ] Assignment templates
+- [x] In-app + Telegram notifications for assignments/deadlines
+- [x] Assignment templates
 - [ ] Risk dashboard (students at risk)
 - [ ] Report export parity (PDF "as on screen" for key pages)
 
@@ -453,6 +453,9 @@
 - [x] User modal role-switch UX hardened: student class `required` toggles correctly and hidden class value is reset
 - [x] Teacher critical endpoints now write failure audit logs (`assign/reset` create/update/delete failed)
 - [x] Admin student-class update hardened: validate new class before unlinking old one; compatibility for DBs without `class_students.is_active`
+- [x] In-app notifications now include live deadline items from active assignments (student/teacher) in bell dropdown
+- [x] Added backend cron job for Telegram deadline reminders with daily dedupe via `audit_logs` (`deadline_reminder`)
+
 
 
 
