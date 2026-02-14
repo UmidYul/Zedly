@@ -2206,10 +2206,18 @@ function normalizeRole(role) {
 
 function normalizeGender(gender) {
     const value = String(gender || '').trim().toLowerCase();
+    const compact = value.replace(/[.\s_-]+/g, '');
     const genderMap = {
         male: 'male',
         female: 'female',
         other: 'other',
+        m: 'male',
+        f: 'female',
+        '1': 'male',
+        '2': 'female',
+        erkek: 'male',
+        ayol: 'female',
+        ayel: 'female',
         мужской: 'male',
         муж: 'male',
         м: 'male',
@@ -2218,24 +2226,49 @@ function normalizeGender(gender) {
         ж: 'female',
         другой: 'other'
     };
-    return genderMap[value] || null;
+    return genderMap[value] || genderMap[compact] || null;
 }
 
 function normalizeDateInput(rawValue) {
+    if (rawValue instanceof Date && !Number.isNaN(rawValue.getTime())) {
+        const y = rawValue.getFullYear();
+        const m = String(rawValue.getMonth() + 1).padStart(2, '0');
+        const d = String(rawValue.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+    }
+    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+        // Excel serial date: days since 1899-12-30.
+        const excelEpochUtc = Date.UTC(1899, 11, 30);
+        const millis = Math.round(rawValue * 86400000);
+        const date = new Date(excelEpochUtc + millis);
+        if (!Number.isNaN(date.getTime())) {
+            const y = date.getUTCFullYear();
+            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(date.getUTCDate()).padStart(2, '0');
+            return y + '-' + m + '-' + d;
+        }
+    }
     const value = String(rawValue || '').trim();
     if (!value) return null;
-
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
         return value;
     }
-
     const dotDate = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(value);
     if (dotDate) {
         const day = dotDate[1].padStart(2, '0');
         const month = dotDate[2].padStart(2, '0');
-        return `${dotDate[3]}-${month}-${day}`;
+        return dotDate[3] + '-' + month + '-' + day;
     }
-
+    const slashDate = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value);
+    if (slashDate) {
+        const day = slashDate[1].padStart(2, '0');
+        const month = slashDate[2].padStart(2, '0');
+        return slashDate[3] + '-' + month + '-' + day;
+    }
+    const compactDate = /^(\d{4})(\d{2})(\d{2})$/.exec(value);
+    if (compactDate) {
+        return compactDate[1] + '-' + compactDate[2] + '-' + compactDate[3];
+    }
     return null;
 }
 
@@ -2780,6 +2813,21 @@ async function ensureHomeroomTeacherForClass(schoolId, className, teacherId, aca
 }
 
 const IMPORT_HEADER_MAP = {
+    name: 'first_name',
+    surname: 'last_name',
+    fullname: 'student_name',
+    fio: 'student_name',
+    sex: 'gender',
+    gender: 'gender',
+    dob: 'date_of_birth',
+    birthdate: 'date_of_birth',
+    birthday: 'date_of_birth',
+    dateofbirth: 'date_of_birth',
+    phonenumber: 'phone',
+    mobile: 'phone',
+    class: 'class_name',
+    classes: 'class_names',
+    position: 'position',
     firstname: 'first_name',
     lastname: 'last_name',
     role: 'role',
@@ -2819,3 +2867,4 @@ const INTERNAL_IMPORT_FIELDS = new Set([
 ]);
 
 module.exports = router;
+
