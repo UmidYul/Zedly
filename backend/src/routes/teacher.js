@@ -282,7 +282,7 @@ router.get('/dashboard/overview', async (req, res) => {
         const assignmentsResult = await query(
             `SELECT
                 COUNT(*) as total,
-                COUNT(*) FILTER (WHERE is_active = true AND end_date > CURRENT_TIMESTAMP) as active
+                COUNT(*) FILTER (WHERE ta.is_active = true AND ta.end_date > CURRENT_TIMESTAMP) as active
              FROM test_assignments ta
              JOIN classes c ON c.id = ta.class_id
              WHERE ta.assigned_by = $1
