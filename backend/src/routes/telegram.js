@@ -24,6 +24,15 @@ function getTelegramLinkSecret() {
     return process.env.TELEGRAM_LINK_SECRET || 'zedly-telegram-link-secret';
 }
 
+function getTelegramLinkSecrets() {
+    const candidates = [
+        process.env.TELEGRAM_LINK_SECRET,
+        process.env.JWT_SECRET,
+        'zedly-telegram-link-secret'
+    ].filter((value) => typeof value === 'string' && value.trim().length > 0);
+    return Array.from(new Set(candidates));
+}
+
 function getAppUrl() {
     const raw = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
     return raw.replace(/\/+$/, '').replace(/\/api$/i, '');
@@ -86,44 +95,92 @@ function verifyLinkToken(token) {
     if (consumedLinkTokens.has(cleanToken)) {
         return { valid: false, reason: 'used' };
     }
-    let raw = null;
+    const secrets = getTelegramLinkSecrets();
+
+    // New compact format (base64url binary body+sig)
     try {
-        raw = Buffer.from(cleanToken, 'base64url');
+        const raw = Buffer.from(cleanToken, 'base64url');
+        if (raw && raw.length === 22 + TELEGRAM_LINK_SIGNATURE_BYTES) {
+            const body = raw.subarray(0, 22);
+            const receivedSig = raw.subarray(22);
+            let signatureValid = false;
+            for (const secret of secrets) {
+                const expectedSig = crypto
+                    .createHmac('sha256', secret)
+                    .update(body)
+                    .digest()
+                    .subarray(0, TELEGRAM_LINK_SIGNATURE_BYTES);
+                if (expectedSig.length === receivedSig.length && crypto.timingSafeEqual(expectedSig, receivedSig)) {
+                    signatureValid = true;
+                    break;
+                }
+            }
+            if (!signatureValid) {
+                return { valid: false, reason: 'invalid' };
+            }
+
+            const version = body.readUInt8(0);
+            if (version !== TELEGRAM_LINK_VERSION) {
+                return { valid: false, reason: 'invalid' };
+            }
+
+            const flags = body.readUInt8(1);
+            const expiresAt = body.readUInt32BE(2) * 1000;
+            if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
+                return { valid: false, reason: 'expired' };
+            }
+
+            const uuidHex = body.subarray(6, 22).toString('hex');
+            const userId = `${uuidHex.slice(0, 8)}-${uuidHex.slice(8, 12)}-${uuidHex.slice(12, 16)}-${uuidHex.slice(16, 20)}-${uuidHex.slice(20, 32)}`;
+            const payload = {
+                request_phone: (flags & 1) === 1
+            };
+            return { valid: true, userId, expiresAt, payload };
+        }
     } catch (error) {
-        return { valid: false, reason: 'invalid' };
-    }
-    if (!raw || raw.length !== 22 + TELEGRAM_LINK_SIGNATURE_BYTES) {
-        return { valid: false, reason: 'invalid' };
-    }
-    const body = raw.subarray(0, 22);
-    const receivedSig = raw.subarray(22);
-    const secret = getTelegramLinkSecret();
-    const expectedSig = crypto
-        .createHmac('sha256', secret)
-        .update(body)
-        .digest()
-        .subarray(0, TELEGRAM_LINK_SIGNATURE_BYTES);
-    if (expectedSig.length !== receivedSig.length || !crypto.timingSafeEqual(expectedSig, receivedSig)) {
-        return { valid: false, reason: 'invalid' };
+        // Continue to legacy format verification.
     }
 
-    const version = body.readUInt8(0);
-    if (version !== TELEGRAM_LINK_VERSION) {
-        return { valid: false, reason: 'invalid' };
+    // Legacy format (base64url(JSON).base64url(hmac))
+    if (cleanToken.includes('.')) {
+        const [encodedPayload, receivedSignature] = cleanToken.split('.', 2);
+        if (encodedPayload && receivedSignature) {
+            let parsed = null;
+            try {
+                parsed = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+            } catch (error) {
+                parsed = null;
+            }
+            if (parsed && typeof parsed === 'object') {
+                let signatureValid = false;
+                for (const secret of secrets) {
+                    const expectedSignature = crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
+                    const expectedBuf = Buffer.from(expectedSignature);
+                    const receivedBuf = Buffer.from(receivedSignature);
+                    if (expectedBuf.length === receivedBuf.length && crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+                        signatureValid = true;
+                        break;
+                    }
+                }
+                if (!signatureValid) {
+                    return { valid: false, reason: 'invalid' };
+                }
+
+                const userId = String(parsed.user_id || parsed.userId || '').trim();
+                const expiresAt = Number(parsed.expires_at || parsed.expiresAt);
+                if (!userId) {
+                    return { valid: false, reason: 'invalid' };
+                }
+                if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
+                    return { valid: false, reason: 'expired' };
+                }
+                const payload = parsed.payload && typeof parsed.payload === 'object' ? parsed.payload : {};
+                return { valid: true, userId, expiresAt, payload };
+            }
+        }
     }
 
-    const flags = body.readUInt8(1);
-    const expiresAt = body.readUInt32BE(2) * 1000;
-    if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
-        return { valid: false, reason: 'expired' };
-    }
-
-    const uuidHex = body.subarray(6, 22).toString('hex');
-    const userId = `${uuidHex.slice(0, 8)}-${uuidHex.slice(8, 12)}-${uuidHex.slice(12, 16)}-${uuidHex.slice(16, 20)}-${uuidHex.slice(20, 32)}`;
-    const payload = {
-        request_phone: (flags & 1) === 1
-    };
-    return { valid: true, userId, expiresAt, payload };
+    return { valid: false, reason: 'invalid' };
 }
 
 function markTokenConsumed(token, expiresAt) {
