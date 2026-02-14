@@ -3,25 +3,38 @@
     'use strict';
 
     const API = '/api';
+    const PRESETS_KEY = 'zedly_reports_presets_v1';
+
     const state = {
         role: '',
         period: 30,
         metric: 'avg_score',
         overview: null,
-        comparison: null
+        comparison: null,
+        chart: null
     };
 
     function getToken() {
         return localStorage.getItem('access_token') || '';
     }
 
-    function getUserRole() {
+    function getCurrentUser() {
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            return user.role || '';
+            return user && typeof user === 'object' ? user : {};
         } catch (error) {
-            return '';
+            return {};
         }
+    }
+
+    function getUserRole() {
+        return getCurrentUser().role || '';
+    }
+
+    function getPresetStorageKey() {
+        const user = getCurrentUser();
+        const userId = user.id || user.user_id || user.username || 'anon';
+        return `${PRESETS_KEY}:${userId}`;
     }
 
     async function apiGet(url) {
@@ -56,6 +69,109 @@
                 <strong>${value}</strong>
             </div>
         `;
+    }
+
+    function loadPresets() {
+        try {
+            const raw = localStorage.getItem(getPresetStorageKey());
+            const parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function savePresets(presets) {
+        localStorage.setItem(getPresetStorageKey(), JSON.stringify(presets || {}));
+    }
+
+    function updatePresetSelect() {
+        const select = document.getElementById('reportsPresetSelect');
+        if (!select) return;
+        const presets = loadPresets();
+        const options = Object.keys(presets)
+            .sort((a, b) => a.localeCompare(b))
+            .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
+            .join('');
+        select.innerHTML = `<option value="">Default</option>${options}`;
+    }
+
+    function getCurrentFilters() {
+        return {
+            period: Number(state.period) || 30,
+            metric: state.metric || 'avg_score'
+        };
+    }
+
+    function getSelectedPresetKey() {
+        return `${getPresetStorageKey()}:selected`;
+    }
+
+    function saveSelectedPreset(name) {
+        localStorage.setItem(getSelectedPresetKey(), String(name || ''));
+    }
+
+    function applyFilters(filters) {
+        state.period = Number(filters?.period) || 30;
+        state.metric = filters?.metric || 'avg_score';
+        const period = document.getElementById('reportsPeriodFilter');
+        const metric = document.getElementById('reportsMetricFilter');
+        if (period) period.value = String(state.period);
+        if (metric) metric.value = state.metric;
+    }
+
+    function bindPresetEvents() {
+        const presetSelect = document.getElementById('reportsPresetSelect');
+        const saveBtn = document.getElementById('reportsSavePresetBtn');
+        const deleteBtn = document.getElementById('reportsDeletePresetBtn');
+
+        if (presetSelect) {
+            presetSelect.addEventListener('change', () => {
+                const name = presetSelect.value;
+                if (!name) {
+                    applyFilters({ period: 30, metric: 'avg_score' });
+                    saveSelectedPreset('');
+                    refreshView();
+                    return;
+                }
+                const presets = loadPresets();
+                if (presets[name]) {
+                    applyFilters(presets[name]);
+                    saveSelectedPreset(name);
+                    refreshView();
+                }
+            });
+        }
+
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const name = prompt('Preset name');
+                if (!name) return;
+                const trimmed = name.trim();
+                if (!trimmed) return;
+                const presets = loadPresets();
+                presets[trimmed] = getCurrentFilters();
+                savePresets(presets);
+                updatePresetSelect();
+                const select = document.getElementById('reportsPresetSelect');
+                if (select) select.value = trimmed;
+                saveSelectedPreset(trimmed);
+            });
+        }
+
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                const select = document.getElementById('reportsPresetSelect');
+                const name = select?.value || '';
+                if (!name) return;
+                const presets = loadPresets();
+                delete presets[name];
+                savePresets(presets);
+                updatePresetSelect();
+                if (select) select.value = '';
+                saveSelectedPreset('');
+            });
+        }
     }
 
     function renderSummary() {
@@ -98,7 +214,7 @@
                         <tbody>
                             ${top.map((row) => `
                                 <tr>
-                                    <td>${row.school_name || '-'}</td>
+                                    <td>${escapeHtml(row.school_name || '-')}</td>
                                     <td>${fmtInt(row.attempts)}</td>
                                     <td>${fmtPct(row.avg_score)}</td>
                                 </tr>
@@ -122,7 +238,7 @@
                     <tbody>
                         ${topClasses.map((row) => `
                             <tr>
-                                <td>${row.name || '-'}</td>
+                                <td>${escapeHtml(row.name || '-')}</td>
                                 <td>${fmtInt(row.student_count)}</td>
                                 <td>${fmtInt(row.total_attempts)}</td>
                                 <td>${fmtPct(row.avg_score)}</td>
@@ -146,8 +262,8 @@
                 ${activity.slice(0, 12).map((item) => `
                     <div class="reports-activity-item">
                         <div>
-                            <strong>${item.title || item.type || 'Activity'}</strong>
-                            <p>${item.subtitle || ''}</p>
+                            <strong>${escapeHtml(item.title || item.type || 'Activity')}</strong>
+                            <p>${escapeHtml(item.subtitle || '')}</p>
                         </div>
                         <span>${new Date(item.date).toLocaleDateString('ru-RU')}</span>
                     </div>
@@ -183,9 +299,9 @@
                     <tbody>
                         ${rows.slice(0, 50).map((row) => `
                             <tr>
-                                <td>${row[keyName] || row.name_ru || row.subject || '-'}</td>
-                                <td>${typeof row[keyValue] === 'number' ? fmtPct(row[keyValue]) : (row[keyValue] ?? '-')}</td>
-                                <td>${buildRowDetails(row)}</td>
+                                <td>${escapeHtml(row[keyName] || row.name_ru || row.subject || '-')}</td>
+                                <td>${typeof row[keyValue] === 'number' ? fmtPct(row[keyValue]) : escapeHtml(String(row[keyValue] ?? '-'))}</td>
+                                <td>${escapeHtml(buildRowDetails(row))}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -228,9 +344,117 @@
 
         setHtml('reportsInsights', `
             <ul class="reports-insights-list">
-                ${insights.map((text) => `<li>${text}</li>`).join('')}
+                ${insights.map((text) => `<li>${escapeHtml(text)}</li>`).join('')}
             </ul>
         `);
+    }
+
+    function renderTrendsChart() {
+        const canvas = document.getElementById('reportsTrendsChart');
+        if (!canvas || !window.Chart) return;
+
+        const { labels, attemptsSeries, scoreSeries } = buildTrendSeries();
+        if (!labels.length) {
+            const empty = document.getElementById('reportsTrendsEmpty');
+            if (empty) empty.style.display = 'flex';
+            if (state.chart) {
+                state.chart.destroy();
+                state.chart = null;
+            }
+            return;
+        }
+        const empty = document.getElementById('reportsTrendsEmpty');
+        if (empty) empty.style.display = 'none';
+        if (state.chart) {
+            state.chart.destroy();
+        }
+
+        state.chart = new window.Chart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Activity',
+                        data: attemptsSeries,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.15)',
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Average score',
+                        data: scoreSeries,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34,197,94,0.15)',
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Activity' }
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        suggestedMax: 100,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Score %' }
+                    }
+                }
+            }
+        });
+    }
+
+    function buildTrendSeries() {
+        if (state.role === 'superadmin') {
+            const activity = state.overview?.recent_activity || [];
+            const map = new Map();
+            activity.forEach((item) => {
+                const key = formatDateOnly(item.date);
+                const prev = map.get(key) || { count: 0, scoreSum: 0, scoreCount: 0 };
+                prev.count += 1;
+                if (Number.isFinite(Number(item.percentage))) {
+                    prev.scoreSum += Number(item.percentage);
+                    prev.scoreCount += 1;
+                }
+                map.set(key, prev);
+            });
+            const labels = Array.from(map.keys()).sort((a, b) => new Date(a) - new Date(b));
+            const attemptsSeries = labels.map((label) => map.get(label).count);
+            const scoreSeries = labels.map((label) => {
+                const m = map.get(label);
+                return m.scoreCount ? Number((m.scoreSum / m.scoreCount).toFixed(2)) : null;
+            });
+            return { labels, attemptsSeries, scoreSeries };
+        }
+
+        const rows = state.overview?.recent_activity || [];
+        const sorted = [...rows]
+            .map((row) => ({
+                date: formatDateOnly(row.date),
+                attempts: Number(row.attempts || 0),
+                avg: Number(row.avg_score || 0)
+            }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        return {
+            labels: sorted.map((row) => row.date),
+            attemptsSeries: sorted.map((row) => row.attempts),
+            scoreSeries: sorted.map((row) => Number.isFinite(row.avg) ? Number(row.avg.toFixed(2)) : null)
+        };
+    }
+
+    function formatDateOnly(value) {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return '-';
+        return d.toISOString().slice(0, 10);
     }
 
     async function loadData() {
@@ -255,7 +479,7 @@
         state.comparison = comparison;
     }
 
-    async function handleExport() {
+    async function handleDataExport() {
         if (state.role === 'superadmin') {
             const rows = state.comparison?.schools || [];
             const header = ['name', 'value'];
@@ -265,12 +489,7 @@
                 return `${name},${value}`;
             })).join('\n');
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `superadmin_reports_${Date.now()}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
+            downloadBlob(blob, `superadmin_reports_${Date.now()}.csv`);
             return;
         }
 
@@ -279,12 +498,67 @@
         });
         if (!response.ok) throw new Error('Export failed');
         const blob = await response.blob();
+        downloadBlob(blob, `school_reports_${Date.now()}.xlsx`);
+    }
+
+    function downloadBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `school_reports_${Date.now()}.xlsx`;
+        a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
+    }
+
+    function handlePdfExport() {
+        const root = document.querySelector('.reports-page');
+        if (!root) return;
+
+        const printWindow = window.open('', '_blank', 'width=1200,height=800');
+        if (!printWindow) {
+            alert('Popup blocked. Allow popups to export PDF.');
+            return;
+        }
+
+        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+            .map((link) => `<link rel="stylesheet" href="${link.href}">`)
+            .join('');
+        const clone = root.cloneNode(true);
+        const sourceChartCanvas = document.getElementById('reportsTrendsChart');
+        const targetChartCanvas = clone.querySelector('#reportsTrendsChart');
+        if (sourceChartCanvas && targetChartCanvas) {
+            try {
+                const image = document.createElement('img');
+                image.alt = 'Reports trends chart';
+                image.src = sourceChartCanvas.toDataURL('image/png', 1.0);
+                image.style.width = '100%';
+                image.style.maxHeight = '360px';
+                image.style.objectFit = 'contain';
+                targetChartCanvas.replaceWith(image);
+            } catch (error) {
+                // Keep canvas fallback if toDataURL fails.
+            }
+        }
+
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Reports PDF</title>
+                ${styles}
+                <style>
+                    body { background: #fff !important; padding: 16px; }
+                    .reports-page { width: 100% !important; max-width: 100% !important; }
+                    .dashboard-section { break-inside: avoid; page-break-inside: avoid; }
+                </style>
+            </head>
+            <body>${clone.outerHTML}</body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+        }, 350);
     }
 
     function bindEvents() {
@@ -292,6 +566,7 @@
         const metric = document.getElementById('reportsMetricFilter');
         const refresh = document.getElementById('reportsRefreshBtn');
         const exportBtn = document.getElementById('reportsExportBtn');
+        const pdfBtn = document.getElementById('reportsPdfBtn');
 
         if (period) {
             period.addEventListener('change', () => {
@@ -306,18 +581,19 @@
             });
         }
         if (refresh) refresh.addEventListener('click', refreshView);
+        if (pdfBtn) pdfBtn.addEventListener('click', handlePdfExport);
         if (exportBtn) {
             exportBtn.addEventListener('click', async () => {
                 try {
                     exportBtn.disabled = true;
                     exportBtn.textContent = 'Exporting...';
-                    await handleExport();
+                    await handleDataExport();
                 } catch (error) {
                     console.error('Export reports error:', error);
                     alert('Failed to export reports');
                 } finally {
                     exportBtn.disabled = false;
-                    exportBtn.textContent = 'Export';
+                    exportBtn.textContent = 'Export data';
                 }
             });
         }
@@ -329,6 +605,8 @@
         setHtml('reportsActivityList', '<p class="text-secondary">Loading...</p>');
         setHtml('reportsCompareTable', '<p class="text-secondary">Loading...</p>');
         setHtml('reportsInsights', '<p class="text-secondary">Loading...</p>');
+        const empty = document.getElementById('reportsTrendsEmpty');
+        if (empty) empty.style.display = 'none';
 
         try {
             await loadData();
@@ -337,10 +615,20 @@
             renderActivity();
             renderComparison();
             renderInsights();
+            renderTrendsChart();
         } catch (error) {
             console.error('Reports load error:', error);
             setHtml('reportsInsights', '<p class="text-secondary">Failed to load reports data.</p>');
         }
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     function init() {
@@ -350,7 +638,19 @@
         if (metricWrap) {
             metricWrap.style.display = state.role === 'superadmin' ? 'block' : 'none';
         }
+        updatePresetSelect();
         bindEvents();
+        bindPresetEvents();
+        const selectedPreset = localStorage.getItem(getSelectedPresetKey()) || '';
+        const presets = loadPresets();
+        if (selectedPreset && presets[selectedPreset]) {
+            applyFilters(presets[selectedPreset]);
+            const select = document.getElementById('reportsPresetSelect');
+            if (select) select.value = selectedPreset;
+        } else {
+            applyFilters({ period: 30, metric: 'avg_score' });
+            saveSelectedPreset('');
+        }
         refreshView();
     }
 

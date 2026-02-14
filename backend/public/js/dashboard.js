@@ -525,7 +525,7 @@
             'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
             'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' },
             'my-class': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' },
-            'reports': { src: '/js/reports.js', manager: 'ReportsManager' },
+            'reports': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/reports.js'], manager: 'ReportsManager' },
             'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' }
         };
 
@@ -1790,10 +1790,19 @@
                                     <option value="teacher_count">Teachers</option>
                                 </select>
                             </div>
+                            <div class="filter-group">
+                                <label for="reportsPresetSelect">Preset</label>
+                                <select id="reportsPresetSelect" class="filter-select">
+                                    <option value="">Default</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="toolbar-right">
+                            <button class="btn btn-outline" id="reportsSavePresetBtn" type="button">Save preset</button>
+                            <button class="btn btn-outline" id="reportsDeletePresetBtn" type="button">Delete preset</button>
                             <button class="btn btn-secondary" id="reportsRefreshBtn" type="button">Refresh</button>
-                            <button class="btn btn-primary" id="reportsExportBtn" type="button">Export</button>
+                            <button class="btn btn-secondary" id="reportsPdfBtn" type="button">Export PDF</button>
+                            <button class="btn btn-primary" id="reportsExportBtn" type="button">Export data</button>
                         </div>
                     </div>
 
@@ -1812,6 +1821,16 @@
                                 <h2 class="section-title">Recent Activity</h2>
                             </div>
                             <div id="reportsActivityList"></div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-section reports-card">
+                        <div class="section-header">
+                            <h2 class="section-title">Trends</h2>
+                        </div>
+                        <div class="reports-trends-wrap">
+                            <canvas id="reportsTrendsChart" height="110"></canvas>
+                            <div class="reports-trends-empty" id="reportsTrendsEmpty" style="display:none;">No trend data for selected filters</div>
                         </div>
                     </div>
 
