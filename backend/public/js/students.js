@@ -393,23 +393,43 @@
     }
 
     async function resetStudentPassword(studentId) {
-        if (!confirm('Сбросить пароль этому ученику?')) return;
+        const confirmed = window.ZedlyDialog?.confirm
+            ? await window.ZedlyDialog.confirm('Сбросить пароль этому ученику?', { title: 'Подтверждение' })
+            : confirm('Сбросить пароль этому ученику?');
+        if (!confirmed) return;
+
         try {
             const data = await apiPost(`${API}/teacher/students/${encodeURIComponent(studentId)}/reset-password`, {});
             const userName = data.user?.name || data.user?.username || 'Ученик';
-            openModal(
-                'Временный пароль',
-                `
-                    <p>${escapeHtml(userName)}</p>
-                    <div class="password-box">${escapeHtml(data.tempPassword || '-')}</div>
-                    <p class="text-secondary">Передайте пароль ученику и попросите сменить после входа.</p>
-                `
-            );
+
+            if (window.ZedlyDialog?.temporaryPassword) {
+                await window.ZedlyDialog.temporaryPassword({
+                    title: 'Временный пароль',
+                    subtitle: `Пароль для ${userName}:`,
+                    password: data.tempPassword || '',
+                    passwordLabel: 'Временный пароль',
+                    copyText: 'Скопировать',
+                    hint: 'Передайте пароль ученику и попросите сменить после входа.',
+                    okText: 'Готово'
+                });
+            } else {
+                openModal(
+                    'Временный пароль',
+                    `
+                        <p>${escapeHtml(userName)}</p>
+                        <div class="password-box">${escapeHtml(data.tempPassword || '-')}</div>
+                        <p class="text-secondary">Передайте пароль ученику и попросите сменить после входа.</p>
+                    `
+                );
+            }
         } catch (error) {
-            alert(error.message || 'Не удалось сбросить пароль');
+            if (window.ZedlyDialog?.alert) {
+                await window.ZedlyDialog.alert(error.message || 'Не удалось сбросить пароль', { title: 'Ошибка' });
+            } else {
+                alert(error.message || 'Не удалось сбросить пароль');
+            }
         }
     }
-
     function exportCsv() {
         const base = state.selectedIds.size
             ? state.filtered.filter((s) => state.selectedIds.has(String(s.id)))

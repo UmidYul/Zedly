@@ -226,36 +226,36 @@
         });
 
         if (!response.ok) {
-            openPasswordModal('Ошибка', 'Не удалось сбросить пароль. Попробуйте позже.', true);
+            if (window.ZedlyDialog?.alert) {
+                await window.ZedlyDialog.alert('Не удалось сбросить пароль. Попробуйте позже.', { title: 'Ошибка' });
+            } else {
+                alert('Не удалось сбросить пароль. Попробуйте позже.');
+            }
             return;
         }
 
         const data = await response.json();
-        openPasswordModal(data.user?.name || 'ученика', data.tempPassword);
-    }
+        const studentName = data.user?.name || 'ученика';
 
-    function openPasswordModal(name, password, isError = false) {
-        const modal = document.getElementById('passwordModal');
-        const nameEl = document.getElementById('modalStudentName');
-        const passEl = document.getElementById('modalPassword');
-        if (!modal || !nameEl || !passEl) return;
-
-        if (isError) {
-            nameEl.textContent = 'Ошибка';
-            passEl.textContent = password || '—';
-        } else {
-            nameEl.textContent = `Пароль для ${name}`;
-            passEl.textContent = password || '—';
+        if (window.ZedlyDialog?.temporaryPassword) {
+            await window.ZedlyDialog.temporaryPassword({
+                title: 'Временный пароль',
+                subtitle: `Пароль для ${studentName}:`,
+                password: data.tempPassword || '',
+                passwordLabel: 'Временный пароль',
+                copyText: 'Скопировать',
+                hint: 'Передайте пароль ученику и попросите сменить его после входа.',
+                okText: 'Готово'
+            });
+            return;
         }
 
-        modal.classList.remove('hidden');
+        if (window.ZedlyDialog?.alert) {
+            await window.ZedlyDialog.alert(`${studentName}: ${data.tempPassword || '-'}`, { title: 'Временный пароль' });
+        } else {
+            alert(`Временный пароль для ${studentName}: ${data.tempPassword || '-'}`);
+        }
     }
-
-    function closePasswordModal() {
-        const modal = document.getElementById('passwordModal');
-        if (modal) modal.classList.add('hidden');
-    }
-
     async function loadClassData(classId) {
         state.activeClassId = classId;
 
@@ -324,32 +324,6 @@
                 });
             }
 
-            const modalClose = document.getElementById('modalClose');
-            const modalOk = document.getElementById('modalOk');
-            const modalCopy = document.getElementById('modalCopy');
-            const modalOverlay = document.getElementById('passwordModal');
-
-            if (modalClose) modalClose.addEventListener('click', closePasswordModal);
-            if (modalOk) modalOk.addEventListener('click', closePasswordModal);
-            if (modalOverlay) {
-                modalOverlay.addEventListener('click', (event) => {
-                    if (event.target === modalOverlay) closePasswordModal();
-                });
-            }
-            if (modalCopy) {
-                modalCopy.addEventListener('click', async () => {
-                    const text = document.getElementById('modalPassword')?.textContent || '';
-                    if (!text || text === '—') return;
-                    try {
-                        await navigator.clipboard.writeText(text);
-                        modalCopy.textContent = 'Скопировано';
-                        setTimeout(() => { modalCopy.textContent = 'Скопировать'; }, 1200);
-                    } catch (error) {
-                        modalCopy.textContent = 'Не удалось';
-                        setTimeout(() => { modalCopy.textContent = 'Скопировать'; }, 1200);
-                    }
-                });
-            }
         } catch (error) {
             console.error('My class page error:', error);
         }

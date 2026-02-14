@@ -22,69 +22,22 @@ const SchoolAdminsManager = (function () {
     }
 
     function showTempPasswordModal(username, password) {
-        const existing = document.getElementById('tempPasswordModal');
-        if (existing) existing.remove();
-
-        const modalHTML = `
-            <div class="modal-overlay" id="tempPasswordModal">
-                <div class="modal-content temp-password-modal">
-                    <div class="modal-header">
-                        <h3>Временный пароль</h3>
-                        <button class="modal-close" id="tempPasswordCloseBtn">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Новый временный пароль для <strong>${username}</strong>:</p>
-                        <div class="otp-display otp-display-reset">
-                            <label class="otp-label">Временный пароль</label>
-                            <div class="otp-field-wrap">
-                                <input class="otp-field" id="tempPasswordField" type="text" readonly value="${password}">
-                                <button class="btn btn-primary" id="copyTempPasswordBtn">Скопировать</button>
-                            </div>
-                        </div>
-                        <p class="warning-text">Пользователь должен сменить пароль после входа.</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-        const close = () => document.getElementById('tempPasswordModal')?.remove();
-        document.getElementById('tempPasswordCloseBtn')?.addEventListener('click', close);
-        document.getElementById('tempPasswordModal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'tempPasswordModal') close();
-        });
-        document.getElementById('copyTempPasswordBtn')?.addEventListener('click', copyTempPassword);
+        if (window.ZedlyDialog?.temporaryPassword) {
+            return window.ZedlyDialog.temporaryPassword({
+                title: 'Temporary password',
+                subtitle: `New temporary password for ${username}:`,
+                password: password || '',
+                passwordLabel: 'Temporary password',
+                copyText: 'Copy',
+                hint: 'User should change password after login.'
+            });
+        }
+        return showInfo(`Temporary password for ${username}: ${password || '-'}`);
     }
 
     async function copyTempPassword() {
-        const input = document.getElementById('tempPasswordField');
-        if (!input) return;
-        const value = input.value.trim();
-        if (!value) return;
-
-        let copied = false;
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(value);
-                copied = true;
-            }
-        } catch (error) {
-            console.warn('Clipboard API failed, using fallback:', error);
-        }
-
-        if (!copied) {
-            input.focus();
-            input.select();
-            copied = document.execCommand('copy');
-        }
-
-        if (copied) {
-            await showInfo('Пароль скопирован в буфер обмена.');
-        } else {
-            await showInfo('Не удалось скопировать пароль автоматически. Скопируйте вручную.', 'Ошибка');
-        }
+        return Promise.resolve();
     }
-
     async function init() {
         console.log('📋 Initializing School Admins Manager...');
         await loadSchools();

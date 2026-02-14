@@ -1,4 +1,4 @@
-// Global alert/confirm modal replacement
+// Global dialog system (alert/confirm/temporary password)
 (function () {
     'use strict';
 
@@ -107,6 +107,45 @@
                 border-color: var(--border, rgba(255, 255, 255, 0.12));
             }
 
+            .zedly-password-block {
+                margin-top: 10px;
+                padding: 12px;
+                background: var(--bg-primary, rgba(255, 255, 255, 0.04));
+                border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+                border-radius: 10px;
+            }
+
+            .zedly-password-label {
+                display: block;
+                margin-bottom: 8px;
+                font-size: 12px;
+                color: var(--text-tertiary, #9ca3af);
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+            }
+
+            .zedly-password-row {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                gap: 8px;
+            }
+
+            .zedly-password-input {
+                width: 100%;
+                border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+                background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
+                color: var(--text-primary, #f9fafb);
+                border-radius: 8px;
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+
+            .zedly-password-hint {
+                margin-top: 10px;
+                font-size: 13px;
+                color: var(--text-secondary, #d1d5db);
+            }
+
             @keyframes zedlyAlertFadeIn {
                 from { opacity: 0; }
                 to { opacity: 1; }
@@ -119,6 +158,31 @@
         `;
 
         document.head.appendChild(style);
+    }
+
+    async function copyToClipboard(value) {
+        const text = String(value || '');
+        if (!text) return false;
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (error) {
+            // Fallback below
+        }
+
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const copied = document.execCommand('copy');
+        textArea.remove();
+        return copied;
     }
 
     function showNext() {
@@ -134,7 +198,8 @@
         });
     }
 
-    function closeCurrent(backdrop, item, result) {
+    function closeCurrent(backdrop, item, result, onEsc) {
+        if (onEsc) document.removeEventListener('keydown', onEsc);
         if (backdrop && backdrop.parentNode) {
             backdrop.parentNode.removeChild(backdrop);
         }
@@ -160,69 +225,112 @@
 
         const header = document.createElement('div');
         header.className = 'zedly-alert-header';
-        header.innerHTML = `<span class="zedly-alert-icon">i</span><span>${item.title || 'Уведомление'}</span>`;
+        header.innerHTML = `<span class="zedly-alert-icon">i</span><span>${item.title || 'Notification'}</span>`;
 
         const body = document.createElement('div');
         body.className = 'zedly-alert-body';
-        body.textContent = String(item.message ?? '');
 
         const actions = document.createElement('div');
         actions.className = 'zedly-alert-actions';
 
-        const okBtn = document.createElement('button');
-        okBtn.type = 'button';
-        okBtn.className = 'zedly-alert-btn zedly-alert-btn-primary';
-        okBtn.textContent = item.okText || 'OK';
-
         const onEsc = (event) => {
             if (event.key !== 'Escape') return;
-            document.removeEventListener('keydown', onEsc);
-            closeCurrent(backdrop, item, item.type === 'confirm' ? false : true);
+            if (item.type === 'confirm') {
+                closeCurrent(backdrop, item, false, onEsc);
+            } else {
+                closeCurrent(backdrop, item, true, onEsc);
+            }
         };
-
         document.addEventListener('keydown', onEsc);
 
-        okBtn.addEventListener('click', () => {
-            document.removeEventListener('keydown', onEsc);
-            closeCurrent(backdrop, item, true);
-        });
+        if (item.type === 'password') {
+            const subtitle = document.createElement('p');
+            subtitle.textContent = String(item.subtitle || item.message || '');
+            body.appendChild(subtitle);
+
+            const passwordBlock = document.createElement('div');
+            passwordBlock.className = 'zedly-password-block';
+
+            const label = document.createElement('label');
+            label.className = 'zedly-password-label';
+            label.textContent = item.passwordLabel || 'Temporary password';
+
+            const row = document.createElement('div');
+            row.className = 'zedly-password-row';
+
+            const input = document.createElement('input');
+            input.className = 'zedly-password-input';
+            input.type = 'text';
+            input.readOnly = true;
+            input.value = String(item.password || '');
+
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'zedly-alert-btn zedly-alert-btn-primary';
+            copyBtn.textContent = item.copyText || 'Copy';
+
+            copyBtn.addEventListener('click', async () => {
+                const copied = await copyToClipboard(input.value);
+                const initial = copyBtn.textContent;
+                copyBtn.textContent = copied ? (item.copiedText || 'Copied') : (item.copyFailText || 'Copy failed');
+                setTimeout(() => {
+                    copyBtn.textContent = initial;
+                }, 1200);
+            });
+
+            row.appendChild(input);
+            row.appendChild(copyBtn);
+            passwordBlock.appendChild(label);
+            passwordBlock.appendChild(row);
+            body.appendChild(passwordBlock);
+
+            if (item.hint) {
+                const hint = document.createElement('p');
+                hint.className = 'zedly-password-hint';
+                hint.textContent = String(item.hint);
+                body.appendChild(hint);
+            }
+        } else {
+            body.textContent = String(item.message ?? '');
+        }
 
         if (item.type === 'confirm') {
             const cancelBtn = document.createElement('button');
             cancelBtn.type = 'button';
             cancelBtn.className = 'zedly-alert-btn zedly-alert-btn-secondary';
-            cancelBtn.textContent = item.cancelText || 'Отмена';
+            cancelBtn.textContent = item.cancelText || 'Cancel';
+            cancelBtn.addEventListener('click', () => closeCurrent(backdrop, item, false, onEsc));
 
-            cancelBtn.addEventListener('click', () => {
-                document.removeEventListener('keydown', onEsc);
-                closeCurrent(backdrop, item, false);
-            });
-
-            backdrop.addEventListener('click', (event) => {
-                if (event.target === backdrop) {
-                    document.removeEventListener('keydown', onEsc);
-                    closeCurrent(backdrop, item, false);
-                }
-            });
+            const okBtn = document.createElement('button');
+            okBtn.type = 'button';
+            okBtn.className = 'zedly-alert-btn zedly-alert-btn-primary';
+            okBtn.textContent = item.okText || 'Confirm';
+            okBtn.addEventListener('click', () => closeCurrent(backdrop, item, true, onEsc));
 
             actions.appendChild(cancelBtn);
-        } else {
+            actions.appendChild(okBtn);
+
             backdrop.addEventListener('click', (event) => {
-                if (event.target === backdrop) {
-                    document.removeEventListener('keydown', onEsc);
-                    closeCurrent(backdrop, item, true);
-                }
+                if (event.target === backdrop) closeCurrent(backdrop, item, false, onEsc);
+            });
+        } else {
+            const okBtn = document.createElement('button');
+            okBtn.type = 'button';
+            okBtn.className = 'zedly-alert-btn zedly-alert-btn-primary';
+            okBtn.textContent = item.okText || 'OK';
+            okBtn.addEventListener('click', () => closeCurrent(backdrop, item, true, onEsc));
+            actions.appendChild(okBtn);
+
+            backdrop.addEventListener('click', (event) => {
+                if (event.target === backdrop) closeCurrent(backdrop, item, true, onEsc);
             });
         }
 
-        actions.appendChild(okBtn);
         modal.appendChild(header);
         modal.appendChild(body);
         modal.appendChild(actions);
         backdrop.appendChild(modal);
         document.body.appendChild(backdrop);
-
-        (item.type === 'confirm' ? actions.querySelector('.zedly-alert-btn-secondary') : okBtn).focus();
     }
 
     function alertModal(message, options) {
@@ -248,9 +356,29 @@
         return enqueue({
             type: 'confirm',
             message,
-            title: options?.title || 'Подтверждение',
-            okText: options?.okText || 'Подтвердить',
-            cancelText: options?.cancelText || 'Отмена'
+            title: options?.title || 'Confirmation',
+            okText: options?.okText || 'Confirm',
+            cancelText: options?.cancelText || 'Cancel'
+        });
+    }
+
+    function temporaryPasswordModal(options) {
+        if (!document || !document.body) {
+            if (nativeAlert) nativeAlert(`${options?.title || 'Temporary password'}: ${options?.password || ''}`);
+            return Promise.resolve(true);
+        }
+
+        return enqueue({
+            type: 'password',
+            title: options?.title || 'Temporary password',
+            subtitle: options?.subtitle || '',
+            password: options?.password || '',
+            passwordLabel: options?.passwordLabel || 'Temporary password',
+            copyText: options?.copyText || 'Copy',
+            copiedText: options?.copiedText || 'Copied',
+            copyFailText: options?.copyFailText || 'Copy failed',
+            hint: options?.hint || '',
+            okText: options?.okText || 'Done'
         });
     }
 
@@ -259,10 +387,11 @@
 
     window.ZedlyDialog = {
         alert: alertModal,
-        confirm: confirmModal
+        confirm: confirmModal,
+        temporaryPassword: temporaryPasswordModal
     };
 
-    // Keep compatibility with existing code
+    // Keep compatibility with existing direct alert() usage.
     window.alert = function (message) {
         alertModal(message);
     };

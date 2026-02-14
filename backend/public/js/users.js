@@ -12,29 +12,12 @@
         pageSizeStorageKey: 'users_page_limit',
         searchDebounceTimer: null,
         activeUsersRequest: null,
-
-        // Show custom alert modal
         showAlertModal: function (message, title = 'Info') {
-            // Remove existing alert modal if present
-            const existing = document.getElementById('alertModal');
-            if (existing) existing.remove();
-            const html = `
-                        <div class="modal-overlay" id="alertModal">
-                            <div class="modal-content" style="max-width: 400px;">
-                                <div class="modal-header">
-                                    <h2 class="modal-title">${title}</h2>
-                                </div>
-                                <div class="modal-body" style="text-align:center;">
-                                    <div style="margin-bottom:1.5rem; font-size:1.1em;">${message}</div>
-                                    <button class="btn btn-primary" id="closeAlertModalBtn">OK</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-            document.body.insertAdjacentHTML('beforeend', html);
-            document.getElementById('closeAlertModalBtn').onclick = () => {
-                document.getElementById('alertModal').remove();
-            };
+            if (window.ZedlyDialog?.alert) {
+                return window.ZedlyDialog.alert(message, { title });
+            }
+            alert(message);
+            return Promise.resolve(true);
         },
 
         confirmAction: async function (message, title = 'Подтверждение') {
@@ -43,54 +26,25 @@
             }
             return confirm(message);
         },
-
         showTempPasswordModal: function ({ title, subtitle, password, onClose }) {
-            const existing = document.getElementById('tempPasswordModal');
-            if (existing) existing.remove();
+            if (window.ZedlyDialog?.temporaryPassword) {
+                return window.ZedlyDialog.temporaryPassword({
+                    title: title || (window.ZedlyI18n?.translate('users.tempPassword') || 'Temporary password'),
+                    subtitle: subtitle || '',
+                    password: password || '',
+                    passwordLabel: window.ZedlyI18n?.translate('users.tempPassword') || 'Temporary password',
+                    copyText: window.ZedlyI18n?.translate('users.copyPassword') || 'Copy',
+                    hint: window.ZedlyI18n?.translate('users.userMustChangePassword') || 'User must change password on next login.'
+                }).finally(() => {
+                    if (typeof onClose === 'function') onClose();
+                });
+            }
 
-            const html = `
-                <div class="modal-overlay" id="tempPasswordModal">
-                    <div class="modal-content temp-password-modal">
-                        <div class="modal-header">
-                            <h3>${title}</h3>
-                            <button class="modal-close" id="tempPasswordCloseBtn">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <p>${subtitle}</p>
-                            <div class="otp-display otp-display-reset">
-                                <label class="otp-label">Временный пароль</label>
-                                <div class="otp-field-wrap">
-                                    <input class="otp-field" id="tempPasswordField" type="text" readonly value="${password}">
-                                    <button class="btn btn-primary" id="copyTempPasswordBtn">
-                                        ${window.ZedlyI18n?.translate('users.copyPassword') || 'Скопировать'}
-                                    </button>
-                                </div>
-                            </div>
-                            <p class="warning-text">${window.ZedlyI18n?.translate('users.userMustChangePassword') || 'Пользователь должен сменить пароль при входе.'}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', html);
-
-            const close = () => {
-                const modal = document.getElementById('tempPasswordModal');
-                if (modal) modal.remove();
-                if (typeof onClose === 'function') onClose();
-            };
-
-            document.getElementById('tempPasswordCloseBtn')?.addEventListener('click', close);
-            document.getElementById('tempPasswordModal')?.addEventListener('click', (e) => {
-                if (e.target.id === 'tempPasswordModal') close();
-            });
-            document.getElementById('copyTempPasswordBtn')?.addEventListener('click', () => this.copyTempPasswordFromModal());
+            if (typeof onClose === 'function') onClose();
+            return Promise.resolve(true);
         },
-
         copyTempPasswordFromModal: async function () {
-            const input = document.getElementById('tempPasswordField');
-            if (!input) return;
-            await this.copyOTP(input.value);
+            return Promise.resolve();
         },
 
         formatUzPhone: function (value) {
