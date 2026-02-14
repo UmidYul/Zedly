@@ -757,6 +757,68 @@
     margin-top: var(--spacing-sm);
 }
 
+.import-page {
+    width: min(1100px, 100%);
+    margin: 0 auto;
+    padding: var(--spacing-sm) 0 var(--spacing-lg);
+}
+
+.import-header {
+    text-align: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.import-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-lg);
+    align-items: stretch;
+}
+
+.import-lane {
+    min-height: 290px;
+    display: flex;
+    flex-direction: column;
+}
+
+.import-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.import-file-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.import-file-name {
+    flex: 1;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 12px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.import-file-name.has-file {
+    border-style: solid;
+    border-color: var(--primary);
+    color: var(--text-primary);
+}
+
 .export-page {
     width: min(1100px, 100%);
     margin: 0 auto;
@@ -991,8 +1053,17 @@
         gap: var(--spacing-md);
     }
 
+    .import-layout {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
     .export-card,
     .export-card-main {
+        min-height: auto;
+    }
+
+    .import-lane {
         min-height: auto;
     }
 }
@@ -1139,7 +1210,15 @@
         width: 100%;
     }
 
+    .import-page {
+        width: 100%;
+    }
+
     .export-header {
+        text-align: left;
+    }
+
+    .import-header {
         text-align: left;
     }
 

@@ -22,6 +22,10 @@
     function init() {
         const importBtn = document.getElementById('startImportBtn');
         const templateBtn = document.getElementById('downloadTemplateBtn');
+        const importButtons = document.querySelectorAll('.start-import-btn');
+        const templateButtons = document.querySelectorAll('.download-template-btn');
+        const fileTriggers = document.querySelectorAll('.import-file-trigger');
+        const importFileInputs = document.querySelectorAll('.import-file-input');
         const exportBtn = document.getElementById('exportUsersBtn');
         const importTypeSelect = document.getElementById('importType');
         const resultsContainer = document.getElementById('importResults');
@@ -33,6 +37,41 @@
 
         if (templateBtn) {
             templateBtn.addEventListener('click', downloadTemplate);
+        }
+
+        if (importButtons.length) {
+            importButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const importType = button.dataset.importType || 'student';
+                    const input = getImportInputForType(importType);
+                    handleImport(importType, input);
+                });
+            });
+        }
+
+        if (templateButtons.length) {
+            templateButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    downloadTemplate(button.dataset.importType || 'student');
+                });
+            });
+        }
+
+        if (fileTriggers.length) {
+            fileTriggers.forEach((trigger) => {
+                trigger.addEventListener('click', () => {
+                    const targetId = trigger.dataset.target;
+                    if (!targetId) return;
+                    const input = document.getElementById(targetId);
+                    if (input) input.click();
+                });
+            });
+        }
+
+        if (importFileInputs.length) {
+            importFileInputs.forEach((input) => {
+                input.addEventListener('change', () => updateFileName(input));
+            });
         }
 
         if (exportBtn) {
@@ -75,19 +114,19 @@
         }
     }
 
-    async function handleImport() {
-        const fileInput = document.getElementById('importFile');
-        const importTypeSelect = document.getElementById('importType');
+    async function handleImport(importType = null, fileInput = null) {
+        const resolvedType = importType || (document.getElementById('importType')?.value || 'student');
+        const resolvedInput = fileInput || getImportInputForType(resolvedType) || document.getElementById('importFile');
         const resultsContainer = document.getElementById('importResults');
 
-        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        if (!resolvedInput || !resolvedInput.files || resolvedInput.files.length === 0) {
             renderMessage(resultsContainer, 'Выберите файл для импорта', 'warning');
             return;
         }
 
         const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-        formData.append('import_type', (importTypeSelect?.value || 'student'));
+        formData.append('file', resolvedInput.files[0]);
+        formData.append('import_type', resolvedType);
 
         renderMessage(resultsContainer, 'Импортируем...', 'info');
 
@@ -111,11 +150,10 @@
         }
     }
 
-    async function downloadTemplate() {
-        const importTypeSelect = document.getElementById('importType');
-        const importType = importTypeSelect?.value || 'student';
+    async function downloadTemplate(importType = null) {
+        const resolvedType = importType || (document.getElementById('importType')?.value || 'student');
         try {
-            const response = await fetch(`${API_URL}/import/template/users?type=${encodeURIComponent(importType)}`);
+            const response = await fetch(`${API_URL}/import/template/users?type=${encodeURIComponent(resolvedType)}`);
             if (!response.ok) {
                 throw new Error('Failed to download template');
             }
@@ -139,6 +177,33 @@
         } else {
             importHint.textContent = 'Поддерживаемые колонки: №, Ученик, Пол, Дата рождения, Класс, Телефон, Эл. почта';
         }
+    }
+
+    function getImportInputForType(importType) {
+        if (importType === 'teacher') {
+            return document.getElementById('importFileTeacher');
+        }
+        if (importType === 'student') {
+            return document.getElementById('importFileStudent');
+        }
+        return null;
+    }
+
+    function updateFileName(input) {
+        const importType = input?.dataset?.importType;
+        if (!importType) return;
+
+        const nameId = importType === 'teacher'
+            ? 'importFileTeacherName'
+            : 'importFileStudentName';
+        const nameEl = document.getElementById(nameId);
+        if (!nameEl) return;
+
+        const fileName = input.files && input.files[0]
+            ? input.files[0].name
+            : 'No file selected';
+        nameEl.textContent = fileName;
+        nameEl.classList.toggle('has-file', Boolean(input.files && input.files[0]));
     }
 
     async function exportUsers() {

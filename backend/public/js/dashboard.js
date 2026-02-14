@@ -810,28 +810,44 @@
             }
 
             return `
-                <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="import.title">Импорт пользователей</h1>
-                    <p class="page-subtitle" data-i18n="import.subtitle">Загрузите Excel-файл для массового добавления пользователей</p>
-                </div>
-                <div class="dashboard-section import-card">
-                    <div class="section-header">
-                        <h2 class="section-title" data-i18n="import.uploadTitle">Загрузка файла</h2>
-                        <div class="section-actions">
-                            <button class="btn btn-secondary" id="downloadTemplateBtn" data-i18n="import.downloadTemplate">Скачать шаблон</button>
+                <div class="import-page">
+                    <div class="page-header-section import-header">
+                        <h1 class="page-main-title" data-i18n="import.title">Import users</h1>
+                        <p class="page-subtitle" data-i18n="import.subtitle">Upload Excel files and create users in bulk</p>
+                    </div>
+
+                    <div class="import-layout">
+                        <div class="dashboard-section import-lane" data-import-lane="student">
+                            <div class="section-header">
+                                <h2 class="section-title">Students</h2>
+                                <button class="btn btn-secondary download-template-btn" data-import-type="student" data-i18n="import.downloadTemplate">Download template</button>
+                            </div>
+                            <p class="import-hint">Columns: No, Student, Gender, Date of birth, Class, Phone, Email.</p>
+                            <input type="file" id="importFileStudent" class="import-file-input" data-import-type="student" accept=".xlsx,.xls,.csv" />
+                            <div class="import-file-row">
+                                <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileStudent">Choose file</button>
+                                <span class="import-file-name" id="importFileStudentName">No file selected</span>
+                            </div>
+                            <button class="btn btn-primary start-import-btn" type="button" data-import-type="student" data-i18n="import.start">Start import</button>
+                        </div>
+
+                        <div class="dashboard-section import-lane" data-import-lane="teacher">
+                            <div class="section-header">
+                                <h2 class="section-title">Teachers</h2>
+                                <button class="btn btn-secondary download-template-btn" data-import-type="teacher" data-i18n="import.downloadTemplate">Download template</button>
+                            </div>
+                            <p class="import-hint">Columns: No, Full name, Gender, Date of birth, Position, Classes, Phone, Email.</p>
+                            <input type="file" id="importFileTeacher" class="import-file-input" data-import-type="teacher" accept=".xlsx,.xls,.csv" />
+                            <div class="import-file-row">
+                                <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileTeacher">Choose file</button>
+                                <span class="import-file-name" id="importFileTeacherName">No file selected</span>
+                            </div>
+                            <button class="btn btn-primary start-import-btn" type="button" data-import-type="teacher" data-i18n="import.start">Start import</button>
                         </div>
                     </div>
-                    <div class="import-body">
-                        <select id="importType" class="select-input">
-                            <option value="student">Ученики</option>
-                            <option value="teacher">Учителя</option>
-                        </select>
-                        <input type="file" id="importFile" accept=".xlsx,.xls,.csv" />
-                        <button class="btn btn-primary" id="startImportBtn" data-i18n="import.start">Начать импорт</button>
-                    </div>
-                    <p class="import-hint" id="importHint" data-i18n="import.hint">Поддерживаемые колонки: №, Ученик, Пол, Дата рождения, Класс, Телефон, Эл. почта</p>
+
+                    <div class="dashboard-section import-results" id="importResults"></div>
                 </div>
-                <div class="dashboard-section import-results" id="importResults"></div>
             `;
         }
 
