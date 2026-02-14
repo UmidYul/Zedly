@@ -4,6 +4,7 @@
 
     const API_URL = '/api/admin';
     const IMPORT_CREDENTIALS_KEY = 'zedly_last_import_credentials_v1';
+    const EXPORT_META_KEY = 'zedly_last_export_meta_v1';
     let pendingAutoCreatedClasses = [];
 
     function showAlert(message, title = 'Ошибка') {
@@ -24,6 +25,7 @@
         const exportBtn = document.getElementById('exportUsersBtn');
         const importTypeSelect = document.getElementById('importType');
         const resultsContainer = document.getElementById('importResults');
+        const refreshExportPreviewBtn = document.getElementById('refreshExportPreviewBtn');
 
         if (importBtn) {
             importBtn.addEventListener('click', handleImport);
@@ -35,6 +37,12 @@
 
         if (exportBtn) {
             exportBtn.addEventListener('click', exportUsers);
+            renderLastExportMeta();
+            loadExportPreview();
+        }
+
+        if (refreshExportPreviewBtn) {
+            refreshExportPreviewBtn.addEventListener('click', loadExportPreview);
         }
 
         if (importTypeSelect) {
@@ -134,18 +142,139 @@
     }
 
     async function exportUsers() {
+        const exportBtn = document.getElementById('exportUsersBtn');
         try {
+            if (exportBtn) {
+                exportBtn.disabled = true;
+                exportBtn.textContent = 'Preparing...';
+            }
+            setExportStatus('Export in progress...', 'loading');
+
             const response = await fetch(`${API_URL}/export/users`);
             if (!response.ok) {
                 throw new Error('Failed to export users');
             }
 
             const blob = await response.blob();
-            downloadBlob(blob, 'users_export.xlsx');
+            const filename = `users_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            downloadBlob(blob, filename);
+            persistLastExportMeta({
+                filename,
+                size: blob.size,
+                exportedAt: new Date().toISOString()
+            });
+            renderLastExportMeta();
+            setExportStatus('Export complete', 'success');
         } catch (error) {
             console.error('Export error:', error);
-            showAlert('Не удалось выгрузить пользователей');
+            setExportStatus('Export failed', '');
+            showAlert('Failed to export users');
+        } finally {
+            if (exportBtn) {
+                exportBtn.disabled = false;
+                exportBtn.textContent = 'Download users';
+            }
+            const statusChip = document.getElementById('exportStatusChip');
+            if (statusChip && !statusChip.classList.contains('success')) {
+                setTimeout(() => setExportStatus('Ready to export', ''), 2200);
+            }
         }
+    }
+
+    async function loadExportPreview() {
+        const refreshBtn = document.getElementById('refreshExportPreviewBtn');
+        const updatedEl = document.getElementById('exportPreviewUpdated');
+
+        try {
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = 'Refreshing...';
+            }
+
+            const [total, students, teachers] = await Promise.all([
+                fetchUsersTotal('all'),
+                fetchUsersTotal('student'),
+                fetchUsersTotal('teacher')
+            ]);
+
+            setText('exportTotalUsers', total);
+            setText('exportStudentUsers', students);
+            setText('exportTeacherUsers', teachers);
+            if (updatedEl) {
+                updatedEl.textContent = `Updated: ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+            }
+        } catch (error) {
+            console.error('Export preview load error:', error);
+            if (updatedEl) {
+                updatedEl.textContent = 'Preview failed';
+            }
+        } finally {
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = 'Refresh preview';
+            }
+        }
+    }
+
+    async function fetchUsersTotal(role) {
+        const roleQuery = role && role !== 'all' ? `&role=${encodeURIComponent(role)}` : '';
+        const response = await fetch(`${API_URL}/users?page=1&limit=1${roleQuery}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch users total');
+        }
+        const data = await response.json();
+        return Number(data?.pagination?.total || 0);
+    }
+
+    function persistLastExportMeta(meta) {
+        try {
+            localStorage.setItem(EXPORT_META_KEY, JSON.stringify(meta));
+        } catch (error) {
+            console.warn('Unable to persist export metadata:', error);
+        }
+    }
+
+    function readLastExportMeta() {
+        try {
+            const raw = localStorage.getItem(EXPORT_META_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw);
+        } catch (error) {
+            console.warn('Unable to read export metadata:', error);
+            return null;
+        }
+    }
+
+    function renderLastExportMeta() {
+        const element = document.getElementById('exportLastMeta');
+        if (!element) return;
+
+        const meta = readLastExportMeta();
+        if (!meta?.exportedAt) {
+            element.textContent = 'Export history is empty.';
+            return;
+        }
+
+        const dateLabel = new Date(meta.exportedAt).toLocaleString('en-US');
+        const sizeKb = Number(meta.size || 0) / 1024;
+        const prettySize = `${sizeKb >= 1024 ? (sizeKb / 1024).toFixed(2) + ' MB' : Math.max(sizeKb, 0.1).toFixed(1) + ' KB'}`;
+        element.textContent = `Last export: ${dateLabel}. File: ${meta.filename || 'users_export.xlsx'} (${prettySize}).`;
+    }
+
+    function setExportStatus(text, type) {
+        const chip = document.getElementById('exportStatusChip');
+        if (!chip) return;
+        chip.textContent = text;
+        chip.classList.remove('success', 'loading');
+        if (type) {
+            chip.classList.add(type);
+        }
+    }
+
+    function setText(id, value) {
+        const element = document.getElementById(id);
+        if (!element) return;
+        element.textContent = String(value);
     }
 
     function renderImportResults(container, data) {
@@ -404,3 +533,4 @@
 
     window.ImportExportManager = ImportExportManager;
 })();
+

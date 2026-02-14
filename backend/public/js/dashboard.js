@@ -849,16 +849,48 @@
             }
 
             return `
-                <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="export.title">Экспорт данных</h1>
-                    <p class="page-subtitle" data-i18n="export.subtitle">Скачайте Excel-отчеты для анализа и архивации</p>
-                </div>
-                <div class="dashboard-section export-card">
-                    <div class="section-header">
-                        <h2 class="section-title" data-i18n="export.usersTitle">Экспорт пользователей</h2>
+                <div class="export-page">
+                    <div class="page-header-section export-header">
+                        <h1 class="page-main-title" data-i18n="export.title">Export data</h1>
+                        <p class="page-subtitle" data-i18n="export.subtitle">Download Excel reports for analysis and backup</p>
                     </div>
-                    <p class="export-hint" data-i18n="export.usersHint">Файл содержит пользователей школы, классы и номера в журнале.</p>
-                    <button class="btn btn-primary" id="exportUsersBtn" data-i18n="export.downloadUsers">Скачать пользователей</button>
+                    <div class="export-layout">
+                        <div class="dashboard-section export-card export-card-main">
+                            <div class="section-header">
+                                <h2 class="section-title" data-i18n="export.usersTitle">User export</h2>
+                                <span class="export-chip" id="exportStatusChip">Ready to export</span>
+                            </div>
+                            <p class="export-hint" data-i18n="export.usersHint">The file includes users, classes and journal numbers.</p>
+                            <div class="export-actions-row">
+                                <button class="btn btn-primary" id="exportUsersBtn" data-i18n="export.downloadUsers">Download users</button>
+                                <button class="btn btn-secondary" id="refreshExportPreviewBtn" type="button">Refresh preview</button>
+                            </div>
+                            <div class="export-last-meta" id="exportLastMeta">
+                                Export history is empty.
+                            </div>
+                        </div>
+                        <div class="dashboard-section export-card export-card-preview">
+                            <div class="section-header">
+                                <h2 class="section-title">Data preview</h2>
+                                <span class="export-chip subtle" id="exportPreviewUpdated">Not updated</span>
+                            </div>
+                            <div class="export-preview-grid">
+                                <div class="export-preview-item">
+                                    <span>Total</span>
+                                    <strong id="exportTotalUsers">-</strong>
+                                </div>
+                                <div class="export-preview-item">
+                                    <span>Students</span>
+                                    <strong id="exportStudentUsers">-</strong>
+                                </div>
+                                <div class="export-preview-item">
+                                    <span>Teachers</span>
+                                    <strong id="exportTeacherUsers">-</strong>
+                                </div>
+                            </div>
+                            <p class="export-hint">Check counts before downloading the file.</p>
+                        </div>
+                    </div>
                 </div>
             `;
         }
