@@ -810,6 +810,7 @@ router.get('/import/template/users', async (req, res) => {
         let templateRows;
         let merges;
         let cols;
+        let headerRows = 1;
 
         if (importType === 'teacher') {
             templateRows = [
@@ -841,6 +842,7 @@ router.get('/import/template/users', async (req, res) => {
                 { wch: 6 }, { wch: 26 }, { wch: 12 }, { wch: 16 }, { wch: 18 },
                 { wch: 12 }, { wch: 28 }, { wch: 20 }, { wch: 26 }
             ];
+            headerRows = 2;
         }
 
         const sheet = XLSX.utils.aoa_to_sheet(templateRows);
@@ -848,11 +850,18 @@ router.get('/import/template/users', async (req, res) => {
             sheet['!merges'] = merges;
         }
         sheet['!cols'] = cols;
+        applySheetFormatting(sheet, templateRows, {
+            headerRows,
+            columnFormats: {
+                3: 'yyyy-mm-dd',
+                7: '@'
+            }
+        });
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, sheet, 'users');
 
-        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
 
         res.setHeader('Content-Disposition', 'attachment; filename="users_import_template.xlsx"');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -1079,12 +1088,11 @@ router.post('/import/credentials/export', async (req, res) => {
         ];
 
         const sheet = XLSX.utils.aoa_to_sheet(rows);
-        sheet['!cols'] = buildAutoWidthColumns(rows);
-        sheet['!autofilter'] = { ref: `A1:D${rows.length}` };
+        applySheetFormatting(sheet, rows, { headerRows: 1, applyAutoFilter: true });
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, sheet, 'credentials');
-        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
 
         const datePart = new Date().toISOString().slice(0, 10);
         res.setHeader('Content-Disposition', `attachment; filename="import_credentials_${datePart}.xlsx"`);
@@ -1140,13 +1148,24 @@ router.get('/export/users', async (req, res) => {
             roll_number: row.roll_number || ''
         }));
 
-        const sheet = XLSX.utils.json_to_sheet(exportRows, {
-            header: ['username', 'role', 'first_name', 'last_name', 'email', 'phone', 'class_name', 'academic_year', 'roll_number']
+        const headers = ['username', 'role', 'first_name', 'last_name', 'email', 'phone', 'class_name', 'academic_year', 'roll_number'];
+        const rows = [
+            headers,
+            ...exportRows.map((row) => headers.map((key) => row[key] ?? ''))
+        ];
+
+        const sheet = XLSX.utils.aoa_to_sheet(rows);
+        applySheetFormatting(sheet, rows, {
+            headerRows: 1,
+            applyAutoFilter: true,
+            columnFormats: {
+                5: '@'
+            }
         });
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, sheet, 'users');
 
-        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
 
         res.setHeader('Content-Disposition', 'attachment; filename="users_export.xlsx"');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -2431,6 +2450,100 @@ function buildAutoWidthColumns(rows) {
     }
 
     return columns;
+}
+
+function toExcelDateSerial(date) {
+    const utc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return utc / 86400000 + 25569;
+}
+
+function parseIsoDateString(value) {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (!year || !month || !day) return null;
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (Number.isNaN(date.getTime())) return null;
+    return date;
+}
+
+function applySheetFormatting(sheet, rows, options = {}) {
+    const {
+        headerRows = 1,
+        applyAutoFilter = false,
+        columnFormats = {},
+        freezeHeader = true
+    } = options;
+    if (!sheet || !Array.isArray(rows) || rows.length === 0) return;
+
+    sheet['!cols'] = buildAutoWidthColumns(rows);
+
+    if (applyAutoFilter) {
+        const colCount = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+        if (colCount > 0) {
+            const endCol = XLSX.utils.encode_col(colCount - 1);
+            sheet['!autofilter'] = { ref: `A1:${endCol}${rows.length}` };
+        }
+    }
+
+    if (freezeHeader && headerRows > 0) {
+        const topLeftCell = `A${headerRows + 1}`;
+        // Keep both notations for compatibility with different SheetJS builds/readers.
+        sheet['!freeze'] = { xSplit: 0, ySplit: headerRows, topLeftCell, activePane: 'bottomLeft', state: 'frozen' };
+        sheet['!pane'] = { xSplit: 0, ySplit: headerRows, topLeftCell, activePane: 'bottomLeft', state: 'frozen' };
+    }
+
+    const ref = sheet['!ref'];
+    if (!ref) return;
+
+    const range = XLSX.utils.decode_range(ref);
+    const border = {
+        top: { style: 'thin', color: { rgb: 'D1D5DB' } },
+        bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+        left: { style: 'thin', color: { rgb: 'D1D5DB' } },
+        right: { style: 'thin', color: { rgb: 'D1D5DB' } }
+    };
+
+    for (let r = range.s.r; r <= range.e.r; r++) {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+            const address = XLSX.utils.encode_cell({ r, c });
+            const cell = sheet[address];
+            if (!cell) continue;
+
+            const isHeader = r < headerRows;
+            const style = {
+                border,
+                alignment: {
+                    vertical: 'center',
+                    horizontal: isHeader ? 'center' : 'left',
+                    wrapText: true
+                }
+            };
+            if (isHeader) {
+                style.font = { bold: true, color: { rgb: 'FFFFFF' } };
+                style.fill = { patternType: 'solid', fgColor: { rgb: '4A90E2' } };
+            } else {
+                const colFormat = columnFormats[c];
+                if (colFormat) {
+                    style.numFmt = colFormat;
+
+                    // Convert ISO date strings so Excel date format works reliably.
+                    if (typeof cell.v === 'string' && /y{2,4}/i.test(colFormat)) {
+                        const parsedDate = parseIsoDateString(cell.v);
+                        if (parsedDate) {
+                            cell.v = toExcelDateSerial(parsedDate);
+                            cell.t = 'n';
+                        }
+                    }
+                }
+            }
+            cell.s = Object.assign({}, cell.s || {}, style);
+        }
+    }
 }
 
 async function deleteAssignmentCascadeById(client, assignmentId) {
