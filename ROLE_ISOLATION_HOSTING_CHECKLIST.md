@@ -100,6 +100,17 @@ curl -i -H "Authorization: Bearer $ADMIN_TOKEN" \
   "$BASE_URL/api/analytics/school/overview?period=30"
 ```
 
+## 2.1 One-Command Runner (optional)
+
+Instead of running each curl manually:
+
+```bash
+chmod +x run_role_checks.sh
+./run_role_checks.sh
+```
+
+The script uses the same environment variables from section 1 and prints `PASS/FAIL` summary.
+
 ## 3. Data Leakage Guard Checks
 
 1. Log in as teacher and open:
@@ -134,4 +145,3 @@ Token user:
 School ID:
 Notes:
 ```
-

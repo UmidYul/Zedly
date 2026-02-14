@@ -471,6 +471,7 @@
 - [x] Analytics role-scope hardening (overview/comparison/export): active class links + strict `tests.school_id` scoping in joins
 - [x] Teacher API school isolation hardening: `teacher.js` list/detail/update/delete endpoints now enforce current `school_id` (tests/assignments/results/attempts/templates/dashboard)
 - [x] Manual hosting verification artifact added: `ROLE_ISOLATION_HOSTING_CHECKLIST.md` (curl + UI leakage checks)
+- [x] Auto-check runner added: `run_role_checks.sh` (role isolation smoke via HTTP status checks)
 
 
 
