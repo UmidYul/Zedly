@@ -516,12 +516,12 @@ router.post('/users', async (req, res) => {
                     for (const classId of class_ids) {
                         // fetch academic_year for this classId
                         const classResult = await query(
-                            'SELECT academic_year FROM classes WHERE id = $1',
-                            [classId]
+                            'SELECT academic_year FROM classes WHERE id = $1 AND school_id = $2',
+                            [classId, schoolId]
                         );
                         const academicYear = classResult.rows[0]?.academic_year;
                         if (!academicYear) {
-                            throw new Error(`Class with id ${classId} not found or missing academic_year`);
+                            throw new Error(`Class with id ${classId} not found in this school or missing academic_year`);
                         }
                         await query(
                             `INSERT INTO teacher_class_subjects (teacher_id, class_id, subject_id, academic_year)
@@ -536,6 +536,17 @@ router.post('/users', async (req, res) => {
         }
         // If student, save class assignment
         if (role === 'student' && req.body.student_class_id) {
+            const classAccessCheck = await query(
+                'SELECT id FROM classes WHERE id = $1 AND school_id = $2',
+                [req.body.student_class_id, schoolId]
+            );
+            if (classAccessCheck.rows.length === 0) {
+                return res.status(400).json({
+                    error: 'validation_error',
+                    message: 'Invalid class for this school'
+                });
+            }
+
             await query(
                 `INSERT INTO class_students (class_id, student_id, is_active)
                  VALUES ($1, $2, true)
@@ -757,10 +768,11 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             params
         );
 
+        const effectiveRole = role !== undefined ? role : result.rows[0].role;
         let teacherAssignmentsApplied = 0;
 
         // Update teacher assignments if provided
-        if (role === 'teacher' && Array.isArray(req.body.teacher_assignments)) {
+        if (effectiveRole === 'teacher' && Array.isArray(req.body.teacher_assignments)) {
             // Remove previous assignments for this teacher
             await query('DELETE FROM teacher_class_subjects WHERE teacher_id = $1', [id]);
 
@@ -769,12 +781,12 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
                 if (subject_id && Array.isArray(class_ids)) {
                     for (const classId of class_ids) {
                         const classResult = await query(
-                            'SELECT academic_year FROM classes WHERE id = $1',
-                            [classId]
+                            'SELECT academic_year FROM classes WHERE id = $1 AND school_id = $2',
+                            [classId, schoolId]
                         );
                         const academicYear = classResult.rows[0]?.academic_year;
                         if (!academicYear) {
-                            throw new Error(`Class with id ${classId} not found or missing academic_year`);
+                            throw new Error(`Class with id ${classId} not found in this school or missing academic_year`);
                         }
                         await query(
                             `INSERT INTO teacher_class_subjects (teacher_id, class_id, subject_id, academic_year)

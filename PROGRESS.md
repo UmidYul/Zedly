@@ -441,6 +441,10 @@
 - [x] Import batch audit logging added (success + failed)
 - [x] Audit logs now avoid raw password payload and include assignment counters
 - [x] Admin create/update users now normalize/store `gender` + `date_of_birth` in `settings.profile.personal_info`
+- [x] Teacher test update now validates `subject_id` within own school
+- [x] Teacher assignment/class counters + notifications now ignore inactive class links (`cs.is_active = true`)
+- [x] Student leaderboard class scope now blocks arbitrary чужой `class_id` access
+- [x] Admin user create/update now validates assigned class IDs against current school (`school_id`)
 
 
 

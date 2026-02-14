@@ -1174,8 +1174,27 @@ router.get('/leaderboard', async (req, res) => {
                 return res.json({ scope, leaderboard: [], user_rank: null });
             }
 
-            params.push(classId);
+            // Prevent access to foreign classes via arbitrary class_id in query.
+            const classAccessCheck = await query(
+                `SELECT 1
+                 FROM class_students cs
+                 WHERE cs.student_id = $1
+                   AND cs.class_id = $2
+                   ${classStudentColumns.has('is_active') ? 'AND cs.is_active = true' : ''}
+                 LIMIT 1`,
+                [studentId, classId]
+            );
+
+            if (classAccessCheck.rows.length === 0) {
+                return res.status(403).json({
+                    error: 'forbidden',
+                    message: 'You do not have access to this class leaderboard'
+                });
+            }
+
+            params.push(classId, req.user.school_id);
             joinClause = `JOIN class_students cs ON cs.student_id = u.id AND cs.class_id = $1 ${classStudentActiveFilter}`;
+            whereClause += ' AND u.school_id = $2';
         } else if (scope === 'school') {
             params.push(req.user.school_id);
             whereClause += ' AND u.school_id = $1';

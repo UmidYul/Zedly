@@ -480,6 +480,7 @@ router.put('/tests/:id', async (req, res) => {
             is_published, questions
         } = req.body;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Check ownership
         const testCheck = await query(
@@ -491,6 +492,18 @@ router.put('/tests/:id', async (req, res) => {
             return res.status(404).json({
                 error: 'not_found',
                 message: 'Test not found'
+            });
+        }
+
+        const subjectCheck = await query(
+            'SELECT id FROM subjects WHERE id = $1 AND school_id = $2 AND is_active = true',
+            [subject_id, schoolId]
+        );
+
+        if (subjectCheck.rows.length === 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid subject'
             });
         }
 
@@ -724,7 +737,7 @@ router.get('/classes', async (req, res) => {
                 c.id, c.name, c.grade_level,
                 c.academic_year, c.is_active,
                 CONCAT(ht.first_name, ' ', ht.last_name) as homeroom_teacher_name,
-                (SELECT COUNT(*) FROM class_students cs WHERE cs.class_id = c.id) as student_count,
+                (SELECT COUNT(*) FROM class_students cs WHERE cs.class_id = c.id AND cs.is_active = true) as student_count,
                 (SELECT COUNT(DISTINCT tcs.subject_id)
                  FROM teacher_class_subjects tcs
                  WHERE tcs.class_id = c.id AND tcs.teacher_id = $2) as subject_count
@@ -863,7 +876,7 @@ router.get('/classes/:id', async (req, res) => {
                 c.academic_year, c.is_active,
                 c.homeroom_teacher_id,
                 CONCAT(ht.first_name, ' ', ht.last_name) as homeroom_teacher_name,
-                (SELECT COUNT(*) FROM class_students WHERE class_id = c.id) as student_count
+                (SELECT COUNT(*) FROM class_students WHERE class_id = c.id AND is_active = true) as student_count
              FROM classes c
              LEFT JOIN users ht ON c.homeroom_teacher_id = ht.id
              WHERE c.id = $1`,
@@ -1195,7 +1208,7 @@ router.get('/assignments', async (req, res) => {
                 c.name as class_name, c.grade_level,
                 s.name as subject_name, s.color as subject_color,
                 (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = ta.id) as attempt_count,
-                (SELECT COUNT(*) FROM class_students WHERE class_id = ta.class_id) as student_count
+                (SELECT COUNT(*) FROM class_students WHERE class_id = ta.class_id AND is_active = true) as student_count
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
              JOIN classes c ON ta.class_id = c.id
@@ -1397,7 +1410,9 @@ router.post('/assignments', async (req, res) => {
                     `SELECT u.id, u.role, u.first_name, u.last_name, u.email, u.telegram_id, u.settings
                      FROM users u
                      JOIN class_students cs ON cs.student_id = u.id
-                     WHERE cs.class_id = $1 AND u.is_active = true`,
+                     WHERE cs.class_id = $1
+                       AND cs.is_active = true
+                       AND u.is_active = true`,
                     [assignment.class_id]
                 );
 
