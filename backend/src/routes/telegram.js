@@ -21,12 +21,16 @@ const TELEGRAM_LINK_VERSION = 1;
 const TELEGRAM_LINK_SIGNATURE_BYTES = 10;
 
 function getTelegramLinkSecret() {
-    return process.env.TELEGRAM_LINK_SECRET || 'zedly-telegram-link-secret';
+    return process.env.TELEGRAM_LINK_SECRET
+        || process.env.TELEGRAM_BOT_TOKEN
+        || process.env.JWT_SECRET
+        || 'zedly-telegram-link-secret';
 }
 
 function getTelegramLinkSecrets() {
     const candidates = [
         process.env.TELEGRAM_LINK_SECRET,
+        process.env.TELEGRAM_BOT_TOKEN,
         process.env.JWT_SECRET,
         'zedly-telegram-link-secret'
     ].filter((value) => typeof value === 'string' && value.trim().length > 0);
@@ -180,6 +184,10 @@ function verifyLinkToken(token) {
         }
     }
 
+    console.warn('[TG_LINK] verifyLinkToken:invalid', {
+        token_length: cleanToken.length,
+        has_dot: cleanToken.includes('.')
+    });
     return { valid: false, reason: 'invalid' };
 }
 
