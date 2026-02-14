@@ -26,6 +26,8 @@
         selectedIds: new Set(),
         lastRenderedClasses: [],
         pageSizeStorageKey: 'classes_page_limit',
+        searchDebounceTimer: null,
+        activeClassesRequest: null,
 
         // Initialize classes page
         init: function () {
@@ -42,6 +44,14 @@
             }
 
             this.limit = this.getSavedLimit();
+            if (this.searchDebounceTimer) {
+                clearTimeout(this.searchDebounceTimer);
+                this.searchDebounceTimer = null;
+            }
+            if (this.activeClassesRequest) {
+                this.activeClassesRequest.abort();
+                this.activeClassesRequest = null;
+            }
             this.clearSelection();
             this.loadClasses();
             this.setupEventListeners();
@@ -69,7 +79,10 @@
                 searchInput.addEventListener('input', (e) => {
                     this.searchTerm = e.target.value;
                     this.currentPage = 1;
-                    this.loadClasses();
+                    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+                    this.searchDebounceTimer = setTimeout(() => {
+                        this.loadClasses();
+                    }, 300);
                 });
             }
 
@@ -113,6 +126,11 @@
             if (!container) return;
             this.clearSelection();
 
+            if (this.activeClassesRequest) {
+                this.activeClassesRequest.abort();
+            }
+            this.activeClassesRequest = new AbortController();
+
             // Show loading
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
@@ -133,7 +151,8 @@
                 const response = await fetch(`${this.getApiBasePath()}/classes?${params}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
-                    }
+                    },
+                    signal: this.activeClassesRequest.signal
                 });
 
                 if (!response.ok) {
@@ -143,12 +162,15 @@
                 const data = await response.json();
                 this.renderClasses(data.classes, data.pagination);
             } catch (error) {
+                if (error.name === 'AbortError') return;
                 console.error('Load classes error:', error);
                 container.innerHTML = `
                     <div class="error-message">
                         <p>Failed to load classes. Please try again.</p>
                     </div>
                 `;
+            } finally {
+                this.activeClassesRequest = null;
             }
         },
 
@@ -378,21 +400,40 @@
         // Render pagination
         renderPagination: function (pagination) {
             let html = '<div class="pagination">';
+            const totalPages = Math.max(1, Number(pagination.pages) || 1);
+            const currentPage = Math.min(Math.max(1, Number(pagination.page) || 1), totalPages);
 
-            if (pagination.page > 1) {
-                html += `<button class="pagination-btn" onclick="ClassesManager.goToPage(${pagination.page - 1})">Previous</button>`;
+            if (currentPage > 1) {
+                html += `<button class="pagination-btn" onclick="ClassesManager.goToPage(${currentPage - 1})">Previous</button>`;
             }
 
-            for (let i = 1; i <= pagination.pages; i++) {
-                if (i === pagination.page) {
+            const pagesToRender = [];
+            const pushPage = (page) => {
+                if (page >= 1 && page <= totalPages && !pagesToRender.includes(page)) {
+                    pagesToRender.push(page);
+                }
+            };
+
+            pushPage(1);
+            for (let i = currentPage - 2; i <= currentPage + 2; i++) pushPage(i);
+            pushPage(totalPages);
+            pagesToRender.sort((a, b) => a - b);
+
+            let prevPage = null;
+            for (const i of pagesToRender) {
+                if (prevPage !== null && i - prevPage > 1) {
+                    html += '<span class="pagination-ellipsis">...</span>';
+                }
+                if (i === currentPage) {
                     html += `<button class="pagination-btn active">${i}</button>`;
                 } else {
                     html += `<button class="pagination-btn" onclick="ClassesManager.goToPage(${i})">${i}</button>`;
                 }
+                prevPage = i;
             }
 
-            if (pagination.page < pagination.pages) {
-                html += `<button class="pagination-btn" onclick="ClassesManager.goToPage(${pagination.page + 1})">Next</button>`;
+            if (currentPage < totalPages) {
+                html += `<button class="pagination-btn" onclick="ClassesManager.goToPage(${currentPage + 1})">Next</button>`;
             }
 
             html += '</div>';

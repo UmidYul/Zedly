@@ -10,6 +10,8 @@
         selectedIds: new Set(),
         lastRenderedUsers: [],
         pageSizeStorageKey: 'users_page_limit',
+        searchDebounceTimer: null,
+        activeUsersRequest: null,
 
         // Show custom alert modal
         showAlertModal: function (message, title = 'Info') {
@@ -106,6 +108,14 @@
         init: function () {
             this.currentPage = 1; // Reset to first page
             this.limit = this.getSavedLimit();
+            if (this.searchDebounceTimer) {
+                clearTimeout(this.searchDebounceTimer);
+                this.searchDebounceTimer = null;
+            }
+            if (this.activeUsersRequest) {
+                this.activeUsersRequest.abort();
+                this.activeUsersRequest = null;
+            }
             this.clearSelection();
             this.loadUsers();
             this.setupEventListeners();
@@ -124,7 +134,10 @@
                 searchInput.addEventListener('input', (e) => {
                     this.searchTerm = e.target.value;
                     this.currentPage = 1;
-                    this.loadUsers();
+                    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+                    this.searchDebounceTimer = setTimeout(() => {
+                        this.loadUsers();
+                    }, 300);
                 });
             }
 
@@ -164,6 +177,11 @@
             if (!container) return;
             this.clearSelection();
 
+            if (this.activeUsersRequest) {
+                this.activeUsersRequest.abort();
+            }
+            this.activeUsersRequest = new AbortController();
+
             // Show loading
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
@@ -184,7 +202,8 @@
                 const response = await fetch(`/api/admin/users?${params}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
-                    }
+                    },
+                    signal: this.activeUsersRequest.signal
                 });
 
                 if (!response.ok) {
@@ -194,12 +213,15 @@
                 const data = await response.json();
                 this.renderUsers(data.users, data.pagination);
             } catch (error) {
+                if (error.name === 'AbortError') return;
                 console.error('Load users error:', error);
                 container.innerHTML = `
                     <div class="error-message">
                         <p>Failed to load users. Please try again.</p>
                     </div>
                 `;
+            } finally {
+                this.activeUsersRequest = null;
             }
         },
 
@@ -434,21 +456,40 @@
         // Render pagination
         renderPagination: function (pagination) {
             let html = '<div class="pagination">';
+            const totalPages = Math.max(1, Number(pagination.pages) || 1);
+            const currentPage = Math.min(Math.max(1, Number(pagination.page) || 1), totalPages);
 
-            if (pagination.page > 1) {
-                html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${pagination.page - 1})">Previous</button>`;
+            if (currentPage > 1) {
+                html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${currentPage - 1})">Previous</button>`;
             }
 
-            for (let i = 1; i <= pagination.pages; i++) {
-                if (i === pagination.page) {
+            const pagesToRender = [];
+            const pushPage = (page) => {
+                if (page >= 1 && page <= totalPages && !pagesToRender.includes(page)) {
+                    pagesToRender.push(page);
+                }
+            };
+
+            pushPage(1);
+            for (let i = currentPage - 2; i <= currentPage + 2; i++) pushPage(i);
+            pushPage(totalPages);
+            pagesToRender.sort((a, b) => a - b);
+
+            let prevPage = null;
+            for (const i of pagesToRender) {
+                if (prevPage !== null && i - prevPage > 1) {
+                    html += '<span class="pagination-ellipsis">...</span>';
+                }
+                if (i === currentPage) {
                     html += `<button class="pagination-btn active">${i}</button>`;
                 } else {
                     html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${i})">${i}</button>`;
                 }
+                prevPage = i;
             }
 
-            if (pagination.page < pagination.pages) {
-                html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${pagination.page + 1})">Next</button>`;
+            if (currentPage < totalPages) {
+                html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${currentPage + 1})">Next</button>`;
             }
 
             html += '</div>';

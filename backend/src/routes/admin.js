@@ -276,8 +276,8 @@ router.get('/dashboard/overview', async (req, res) => {
  */
 router.get('/users', async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = '', role = 'all' } = req.query;
-        const offset = (page - 1) * limit;
+        const { search = '', role = 'all' } = req.query;
+        const { page, limit, offset } = normalizePagination(req.query.page, req.query.limit, 100);
         const schoolId = req.user.school_id;
 
         // Build WHERE clause
@@ -309,8 +309,7 @@ router.get('/users', async (req, res) => {
         const result = await query(
             `SELECT
                 id, username, role, first_name, last_name, email, phone,
-                is_active, created_at, last_login,
-                (SELECT COUNT(*) FROM class_students WHERE student_id = users.id) as class_count
+                is_active, created_at, last_login
              FROM users
              ${whereClause}
              ORDER BY created_at DESC
@@ -327,8 +326,8 @@ router.get('/users', async (req, res) => {
             users,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page,
+                limit,
                 pages: Math.ceil(total / limit)
             }
         });
@@ -1546,8 +1545,8 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
  */
 router.get('/classes', async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = '', grade = 'all' } = req.query;
-        const offset = (page - 1) * limit;
+        const { search = '', grade = 'all' } = req.query;
+        const { page, limit, offset } = normalizePagination(req.query.page, req.query.limit, 100);
 
         const schoolId = req.user.school_id;
 
@@ -1595,8 +1594,8 @@ router.get('/classes', async (req, res) => {
             classes: result.rows,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page,
+                limit,
                 pages: Math.ceil(total / limit)
             }
         });
@@ -2000,8 +1999,8 @@ router.delete('/classes/:id', enforceSchoolIsolation, async (req, res) => {
  */
 router.get('/subjects', async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = '' } = req.query;
-        const offset = (page - 1) * limit;
+        const { search = '' } = req.query;
+        const { page, limit, offset } = normalizePagination(req.query.page, req.query.limit, 100);
         const schoolId = req.user.school_id;
 
         // Build WHERE clause
@@ -2037,8 +2036,8 @@ router.get('/subjects', async (req, res) => {
             subjects: result.rows,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page,
+                limit,
                 pages: Math.ceil(total / limit)
             }
         });
@@ -2410,6 +2409,17 @@ function mapImportRow(row) {
 
     const hasValues = Object.values(mapped).some(val => String(val || '').trim() !== '');
     return hasValues ? mapped : null;
+}
+
+function normalizePagination(rawPage, rawLimit, maxLimit = 100) {
+    const parsedPage = Number.parseInt(rawPage, 10);
+    const parsedLimit = Number.parseInt(rawLimit, 10);
+    const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, maxLimit)
+        : 10;
+    const offset = (page - 1) * limit;
+    return { page, limit, offset };
 }
 
 function validateImportRow(row, importType = 'student') {

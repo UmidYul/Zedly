@@ -410,7 +410,7 @@
 ## 2026-02-14 MVP Roadmap (Execution Started)
 
 ### P0 Week 1 (must-have before release)
-- [ ] API role isolation audit for teacher/school_admin
+- [x] API role isolation audit for teacher/school_admin
 - [x] Import validation report (row-level errors + skipped/success counters)
 - [x] Data normalization pipeline (phone/class/date/gender)
 - [x] Audit log coverage for critical actions (import/delete/reset/assign)
@@ -424,7 +424,7 @@
 ### P2 Week 2
 - [x] E2E smoke tests (login/import/assign/take/report)
 - [x] Error tracking integration
-- [ ] Large-table performance pass
+- [x] Large-table performance pass
 - [ ] Backup/restore verification
 
 ### In progress right now
@@ -456,13 +456,21 @@
 - [x] In-app notifications now include live deadline items from active assignments (student/teacher) in bell dropdown
 - [x] Added backend cron job for Telegram deadline reminders with daily dedupe via `audit_logs` (`deadline_reminder`)
 - [x] Risk dashboard API (`/api/analytics/school/risk-dashboard`) + Reports UI block (At Risk Students)
-- [x] Risk dashboard optimized for large schools: paginated loading (`page/limit`) + incremental "Show more"
+- [x] Risk dashboard optimized for large schools: paginated loading (`page/limit`) + page navigation (no accumulating DOM)
 - [x] PDF export parity extended to Students + Calendar pages (print-as-screen)
 - [x] Analytics hardening: student report (`GET /api/analytics/student/:id/report`) now scopes attempts/subjects/progress/ranking by `tests.school_id`
 - [x] Analytics hardening: class detailed (`GET /api/analytics/class/:id/detailed`) now scopes attempts to current class assignments + school tests
 - [x] Analytics hardening: comparison students (`GET /api/analytics/school/comparison?type=students`) now scopes attempts by school tests
 - [x] E2E smoke scaffold added (`backend/src/tests/smoke.e2e.test.js` + `npm run test:smoke`) for login/import/assign/take/report flows
 - [x] Error tracking integration: optional Sentry (`SENTRY_DSN`) + request_id + capture in Express/process-level errors
+- [x] Users/Classes/Subjects list performance: debounce + abort previous requests on search, compact pagination UI
+- [x] Admin list API hardening: pagination normalization/clamping (`page/limit`) for users/classes/subjects
+- [x] DB migration for list speed: `database/migrations/optimize_large_lists_indexes.sql` (composite + optional trigram indexes)
+- [x] Admin users list query optimized: removed unused per-row `class_count` subquery
+- [x] Backup/restore verification script prepared: `database/migrations/backup_restore_verification.psql` (counts + integrity + fingerprint)
+- [x] Analytics role-scope hardening (overview/comparison/export): active class links + strict `tests.school_id` scoping in joins
+- [x] Teacher API school isolation hardening: `teacher.js` list/detail/update/delete endpoints now enforce current `school_id` (tests/assignments/results/attempts/templates/dashboard)
+- [x] Manual hosting verification artifact added: `ROLE_ISOLATION_HOSTING_CHECKLIST.md` (curl + UI leakage checks)
 
 
 

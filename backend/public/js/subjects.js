@@ -23,9 +23,19 @@
         searchTerm: '',
         selectedIds: new Set(),
         lastRenderedSubjects: [],
+        searchDebounceTimer: null,
+        activeSubjectsRequest: null,
 
         // Initialize subjects page
         init: function () {
+            if (this.searchDebounceTimer) {
+                clearTimeout(this.searchDebounceTimer);
+                this.searchDebounceTimer = null;
+            }
+            if (this.activeSubjectsRequest) {
+                this.activeSubjectsRequest.abort();
+                this.activeSubjectsRequest = null;
+            }
             this.clearSelection();
             this.loadSubjects();
             this.setupEventListeners();
@@ -39,7 +49,10 @@
                 searchInput.addEventListener('input', (e) => {
                     this.searchTerm = e.target.value;
                     this.currentPage = 1;
-                    this.loadSubjects();
+                    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+                    this.searchDebounceTimer = setTimeout(() => {
+                        this.loadSubjects();
+                    }, 300);
                 });
             }
 
@@ -55,6 +68,11 @@
             const container = document.getElementById('subjectsContainer');
             if (!container) return;
             this.clearSelection();
+
+            if (this.activeSubjectsRequest) {
+                this.activeSubjectsRequest.abort();
+            }
+            this.activeSubjectsRequest = new AbortController();
 
             // Show loading
             container.innerHTML = `
@@ -75,7 +93,8 @@
                 const response = await fetch(`/api/admin/subjects?${params}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
-                    }
+                    },
+                    signal: this.activeSubjectsRequest.signal
                 });
 
                 if (!response.ok) {
@@ -85,12 +104,15 @@
                 const data = await response.json();
                 this.renderSubjects(data.subjects, data.pagination);
             } catch (error) {
+                if (error.name === 'AbortError') return;
                 console.error('Load subjects error:', error);
                 container.innerHTML = `
                     <div class="error-message">
                         <p>Failed to load subjects. Please try again.</p>
                     </div>
                 `;
+            } finally {
+                this.activeSubjectsRequest = null;
             }
         },
 
@@ -296,21 +318,40 @@
         // Render pagination
         renderPagination: function (pagination) {
             let html = '<div class="pagination">';
+            const totalPages = Math.max(1, Number(pagination.pages) || 1);
+            const currentPage = Math.min(Math.max(1, Number(pagination.page) || 1), totalPages);
 
-            if (pagination.page > 1) {
-                html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${pagination.page - 1})">Previous</button>`;
+            if (currentPage > 1) {
+                html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${currentPage - 1})">Previous</button>`;
             }
 
-            for (let i = 1; i <= pagination.pages; i++) {
-                if (i === pagination.page) {
+            const pagesToRender = [];
+            const pushPage = (page) => {
+                if (page >= 1 && page <= totalPages && !pagesToRender.includes(page)) {
+                    pagesToRender.push(page);
+                }
+            };
+
+            pushPage(1);
+            for (let i = currentPage - 2; i <= currentPage + 2; i++) pushPage(i);
+            pushPage(totalPages);
+            pagesToRender.sort((a, b) => a - b);
+
+            let prevPage = null;
+            for (const i of pagesToRender) {
+                if (prevPage !== null && i - prevPage > 1) {
+                    html += '<span class="pagination-ellipsis">...</span>';
+                }
+                if (i === currentPage) {
                     html += `<button class="pagination-btn active">${i}</button>`;
                 } else {
                     html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${i})">${i}</button>`;
                 }
+                prevPage = i;
             }
 
-            if (pagination.page < pagination.pages) {
-                html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${pagination.page + 1})">Next</button>`;
+            if (currentPage < totalPages) {
+                html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${currentPage + 1})">Next</button>`;
             }
 
             html += '</div>';

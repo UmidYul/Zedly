@@ -228,6 +228,15 @@
     cursor: not-allowed;
 }
 
+.pagination-ellipsis {
+    min-width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+
 /* Search and Filters */
 .page-toolbar {
     display: flex;

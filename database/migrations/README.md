@@ -66,3 +66,19 @@ psql -U your_user -d your_database -f add_audit_action_values.sql
 3. Tools → Query Tool
 4. Откройте файл миграции
 5. Нажмите Execute (F5)
+
+### optimize_large_lists_indexes.sql
+Adds performance indexes for large schools (users/classes/subjects lists), including optional trigram indexes for `ILIKE '%...%'` search.
+
+Safe to run multiple times (`IF NOT EXISTS` + schema checks).
+
+```bash
+psql -U zedly_user -d zedly_db -f optimize_large_lists_indexes.sql
+```
+
+### backup_restore_verification.psql
+Read-only smoke checks for backup/restore validation. Run on source DB before backup and on restored DB after restore. Compare key counters and final fingerprint.
+
+```bash
+psql -U zedly_user -d zedly_db -f backup_restore_verification.psql
+```

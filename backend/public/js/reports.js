@@ -14,6 +14,7 @@
         risk: null,
         riskStudents: [],
         riskPagination: { page: 1, limit: 20, total: 0, has_more: false },
+        riskRequestController: null,
         chart: null
     };
 
@@ -320,6 +321,46 @@
         return 'Safe';
     }
 
+    function buildCompactPaginationHtml(currentPage, totalPages, onClickHandler) {
+        const safeTotal = Math.max(1, Number(totalPages) || 1);
+        const safeCurrent = Math.min(Math.max(1, Number(currentPage) || 1), safeTotal);
+        const pagesToRender = [];
+        const pushPage = (page) => {
+            if (page >= 1 && page <= safeTotal && !pagesToRender.includes(page)) {
+                pagesToRender.push(page);
+            }
+        };
+
+        pushPage(1);
+        for (let i = safeCurrent - 2; i <= safeCurrent + 2; i++) pushPage(i);
+        pushPage(safeTotal);
+        pagesToRender.sort((a, b) => a - b);
+
+        let html = '';
+        if (safeCurrent > 1) {
+            html += `<button class="pagination-btn" type="button" data-risk-page="${safeCurrent - 1}" onclick="${onClickHandler}">Previous</button>`;
+        }
+
+        let prevPage = null;
+        for (const page of pagesToRender) {
+            if (prevPage !== null && page - prevPage > 1) {
+                html += '<span class="pagination-ellipsis">...</span>';
+            }
+            if (page === safeCurrent) {
+                html += `<button class="pagination-btn active" type="button">${page}</button>`;
+            } else {
+                html += `<button class="pagination-btn" type="button" data-risk-page="${page}" onclick="${onClickHandler}">${page}</button>`;
+            }
+            prevPage = page;
+        }
+
+        if (safeCurrent < safeTotal) {
+            html += `<button class="pagination-btn" type="button" data-risk-page="${safeCurrent + 1}" onclick="${onClickHandler}">Next</button>`;
+        }
+
+        return html;
+    }
+
     function renderRiskDashboard() {
         const summaryEl = document.getElementById('reportsRiskSummary');
         const tableEl = document.getElementById('reportsRiskTable');
@@ -385,24 +426,37 @@
                 </table>
             </div>
             <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-                <span class="text-secondary">Shown: ${fmtInt(students.length)} / ${fmtInt(state.riskPagination.total || 0)}</span>
-                ${state.riskPagination.has_more ? '<button class="btn btn-outline" type="button" id="reportsRiskLoadMoreBtn">Show more</button>' : ''}
+                <span class="text-secondary">Page ${fmtInt(state.riskPagination.page || 1)} / ${fmtInt(Math.max(1, Math.ceil((state.riskPagination.total || 0) / (state.riskPagination.limit || 20))))} · Total: ${fmtInt(state.riskPagination.total || 0)}</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label for="reportsRiskLimitSelect" class="text-secondary">Per page</label>
+                    <select id="reportsRiskLimitSelect" class="form-control" style="width:auto; min-width: 90px;">
+                        <option value="20" ${(state.riskPagination.limit || 20) === 20 ? 'selected' : ''}>20</option>
+                        <option value="50" ${(state.riskPagination.limit || 20) === 50 ? 'selected' : ''}>50</option>
+                        <option value="100" ${(state.riskPagination.limit || 20) === 100 ? 'selected' : ''}>100</option>
+                    </select>
+                </div>
+            </div>
+            <div class="pagination">
+                ${buildCompactPaginationHtml(
+                    state.riskPagination.page || 1,
+                    Math.max(1, Math.ceil((state.riskPagination.total || 0) / (state.riskPagination.limit || 20))),
+                    'window.ReportsManager.goToRiskPageFromEvent(event)'
+                )}
             </div>
         `;
 
-        const loadMoreBtn = document.getElementById('reportsRiskLoadMoreBtn');
-        if (loadMoreBtn) {
-            loadMoreBtn.addEventListener('click', async () => {
+        const limitSelect = document.getElementById('reportsRiskLimitSelect');
+        if (limitSelect) {
+            limitSelect.addEventListener('change', async (e) => {
+                const nextLimit = Number.parseInt(String(e.target.value || '20'), 10);
+                if (![20, 50, 100].includes(nextLimit)) return;
                 try {
-                    loadMoreBtn.disabled = true;
-                    loadMoreBtn.textContent = 'Loading...';
-                    await loadRiskPage((state.riskPagination.page || 1) + 1, true);
+                    state.riskPagination.limit = nextLimit;
+                    await loadRiskPage(1, false);
                     renderRiskDashboard();
                 } catch (error) {
-                    console.error('Load more risk students error:', error);
-                } finally {
-                    loadMoreBtn.disabled = false;
-                    loadMoreBtn.textContent = 'Show more';
+                    if (error.name === 'AbortError') return;
+                    console.error('Risk limit change error:', error);
                 }
             });
         }
@@ -589,18 +643,34 @@
             return;
         }
 
+        if (state.riskRequestController) {
+            state.riskRequestController.abort();
+        }
+        state.riskRequestController = new AbortController();
+
         const period = Number(state.period) || 30;
         const limit = state.riskPagination.limit || 20;
-        const risk = await apiGet(`${API}/analytics/school/risk-dashboard?period=${encodeURIComponent(period)}&risk_threshold=60&min_attempts=1&page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`);
-        state.risk = risk;
-        const incoming = Array.isArray(risk.students) ? risk.students : [];
-        state.riskStudents = append ? state.riskStudents.concat(incoming) : incoming;
-        state.riskPagination = {
-            page: risk.pagination?.page || page,
-            limit: risk.pagination?.limit || limit,
-            total: risk.pagination?.total || 0,
-            has_more: Boolean(risk.pagination?.has_more)
-        };
+        try {
+            const response = await fetch(`${API}/analytics/school/risk-dashboard?period=${encodeURIComponent(period)}&risk_threshold=60&min_attempts=1&page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`, {
+                headers: { Authorization: `Bearer ${getToken()}` },
+                signal: state.riskRequestController.signal
+            });
+            if (!response.ok) {
+                throw new Error(`Request failed: ${response.status}`);
+            }
+            const risk = await response.json();
+            state.risk = risk;
+            const incoming = Array.isArray(risk.students) ? risk.students : [];
+            state.riskStudents = append ? state.riskStudents.concat(incoming) : incoming;
+            state.riskPagination = {
+                page: risk.pagination?.page || page,
+                limit: risk.pagination?.limit || limit,
+                total: risk.pagination?.total || 0,
+                has_more: Boolean(risk.pagination?.has_more)
+            };
+        } finally {
+            state.riskRequestController = null;
+        }
     }
 
     async function handleDataExport() {
@@ -783,5 +853,19 @@
         refreshView();
     }
 
-    window.ReportsManager = { init };
+    window.ReportsManager = {
+        init,
+        goToRiskPageFromEvent: async (event) => {
+            const target = event?.currentTarget;
+            const page = Number.parseInt(String(target?.dataset?.riskPage || ''), 10);
+            if (!Number.isFinite(page) || page < 1) return;
+            try {
+                await loadRiskPage(page, false);
+                renderRiskDashboard();
+            } catch (error) {
+                if (error.name === 'AbortError') return;
+                console.error('Risk page switch error:', error);
+            }
+        }
+    };
 })();

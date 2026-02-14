@@ -195,11 +195,12 @@ router.get('/tests', async (req, res) => {
         const { page = 1, limit = 10, search = '', subject = 'all', status = 'all' } = req.query;
         const offset = (page - 1) * limit;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Build WHERE clause
-        let whereClause = 'WHERE t.teacher_id = $1';
-        const params = [teacherId];
-        let paramCount = 2;
+        let whereClause = 'WHERE t.teacher_id = $1 AND t.school_id = $2';
+        const params = [teacherId, schoolId];
+        let paramCount = 3;
 
         if (search) {
             params.push(`%${search}%`);
@@ -274,17 +275,19 @@ router.get('/dashboard/overview', async (req, res) => {
         const attempt = await getAttemptOverviewExpressions();
 
         const testsResult = await query(
-            'SELECT COUNT(*) as total FROM tests WHERE teacher_id = $1',
-            [teacherId]
+            'SELECT COUNT(*) as total FROM tests WHERE teacher_id = $1 AND school_id = $2',
+            [teacherId, schoolId]
         );
 
         const assignmentsResult = await query(
             `SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_active = true AND end_date > CURRENT_TIMESTAMP) as active
-             FROM test_assignments
-             WHERE assigned_by = $1`,
-            [teacherId]
+             FROM test_assignments ta
+             JOIN classes c ON c.id = ta.class_id
+             WHERE ta.assigned_by = $1
+               AND c.school_id = $2`,
+            [teacherId, schoolId]
         );
 
         const studentsResult = await query(
@@ -301,9 +304,12 @@ router.get('/dashboard/overview', async (req, res) => {
         const avgScoreResult = await query(
             `SELECT AVG(${attempt.score}) as avg_percentage
              FROM test_assignments ta
+             JOIN classes c ON c.id = ta.class_id
              LEFT JOIN test_attempts att ON att.assignment_id = ta.id
-             WHERE ta.assigned_by = $1 AND ${attempt.completedFilter}`,
-            [teacherId]
+             WHERE ta.assigned_by = $1
+               AND c.school_id = $2
+               AND ${attempt.completedFilter}`,
+            [teacherId, schoolId]
         );
 
         const recentAssignments = await query(
@@ -319,10 +325,11 @@ router.get('/dashboard/overview', async (req, res) => {
              JOIN classes c ON ta.class_id = c.id
              LEFT JOIN test_attempts att ON att.assignment_id = ta.id
              WHERE ta.assigned_by = $1
+               AND c.school_id = $2
              GROUP BY ta.id, t.title, c.name
              ORDER BY ta.created_at DESC
              LIMIT 5`,
-            [teacherId]
+            [teacherId, schoolId]
         );
 
         const recentAttempts = await query(
@@ -338,10 +345,12 @@ router.get('/dashboard/overview', async (req, res) => {
              JOIN tests t ON t.id = ta.test_id
              JOIN classes c ON c.id = ta.class_id
              JOIN users u ON u.id = att.student_id
-             WHERE ta.assigned_by = $1 AND ${attempt.completedFilter}
+             WHERE ta.assigned_by = $1
+               AND c.school_id = $2
+               AND ${attempt.completedFilter}
              ORDER BY ${attempt.completedAt} DESC
              LIMIT 5`,
-            [teacherId]
+            [teacherId, schoolId]
         );
 
         const activity = [];
@@ -393,6 +402,7 @@ router.get('/tests/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Get test with validation
         const testResult = await query(
@@ -401,8 +411,8 @@ router.get('/tests/:id', async (req, res) => {
                 (SELECT COUNT(*) FROM test_attempts WHERE test_id = t.id) as attempt_count
              FROM tests t
              LEFT JOIN subjects s ON t.subject_id = s.id
-             WHERE t.id = $1 AND t.teacher_id = $2`,
-            [id, teacherId]
+             WHERE t.id = $1 AND t.teacher_id = $2 AND t.school_id = $3`,
+            [id, teacherId, schoolId]
         );
 
         if (testResult.rows.length === 0) {
@@ -557,8 +567,8 @@ router.put('/tests/:id', async (req, res) => {
 
         // Check ownership
         const testCheck = await query(
-            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2',
-            [id, teacherId]
+            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2 AND school_id = $3',
+            [id, teacherId, schoolId]
         );
 
         if (testCheck.rows.length === 0) {
@@ -647,11 +657,12 @@ router.delete('/tests/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Check ownership
         const testCheck = await query(
-            'SELECT id, title FROM tests WHERE id = $1 AND teacher_id = $2',
-            [id, teacherId]
+            'SELECT id, title FROM tests WHERE id = $1 AND teacher_id = $2 AND school_id = $3',
+            [id, teacherId, schoolId]
         );
 
         if (testCheck.rows.length === 0) {
@@ -1281,8 +1292,8 @@ router.post('/assignment-templates', async (req, res) => {
         }
 
         const testCheck = await query(
-            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2',
-            [template.test_id, teacherId]
+            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2 AND school_id = $3',
+            [template.test_id, teacherId, schoolId]
         );
         if (testCheck.rows.length === 0) {
             return res.status(400).json({
@@ -1394,11 +1405,18 @@ router.get('/assignments', async (req, res) => {
         const { page = 1, limit = 10, search = '', class_id = 'all', status = 'all' } = req.query;
         const offset = (page - 1) * limit;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Build WHERE clause
-        let whereClause = 'WHERE ta.assigned_by = $1';
-        const params = [teacherId];
-        let paramCount = 2;
+        let whereClause = `WHERE ta.assigned_by = $1
+            AND EXISTS (
+                SELECT 1
+                FROM classes c_scope
+                WHERE c_scope.id = ta.class_id
+                  AND c_scope.school_id = $2
+            )`;
+        const params = [teacherId, schoolId];
+        let paramCount = 3;
 
         if (search) {
             params.push(`%${search}%`);
@@ -1473,6 +1491,7 @@ router.get('/assignments/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Get assignment with validation
         const assignmentResult = await query(
@@ -1486,8 +1505,8 @@ router.get('/assignments/:id', async (req, res) => {
              JOIN tests t ON ta.test_id = t.id
              JOIN classes c ON ta.class_id = c.id
              LEFT JOIN subjects s ON t.subject_id = s.id
-             WHERE ta.id = $1 AND ta.assigned_by = $2`,
-            [id, teacherId]
+             WHERE ta.id = $1 AND ta.assigned_by = $2 AND c.school_id = $3`,
+            [id, teacherId, schoolId]
         );
 
         if (assignmentResult.rows.length === 0) {
@@ -1557,8 +1576,8 @@ router.post('/assignments', async (req, res) => {
 
         // Verify test belongs to teacher
         const testCheck = await query(
-            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2',
-            [test_id, teacherId]
+            'SELECT id FROM tests WHERE id = $1 AND teacher_id = $2 AND school_id = $3',
+            [test_id, teacherId, schoolId]
         );
 
         if (testCheck.rows.length === 0) {
@@ -1645,9 +1664,10 @@ router.post('/assignments', async (req, res) => {
                      FROM users u
                      JOIN class_students cs ON cs.student_id = u.id
                      WHERE cs.class_id = $1
+                       AND u.school_id = $2
                        AND cs.is_active = true
                        AND u.is_active = true`,
-                    [assignment.class_id]
+                    [assignment.class_id, schoolId]
                 );
 
                 const testPayload = {
@@ -1707,11 +1727,17 @@ router.put('/assignments/:id', async (req, res) => {
         assignmentId = id;
         const { start_date, end_date, is_active } = req.body;
         teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Check ownership
         const assignmentCheck = await query(
-            'SELECT id FROM test_assignments WHERE id = $1 AND assigned_by = $2',
-            [id, teacherId]
+            `SELECT ta.id
+             FROM test_assignments ta
+             JOIN classes c ON c.id = ta.class_id
+             WHERE ta.id = $1
+               AND ta.assigned_by = $2
+               AND c.school_id = $3`,
+            [id, teacherId, schoolId]
         );
 
         if (assignmentCheck.rows.length === 0) {
@@ -1764,11 +1790,17 @@ router.delete('/assignments/:id', async (req, res) => {
         const { id } = req.params;
         assignmentId = id;
         teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Check ownership
         const assignmentCheck = await query(
-            'SELECT id FROM test_assignments WHERE id = $1 AND assigned_by = $2',
-            [id, teacherId]
+            `SELECT ta.id
+             FROM test_assignments ta
+             JOIN classes c ON c.id = ta.class_id
+             WHERE ta.id = $1
+               AND ta.assigned_by = $2
+               AND c.school_id = $3`,
+            [id, teacherId, schoolId]
         );
 
         if (assignmentCheck.rows.length === 0) {
@@ -1833,6 +1865,7 @@ router.get('/assignments/:id/results', async (req, res) => {
     try {
         const { id } = req.params;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Verify teacher owns this assignment
         const assignmentCheck = await query(
@@ -1840,8 +1873,8 @@ router.get('/assignments/:id/results', async (req, res) => {
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
              JOIN classes c ON ta.class_id = c.id
-             WHERE ta.id = $1 AND ta.assigned_by = $2`,
-            [id, teacherId]
+             WHERE ta.id = $1 AND ta.assigned_by = $2 AND c.school_id = $3`,
+            [id, teacherId, schoolId]
         );
 
         if (assignmentCheck.rows.length === 0) {
@@ -1908,6 +1941,7 @@ router.get('/attempts/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
 
         // Get attempt with validation
         const attemptResult = await query(
@@ -1928,8 +1962,8 @@ router.get('/attempts/:id', async (req, res) => {
              JOIN test_assignments ta ON att.assignment_id = ta.id
              JOIN classes c ON ta.class_id = c.id
              LEFT JOIN subjects s ON t.subject_id = s.id
-             WHERE att.id = $1 AND ta.assigned_by = $2`,
-            [id, teacherId]
+             WHERE att.id = $1 AND ta.assigned_by = $2 AND c.school_id = $3`,
+            [id, teacherId, schoolId]
         );
 
         if (attemptResult.rows.length === 0) {

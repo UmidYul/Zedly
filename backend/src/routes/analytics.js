@@ -164,7 +164,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
 
         const gradeJoin = (gradeParam || teacherParam) ? `
                 JOIN users u ON u.id = ta.student_id
-                JOIN class_students cs ON cs.student_id = u.id
+                JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
                 JOIN classes c ON c.id = cs.class_id
         ` : '';
         const gradeWhere = gradeParam ? `AND c.${classGradeColumn} = ${gradeParam}` : '';
@@ -282,8 +282,15 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
                 AVG(${attempt.score}) as avg_score,
                 SUM(${attempt.passedCase})::float / NULLIF(COUNT(ta.id), 0) * 100 as pass_rate
             FROM classes c
-            LEFT JOIN class_students cs ON cs.class_id = c.id
-            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
+            LEFT JOIN class_students cs ON cs.class_id = c.id AND cs.is_active = true
+            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id
+                AND ${attempt.completedFilter}
+                AND EXISTS (
+                    SELECT 1
+                    FROM tests t_scope
+                    WHERE t_scope.id = ta.test_id
+                      AND t_scope.school_id = $1
+                )
             LEFT JOIN tests t ON t.id = ta.test_id
             WHERE c.school_id = $1
               ${gradeParam ? `AND c.${classGradeColumn} = ${gradeParam}` : ''}
@@ -313,7 +320,7 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
             LEFT JOIN tests t ON t.subject_id = s.id AND t.school_id = $1
             LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
             LEFT JOIN users u ON u.id = ta.student_id
-            LEFT JOIN class_students cs ON cs.student_id = u.id
+            LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
             LEFT JOIN classes c ON c.id = cs.class_id
             WHERE s.school_id = $1
               ${subjectParam ? `AND s.id = ${subjectParam}` : ''}
@@ -653,7 +660,14 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                 FROM classes c
                 JOIN class_students cs ON cs.class_id = c.id
                     AND cs.is_active = true
-                LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
+                LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id
+                    AND ${attempt.completedFilter}
+                    AND EXISTS (
+                        SELECT 1
+                        FROM tests t_scope
+                        WHERE t_scope.id = ta.test_id
+                          AND t_scope.school_id = $1
+                    )
                 LEFT JOIN tests t ON t.id = ta.test_id
                 LEFT JOIN subjects s ON s.id = t.subject_id
                 WHERE ${conditions.join(' AND ')}
@@ -694,7 +708,7 @@ router.get('/school/comparison', authorize('school_admin', 'teacher'), async (re
                     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${attempt.score}) as median_score,
                     AVG(${attempt.timeSpent}) / 60 as avg_time_minutes
                 FROM subjects s
-                LEFT JOIN tests t ON t.subject_id = s.id
+                LEFT JOIN tests t ON t.subject_id = s.id AND t.school_id = $1
                 LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
                 LEFT JOIN users u ON u.id = ta.student_id
                 LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
@@ -1179,9 +1193,16 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
                 MIN(${attempt.score}) as worst_score,
                 SUM(${attempt.passedCase}) as passed_tests
             FROM users u
-            JOIN class_students cs ON cs.student_id = u.id
+            JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
             JOIN classes c ON c.id = cs.class_id
-            LEFT JOIN test_attempts ta ON ta.student_id = u.id AND ${attempt.completedFilter}
+            LEFT JOIN test_attempts ta ON ta.student_id = u.id
+                AND ${attempt.completedFilter}
+                AND EXISTS (
+                    SELECT 1
+                    FROM tests t_scope
+                    WHERE t_scope.id = ta.test_id
+                      AND t_scope.school_id = $1
+                )
             WHERE u.school_id = $1 AND u.role = 'student'
               ${teacherScopeWhere}
             GROUP BY u.id, u.first_name, u.last_name, c.name
@@ -1195,8 +1216,15 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
                 COUNT(DISTINCT cs.student_id) as students,
                 AVG(${attempt.score}) as avg_score
             FROM classes c
-            LEFT JOIN class_students cs ON cs.class_id = c.id
-            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id AND ${attempt.completedFilter}
+            LEFT JOIN class_students cs ON cs.class_id = c.id AND cs.is_active = true
+            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id
+                AND ${attempt.completedFilter}
+                AND EXISTS (
+                    SELECT 1
+                    FROM tests t_scope
+                    WHERE t_scope.id = ta.test_id
+                      AND t_scope.school_id = $1
+                )
             WHERE c.school_id = $1
               ${teacherScopeWhere}
             GROUP BY c.id, c.name, c.${classGradeColumn}
@@ -1210,7 +1238,7 @@ router.get('/export/school', authorize('school_admin', 'teacher'), async (req, r
                 COUNT(ta.id) as attempts,
                 AVG(${attempt.score}) as avg_score
             FROM subjects s
-            LEFT JOIN tests t ON t.subject_id = s.id
+            LEFT JOIN tests t ON t.subject_id = s.id AND t.school_id = $1
             LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ${attempt.completedFilter}
             WHERE s.school_id = $1
               ${isTeacher ? `
