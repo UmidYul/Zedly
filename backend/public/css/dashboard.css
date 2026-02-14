@@ -1242,6 +1242,7 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--bg-secondary);
+    color: var(--text-primary);
     min-height: 112px;
     padding: 8px;
     text-align: left;
@@ -1272,6 +1273,7 @@
     align-items: center;
     margin-bottom: 6px;
     font-weight: 600;
+    color: var(--text-primary);
 }
 
 .calendar-day-count {
