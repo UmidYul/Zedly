@@ -1,26 +1,42 @@
 const request = require('supertest');
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 const app = require('../server');
+const { pool } = require('../config/database');
 
-const DEFAULT_PASSWORD = process.env.SMOKE_PASSWORD || 'admin123';
+const DEFAULT_PASSWORD = process.env.SMOKE_PASSWORD || '';
 
-const credentialCandidates = {
-    superadmin: [
-        process.env.SMOKE_SUPERADMIN_USERNAME,
-        'superadmin'
-    ].filter(Boolean),
-    school_admin: [
-        process.env.SMOKE_ADMIN_USERNAME,
-        'admin1'
-    ].filter(Boolean),
-    teacher: [
-        process.env.SMOKE_TEACHER_USERNAME,
-        'teacher1'
-    ].filter(Boolean),
-    student: [
-        process.env.SMOKE_STUDENT_USERNAME,
-        'student1'
-    ].filter(Boolean)
-};
+function credentialCandidates(role) {
+    const map = {
+        superadmin: {
+            usernames: [process.env.SMOKE_SUPERADMIN_USERNAME, 'superadmin'],
+            passwords: [process.env.SMOKE_SUPERADMIN_PASSWORD, DEFAULT_PASSWORD, 'admin123']
+        },
+        school_admin: {
+            usernames: [
+                process.env.SMOKE_ADMIN_USERNAME,
+                process.env.SMOKE_SCHOOL_ADMIN_USERNAME,
+                'admin1',
+                'schooladmin',
+                'school_admin',
+                'admin'
+            ],
+            passwords: [process.env.SMOKE_ADMIN_PASSWORD, process.env.SMOKE_SCHOOL_ADMIN_PASSWORD, DEFAULT_PASSWORD, 'admin123']
+        },
+        teacher: {
+            usernames: [process.env.SMOKE_TEACHER_USERNAME, 'teacher1'],
+            passwords: [process.env.SMOKE_TEACHER_PASSWORD, DEFAULT_PASSWORD, 'admin123']
+        },
+        student: {
+            usernames: [process.env.SMOKE_STUDENT_USERNAME, 'student1'],
+            passwords: [process.env.SMOKE_STUDENT_PASSWORD, DEFAULT_PASSWORD, 'admin123']
+        }
+    };
+    const cfg = map[role] || { usernames: [], passwords: [] };
+    return {
+        usernames: Array.from(new Set(cfg.usernames.filter(Boolean))),
+        passwords: Array.from(new Set(cfg.passwords.filter(Boolean)))
+    };
+}
 
 const context = {
     users: {},
@@ -36,36 +52,45 @@ function authHeader(token) {
 }
 
 async function loginWithFallback(role) {
-    const usernames = credentialCandidates[role] || [];
+    const { usernames, passwords } = credentialCandidates(role);
     const errors = [];
 
-    for (const username of usernames) {
-        const response = await request(app)
-            .post('/api/auth/login')
-            .send({ username, password: DEFAULT_PASSWORD });
-
-        if (response.status !== 200) {
-            errors.push(`${username}: ${response.status}`);
-            continue;
-        }
-
-        const body = response.body || {};
-        if (body.must_change_password) {
-            errors.push(`${username}: must_change_password`);
-            continue;
-        }
-
-        if (!body.access_token || !body.user?.id) {
-            errors.push(`${username}: missing access token`);
-            continue;
-        }
-
-        context.tokens[role] = body.access_token;
-        context.users[role] = body.user;
-        return;
+    if (!usernames.length || !passwords.length) {
+        throw new Error(`Missing smoke credentials for role=${role}. Set SMOKE_* env vars.`);
     }
 
-    throw new Error(`Unable to login as ${role}. Tried: ${errors.join(', ')}`);
+    for (const username of usernames) {
+        for (const password of passwords) {
+            const response = await request(app)
+                .post('/api/auth/login')
+                .send({ username, password });
+
+            if (response.status !== 200) {
+                errors.push(`${username}: ${response.status}`);
+                continue;
+            }
+
+            const body = response.body || {};
+            if (body.must_change_password) {
+                errors.push(`${username}: must_change_password`);
+                continue;
+            }
+
+            if (!body.access_token || !body.user?.id) {
+                errors.push(`${username}: missing access token`);
+                continue;
+            }
+
+            context.tokens[role] = body.access_token;
+            context.users[role] = body.user;
+            return;
+        }
+    }
+
+    throw new Error(
+        `Unable to login as ${role}. Tried: ${errors.join(', ')}. ` +
+        `Configure SMOKE_${role.toUpperCase()}_USERNAME / SMOKE_${role.toUpperCase()}_PASSWORD`
+    );
 }
 
 describe('E2E smoke: login/import/assign/take/report', () => {
@@ -76,6 +101,14 @@ describe('E2E smoke: login/import/assign/take/report', () => {
             await loginWithFallback('student');
         } catch (error) {
             context.loginError = error;
+        }
+    });
+
+    afterAll(async () => {
+        try {
+            await pool.end();
+        } catch (_) {
+            // ignore pool close errors in smoke teardown
         }
     });
 
