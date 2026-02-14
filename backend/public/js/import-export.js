@@ -476,10 +476,10 @@
         const dateLabel = new Date(payload.createdAt).toLocaleString('ru-RU');
         container.innerHTML = `
             <div class="import-message info">
-                РџРѕСЃР»РµРґРЅРёР№ РёРјРїРѕСЂС‚: ${dateLabel}. Р”РѕСЃС‚СѓРїРµРЅ С„Р°Р№Р» СЃ Р»РѕРіРёРЅР°РјРё Рё OTP.
+                Последний импорт: ${dateLabel}. Доступен файл с логинами и OTP.
                 <div style="margin-top: 10px;">
                     <button class="btn btn-secondary" type="button" data-action="download-import-credentials">
-                        РЎРєР°С‡Р°С‚СЊ Р»РѕРіРёРЅС‹ Рё OTP (XLSX)
+                        Скачать логины и OTP (XLSX)
                     </button>
                 </div>
             </div>
@@ -507,7 +507,7 @@
             downloadBlob(blob, filename);
         } catch (error) {
             console.error('Credentials export error:', error);
-            showAlert('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєР°С‡Р°С‚СЊ С„Р°Р№Р» Р»РѕРіРёРЅРѕРІ Рё OTP');
+            showAlert('Не удалось скачать файл логинов и OTP');
         }
     }
 
