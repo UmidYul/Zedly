@@ -526,6 +526,7 @@
             'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' },
             'my-class': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' },
             'students': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/students.js'], manager: 'StudentsPage' },
+            'calendar': { src: '/js/calendar.js', manager: 'CalendarPage' },
             'reports': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/reports.js'], manager: 'ReportsManager' },
             'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' }
         };
@@ -974,6 +975,115 @@
                             <div class="modal-body" id="studentsModalBody"></div>
                             <div class="modal-actions">
                                 <button class="btn btn-primary" type="button" id="studentsModalOk">Закрыть</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (page === 'calendar' && role === 'teacher') {
+            return `
+                <div class="calendar-page" id="calendarPage">
+                    <section class="calendar-hero dashboard-section">
+                        <div>
+                            <h1 class="section-title">Календарь</h1>
+                            <p class="page-subtitle">План назначений, дедлайнов и активностей по классам</p>
+                        </div>
+                        <div class="calendar-hero-actions">
+                            <button class="btn btn-secondary" id="calendarTodayBtn" type="button">Сегодня</button>
+                            <button class="btn btn-outline" id="calendarExportIcsBtn" type="button">Экспорт .ics</button>
+                        </div>
+                    </section>
+
+                    <section class="calendar-toolbar dashboard-section">
+                        <div class="calendar-nav">
+                            <button class="btn btn-outline" id="calendarPrevBtn" type="button">◀</button>
+                            <h2 id="calendarMonthLabel">Месяц</h2>
+                            <button class="btn btn-outline" id="calendarNextBtn" type="button">▶</button>
+                        </div>
+                        <div class="calendar-filters">
+                            <div class="filter-group">
+                                <label for="calendarClassFilter">Класс</label>
+                                <select id="calendarClassFilter" class="filter-select">
+                                    <option value="all">Все классы</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="calendarStatusFilter">Статус</label>
+                                <select id="calendarStatusFilter" class="filter-select">
+                                    <option value="all">Все</option>
+                                    <option value="upcoming">Предстоит</option>
+                                    <option value="active">Активные</option>
+                                    <option value="completed">Завершенные</option>
+                                    <option value="inactive">Неактивные</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="calendarSearchInput">Поиск</label>
+                                <input id="calendarSearchInput" class="form-input" type="text" placeholder="Тест, класс, предмет">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="calendar-kpi-grid">
+                        <div class="report-kpi tone-blue"><span>Всего событий</span><strong id="calendarKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-green"><span>Активные</span><strong id="calendarKpiActive">0</strong></div>
+                        <div class="report-kpi tone-orange"><span>Предстоят</span><strong id="calendarKpiUpcoming">0</strong></div>
+                        <div class="report-kpi tone-rose"><span>Завершены</span><strong id="calendarKpiCompleted">0</strong></div>
+                    </section>
+
+                    <section class="calendar-layout">
+                        <div class="dashboard-section">
+                            <div class="calendar-weekdays">
+                                <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                            </div>
+                            <div class="calendar-grid" id="calendarGrid"></div>
+                        </div>
+                        <div class="dashboard-section calendar-side">
+                            <div class="section-header">
+                                <h2 class="section-title">События дня</h2>
+                                <span id="calendarSelectedDateLabel">-</span>
+                            </div>
+                            <div class="calendar-day-events" id="calendarDayEvents">
+                                <p class="text-secondary">Выберите дату в календаре</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Ближайшие назначения</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Тест</th>
+                                        <th>Класс</th>
+                                        <th>Предмет</th>
+                                        <th>Начало</th>
+                                        <th>Окончание</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calendarUpcomingTableBody">
+                                    <tr><td colspan="7" class="empty-row">Загрузка...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <div class="modal-overlay hidden" id="calendarEventModal">
+                        <div class="modal calendar-event-modal">
+                            <div class="modal-header">
+                                <h3 id="calendarEventModalTitle">Событие</h3>
+                                <button class="modal-close" id="calendarEventModalClose" type="button">×</button>
+                            </div>
+                            <div class="modal-body" id="calendarEventModalBody"></div>
+                            <div class="modal-actions">
+                                <button class="btn btn-primary" id="calendarEventModalOk" type="button">Закрыть</button>
                             </div>
                         </div>
                     </div>
