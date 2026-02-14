@@ -404,6 +404,189 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
 });
 
 /**
+ * GET /api/analytics/school/risk-dashboard
+ * Students-at-risk dashboard with role-aware scope
+ */
+router.get('/school/risk-dashboard', authorize('school_admin', 'teacher'), async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const isTeacher = req.user.role === 'teacher';
+        const periodDays = sanitizePeriodDays(req.query.period, 30);
+        const riskThresholdRaw = Number.parseFloat(String(req.query.risk_threshold ?? 60));
+        const riskThreshold = Number.isFinite(riskThresholdRaw)
+            ? Math.min(Math.max(riskThresholdRaw, 1), 100)
+            : 60;
+        const minAttemptsRaw = Number.parseInt(String(req.query.min_attempts ?? 1), 10);
+        const minAttempts = Number.isFinite(minAttemptsRaw)
+            ? Math.min(Math.max(minAttemptsRaw, 0), 30)
+            : 1;
+        const { grade_level, subject_id } = req.query;
+
+        const attempt = await getAttemptExpressions();
+        const classGradeColumn = await getClassGradeColumn();
+        const attemptDateExpr = attempt.completedAt !== 'NULL' ? attempt.completedAt : 'ta.created_at';
+
+        const params = [schoolId];
+        const addParam = (value) => {
+            params.push(value);
+            return `$${params.length}`;
+        };
+
+        const gradeParam = grade_level ? addParam(grade_level) : null;
+        const subjectParam = subject_id ? addParam(subject_id) : null;
+        const teacherParam = isTeacher ? addParam(req.user.id) : null;
+        const riskThresholdParam = addParam(riskThreshold);
+        const minAttemptsParam = addParam(minAttempts);
+
+        const scopeFilters = [
+            'u.school_id = $1',
+            "u.role = 'student'",
+            'u.is_active = true',
+            'c.school_id = $1',
+            'cs.is_active = true'
+        ];
+
+        if (gradeParam) {
+            scopeFilters.push(`c.${classGradeColumn} = ${gradeParam}`);
+        }
+        if (teacherParam) {
+            scopeFilters.push(buildTeacherClassScopeSql(teacherParam, 'c'));
+        }
+
+        const subjectFilter = subjectParam ? `AND t.subject_id = ${subjectParam}` : '';
+
+        const riskResult = await query(
+            `
+            WITH scope_students AS (
+                SELECT
+                    student_id,
+                    first_name,
+                    last_name,
+                    username,
+                    class_id,
+                    class_name,
+                    grade_level
+                FROM (
+                    SELECT
+                        u.id as student_id,
+                        u.first_name,
+                        u.last_name,
+                        u.username,
+                        c.id as class_id,
+                        c.name as class_name,
+                        c.${classGradeColumn} as grade_level,
+                        ROW_NUMBER() OVER (PARTITION BY u.id ORDER BY c.name ASC) as rn
+                    FROM users u
+                    JOIN class_students cs ON cs.student_id = u.id
+                    JOIN classes c ON c.id = cs.class_id
+                    WHERE ${scopeFilters.join(' AND ')}
+                ) ranked
+                WHERE ranked.rn = 1
+            ),
+            attempt_stats AS (
+                SELECT
+                    ta.student_id,
+                    COUNT(*) FILTER (WHERE ${attempt.completedFilter}) as attempts_completed,
+                    AVG(${attempt.score}) FILTER (WHERE ${attempt.completedFilter}) as avg_score,
+                    MAX(${attemptDateExpr}) FILTER (WHERE ${attempt.completedFilter}) as last_attempt_at
+                FROM test_attempts ta
+                JOIN tests t ON t.id = ta.test_id
+                JOIN scope_students ss ON ss.student_id = ta.student_id
+                WHERE ${attemptDateExpr} > CURRENT_DATE - INTERVAL '${periodDays} days'
+                  ${subjectFilter}
+                GROUP BY ta.student_id
+            ),
+            enriched AS (
+                SELECT
+                    ss.student_id as id,
+                    ss.first_name,
+                    ss.last_name,
+                    ss.username,
+                    ss.class_id,
+                    ss.class_name,
+                    ss.grade_level,
+                    COALESCE(ast.attempts_completed, 0) as attempts_completed,
+                    COALESCE(ast.avg_score, 0) as avg_score,
+                    ast.last_attempt_at,
+                    CASE
+                        WHEN COALESCE(ast.attempts_completed, 0) = 0 THEN 'critical'
+                        WHEN COALESCE(ast.avg_score, 0) < ${riskThresholdParam} - 15 THEN 'critical'
+                        WHEN COALESCE(ast.avg_score, 0) < ${riskThresholdParam} THEN 'high'
+                        WHEN COALESCE(ast.avg_score, 0) < ${riskThresholdParam} + 10 THEN 'medium'
+                        ELSE 'safe'
+                    END as risk_level
+                FROM scope_students ss
+                LEFT JOIN attempt_stats ast ON ast.student_id = ss.student_id
+            )
+            SELECT
+                (SELECT COUNT(*) FROM enriched) as total_students,
+                (SELECT COUNT(*) FROM enriched WHERE risk_level = 'critical') as critical_count,
+                (SELECT COUNT(*) FROM enriched WHERE risk_level = 'high') as high_count,
+                (SELECT COUNT(*) FROM enriched WHERE risk_level = 'medium') as medium_count,
+                (SELECT AVG(avg_score) FROM enriched WHERE attempts_completed > 0) as average_score,
+                (SELECT COUNT(*) FROM enriched WHERE attempts_completed = 0) as no_data_count,
+                (
+                    SELECT COALESCE(json_agg(x), '[]'::json)
+                    FROM (
+                        SELECT
+                            id, first_name, last_name, username,
+                            class_id, class_name, grade_level,
+                            attempts_completed, avg_score, last_attempt_at, risk_level
+                        FROM enriched
+                        WHERE risk_level <> 'safe'
+                          AND (attempts_completed >= ${minAttemptsParam} OR attempts_completed = 0)
+                        ORDER BY
+                            CASE risk_level WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END,
+                            avg_score ASC NULLS FIRST,
+                            attempts_completed ASC
+                        LIMIT 120
+                    ) x
+                ) as students,
+                (
+                    SELECT COALESCE(json_agg(y), '[]'::json)
+                    FROM (
+                        SELECT
+                            class_id,
+                            class_name,
+                            COUNT(*) FILTER (WHERE risk_level = 'critical') as critical_count,
+                            COUNT(*) FILTER (WHERE risk_level = 'high') as high_count,
+                            COUNT(*) FILTER (WHERE risk_level = 'medium') as medium_count,
+                            COUNT(*) as total_students
+                        FROM enriched
+                        GROUP BY class_id, class_name
+                        ORDER BY critical_count DESC, high_count DESC, class_name ASC
+                        LIMIT 30
+                    ) y
+                ) as classes
+            `,
+            params
+        );
+
+        const row = riskResult.rows[0] || {};
+        res.json({
+            summary: {
+                total_students: parseInt(row.total_students || 0, 10),
+                critical_count: parseInt(row.critical_count || 0, 10),
+                high_count: parseInt(row.high_count || 0, 10),
+                medium_count: parseInt(row.medium_count || 0, 10),
+                no_data_count: parseInt(row.no_data_count || 0, 10),
+                average_score: row.average_score
+            },
+            risk_threshold: riskThreshold,
+            min_attempts: minAttempts,
+            students: Array.isArray(row.students) ? row.students : [],
+            classes: Array.isArray(row.classes) ? row.classes : []
+        });
+    } catch (error) {
+        console.error('Risk dashboard analytics error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch risk dashboard analytics'
+        });
+    }
+});
+
+/**
  * GET /api/analytics/school/comparison
  * Compare performance across different dimensions
  */

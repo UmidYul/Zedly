@@ -1035,6 +1035,68 @@
     gap: 8px;
 }
 
+.reports-risk-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+    gap: var(--spacing-md);
+    align-items: start;
+}
+
+.reports-risk-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.reports-risk-class-list {
+    margin-top: var(--spacing-sm);
+    display: grid;
+    gap: 8px;
+}
+
+.reports-risk-class-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    padding: 8px 10px;
+    display: grid;
+    gap: 4px;
+}
+
+.reports-risk-class-item span {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.reports-risk-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.reports-risk-badge.critical {
+    background: rgba(239, 68, 68, 0.22);
+    color: #ef4444;
+}
+
+.reports-risk-badge.high {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.reports-risk-badge.medium {
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+
+.reports-risk-badge.safe {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
 /* Students page */
 .students-page {
     width: min(1260px, 100%);
@@ -1380,6 +1442,10 @@
     .calendar-kpi-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .reports-risk-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1388,6 +1454,10 @@
     }
 
     .reports-grid-main {
+        grid-template-columns: 1fr;
+    }
+
+    .reports-risk-kpi-grid {
         grid-template-columns: 1fr;
     }
 

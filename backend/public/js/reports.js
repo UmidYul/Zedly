@@ -11,6 +11,7 @@
         metric: 'avg_score',
         overview: null,
         comparison: null,
+        risk: null,
         chart: null
     };
 
@@ -310,6 +311,80 @@
         `);
     }
 
+    function riskLevelLabel(level) {
+        if (level === 'critical') return 'Critical';
+        if (level === 'high') return 'High';
+        if (level === 'medium') return 'Medium';
+        return 'Safe';
+    }
+
+    function renderRiskDashboard() {
+        const summaryEl = document.getElementById('reportsRiskSummary');
+        const tableEl = document.getElementById('reportsRiskTable');
+        if (!summaryEl || !tableEl) return;
+
+        if (state.role === 'superadmin') {
+            summaryEl.innerHTML = '<p class="text-secondary">Risk dashboard is available for school admin and teacher scopes.</p>';
+            tableEl.innerHTML = '';
+            return;
+        }
+
+        const summary = state.risk?.summary || {};
+        const students = Array.isArray(state.risk?.students) ? state.risk.students : [];
+        const classes = Array.isArray(state.risk?.classes) ? state.risk.classes : [];
+
+        summaryEl.innerHTML = `
+            <div class="reports-risk-kpi-grid">
+                ${buildKpiCard('Critical', fmtInt(summary.critical_count), 'tone-rose')}
+                ${buildKpiCard('High', fmtInt(summary.high_count), 'tone-orange')}
+                ${buildKpiCard('Medium', fmtInt(summary.medium_count), 'tone-violet')}
+                ${buildKpiCard('No attempts', fmtInt(summary.no_data_count), 'tone-cyan')}
+            </div>
+            <div class="reports-risk-class-list">
+                ${(classes || []).slice(0, 6).map((item) => `
+                    <div class="reports-risk-class-item">
+                        <strong>${escapeHtml(item.class_name || '-')}</strong>
+                        <span>C: ${fmtInt(item.critical_count)} · H: ${fmtInt(item.high_count)} · M: ${fmtInt(item.medium_count)}</span>
+                    </div>
+                `).join('') || '<p class="text-secondary">No class-level risk data</p>'}
+            </div>
+        `;
+
+        if (!students.length) {
+            tableEl.innerHTML = '<p class="text-secondary">No students at risk for selected filters.</p>';
+            return;
+        }
+
+        tableEl.innerHTML = `
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Score</th>
+                            <th>Attempts</th>
+                            <th>Risk</th>
+                            <th>Last attempt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.slice(0, 50).map((row) => `
+                            <tr>
+                                <td>${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
+                                <td>${escapeHtml(row.class_name || '-')}</td>
+                                <td>${fmtPct(row.avg_score)}</td>
+                                <td>${fmtInt(row.attempts_completed)}</td>
+                                <td><span class="reports-risk-badge ${escapeHtml(String(row.risk_level || 'safe'))}">${riskLevelLabel(row.risk_level)}</span></td>
+                                <td>${row.last_attempt_at ? new Date(row.last_attempt_at).toLocaleDateString('ru-RU') : '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
     function buildRowDetails(row) {
         const parts = [];
         if (row.attempts !== undefined) parts.push(`attempts: ${fmtInt(row.attempts)}`);
@@ -468,15 +543,18 @@
             ]);
             state.overview = overview;
             state.comparison = comparison;
+            state.risk = null;
             return;
         }
 
-        const [overview, comparison] = await Promise.all([
+        const [overview, comparison, risk] = await Promise.all([
             apiGet(`${API}/analytics/school/overview?period=${encodeURIComponent(period)}`),
-            apiGet(`${API}/analytics/school/comparison?type=classes`)
+            apiGet(`${API}/analytics/school/comparison?type=classes`),
+            apiGet(`${API}/analytics/school/risk-dashboard?period=${encodeURIComponent(period)}&risk_threshold=60&min_attempts=1`)
         ]);
         state.overview = overview;
         state.comparison = comparison;
+        state.risk = risk;
     }
 
     async function handleDataExport() {
@@ -605,6 +683,8 @@
         setHtml('reportsActivityList', '<p class="text-secondary">Loading...</p>');
         setHtml('reportsCompareTable', '<p class="text-secondary">Loading...</p>');
         setHtml('reportsInsights', '<p class="text-secondary">Loading...</p>');
+        setHtml('reportsRiskSummary', '<p class="text-secondary">Loading...</p>');
+        setHtml('reportsRiskTable', '<p class="text-secondary">Loading...</p>');
         const empty = document.getElementById('reportsTrendsEmpty');
         if (empty) empty.style.display = 'none';
 
@@ -616,9 +696,12 @@
             renderComparison();
             renderInsights();
             renderTrendsChart();
+            renderRiskDashboard();
         } catch (error) {
             console.error('Reports load error:', error);
             setHtml('reportsInsights', '<p class="text-secondary">Failed to load reports data.</p>');
+            setHtml('reportsRiskSummary', '<p class="text-secondary">Failed to load risk dashboard.</p>');
+            setHtml('reportsRiskTable', '');
         }
     }
 

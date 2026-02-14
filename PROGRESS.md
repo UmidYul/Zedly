@@ -418,7 +418,7 @@
 ### P1 Week 1-2
 - [x] In-app + Telegram notifications for assignments/deadlines
 - [x] Assignment templates
-- [ ] Risk dashboard (students at risk)
+- [x] Risk dashboard (students at risk)
 - [ ] Report export parity (PDF "as on screen" for key pages)
 
 ### P2 Week 2
@@ -455,6 +455,10 @@
 - [x] Admin student-class update hardened: validate new class before unlinking old one; compatibility for DBs without `class_students.is_active`
 - [x] In-app notifications now include live deadline items from active assignments (student/teacher) in bell dropdown
 - [x] Added backend cron job for Telegram deadline reminders with daily dedupe via `audit_logs` (`deadline_reminder`)
+- [x] Risk dashboard API (`/api/analytics/school/risk-dashboard`) + Reports UI block (At Risk Students)
+
+
+
 
 
 

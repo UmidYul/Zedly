@@ -2081,6 +2081,16 @@
                         </div>
                         <div id="reportsInsights"></div>
                     </div>
+
+                    <div class="dashboard-section reports-card">
+                        <div class="section-header">
+                            <h2 class="section-title">At Risk Students</h2>
+                        </div>
+                        <div class="reports-risk-grid">
+                            <div id="reportsRiskSummary"></div>
+                            <div id="reportsRiskTable"></div>
+                        </div>
+                    </div>
                 </div>
             `;
         }
