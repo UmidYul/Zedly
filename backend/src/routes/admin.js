@@ -318,8 +318,13 @@ router.get('/users', async (req, res) => {
             params
         );
 
+        const users = result.rows.map((user) => ({
+            ...user,
+            phone: user.phone ? normalizeUzPhone(user.phone) : user.phone
+        }));
+
         res.json({
-            users: result.rows,
+            users,
             pagination: {
                 total,
                 page: parseInt(page),
@@ -362,6 +367,9 @@ router.get('/users/:id', enforceSchoolIsolation, async (req, res) => {
         }
 
         const user = result.rows[0];
+        if (user.phone) {
+            user.phone = normalizeUzPhone(user.phone);
+        }
 
         if (user.role === 'teacher') {
             const assignmentsResult = await query(
@@ -401,6 +409,7 @@ router.post('/users', async (req, res) => {
             telegram_id
         } = req.body;
         const schoolId = req.user.school_id;
+        const normalizedPhone = phone ? normalizeUzPhone(phone) : null;
 
         // Validation
         if (!username || !role || !first_name || !last_name) {
@@ -454,7 +463,7 @@ router.post('/users', async (req, res) => {
                 first_name.trim(),
                 last_name.trim(),
                 email || null,
-                phone || null,
+                normalizedPhone,
                 telegram_id || null,
                 isTemporaryPassword
             ]
@@ -565,6 +574,9 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             is_active
         } = req.body;
         const schoolId = req.user.school_id;
+        const normalizedPhone = phone === undefined
+            ? undefined
+            : (phone ? normalizeUzPhone(phone) : null);
 
         // Check if user exists in same school
         const existingUser = await query(
@@ -638,7 +650,7 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
         }
 
         if (phone !== undefined) {
-            params.push(phone);
+            params.push(normalizedPhone);
             updates.push(`phone = $${paramCount++}`);
         }
 
@@ -2124,6 +2136,10 @@ function mapImportRow(row) {
         }
     });
 
+    if (mapped.phone !== undefined && mapped.phone !== null && String(mapped.phone).trim() !== '') {
+        mapped.phone = normalizeUzPhone(mapped.phone);
+    }
+
     const hasValues = Object.values(mapped).some(val => String(val || '').trim() !== '');
     return hasValues ? mapped : null;
 }
@@ -2432,6 +2448,29 @@ function parseIsoDateString(value) {
     if (!year || !month || !day) return null;
     const date = new Date(Date.UTC(year, month - 1, day));
     return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function normalizeUzPhone(rawValue) {
+    const raw = String(rawValue || '').trim();
+    if (!raw) return '';
+
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return raw;
+
+    let localPart = '';
+    if (digits.length === 12 && digits.startsWith('998')) {
+        localPart = digits.slice(3);
+    } else if (digits.length === 10 && digits.startsWith('0')) {
+        localPart = digits.slice(1);
+    } else if (digits.length === 9) {
+        localPart = digits;
+    }
+
+    if (/^\d{9}$/.test(localPart)) {
+        return `+998${localPart}`;
+    }
+
+    return raw;
 }
 
 async function buildStyledWorkbookBuffer({

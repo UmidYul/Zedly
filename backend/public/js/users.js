@@ -91,6 +91,17 @@
             await this.copyOTP(input.value);
         },
 
+        formatUzPhone: function (value) {
+            const raw = String(value || '').trim();
+            if (!raw) return '';
+            const digits = raw.replace(/\D/g, '');
+            let local = '';
+            if (digits.length === 12 && digits.startsWith('998')) local = digits.slice(3);
+            else if (digits.length === 10 && digits.startsWith('0')) local = digits.slice(1);
+            else if (digits.length === 9) local = digits;
+            return /^\d{9}$/.test(local) ? `+998${local}` : raw;
+        },
+
         // Initialize users page
         init: function () {
             this.currentPage = 1; // Reset to first page
@@ -251,6 +262,7 @@
                 const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
                 const safeFullName = fullName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 const isSelected = this.selectedIds.has(user.id);
+                const formattedPhone = this.formatUzPhone(user.phone);
 
                 html += `
                     <tr data-user-id="${user.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
@@ -270,7 +282,7 @@
                         <td><span class="role-badge role-${user.role}">${roleLabel}</span></td>
                         <td>
                             ${user.email ? `<div>${user.email}</div>` : ''}
-                            ${user.phone ? `<div class="text-secondary">${user.phone}</div>` : ''}
+                            ${formattedPhone ? `<div class="text-secondary">${formattedPhone}</div>` : ''}
                         </td>
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td class="text-secondary">${lastLogin}</td>
