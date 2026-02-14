@@ -630,10 +630,12 @@
         try {
             const btn = document.getElementById('requestPhoneFromTelegramBtn');
             if (btn) btn.disabled = true;
+            console.log('[TG_PHONE_UI] requestPhoneFromTelegram:click');
 
             const data = await apiFetch('/api/telegram/me/phone/request', {
                 method: 'POST'
             });
+            console.log('[TG_PHONE_UI] requestPhoneFromTelegram:response', data);
 
             activePhoneRequestId = String(data?.request_id || '').trim() || '__AUTO__';
             stopPhoneRequestPolling();
@@ -643,9 +645,11 @@
 
             const tgLink = String(data?.link || '').trim();
             if (tgLink) {
+                console.log('[TG_PHONE_UI] requestPhoneFromTelegram:redirect', { link: tgLink });
                 window.location.href = tgLink;
             }
         } catch (error) {
+            console.error('[TG_PHONE_UI] requestPhoneFromTelegram:error', error);
             await showAlert(
                 error.message || 'Не удалось отправить запрос в Telegram',
                 'Ошибка'

@@ -229,6 +229,10 @@ function normalizeTelegramPhone(value) {
 }
 
 async function sendPhoneRequestToTelegram(userId, chatId) {
+    console.log('[TG_PHONE] sendPhoneRequestToTelegram:start', {
+        user_id: String(userId),
+        chat_id: String(chatId)
+    });
     const requestState = createPhoneRequest(userId, chatId);
     const sent = await sendTelegram(
         chatId,
@@ -243,9 +247,21 @@ async function sendPhoneRequestToTelegram(userId, chatId) {
     );
 
     if (!sent) {
+        console.warn('[TG_PHONE] sendPhoneRequestToTelegram:send_failed', {
+            user_id: String(userId),
+            chat_id: String(chatId),
+            request_id: requestState.requestId
+        });
         finalizePhoneRequest(userId, { status: 'failed', reason: 'send_failed' });
         return { ok: false };
     }
+
+    console.log('[TG_PHONE] sendPhoneRequestToTelegram:sent', {
+        user_id: String(userId),
+        chat_id: String(chatId),
+        request_id: requestState.requestId,
+        expires_at: new Date(requestState.expiresAt).toISOString()
+    });
 
     return {
         ok: true,
@@ -422,6 +438,7 @@ function initTelegramStartListener() {
 
         try {
             if (!startToken) {
+                console.log('[TG_START] no_token_branch', { chat_id: String(chatId) });
                 const linkedUserResult = await query(
                     `SELECT id, username
                      FROM users
@@ -432,8 +449,18 @@ function initTelegramStartListener() {
 
                 if (linkedUserResult.rows.length > 0) {
                     const linkedUser = linkedUserResult.rows[0];
+                    console.log('[TG_START] linked_user_found', {
+                        chat_id: String(chatId),
+                        user_id: String(linkedUser.id),
+                        username: linkedUser.username
+                    });
                     const activePhoneRequest = getPhoneRequestForUser(linkedUser.id);
                     if (activePhoneRequest && activePhoneRequest.status === 'pending') {
+                        console.log('[TG_START] pending_phone_request_found', {
+                            chat_id: String(chatId),
+                            user_id: String(linkedUser.id),
+                            request_id: activePhoneRequest.requestId
+                        });
                         await sendPhoneRequestToTelegram(linkedUser.id, chatId);
                         await sendTelegram(
                             chatId,
@@ -453,9 +480,14 @@ function initTelegramStartListener() {
                     chatId,
                     'Привет! Для привязки аккаунта вернитесь в кабинет ZEDLY и нажмите кнопку подключения Telegram еще раз, затем нажмите кнопку START по открывшейся ссылке.'
                 );
+                console.log('[TG_START] no_token_unlinked_chat', { chat_id: String(chatId) });
                 return;
             }
 
+            console.log('[TG_START] token_branch_begin', {
+                chat_id: String(chatId),
+                token_prefix: String(startToken).slice(0, 14)
+            });
             const result = await connectTelegramByToken(chatId, startToken);
             if (!result.ok) {
                 console.log('Telegram link connect failed', { chat_id: chatId, reason: result.reason });
@@ -472,6 +504,11 @@ function initTelegramStartListener() {
 
             console.log('Telegram link connected', { chat_id: chatId, username: result.username, role: result.role });
             const shouldRequestPhone = !!result.payload?.request_phone;
+            console.log('[TG_START] token_branch_connected', {
+                chat_id: String(chatId),
+                user_id: String(result.userId || ''),
+                request_phone: shouldRequestPhone
+            });
             if (shouldRequestPhone) {
                 const phoneRequest = await sendPhoneRequestToTelegram(result.userId, chatId);
                 if (!phoneRequest.ok) {
@@ -724,6 +761,9 @@ router.get('/me/status', authenticate, async (req, res) => {
  */
 router.post('/me/phone/request', authenticate, async (req, res) => {
     try {
+        console.log('[TG_PHONE] /me/phone/request:start', {
+            user_id: String(req.user.id)
+        });
         if (!telegramBot) {
             return res.status(400).json({
                 error: 'not_configured',
@@ -750,6 +790,11 @@ router.post('/me/phone/request', authenticate, async (req, res) => {
         if (!state.user.telegram_id) {
             const { token, expiresAt } = createLinkTokenWithPayload(state.user.id, { request_phone: true });
             const link = `https://t.me/${botInfo.username}?start=${encodeURIComponent(token)}`;
+            console.log('[TG_PHONE] /me/phone/request:needs_link', {
+                user_id: String(state.user.id),
+                link_preview: link.slice(0, 80),
+                expires_at: new Date(expiresAt).toISOString()
+            });
             return res.json({
                 message: 'Telegram link flow started',
                 needs_link: true,
@@ -767,6 +812,11 @@ router.post('/me/phone/request', authenticate, async (req, res) => {
         }
 
         const link = `https://t.me/${botInfo.username}`;
+        console.log('[TG_PHONE] /me/phone/request:sent_connected', {
+            user_id: String(state.user.id),
+            chat_id: String(state.user.telegram_id),
+            request_id: phoneRequest.requestId
+        });
 
         res.json({
             message: 'Phone request sent to Telegram bot',
