@@ -422,8 +422,8 @@
 - [x] Report export parity (PDF "as on screen" for key pages)
 
 ### P2 Week 2
-- [ ] E2E smoke tests (login/import/assign/take/report)
-- [ ] Error tracking integration
+- [x] E2E smoke tests (login/import/assign/take/report)
+- [x] Error tracking integration
 - [ ] Large-table performance pass
 - [ ] Backup/restore verification
 
@@ -462,6 +462,7 @@
 - [x] Analytics hardening: class detailed (`GET /api/analytics/class/:id/detailed`) now scopes attempts to current class assignments + school tests
 - [x] Analytics hardening: comparison students (`GET /api/analytics/school/comparison?type=students`) now scopes attempts by school tests
 - [x] E2E smoke scaffold added (`backend/src/tests/smoke.e2e.test.js` + `npm run test:smoke`) for login/import/assign/take/report flows
+- [x] Error tracking integration: optional Sentry (`SENTRY_DSN`) + request_id + capture in Express/process-level errors
 
 
 

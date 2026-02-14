@@ -6,9 +6,17 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const fs = require('fs');
+const crypto = require('crypto');
+const { initErrorTracking, captureException, captureMessage } = require('./utils/errorTracking');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const errorTrackingStatus = initErrorTracking();
+if (errorTrackingStatus.enabled) {
+    console.log(`Error tracking enabled: ${errorTrackingStatus.provider}`);
+} else {
+    console.log(`Error tracking disabled: ${errorTrackingStatus.reason}`);
+}
 
 // ==============================================
 // Environment Variables Check
@@ -65,6 +73,15 @@ app.use(compression());
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+    const incomingId = req.headers['x-request-id'];
+    const requestId = typeof incomingId === 'string' && incomingId.trim()
+        ? incomingId.trim()
+        : crypto.randomUUID();
+    req.requestId = requestId;
+    res.setHeader('x-request-id', requestId);
+    next();
+});
 
 // Logging
 if (process.env.NODE_ENV !== 'production') {
@@ -201,11 +218,29 @@ app.use((req, res) => {
 // ==============================================
 
 app.use((err, req, res, next) => {
+    captureException(err, {
+        tags: {
+            route: req.originalUrl || req.url || 'unknown',
+            method: req.method || 'unknown'
+        },
+        user: req.user ? {
+            id: req.user.id ? String(req.user.id) : undefined,
+            username: req.user.username || undefined,
+            role: req.user.role || undefined
+        } : undefined,
+        extra: {
+            request_id: req.requestId || null,
+            ip: req.ip || null,
+            status: err.status || 500
+        }
+    });
+
     console.error(err.stack);
     res.status(err.status || 500).json({
         error: {
             message: err.message || 'Internal Server Error',
-            status: err.status || 500
+            status: err.status || 500,
+            request_id: req.requestId || null
         }
     });
 });
@@ -215,6 +250,18 @@ app.use((err, req, res, next) => {
 // ==============================================
 
 if (require.main === module) {
+    process.on('unhandledRejection', (reason) => {
+        console.error('Unhandled promise rejection:', reason);
+        captureException(reason instanceof Error ? reason : new Error(String(reason)), {
+            tags: { kind: 'unhandledRejection' }
+        });
+    });
+
+    process.on('uncaughtException', (error) => {
+        console.error('Uncaught exception:', error);
+        captureException(error, { tags: { kind: 'uncaughtException' } });
+    });
+
     app.listen(PORT, () => {
         console.log(`
         ╔═══════════════════════════════════════╗
@@ -238,6 +285,10 @@ if (require.main === module) {
         console.log('   GET  /login');
         console.log('   GET  /dashboard');
         console.log('');
+        captureMessage('Server started', 'info', {
+            tags: { component: 'server' },
+            extra: { port: PORT, env: process.env.NODE_ENV || 'development' }
+        });
     });
 
     try {
