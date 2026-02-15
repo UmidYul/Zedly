@@ -19,6 +19,14 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
+function isEmailConfigured() {
+    return !!(process.env.SMTP_USER && (process.env.SMTP_PASSWORD || process.env.SMTP_PASS));
+}
+
+function getEmailFrom() {
+    return process.env.EMAIL_FROM || `"ZEDLY Platform" <${process.env.SMTP_USER}>`;
+}
+
 /**
  * Telegram Bot Configuration
  * Настройте TELEGRAM_BOT_TOKEN в .env файле
@@ -80,14 +88,14 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
  * @returns {Promise<boolean>}
  */
 async function sendEmail({ to, subject, text, html }) {
-    if (!process.env.SMTP_USER || !(process.env.SMTP_PASSWORD || process.env.SMTP_PASS)) {
+    if (!isEmailConfigured()) {
         console.warn('Email not configured. Skipping email notification.');
         return false;
     }
 
     try {
         await emailTransporter.sendMail({
-            from: `"ZEDLY Platform" <${process.env.SMTP_USER}>`,
+            from: getEmailFrom(),
             to,
             subject,
             text,
@@ -99,6 +107,25 @@ async function sendEmail({ to, subject, text, html }) {
         console.error('Email send error:', error);
         return false;
     }
+}
+
+async function sendVerificationCodeEmail({ to, code, firstName, expiresMinutes = 10 }) {
+    const safeFirstName = firstName ? `, ${String(firstName).trim()}` : '';
+    const subject = 'ZEDLY: Email verification code';
+    const text = `Hello${safeFirstName}. Your verification code is: ${code}. It expires in ${expiresMinutes} minutes.`;
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #111827;">
+            <h2 style="margin: 0 0 12px; color: #2563eb;">Email Verification</h2>
+            <p style="margin: 0 0 10px;">Hello${safeFirstName}.</p>
+            <p style="margin: 0 0 14px;">Use this code to confirm your email address:</p>
+            <div style="display: inline-block; padding: 10px 16px; border-radius: 8px; background: #eff6ff; border: 1px solid #bfdbfe; font-size: 24px; font-weight: 700; letter-spacing: 1px;">
+                ${code}
+            </div>
+            <p style="margin: 14px 0 0; color: #4b5563;">Code expires in ${expiresMinutes} minutes.</p>
+        </div>
+    `;
+
+    return sendEmail({ to, subject, text, html });
 }
 
 /**
@@ -554,7 +581,9 @@ async function notifyNewUser(user, password, language = 'ru') {
 }
 
 module.exports = {
+    isEmailConfigured,
     sendEmail,
+    sendVerificationCodeEmail,
     sendTelegram,
     telegramBot,
     sendTelegramToTargets,

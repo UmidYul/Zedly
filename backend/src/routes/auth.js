@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { query } = require('../config/database');
 const { generateTokens, verifyRefreshToken, generateAccessToken } = require('../utils/jwt');
 const { authenticate } = require('../middleware/auth');
-const { sendEmail } = require('../utils/notifications');
+const { sendVerificationCodeEmail, isEmailConfigured, sendEmail } = require('../utils/notifications');
 
 const router = express.Router();
 
@@ -727,11 +727,11 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
 
         if (contactType === 'email') {
             try {
-                await sendEmail({
+                await sendVerificationCodeEmail({
                     to: rawValue,
-                    subject: 'ZEDLY: подтверждение email',
-                    text: `Код подтверждения: ${code}. Он действует 10 минут.`,
-                    html: `<p>Здравствуйте${user.first_name ? `, ${user.first_name}` : ''}.</p><p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`
+                    code,
+                    firstName: user.first_name,
+                    expiresMinutes: 10
                 });
             } catch (emailError) {
                 console.error('Email verification send error:', emailError);
@@ -876,4 +876,91 @@ router.post('/profile/contact/verify', authenticate, async (req, res) => {
     }
 });
 
+/**
+ * POST /api/auth/profile/contact/test-email
+ * Send a test email (or test verification code) to current user's email
+ */
+router.post('/profile/contact/test-email', authenticate, async (req, res) => {
+    try {
+        if (!isEmailConfigured()) {
+            return res.status(503).json({
+                error: 'email_not_configured',
+                message: 'SMTP is not configured on server'
+            });
+        }
+
+        const userResult = await query(
+            'SELECT id, email, first_name FROM users WHERE id = $1',
+            [req.user.id]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'user_not_found',
+                message: 'User not found'
+            });
+        }
+
+        const user = userResult.rows[0];
+        const bodyTo = String(req.body?.to || '').trim();
+        const recipient = bodyTo || String(user.email || '').trim();
+
+        if (!recipient) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'User email is not set'
+            });
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid email format'
+            });
+        }
+
+        if (process.env.NODE_ENV === 'production' && bodyTo && bodyTo !== user.email) {
+            return res.status(403).json({
+                error: 'forbidden',
+                message: 'In production, test email can only be sent to your own email'
+            });
+        }
+
+        const sendCode = req.body?.mode === 'code';
+        const sent = sendCode
+            ? await sendVerificationCodeEmail({
+                to: recipient,
+                code: generateVerificationCode(),
+                firstName: user.first_name,
+                expiresMinutes: 10
+            })
+            : await sendEmail({
+                to: recipient,
+                subject: 'ZEDLY: test email',
+                text: 'This is a test email from ZEDLY. SMTP is configured and working.',
+                html: '<p>This is a test email from <strong>ZEDLY</strong>. SMTP is configured and working.</p>'
+            });
+
+        if (!sent) {
+            return res.status(502).json({
+                error: 'email_send_failed',
+                message: 'Failed to send email'
+            });
+        }
+
+        res.json({
+            message: 'Email sent successfully',
+            to: recipient,
+            mode: sendCode ? 'code' : 'plain'
+        });
+    } catch (error) {
+        console.error('Test email send error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to send test email'
+        });
+    }
+});
+
 module.exports = router;
+
