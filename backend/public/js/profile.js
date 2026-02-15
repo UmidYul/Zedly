@@ -294,7 +294,10 @@
                 { value: String(studentsCount), label: i18n.translate('profile.totalStudents') },
                 { value: String(teachersCount), label: i18n.translate('profile.totalTeachers') },
                 { value: String(adminsCount), label: i18n.translate('profile.totalAdmins') || 'Всего администраторов' },
-                { value: String(totalUsers), label: i18n.translate('profile.totalUsers') }
+                { value: String(totalUsers), label: i18n.translate('profile.totalUsers') },
+                { value: String(apiStats.classes ?? '-'), label: i18n.translate('profile.totalClasses') },
+                { value: String(apiStats.subjects ?? '-'), label: i18n.translate('profile.totalSubjects') },
+                { value: String(apiStats.tests ?? '-'), label: i18n.translate('profile.totalTests') }
             ];
         } else {
             cards = [
