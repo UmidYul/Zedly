@@ -714,9 +714,10 @@
 
 .assignment-row {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr) auto;
+    grid-template-columns: 1fr;
     gap: var(--spacing-md);
-    align-items: end;
+    align-items: start;
+    padding-right: 48px;
 }
 
 .assignment-col {
@@ -738,7 +739,9 @@
     cursor: pointer;
     transition: var(--transition-fast);
     padding: 0;
-    justify-self: end;
+    position: absolute;
+    top: 12px;
+    right: 12px;
 }
 
 .assignment-remove-btn:hover {
@@ -801,10 +804,12 @@
     .assignment-row {
         grid-template-columns: 1fr;
         align-items: start;
+        padding-right: 44px;
     }
 
     .assignment-remove-btn {
-        justify-self: start;
+        top: 10px;
+        right: 10px;
     }
 }
 
