@@ -1,6 +1,10 @@
-// Tests Management Component (Teacher)
+﻿// Tests Management Component (Teacher)
 (function () {
     'use strict';
+
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
 
     function normalizeHexColor(input, fallback = '#2563EB') {
         const value = String(input || '').trim();
@@ -43,17 +47,19 @@
         ].join('; ');
     }
 
-    function showAlert(message, title = 'Error') {
+    function showAlert(message, title = null) {
+        const dialogTitle = title || t('common.error', 'РћС€РёР±РєР°');
         if (window.ZedlyDialog?.alert) {
-            return window.ZedlyDialog.alert(message, { title });
+            return window.ZedlyDialog.alert(message, { title: dialogTitle });
         }
         alert(message);
         return Promise.resolve(true);
     }
 
-    function showConfirm(message, title = 'Confirmation') {
+    function showConfirm(message, title = null) {
+        const dialogTitle = title || t('common.confirmation', 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ');
         if (window.ZedlyDialog?.confirm) {
-            return window.ZedlyDialog.confirm(message, { title });
+            return window.ZedlyDialog.confirm(message, { title: dialogTitle });
         }
         return Promise.resolve(confirm(message));
     }
@@ -67,7 +73,7 @@
         overlay.innerHTML = `
             <div class="operation-progress-modal">
                 <div class="progress-head">
-                    <div class="progress-label"><span class="spinner" style="display:inline-block;"></span><span>Массовое удаление...</span></div>
+                    <div class="progress-label"><span class="spinner" style="display:inline-block;"></span><span>${t('tests.bulkDeleteProgress', 'Массовое удаление...')}</span></div>
                     <strong id="testsBulkDeletePercent">0%</strong>
                 </div>
                 <div class="progress-track"><div class="progress-fill" id="testsBulkDeleteFill" style="width:0%"></div></div>
@@ -86,7 +92,7 @@
         const meta = document.getElementById('testsBulkDeleteMeta');
         if (fill) fill.style.width = `${percent}%`;
         if (pct) pct.textContent = `${percent}%`;
-        if (meta) meta.textContent = `${safeDone} / ${safeTotal}` + (failed ? ` · Failed: ${failed}` : '');
+        if (meta) meta.textContent = `${safeDone} / ${safeTotal}` + (failed ? ` | ${t('tests.failedCount', 'Ошибок')}: ${failed}` : '');
     }
 
     function hideBulkProgress() {
@@ -134,11 +140,11 @@
             const subjectFilter = document.getElementById('subjectFilter');
             if (!subjectFilter) return;
 
-            subjectFilter.innerHTML = '<option value="all">All Subjects</option>';
+            subjectFilter.innerHTML = `<option value="all">${t('tests.allSubjects', 'Все предметы')}</option>`;
             this.subjects.forEach(subject => {
                 const option = document.createElement('option');
                 option.value = subject.id;
-                option.textContent = subject.name || subject.name_ru || subject.name_uz || 'Subject';
+                option.textContent = subject.name || subject.name_ru || subject.name_uz || t('tests.subject', 'Предмет');
                 subjectFilter.appendChild(option);
             });
         },
@@ -192,7 +198,7 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
                     <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Loading tests...</p>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('tests.loading', 'Загрузка тестов...')}</p>
                 </div>
             `;
 
@@ -210,7 +216,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!response.ok) throw new Error('Failed to load tests');
+                if (!response.ok) throw new Error(t('tests.failedLoadTests', 'Не удалось загрузить тесты'));
 
                 const data = await response.json();
                 this.renderTests(data.tests, data.pagination);
@@ -218,7 +224,7 @@
                 console.error('Load tests error:', error);
                 container.innerHTML = `
                     <div class="error-message">
-                        <p>Failed to load tests. Please try again.</p>
+                        <p>${t('tests.failedLoadTryAgain', 'Не удалось загрузить тесты. Попробуйте снова.')}</p>
                     </div>
                 `;
             }
@@ -233,7 +239,7 @@
             if (tests.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">No tests found. Create your first test!</p>
+                        <p style="color: var(--text-secondary);">${t('tests.noTestsFound', 'Тесты не найдены. Создайте первый тест!')}</p>
                     </div>
                 `;
                 return;
@@ -247,16 +253,16 @@
                                 type="checkbox"
                                 id="testsSelectAll"
                                 onchange="TestsManager.toggleSelectAllTests(this.checked)"
-                                aria-label="Select all tests"
+                                aria-label="${t('tests.selectAllTestsAria', 'Выбрать все тесты')}"
                             >
-                            <span>Select all on page</span>
+                            <span>${t('tests.selectAllOnPage', 'Выбрать все на странице')}</span>
                         </label>
-                        <span class="bulk-count-pill" id="testsBulkCount">0 selected</span>
-                        <button class="btn btn-sm btn-outline" id="testsClearSelectionBtn" onclick="TestsManager.clearSelection()">Clear</button>
+                        <span class="bulk-count-pill" id="testsBulkCount">0 ${t('tests.selectedCountSuffix', 'выбрано')}</span>
+                        <button class="btn btn-sm btn-outline" id="testsClearSelectionBtn" onclick="TestsManager.clearSelection()">${t('tests.clearSelection', 'Очистить')}</button>
                     </div>
                     <div class="bulk-toolbar-right">
                         <button class="btn btn-sm btn-danger" id="testsBulkDeleteBtn" onclick="TestsManager.bulkDeleteTests()" disabled>
-                            Delete selected
+                            ${t('tests.deleteSelected', 'Удалить выбранные')}
                         </button>
                     </div>
                 </div>
@@ -265,10 +271,13 @@
 
             tests.forEach(test => {
                 const statusClass = test.is_active ? 'status-active' : 'status-draft';
-                const statusText = test.is_active ? 'Active' : 'Draft';
+                const statusText = test.is_active
+                    ? t('tests.statusActive', 'Активный')
+                    : t('tests.statusDraft', 'Черновик');
                 const subjectBadgeStyle = buildSubjectBadgeStyle(test.subject_color);
                 const safeTitle = (test.title || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 const isSelected = this.selectedIds.has(test.id);
+                const selectLabelName = test.title || t('tests.testFallbackName', 'тест');
 
                 html += `
                     <div class="test-card ${isSelected ? 'bulk-card-selected' : ''}" data-test-id="${test.id}">
@@ -278,39 +287,39 @@
                                 class="bulk-row-checkbox"
                                 ${isSelected ? 'checked' : ''}
                                 onchange="TestsManager.toggleSelectTest('${test.id}')"
-                                aria-label="Select ${test.title || 'test'}"
+                                aria-label="${t('tests.selectTestAria', 'Выбрать тест')}: ${selectLabelName}"
                             >
                         </label>
                         <div class="test-card-header">
                             <div class="test-subject" style="${subjectBadgeStyle}">
-                                ${test.subject_name || 'No subject'}
+                                ${test.subject_name || t('tests.noSubject', 'Без предмета')}
                             </div>
                             <span class="status-badge ${statusClass}">${statusText}</span>
                         </div>
                         <div class="test-card-body">
                             <h3 class="test-title">${test.title}</h3>
-                            <p class="test-description">${test.description || 'No description'}</p>
+                            <p class="test-description">${test.description || t('tests.noDescription', 'Без описания')}</p>
                             <div class="test-stats">
                                 <div class="stat">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
-                                    <span>${test.duration_minutes} min</span>
+                                    <span>${test.duration_minutes} ${t('tests.minShort', 'мин')}</span>
                                 </div>
                                 <div class="stat">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M9 11l3 3L22 4"></path>
                                         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                                     </svg>
-                                    <span>${test.question_count} Q</span>
+                                    <span>${test.question_count} ${t('tests.questionsShort', 'вопр.')}</span>
                                 </div>
                                 <div class="stat">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                         <circle cx="12" cy="7" r="4"></circle>
                                     </svg>
-                                    <span>${test.max_attempts || 1} attempts</span>
+                                    <span>${test.max_attempts || 1} ${t('tests.attempts', 'попыток')}</span>
                                 </div>
                             </div>
                         </div>
@@ -320,21 +329,21 @@
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
                                 </svg>
-                                View
+                                ${t('tests.view', 'Просмотр')}
                             </button>
                             <button class="btn btn-sm btn-primary" onclick="TestsManager.editTest('${test.id}')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
-                                Edit
+                                ${t('tests.edit', 'Редактировать')}
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="TestsManager.deleteTest('${test.id}', '${safeTitle}')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                 </svg>
-                                Delete
+                                ${t('tests.delete', 'Удалить')}
                             </button>
                         </div>
                     </div>
@@ -380,7 +389,7 @@
             const count = this.selectedIds.size;
             const countEl = document.getElementById('testsBulkCount');
             if (countEl) {
-                countEl.textContent = `${count} selected`;
+                countEl.textContent = `${count} ${t('tests.selectedCountSuffix', 'выбрано')}`;
             }
 
             const deleteBtn = document.getElementById('testsBulkDeleteBtn');
@@ -410,7 +419,10 @@
             const ids = Array.from(this.selectedIds);
             if (ids.length === 0) return;
 
-            const confirmed = await showConfirm(`Are you sure you want to delete ${ids.length} selected tests permanently?`);
+            const confirmed = await showConfirm(
+                t('tests.bulkDeleteConfirm', 'Вы уверены, что хотите безвозвратно удалить выбранные тесты ({count})?')
+                    .replace('{count}', ids.length)
+            );
             if (!confirmed) return;
 
             const token = localStorage.getItem('access_token');
@@ -439,7 +451,12 @@
             const deleted = ids.length - failed;
             this.clearSelection();
             if (failed > 0) {
-                showAlert(`Deleted: ${deleted}. Failed: ${failed}.`, 'Bulk delete result');
+                showAlert(
+                    t('tests.bulkDeleteResultStats', 'Удалено: {deleted}. Ошибок: {failed}.')
+                        .replace('{deleted}', deleted)
+                        .replace('{failed}', failed),
+                    t('tests.bulkDeleteResultTitle', 'Массовое удаление')
+                );
             }
             this.loadTests();
         },
@@ -449,7 +466,7 @@
             let html = '<div class="pagination">';
 
             if (pagination.page > 1) {
-                html += `<button class="pagination-btn" onclick="TestsManager.goToPage(${pagination.page - 1})">Previous</button>`;
+                html += `<button class="pagination-btn" onclick="TestsManager.goToPage(${pagination.page - 1})">${t('common.prev', 'Назад')}</button>`;
             }
 
             for (let i = 1; i <= pagination.pages; i++) {
@@ -461,7 +478,7 @@
             }
 
             if (pagination.page < pagination.pages) {
-                html += `<button class="pagination-btn" onclick="TestsManager.goToPage(${pagination.page + 1})">Next</button>`;
+                html += `<button class="pagination-btn" onclick="TestsManager.goToPage(${pagination.page + 1})">${t('common.next', 'Далее')}</button>`;
             }
 
             html += '</div>';
@@ -502,14 +519,14 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load test');
+                    throw new Error(t('tests.failedLoadTest', 'Не удалось загрузить тест'));
                 }
 
                 const data = await response.json();
                 this.renderTestPreviewModal(data.test, data.questions || []);
             } catch (error) {
                 console.error('Load test preview error:', error);
-                showAlert('Failed to load test preview');
+                showAlert(t('tests.failedLoadPreview', 'Не удалось загрузить предпросмотр теста'));
             }
         },
 
@@ -530,35 +547,35 @@
                             <div class="detail-section">
                                 <div class="detail-grid">
                                     <div class="detail-item">
-                                        <label>Subject:</label>
+                                        <label>${t('tests.subjectLabel', 'Предмет')}:</label>
                                         <span>${test.subject_name || '-'}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <label>Duration:</label>
-                                        <span>${test.duration_minutes || '-'} minutes</span>
+                                        <label>${t('tests.durationLabel', 'Длительность')}:</label>
+                                        <span>${test.duration_minutes || '-'} ${t('tests.minutes', 'минут')}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <label>Passing Score:</label>
+                                        <label>${t('tests.passingScoreLabel', 'Проходной балл')}:</label>
                                         <span>${test.passing_score || 0}%</span>
                                     </div>
                                     <div class="detail-item">
-                                        <label>Questions:</label>
+                                        <label>${t('tests.questionsLabel', 'Вопросы')}:</label>
                                         <span>${questions.length}</span>
                                     </div>
                                 </div>
                                 ${test.description ? `<p style="margin-top: 12px; color: var(--text-secondary);">${test.description}</p>` : ''}
                             </div>
                             <div class="detail-section">
-                                <h3>Questions</h3>
-                                ${questions.length === 0 ? '<p style="color: var(--text-secondary);">No questions found.</p>' : `
+                                <h3>${t('tests.questionsLabel', 'Вопросы')}</h3>
+                                ${questions.length === 0 ? `<p style="color: var(--text-secondary);">${t('tests.noQuestionsFound', 'Вопросы не найдены.')}</p>` : `
                                     <div class="table-responsive">
                                         <table class="data-table">
                                             <thead>
                                                 <tr>
                                                     <th>#</th>
-                                                    <th>Type</th>
-                                                    <th>Question</th>
-                                                    <th>Marks</th>
+                                                    <th>${t('tests.type', 'Тип')}</th>
+                                                    <th>${t('tests.question', 'Вопрос')}</th>
+                                                    <th>${t('tests.marks', 'Баллы')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -577,7 +594,7 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="TestsManager.closeTestPreview()">Close</button>
+                            <button class="btn btn-outline" onclick="TestsManager.closeTestPreview()">${t('common.close', 'Закрыть')}</button>
                         </div>
                     </div>
                 </div>
@@ -605,7 +622,10 @@
 
         // Delete test
         deleteTest: async function (testId, testTitle) {
-            const confirmed = await showConfirm(`Are you sure you want to delete "${testTitle}" permanently?`);
+            const confirmed = await showConfirm(
+                t('tests.deleteConfirmSingle', 'Вы уверены, что хотите безвозвратно удалить "{title}"?')
+                    .replace('{title}', testTitle)
+            );
             if (!confirmed) {
                 return;
             }
@@ -621,12 +641,13 @@
                     this.selectedIds.delete(testId);
                     this.loadTests();
                 } else {
-                    showAlert('Failed to delete test');
+                    showAlert(t('tests.failedDeleteTest', 'Не удалось удалить тест'));
                 }
             } catch (error) {
                 console.error('Delete test error:', error);
-                showAlert('Failed to delete test');
+                showAlert(t('tests.failedDeleteTest', 'Не удалось удалить тест'));
             }
         }
     };
 })();
+

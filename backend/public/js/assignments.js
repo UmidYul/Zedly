@@ -2,17 +2,23 @@
 (function () {
     'use strict';
 
-    function showAlert(message, title = 'Error') {
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
+
+    function showAlert(message, title = null) {
+        const dialogTitle = title || t('common.error', 'Ошибка');
         if (window.ZedlyDialog?.alert) {
-            return window.ZedlyDialog.alert(message, { title });
+            return window.ZedlyDialog.alert(message, { title: dialogTitle });
         }
         alert(message);
         return Promise.resolve(true);
     }
 
-    function showConfirm(message, title = 'Confirmation') {
+    function showConfirm(message, title = null) {
+        const dialogTitle = title || t('common.confirmation', 'Подтверждение');
         if (window.ZedlyDialog?.confirm) {
-            return window.ZedlyDialog.confirm(message, { title });
+            return window.ZedlyDialog.confirm(message, { title: dialogTitle });
         }
         return Promise.resolve(confirm(message));
     }
@@ -129,7 +135,7 @@
             });
             const result = await response.json().catch(() => ({}));
             if (!response.ok) {
-                throw new Error(result.message || 'Failed to save assignment template');
+                throw new Error(result.message || t('assignments.failedSaveTemplate', 'Не удалось сохранить шаблон назначения'));
             }
             this.assignmentTemplates = Array.isArray(result.templates) ? result.templates : this.assignmentTemplates;
             return result;
@@ -143,7 +149,7 @@
             });
             const result = await response.json().catch(() => ({}));
             if (!response.ok) {
-                throw new Error(result.message || 'Failed to delete assignment template');
+                throw new Error(result.message || t('assignments.failedDeleteTemplate', 'Не удалось удалить шаблон'));
             }
             this.assignmentTemplates = Array.isArray(result.templates) ? result.templates : [];
             return result;
@@ -158,7 +164,7 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
                     <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Loading assignments...</p>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('assignments.loading', 'Загрузка назначений...')}</p>
                 </div>
             `;
 
@@ -179,7 +185,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load assignments');
+                    throw new Error(t('assignments.failedLoad', 'Не удалось загрузить назначения'));
                 }
 
                 const data = await response.json();
@@ -188,7 +194,7 @@
                 console.error('Load assignments error:', error);
                 container.innerHTML = `
                     <div class="error-message">
-                        <p>Failed to load assignments. Please try again.</p>
+                        <p>${t('assignments.failedLoadTryAgain', 'Не удалось загрузить назначения. Попробуйте снова.')}</p>
                     </div>
                 `;
             }
@@ -202,7 +208,7 @@
             if (assignments.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">No assignments found.</p>
+                        <p style="color: var(--text-secondary);">${t('assignments.noAssignments', 'Назначения не найдены.')}</p>
                     </div>
                 `;
                 return;
@@ -213,15 +219,15 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Test</th>
-                                <th>Class</th>
-                                <th>Subject</th>
-                                <th>Duration</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
-                                <th>Progress</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>${t('assignments.colTest', 'Тест')}</th>
+                                <th>${t('assignments.colClass', 'Класс')}</th>
+                                <th>${t('assignments.colSubject', 'Предмет')}</th>
+                                <th>${t('assignments.colDuration', 'Длительность')}</th>
+                                <th>${t('assignments.colStartDate', 'Дата начала')}</th>
+                                <th>${t('assignments.colEndDate', 'Дата окончания')}</th>
+                                <th>${t('assignments.colProgress', 'Прогресс')}</th>
+                                <th>${t('assignments.colStatus', 'Статус')}</th>
+                                <th>${t('assignments.colActions', 'Действия')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -233,17 +239,17 @@
                 const endDate = new Date(assignment.end_date);
 
                 let statusClass = 'status-inactive';
-                let statusText = 'Upcoming';
+                let statusText = t('assignments.statusUpcoming', 'Скоро');
 
                 if (!assignment.is_active) {
                     statusClass = 'status-inactive';
-                    statusText = 'Inactive';
+                    statusText = t('assignments.statusInactive', 'Неактивно');
                 } else if (now > endDate) {
                     statusClass = 'status-completed';
-                    statusText = 'Completed';
+                    statusText = t('assignments.statusCompleted', 'Завершено');
                 } else if (now >= startDate && now <= endDate) {
                     statusClass = 'status-active';
-                    statusText = 'Active';
+                    statusText = t('assignments.statusActive', 'Активно');
                 }
 
                 const progress = assignment.student_count > 0
@@ -254,7 +260,7 @@
                     <tr>
                         <td>
                             <div class="user-name">${assignment.test_title}</div>
-                            <div class="user-email">${assignment.passing_score}% passing score</div>
+                            <div class="user-email">${assignment.passing_score}% ${t('assignments.passingScore', 'проходной балл')}</div>
                         </td>
                         <td>
                             <div>${assignment.class_name}</div>
@@ -267,12 +273,12 @@
                                 </span>
                             ` : '-'}
                         </td>
-                        <td>${assignment.duration_minutes} min</td>
+                        <td>${assignment.duration_minutes} ${t('assignments.minShort', 'мин')}</td>
                         <td>${this.formatDate(assignment.start_date)}</td>
                         <td>${this.formatDate(assignment.end_date)}</td>
                         <td>
                             <div class="progress-info">
-                                <span>${assignment.attempt_count}/${assignment.student_count} students</span>
+                                <span>${assignment.attempt_count}/${assignment.student_count} ${t('assignments.students', 'учеников')}</span>
                                 <div class="progress-bar">
                                     <div class="progress-fill" style="width: ${progress}%"></div>
                                 </div>
@@ -281,25 +287,25 @@
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn-icon" onclick="AssignmentsManager.viewDetails('${assignment.id}')" title="View Details">
+                                <button class="btn-icon" onclick="AssignmentsManager.viewDetails('${assignment.id}')" title="${t('assignments.viewDetails', 'Детали')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                         <circle cx="12" cy="12" r="3"></circle>
                                     </svg>
                                 </button>
-                                <button class="btn-icon btn-success" onclick="AssignmentsManager.viewResults('${assignment.id}')" title="View Results">
+                                <button class="btn-icon btn-success" onclick="AssignmentsManager.viewResults('${assignment.id}')" title="${t('assignments.viewResults', 'Результаты')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M9 11l3 3L22 4"></path>
                                         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon" onclick="AssignmentsManager.editAssignment('${assignment.id}')" title="Edit">
+                                <button class="btn-icon" onclick="AssignmentsManager.editAssignment('${assignment.id}')" title="${t('tests.edit', 'Редактировать')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon btn-danger" onclick="AssignmentsManager.deleteAssignment('${assignment.id}', '${assignment.test_title}')" title="Delete">
+                                <button class="btn-icon btn-danger" onclick="AssignmentsManager.deleteAssignment('${assignment.id}', '${assignment.test_title}')" title="${t('tests.delete', 'Удалить')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"></polyline>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -330,7 +336,7 @@
             let html = '<div class="pagination">';
 
             if (pagination.page > 1) {
-                html += `<button class="pagination-btn" onclick="AssignmentsManager.goToPage(${pagination.page - 1})">Previous</button>`;
+                html += `<button class="pagination-btn" onclick="AssignmentsManager.goToPage(${pagination.page - 1})">${t('common.prev', 'Назад')}</button>`;
             }
 
             for (let i = 1; i <= pagination.pages; i++) {
@@ -342,7 +348,7 @@
             }
 
             if (pagination.page < pagination.pages) {
-                html += `<button class="pagination-btn" onclick="AssignmentsManager.goToPage(${pagination.page + 1})">Next</button>`;
+                html += `<button class="pagination-btn" onclick="AssignmentsManager.goToPage(${pagination.page + 1})">${t('common.next', 'Далее')}</button>`;
             }
 
             html += '</div>';
@@ -385,12 +391,12 @@
                         const data = await response.json();
                         assignmentData = data.assignment;
                     } else {
-                        showAlert('Failed to load assignment data');
+                        showAlert(t('assignments.failedLoadAssignmentData', 'Не удалось загрузить данные назначения'));
                         return;
                     }
                 } catch (error) {
                     console.error('Load assignment error:', error);
-                    showAlert('Failed to load assignment data');
+                    showAlert(t('assignments.failedLoadAssignmentData', 'Не удалось загрузить данные назначения'));
                     return;
                 }
             }
@@ -436,7 +442,7 @@
                 <div class="modal-overlay" id="assignmentModal">
                     <div class="modal">
                         <div class="modal-header">
-                            <h2 class="modal-title">${isEdit ? 'Edit Assignment' : 'Create New Assignment'}</h2>
+                            <h2 class="modal-title">${isEdit ? t('assignments.editAssignment', 'Редактировать назначение') : t('assignments.createNewAssignment', 'Создать назначение')}</h2>
                             <button class="modal-close" onclick="AssignmentsManager.closeModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -448,30 +454,30 @@
                             <form id="assignmentForm" onsubmit="AssignmentsManager.submitAssignment(event, ${assignmentId})">
                                 ${!isEdit ? `
                                 <div class="form-group">
-                                    <label class="form-label">Assignment Template</label>
+                                    <label class="form-label">${t('assignments.assignmentTemplate', 'Шаблон назначения')}</label>
                                     <div class="form-row" style="align-items:flex-end;">
                                         <div class="form-group" style="margin-bottom:0;flex:1;">
                                             <select class="form-input" name="template_id" id="assignmentTemplateSelect">
-                                                <option value="">Without template</option>
+                                                <option value="">${t('assignments.withoutTemplate', 'Без шаблона')}</option>
                                                 ${templatesList.map((tpl) =>
                                                     `<option value="${tpl.id}">${tpl.name}</option>`
                                                 ).join('')}
                                             </select>
                                         </div>
                                         <div style="display:flex;gap:8px;">
-                                            <button type="button" class="btn btn-outline" id="applyTemplateBtn">Apply</button>
-                                            <button type="button" class="btn btn-outline" id="deleteTemplateBtn">Delete</button>
+                                            <button type="button" class="btn btn-outline" id="applyTemplateBtn">${t('assignments.apply', 'Применить')}</button>
+                                            <button type="button" class="btn btn-outline" id="deleteTemplateBtn">${t('tests.delete', 'Удалить')}</button>
                                         </div>
                                     </div>
-                                    <span class="form-hint">Template fills test, classes and dates automatically.</span>
+                                    <span class="form-hint">${t('assignments.templateHint', 'Шаблон автоматически заполняет тест, классы и даты.')}</span>
                                 </div>
 
                                 <div class="form-group">
                                     <label class="form-label">
-                                        Test <span class="required">*</span>
+                                        ${t('assignments.colTest', 'Тест')} <span class="required">*</span>
                                     </label>
                                     <select class="form-input" name="test_id" required ${isEdit ? 'disabled' : ''}>
-                                        <option value="">Select test</option>
+                                        <option value="">${t('assignments.selectTest', 'Выберите тест')}</option>
                                         ${testsList.map(test =>
                 `<option value="${test.id}" data-subject-id="${test.subject_id || ''}" ${assignmentData?.test_id === test.id ? 'selected' : ''}>${test.title} (${test.subject_name})</option>`
             ).join('')}
@@ -480,23 +486,23 @@
 
                                 <div class="form-group">
                                     <label class="form-label">
-                                        Classes <span class="required">*</span>
+                                        ${t('assignments.classes', 'Классы')} <span class="required">*</span>
                                     </label>
                                     <select class="form-input" name="class_ids" multiple size="8" required ${isEdit ? 'disabled' : ''}>
                                     </select>
-                                    <span class="form-hint">Опция "Все классы" выбирает сразу все доступные классы.</span>
+                                    <span class="form-hint">${t('assignments.allClassesHint', 'Опция "Все классы" выбирает сразу все доступные классы.')}</span>
                                 </div>
                                 ` : `
                                 <div class="alert alert-info">
-                                    <strong>Test:</strong> ${assignmentData.test_title}<br>
-                                    <strong>Class:</strong> ${assignmentData.class_name}
+                                    <strong>${t('assignments.colTest', 'Тест')}:</strong> ${assignmentData.test_title}<br>
+                                    <strong>${t('assignments.colClass', 'Класс')}:</strong> ${assignmentData.class_name}
                                 </div>
                                 `}
 
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Start Date & Time <span class="required">*</span>
+                                            ${t('assignments.startDateTime', 'Дата и время начала')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -509,7 +515,7 @@
 
                                     <div class="form-group">
                                         <label class="form-label">
-                                            End Date & Time <span class="required">*</span>
+                                            ${t('assignments.endDateTime', 'Дата и время окончания')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -524,14 +530,14 @@
                                 <div class="form-group">
                                     <div class="form-check" style="margin-bottom:8px;">
                                         <input type="checkbox" class="form-check-input" id="saveAsTemplate" name="save_as_template" />
-                                        <label class="form-check-label" for="saveAsTemplate">Save as template</label>
+                                        <label class="form-check-label" for="saveAsTemplate">${t('assignments.saveAsTemplate', 'Сохранить как шаблон')}</label>
                                     </div>
                                     <input
                                         type="text"
                                         class="form-input"
                                         name="template_name"
                                         id="templateNameInput"
-                                        placeholder="Template name"
+                                        placeholder="${t('assignments.templateName', 'Название шаблона')}"
                                         maxlength="80"
                                         disabled
                                     />
@@ -548,7 +554,7 @@
                                             ${assignmentData?.is_active ? 'checked' : ''}
                                         />
                                         <label class="form-check-label" for="assignmentActive">
-                                            Active
+                                            ${t('assignments.statusActive', 'Активно')}
                                         </label>
                                     </div>
                                 </div>
@@ -559,10 +565,10 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="AssignmentsManager.closeModal()">
-                                Cancel
+                                ${t('common.close', 'Закрыть')}
                             </button>
                             <button type="submit" form="assignmentForm" class="btn btn-primary" id="submitBtn">
-                                ${isEdit ? 'Update Assignment' : 'Create Assignment'}
+                                ${isEdit ? t('assignments.updateAssignment', 'Обновить назначение') : t('assignments.createAssignment', 'Создать назначение')}
                             </button>
                         </div>
                     </div>
@@ -590,11 +596,11 @@
                 const setClassOptions = (classes = []) => {
                     if (!classSelect) return;
                     if (!classes.length) {
-                        classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
+                        classSelect.innerHTML = `<option value="" disabled>${t('assignments.noClassesAvailable', 'Нет доступных классов')}</option>`;
                         return;
                     }
                     classSelect.innerHTML = `
-                        <option value="__all__">Все классы</option>
+                        <option value="__all__">${t('assignments.allClassesOption', 'Все классы')}</option>
                         ${classes.map(cls =>
                             `<option value="${cls.id}">${cls.name} - ${cls.grade_level} класс</option>`
                         ).join('')}
@@ -604,7 +610,7 @@
                 const loadClassesForSubject = async (subjectId) => {
                     if (!subjectId) {
                         if (classSelect) {
-                            classSelect.innerHTML = `<option value="" disabled>Select test first</option>`;
+                            classSelect.innerHTML = `<option value="" disabled>${t('assignments.selectTestFirst', 'Сначала выберите тест')}</option>`;
                         }
                         return;
                     }
@@ -691,7 +697,7 @@
 
                 const initialSubjectId = testSelect?.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
                 if (!initialSubjectId) {
-                    if (classSelect) classSelect.innerHTML = `<option value="" disabled>Select test first</option>`;
+                    if (classSelect) classSelect.innerHTML = `<option value="" disabled>${t('assignments.selectTestFirst', 'Сначала выберите тест')}</option>`;
                 } else {
                     loadClassesForSubject(initialSubjectId);
                 }
@@ -709,7 +715,7 @@
                 if (applyTemplateBtn && templateSelect) {
                     applyTemplateBtn.addEventListener('click', async () => {
                         if (!templateSelect.value) {
-                            await showAlert('Select a template first');
+                            await showAlert(t('assignments.selectTemplateFirst', 'Сначала выберите шаблон'));
                             return;
                         }
                         await applyTemplateToForm(templateSelect.value);
@@ -720,10 +726,13 @@
                     deleteTemplateBtn.addEventListener('click', async () => {
                         const templateId = templateSelect.value;
                         if (!templateId) {
-                            await showAlert('Select a template to delete');
+                            await showAlert(t('assignments.selectTemplateToDelete', 'Выберите шаблон для удаления'));
                             return;
                         }
-                        const ok = await showConfirm('Delete selected assignment template?', 'Delete template');
+                        const ok = await showConfirm(
+                            t('assignments.deleteTemplateConfirm', 'Удалить выбранный шаблон назначения?'),
+                            t('assignments.deleteTemplateTitle', 'Удаление шаблона')
+                        );
                         if (!ok) return;
                         try {
                             await this.deleteAssignmentTemplate(templateId);
@@ -737,7 +746,7 @@
                             templateSelect.value = '';
                             delete templatesById[selected];
                         } catch (error) {
-                            await showAlert(error.message || 'Failed to delete template');
+                            await showAlert(error.message || t('assignments.failedDeleteTemplate', 'Не удалось удалить шаблон'));
                         }
                     });
                 }
@@ -819,25 +828,25 @@
             // Validation
             if (!assignmentId && (!data.test_id || !Array.isArray(data.class_ids) || data.class_ids.length === 0)) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Please select a test and at least one class';
+                formAlert.textContent = t('assignments.validationTestAndClass', 'Выберите тест и хотя бы один класс');
                 return;
             }
 
             if (!data.start_date || !data.end_date) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Please fill in start and end dates';
+                formAlert.textContent = t('assignments.validationDatesRequired', 'Заполните дату начала и окончания');
                 return;
             }
 
             if (new Date(data.start_date) >= new Date(data.end_date)) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'End date must be after start date';
+                formAlert.textContent = t('assignments.validationEndAfterStart', 'Дата окончания должна быть позже даты начала');
                 return;
             }
 
             if (!assignmentId && formData.get('save_as_template') === 'on' && !String(formData.get('template_name') || '').trim()) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Enter template name';
+                formAlert.textContent = t('assignments.validationTemplateName', 'Введите название шаблона');
                 return;
             }
 
@@ -899,12 +908,12 @@
                 } else {
                     // Show error
                     formAlert.className = 'alert alert-error';
-                    formAlert.textContent = result.message || 'An error occurred';
+                    formAlert.textContent = result.message || t('assignments.errorGeneric', 'Произошла ошибка');
                 }
             } catch (error) {
                 console.error('Submit assignment error:', error);
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Network error. Please try again.';
+                formAlert.textContent = t('assignments.errorNetwork', 'Ошибка сети. Попробуйте снова.');
             } finally {
                 submitBtn.classList.remove('loading');
                 submitBtn.disabled = false;
@@ -925,14 +934,14 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load assignment details');
+                    throw new Error(t('assignments.failedLoadDetails', 'Не удалось загрузить детали назначения'));
                 }
 
                 const data = await response.json();
                 this.showDetailsModal(data.assignment, data.students);
             } catch (error) {
                 console.error('Load assignment details error:', error);
-                showAlert('Failed to load assignment details');
+                showAlert(t('assignments.failedLoadDetails', 'Не удалось загрузить детали назначения'));
             }
         },
 
@@ -946,7 +955,7 @@
                 <div class="modal-overlay" id="assignmentDetailsModal">
                     <div class="modal modal-large">
                         <div class="modal-header">
-                            <h2 class="modal-title">Assignment Details</h2>
+                            <h2 class="modal-title">${t('assignments.assignmentDetails', 'Детали назначения')}</h2>
                             <button class="modal-close" onclick="AssignmentsManager.closeModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -957,71 +966,71 @@
                         <div class="modal-body">
                             <div class="assignment-details">
                                 <div class="detail-section">
-                                    <h3>Test Information</h3>
+                                    <h3>${t('assignments.testInformation', 'Информация о тесте')}</h3>
                                     <div class="detail-grid">
                                         <div class="detail-item">
-                                            <label>Test:</label>
+                                            <label>${t('assignments.colTest', 'Тест')}:</label>
                                             <span>${assignment.test_title}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>Subject:</label>
+                                            <label>${t('assignments.colSubject', 'Предмет')}:</label>
                                             <span>${assignment.subject_name || '-'}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>Duration:</label>
-                                            <span>${assignment.duration_minutes} minutes</span>
+                                            <label>${t('assignments.colDuration', 'Длительность')}:</label>
+                                            <span>${assignment.duration_minutes} ${t('assignments.minutes', 'минут')}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>Questions:</label>
+                                            <label>${t('assignments.questions', 'Вопросы')}:</label>
                                             <span>${assignment.question_count}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>Passing Score:</label>
+                                            <label>${t('assignments.passingScoreLabel', 'Проходной балл')}:</label>
                                             <span>${assignment.passing_score}%</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>Max Attempts:</label>
+                                            <label>${t('assignments.maxAttempts', 'Макс. попыток')}:</label>
                                             <span>${assignment.max_attempts}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="detail-section">
-                                    <h3>Assignment Details</h3>
+                                    <h3>${t('assignments.assignmentDetails', 'Детали назначения')}</h3>
                                     <div class="detail-grid">
                                         <div class="detail-item">
-                                            <label>Class:</label>
+                                            <label>${t('assignments.colClass', 'Класс')}:</label>
                                             <span>${assignment.class_name} (${assignment.grade_level} класс)</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>Start Date:</label>
+                                            <label>${t('assignments.colStartDate', 'Дата начала')}:</label>
                                             <span>${this.formatDate(assignment.start_date)}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>End Date:</label>
+                                            <label>${t('assignments.colEndDate', 'Дата окончания')}:</label>
                                             <span>${this.formatDate(assignment.end_date)}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>Status:</label>
+                                            <label>${t('assignments.colStatus', 'Статус')}:</label>
                                             <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
-                                                ${isActive ? 'Active' : 'Inactive'}
+                                                ${isActive ? t('assignments.statusActive', 'Активно') : t('assignments.statusInactive', 'Неактивно')}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="detail-section">
-                                    <h3>Student Progress (${students.length} students)</h3>
+                                    <h3>${t('assignments.studentProgress', 'Прогресс учеников')} (${students.length} ${t('assignments.students', 'учеников')})</h3>
                                     <div class="table-responsive">
                                         <table class="data-table">
                                             <thead>
                                                 <tr>
-                                                    <th>Roll #</th>
-                                                    <th>Student Name</th>
-                                                    <th>Attempts Made</th>
-                                                    <th>Best Score</th>
-                                                    <th>Last Attempt</th>
-                                                    <th>Status</th>
+                                                    <th>${t('assignments.rollNumber', '№ в журнале')}</th>
+                                                    <th>${t('assignments.studentName', 'Имя ученика')}</th>
+                                                    <th>${t('assignments.attemptsMade', 'Попыток')}</th>
+                                                    <th>${t('assignments.bestScore', 'Лучший балл')}</th>
+                                                    <th>${t('assignments.lastAttempt', 'Последняя попытка')}</th>
+                                                    <th>${t('assignments.colStatus', 'Статус')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1029,7 +1038,9 @@
                 const bestScore = student.best_score !== null ? parseFloat(student.best_score).toFixed(1) : '-';
                 const isPassed = student.best_score !== null && student.best_score >= assignment.passing_score;
                 const statusClass = student.attempts_made === 0 ? 'status-inactive' : (isPassed ? 'status-active' : 'status-warning');
-                const statusText = student.attempts_made === 0 ? 'Not Started' : (isPassed ? 'Passed' : 'In Progress');
+                const statusText = student.attempts_made === 0
+                    ? t('assignments.statusNotStarted', 'Не начато')
+                    : (isPassed ? t('assignments.statusPassed', 'Сдано') : t('assignments.statusInProgress', 'В процессе'));
 
                 return `
                                                     <tr>
@@ -1050,7 +1061,7 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="AssignmentsManager.closeModal()">
-                                Close
+                                ${t('common.close', 'Закрыть')}
                             </button>
                         </div>
                     </div>
@@ -1069,7 +1080,9 @@
 
         // Delete assignment
         deleteAssignment: async function (assignmentId, testTitle) {
-            const confirmed = await showConfirm(`Are you sure you want to delete assignment "${testTitle}"?`);
+            const confirmed = await showConfirm(
+                t('assignments.deleteConfirm', 'Вы уверены, что хотите удалить назначение "{title}"?').replace('{title}', testTitle)
+            );
             if (!confirmed) {
                 return;
             }
@@ -1086,11 +1099,11 @@
                 if (response.ok) {
                     this.loadAssignments();
                 } else {
-                    showAlert('Failed to delete assignment');
+                    showAlert(t('assignments.failedDeleteAssignment', 'Не удалось удалить назначение'));
                 }
             } catch (error) {
                 console.error('Delete assignment error:', error);
-                showAlert('Failed to delete assignment');
+                showAlert(t('assignments.failedDeleteAssignment', 'Не удалось удалить назначение'));
             }
         },
 

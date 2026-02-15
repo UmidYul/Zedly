@@ -1710,8 +1710,8 @@
                 return `
                     <div class="page-tabs">
                         <div class="tabs">
-                            <button class="tab active" data-tab="available">Available Tests</button>
-                            <button class="tab" data-tab="completed">Completed Tests</button>
+                            <button class="tab active" data-tab="available">${t('tests.availableTests', 'Доступные тесты')}</button>
+                            <button class="tab" data-tab="completed">${t('tests.completedTests', 'Завершенные тесты')}</button>
                         </div>
                     </div>
                     <div id="studentSubjectFilter"></div>
@@ -1725,17 +1725,17 @@
                                 type="text"
                                 id="testsSearch"
                                 class="search-input"
-                                placeholder="Search tests..."
+                                placeholder="${t('tests.searchPlaceholder', 'Поиск тестов...')}"
                             />
                         </div>
                         <div class="toolbar-filters">
                             <select id="subjectFilter" class="filter-select">
-                                <option value="all">All Subjects</option>
+                                <option value="all">${t('tests.allSubjects', 'Все предметы')}</option>
                             </select>
                             <select id="statusFilter" class="filter-select">
-                                <option value="all">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="draft">Drafts</option>
+                                <option value="all">${t('tests.allStatus', 'Все статусы')}</option>
+                                <option value="active">${t('tests.statusActive', 'Активный')}</option>
+                                <option value="draft">${t('tests.statusDraft', 'Черновик')}</option>
                             </select>
                         </div>
                         <div class="toolbar-right">
@@ -1744,7 +1744,7 @@
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                Create Test
+                                ${t('tests.createTest', 'Создать тест')}
                             </button>
                         </div>
                     </div>
@@ -1920,18 +1920,18 @@
                             type="text"
                             id="assignmentsSearch"
                             class="search-input"
-                            placeholder="Search assignments..."
+                            placeholder="${t('assignments.searchPlaceholder', 'Поиск назначений...')}"
                         />
                     </div>
                     <div class="toolbar-filters">
                         <select id="classFilter" class="filter-select">
-                            <option value="all">All Classes</option>
+                            <option value="all">${t('assignments.allClasses', 'Все классы')}</option>
                         </select>
                         <select id="statusFilter" class="filter-select">
-                            <option value="all">All Statuses</option>
-                            <option value="active">Active</option>
-                            <option value="completed">Completed</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="all">${t('assignments.allStatuses', 'Все статусы')}</option>
+                            <option value="active">${t('assignments.statusActive', 'Активно')}</option>
+                            <option value="completed">${t('assignments.statusCompleted', 'Завершено')}</option>
+                            <option value="inactive">${t('assignments.statusInactive', 'Неактивно')}</option>
                         </select>
                     </div>
                     <div class="toolbar-right">
@@ -1940,7 +1940,7 @@
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            Create Assignment
+                            ${t('assignments.createAssignment', 'Создать назначение')}
                         </button>
                     </div>
                 </div>
