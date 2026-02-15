@@ -2308,6 +2308,26 @@
         width: 100%;
     }
 
+    /* Keep Users/Classes in classic row tables on mobile (compact, horizontal scroll) */
+    #usersContainer .table-responsive,
+    #classesContainer .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #usersContainer .data-table,
+    #classesContainer .data-table {
+        min-width: 860px;
+        font-size: 12px;
+    }
+
+    #usersContainer .data-table th,
+    #usersContainer .data-table td,
+    #classesContainer .data-table th,
+    #classesContainer .data-table td {
+        padding: 8px 8px;
+    }
+
     /* SuperAdmin + SchoolAdmin reports/settings/statistics/comparison */
     .reports-page,
     .audit-page,
@@ -2332,6 +2352,52 @@
 
     .reports-notification-filters {
         grid-template-columns: 1fr;
+    }
+
+    .reports-page .dashboard-section {
+        padding: 12px;
+    }
+
+    .reports-toolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .reports-toolbar .toolbar-filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .reports-toolbar .toolbar-right {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .reports-toolbar .toolbar-right .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .reports-page .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .reports-page .data-table {
+        min-width: 760px;
+        font-size: 12px;
+    }
+
+    .reports-page .data-table th,
+    .reports-page .data-table td {
+        padding: 8px 8px;
+        white-space: nowrap;
     }
 
     /* Teacher: students/calendar */
@@ -2417,6 +2483,11 @@
 
     .students-chart-wrap {
         height: 220px;
+    }
+
+    .reports-toolbar .toolbar-filters,
+    .reports-toolbar .toolbar-right {
+        grid-template-columns: 1fr;
     }
 }
 

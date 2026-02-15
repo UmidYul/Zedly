@@ -240,7 +240,7 @@
                     </div>
                 </div>
                 ` : ''}
-                <div class="table-responsive mobile-stack-table">
+                <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
