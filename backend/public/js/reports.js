@@ -423,7 +423,7 @@
         const total = Number(pagination.total) || 0;
 
         tableEl.innerHTML = `
-            <div class="table-responsive">
+            <div class="table-responsive mobile-stack-table">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -441,13 +441,13 @@
                     <tbody>
                         ${rows.map((row) => `
                             <tr>
-                                <td>${row.created_at ? new Date(row.created_at).toLocaleString('ru-RU') : '-'}</td>
-                                ${state.role === 'superadmin' ? `<td>${escapeHtml(row.school_name || '-')}</td>` : ''}
-                                <td>${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
-                                <td>${escapeHtml(row.role || '-')}</td>
-                                <td>${escapeHtml(row.channel || '-')}</td>
-                                <td>${escapeHtml(row.event_key || '-')}</td>
-                                <td>
+                                <td data-label="${t('common.date', 'Дата')}">${row.created_at ? new Date(row.created_at).toLocaleString('ru-RU') : '-'}</td>
+                                ${state.role === 'superadmin' ? `<td data-label="${t('reports.school', 'Школа')}">${escapeHtml(row.school_name || '-')}</td>` : ''}
+                                <td data-label="${t('reports.user', 'Пользователь')}">${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
+                                <td data-label="${t('common.role', 'Роль')}">${escapeHtml(row.role || '-')}</td>
+                                <td data-label="${t('common.channel', 'Канал')}">${escapeHtml(row.channel || '-')}</td>
+                                <td data-label="${t('common.event', 'Событие')}">${escapeHtml(row.event_key || '-')}</td>
+                                <td data-label="${t('common.status', 'Статус')}">
                                     <span class="reports-notification-status ${(row.status || '').toLowerCase() === 'sent' ? 'sent' : 'failed'}">
                                         ${(String(row.status || '').toLowerCase() === 'sent')
                                             ? t('reports.statusSent', 'Отправлено')
@@ -456,8 +456,8 @@
                                                 : escapeHtml(row.status || '-')}
                                     </span>
                                 </td>
-                                <td>${escapeHtml(buildNotificationRecipientLabel(row))}</td>
-                                <td>${escapeHtml(row.error_message || '-')}</td>
+                                <td data-label="${t('reports.recipient', 'Получатель')}">${escapeHtml(buildNotificationRecipientLabel(row))}</td>
+                                <td data-label="${t('reports.errorField', 'Ошибка')}">${escapeHtml(row.error_message || '-')}</td>
                             </tr>
                         `).join('')}
                     </tbody>

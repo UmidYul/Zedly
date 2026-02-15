@@ -2142,6 +2142,8 @@
         gap: 4px;
         padding: 3px;
         flex-shrink: 0;
+        order: 3;
+        margin-left: 2px;
     }
 
     .lang-switch .lang-btn {
@@ -2154,6 +2156,25 @@
         top: -2px;
         right: -2px;
         padding: 1px 5px;
+    }
+
+    /* Keep language switch visible on phones by reducing less critical actions */
+    #telegramConnectBtn {
+        display: none;
+    }
+}
+
+@media (max-width: 430px) {
+    .header-logo span {
+        display: none;
+    }
+
+    .header-center {
+        flex: 0 1 auto;
+    }
+
+    .header-actions {
+        overflow-x: visible;
     }
 }
 

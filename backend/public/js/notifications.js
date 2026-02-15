@@ -280,6 +280,7 @@
 
     function renderNotifications() {
         let dropdown = document.getElementById('notificationsDropdown');
+        let backdrop = document.getElementById('notificationsBackdrop');
 
         if (!dropdown) {
             dropdown = document.createElement('div');
@@ -287,6 +288,14 @@
             dropdown.className = 'notifications-dropdown';
             dropdown.style.display = 'none';
             document.body.appendChild(dropdown);
+        }
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'notificationsBackdrop';
+            backdrop.className = 'notifications-backdrop';
+            backdrop.style.display = 'none';
+            backdrop.addEventListener('click', closeDropdown);
+            document.body.appendChild(backdrop);
         }
 
         const translate = window.ZedlyI18n?.translate || ((key) => key);
@@ -378,17 +387,26 @@
 
     function toggleDropdown() {
         const dropdown = document.getElementById('notificationsDropdown');
+        const backdrop = document.getElementById('notificationsBackdrop');
         if (dropdown) {
             const isVisible = dropdown.style.display === 'block';
             dropdown.style.display = isVisible ? 'none' : 'block';
-            document.body.classList.toggle('notifications-open', !isVisible && window.matchMedia('(max-width: 968px)').matches);
+            const isMobile = window.matchMedia('(max-width: 968px)').matches;
+            if (backdrop) {
+                backdrop.style.display = !isVisible && isMobile ? 'block' : 'none';
+            }
+            document.body.classList.toggle('notifications-open', !isVisible && isMobile);
         }
     }
 
     function closeDropdown() {
         const dropdown = document.getElementById('notificationsDropdown');
+        const backdrop = document.getElementById('notificationsBackdrop');
         if (dropdown) {
             dropdown.style.display = 'none';
+        }
+        if (backdrop) {
+            backdrop.style.display = 'none';
         }
         document.body.classList.remove('notifications-open');
     }
@@ -450,4 +468,3 @@
         initNotifications();
     }
 })();
-
