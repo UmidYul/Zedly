@@ -491,3 +491,33 @@
 
 
 
+
+## 2026-02-15 Notifications Upgrade (Started)
+
+### Goals
+- Unify notification policy resolution across roles/channels/events.
+- Respect user preferences for both email and Telegram in all notify* flows.
+- Prepare role-based notification roadmap (student/teacher/school_admin/superadmin).
+
+### Implemented now
+- [x] Added unified notification defaults by role in `backend/src/utils/notifications.js`.
+- [x] Added channel/event resolver (`isEventEnabledForChannel`) with support for:
+  - profile notification preferences (`settings.profile.notification_preferences`)
+  - legacy Telegram preferences (`settings.telegram_notifications`)
+- [x] Applied resolver to active senders:
+  - `notifyNewTest`
+  - `notifyPasswordReset`
+  - `notifyNewUser`
+  (email + telegram branches now respect channel/event settings)
+
+### Next tasks in progress
+- [x] Add delivery logging table (`notification_log`) with status/error/retry metadata.
+- [ ] Add digest scheduler for `daily/weekly` frequency.
+- [ ] Add fallback chain by channel (telegram -> email -> in-app).
+- [ ] Add role-specific event matrix and admin UI for defaults.
+### 2026-02-15 Worklog (in this session)
+- [x] Unified channel/event preference resolver added to notifications core.
+- [x] Email + Telegram send paths now respect per-user preferences for events: `new_test`, `password_reset`, `welcome`.
+- [x] Delivery logging started in code (`logNotificationAttempt`) for email and telegram results.
+- [x] Added DB migration scaffold for delivery logs: `database/migrations/2026_02_15_notification_log.psql`.
+- [ ] Next: add read API for notification delivery logs and admin diagnostics UI.

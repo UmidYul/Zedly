@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const TelegramBot = require('node-telegram-bot-api');
+const { query } = require('../config/database');
 
 function getAppUrl() {
     return process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
@@ -263,6 +264,39 @@ function escapeHtml(value) {
         .replace(/>/g, '&gt;');
 }
 
+async function logNotificationAttempt({
+    userId,
+    channel,
+    eventKey,
+    status,
+    recipient,
+    subject,
+    errorMessage,
+    metadata
+}) {
+    try {
+        await query(
+            `INSERT INTO notification_log (user_id, channel, event_key, status, recipient, subject, error_message, metadata)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+                userId || null,
+                String(channel || 'unknown'),
+                String(eventKey || 'unknown'),
+                String(status || 'unknown'),
+                recipient ? String(recipient) : null,
+                subject ? String(subject) : null,
+                errorMessage ? String(errorMessage).slice(0, 1500) : null,
+                metadata || null
+            ]
+        );
+    } catch (error) {
+        // Do not break notification flow if logging table is not ready yet.
+        if (process.env.NODE_ENV !== 'production') {
+            console.warn('Notification log insert skipped:', error.message);
+        }
+    }
+}
+
 function escapeHtmlEmail(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -280,26 +314,56 @@ function plainTextToEmailHtml(text) {
         .join('');
 }
 
+function getEmailTemplateTheme() {
+    const theme = String(process.env.EMAIL_TEMPLATE_THEME || 'corporate').trim().toLowerCase();
+    return theme || 'corporate';
+}
+
 function buildModernEmailTemplate({ title, eyebrow = 'ZEDLY', bodyHtml, ctaText, ctaUrl, footerNote }) {
+    const theme = getEmailTemplateTheme();
     const safeTitle = escapeHtmlEmail(title || 'Notification');
     const safeEyebrow = escapeHtmlEmail(eyebrow || 'ZEDLY');
     const safeFooter = escapeHtmlEmail(footerNote || 'This is an automated message from ZEDLY.');
+    const palette = theme === 'modern'
+        ? {
+            pageBg: '#f1f5f9',
+            cardBg: '#ffffff',
+            cardBorder: '#e2e8f0',
+            headerBg: 'linear-gradient(135deg,#0f172a 0%,#1d4ed8 100%)',
+            eyebrowColor: '#bfdbfe',
+            titleColor: '#ffffff',
+            buttonBg: '#0f172a',
+            buttonColor: '#ffffff',
+            footerColor: '#64748b'
+        }
+        : {
+            pageBg: '#eef2f7',
+            cardBg: '#ffffff',
+            cardBorder: '#d5dce6',
+            headerBg: 'linear-gradient(135deg,#0b1f3a 0%,#17406d 100%)',
+            eyebrowColor: '#c8d8ee',
+            titleColor: '#ffffff',
+            buttonBg: '#17406d',
+            buttonColor: '#ffffff',
+            footerColor: '#5f6b7a'
+        };
+
     const button = ctaText && ctaUrl
-        ? `<div style="margin-top: 18px;"><a href="${escapeHtmlEmail(ctaUrl)}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;">${escapeHtmlEmail(ctaText)}</a></div>`
+        ? `<div style="margin-top: 18px;"><a href="${escapeHtmlEmail(ctaUrl)}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:${palette.buttonBg};color:${palette.buttonColor};text-decoration:none;font-weight:600;">${escapeHtmlEmail(ctaText)}</a></div>`
         : '';
 
     return `
-        <div style="margin:0;padding:28px 12px;background:#f1f5f9;">
-            <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
-                <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 100%);">
-                    <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#bfdbfe;margin-bottom:8px;">${safeEyebrow}</div>
-                    <div style="font-size:24px;line-height:1.25;font-weight:800;color:#ffffff;">${safeTitle}</div>
+        <div style="margin:0;padding:28px 12px;background:${palette.pageBg};">
+            <div style="max-width:640px;margin:0 auto;background:${palette.cardBg};border:1px solid ${palette.cardBorder};border-radius:12px;overflow:hidden;">
+                <div style="padding:18px 24px;background:${palette.headerBg};">
+                    <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:${palette.eyebrowColor};margin-bottom:8px;">${safeEyebrow}</div>
+                    <div style="font-size:24px;line-height:1.25;font-weight:800;color:${palette.titleColor};">${safeTitle}</div>
                 </div>
                 <div style="padding:24px;">
                     ${bodyHtml}
                     ${button}
                 </div>
-                <div style="padding:14px 24px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;">
+                <div style="padding:14px 24px;border-top:1px solid ${palette.cardBorder};font-size:12px;color:${palette.footerColor};">
                     ${safeFooter}
                 </div>
             </div>
@@ -323,35 +387,94 @@ function parseUserSettings(settings) {
     return {};
 }
 
-function getDefaultTelegramPreferencesByRole(role) {
+function getDefaultNotificationPreferencesByRole(role) {
     const defaults = {
-        student: { enabled: true, new_test: true, password_reset: true, welcome: true },
-        teacher: { enabled: true, password_reset: true, welcome: true },
-        school_admin: { enabled: true, password_reset: true, welcome: true },
-        superadmin: { enabled: true, password_reset: true, welcome: true }
+        student: {
+            channels: { email: true, telegram: true },
+            events: {
+                new_test: true,
+                assignment_deadline: true,
+                password_reset: true,
+                profile_updates: true,
+                system_updates: false,
+                welcome: true
+            }
+        },
+        teacher: {
+            channels: { email: true, telegram: true },
+            events: {
+                new_test: false,
+                assignment_deadline: true,
+                password_reset: true,
+                profile_updates: true,
+                system_updates: true,
+                welcome: true
+            }
+        },
+        school_admin: {
+            channels: { email: true, telegram: true },
+            events: {
+                new_test: false,
+                assignment_deadline: true,
+                password_reset: true,
+                profile_updates: true,
+                system_updates: true,
+                welcome: true
+            }
+        },
+        superadmin: {
+            channels: { email: true, telegram: true },
+            events: {
+                new_test: false,
+                assignment_deadline: true,
+                password_reset: true,
+                profile_updates: true,
+                system_updates: true,
+                welcome: true
+            }
+        }
     };
 
-    return defaults[role] || { enabled: true, password_reset: true, welcome: true };
+    return defaults[role] || defaults.teacher;
 }
 
-function isTelegramEventEnabled(user, eventKey) {
-    const settings = parseUserSettings(user?.settings);
-    const defaults = getDefaultTelegramPreferencesByRole(user?.role);
-    const prefs = settings.telegram_notifications;
+function isEventEnabledForChannel(user, channel, eventKey) {
+    const safeChannel = String(channel || '').trim().toLowerCase();
+    const safeEvent = String(eventKey || '').trim().toLowerCase();
+    if (!safeChannel || !safeEvent) return false;
 
-    if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) {
-        return defaults[eventKey] !== false;
+    const settings = parseUserSettings(user?.settings);
+    const defaults = getDefaultNotificationPreferencesByRole(user?.role);
+    const profilePrefs = settings?.profile?.notification_preferences;
+    const legacyTelegramPrefs = settings?.telegram_notifications;
+
+    let channelEnabled = defaults.channels?.[safeChannel] !== false;
+    if (profilePrefs?.channels && profilePrefs.channels[safeChannel] !== undefined) {
+        channelEnabled = !!profilePrefs.channels[safeChannel];
     }
 
-    if (prefs.enabled === false) {
+    if (safeChannel === 'telegram' && legacyTelegramPrefs?.enabled === false) {
+        channelEnabled = false;
+    }
+
+    if (!channelEnabled) {
         return false;
     }
 
-    if (prefs[eventKey] !== undefined) {
-        return !!prefs[eventKey];
+    let eventEnabled = defaults.events?.[safeEvent] !== false;
+    if (profilePrefs?.events && profilePrefs.events[safeEvent] !== undefined) {
+        eventEnabled = !!profilePrefs.events[safeEvent];
     }
 
-    return defaults[eventKey] !== false;
+    if (safeChannel === 'telegram' && legacyTelegramPrefs?.[safeEvent] !== undefined) {
+        eventEnabled = !!legacyTelegramPrefs[safeEvent];
+    }
+
+    return eventEnabled;
+}
+
+function isTelegramEventEnabled(user, eventKey) {
+    return isEventEnabledForChannel(user, 'telegram', eventKey);
 }
 
 /**
@@ -469,7 +592,7 @@ async function notifyNewTest(user, test, language = 'ru') {
     const testLink = buildNewTestLink(test);
 
     // Send email
-    if (user.email) {
+    if (user.email && isEventEnabledForChannel(user, 'email', 'new_test')) {
         const emailHtml = buildModernEmailTemplate({
             title: msg.subject,
             eyebrow: language === 'uz' ? 'Yangi test' : 'Новый тест',
@@ -487,10 +610,20 @@ async function notifyNewTest(user, test, language = 'ru') {
             text: msg.text,
             html: emailHtml
         });
+
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'email',
+            eventKey: 'new_test',
+            status: results.email ? 'sent' : 'failed',
+            recipient: user.email,
+            subject: msg.subject,
+            metadata: { test_id: test.id || null }
+        });
     }
 
     // Send Telegram (role-aware preferences)
-    const userChatId = isTelegramEventEnabled(user, 'new_test') ? user.telegram_id : null;
+    const userChatId = isEventEnabledForChannel(user, 'telegram', 'new_test') ? user.telegram_id : null;
     const openButtonText = language === 'uz' ? 'Testni ochish' : 'Открыть тест';
     const telegramResults = await sendTelegramToTargets(
         userChatId,
@@ -507,6 +640,26 @@ async function notifyNewTest(user, test, language = 'ru') {
         }
     );
     results.telegram = telegramResults.user || telegramResults.global;
+    if (userChatId) {
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'telegram',
+            eventKey: 'new_test',
+            status: telegramResults.user ? 'sent' : 'failed',
+            recipient: userChatId,
+            metadata: { scope: 'user', test_id: test.id || null }
+        });
+    }
+    if (process.env.TELEGRAM_CHAT_ID) {
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'telegram',
+            eventKey: 'new_test',
+            status: telegramResults.global ? 'sent' : 'failed',
+            recipient: process.env.TELEGRAM_CHAT_ID,
+            metadata: { scope: 'global', test_id: test.id || null }
+        });
+    }
 
     return results;
 }
@@ -573,7 +726,7 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
     const results = { email: false, telegram: false };
 
     // Send email
-    if (user.email) {
+    if (user.email && isEventEnabledForChannel(user, 'email', 'password_reset')) {
         const emailHtml = buildModernEmailTemplate({
             title: msg.subject,
             eyebrow: language === 'uz' ? 'Xavfsizlik' : 'Безопасность',
@@ -591,16 +744,45 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
             text: msg.text,
             html: emailHtml
         });
+
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'email',
+            eventKey: 'password_reset',
+            status: results.email ? 'sent' : 'failed',
+            recipient: user.email,
+            subject: msg.subject
+        });
     }
 
     // Send Telegram (role-aware preferences)
-    const userChatId = isTelegramEventEnabled(user, 'password_reset') ? user.telegram_id : null;
+    const userChatId = isEventEnabledForChannel(user, 'telegram', 'password_reset') ? user.telegram_id : null;
     const telegramResults = await sendTelegramToTargets(
         userChatId,
         msg.telegram,
         `🔐 <b>Пароль сброшен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n🆔 ${user.username || ''}`
     );
     results.telegram = telegramResults.user || telegramResults.global;
+    if (userChatId) {
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'telegram',
+            eventKey: 'password_reset',
+            status: telegramResults.user ? 'sent' : 'failed',
+            recipient: userChatId,
+            metadata: { scope: 'user' }
+        });
+    }
+    if (process.env.TELEGRAM_CHAT_ID) {
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'telegram',
+            eventKey: 'password_reset',
+            status: telegramResults.global ? 'sent' : 'failed',
+            recipient: process.env.TELEGRAM_CHAT_ID,
+            metadata: { scope: 'global' }
+        });
+    }
 
     return results;
 }
@@ -685,7 +867,7 @@ async function notifyNewUser(user, password, language = 'ru') {
     const results = { email: false, telegram: false };
 
     // Send email
-    if (user.email) {
+    if (user.email && isEventEnabledForChannel(user, 'email', 'welcome')) {
         const emailHtml = buildModernEmailTemplate({
             title: msg.subject,
             eyebrow: 'Welcome',
@@ -703,16 +885,45 @@ async function notifyNewUser(user, password, language = 'ru') {
             text: msg.text,
             html: emailHtml
         });
+
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'email',
+            eventKey: 'welcome',
+            status: results.email ? 'sent' : 'failed',
+            recipient: user.email,
+            subject: msg.subject
+        });
     }
 
     // Send Telegram (role-aware preferences)
-    const userChatId = isTelegramEventEnabled(user, 'welcome') ? user.telegram_id : null;
+    const userChatId = isEventEnabledForChannel(user, 'telegram', 'welcome') ? user.telegram_id : null;
     const telegramResults = await sendTelegramToTargets(
         userChatId,
         msg.telegram,
         `👋 <b>Новый пользователь</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n🆔 ${user.username || ''}`
     );
     results.telegram = telegramResults.user || telegramResults.global;
+    if (userChatId) {
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'telegram',
+            eventKey: 'welcome',
+            status: telegramResults.user ? 'sent' : 'failed',
+            recipient: userChatId,
+            metadata: { scope: 'user' }
+        });
+    }
+    if (process.env.TELEGRAM_CHAT_ID) {
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'telegram',
+            eventKey: 'welcome',
+            status: telegramResults.global ? 'sent' : 'failed',
+            recipient: process.env.TELEGRAM_CHAT_ID,
+            metadata: { scope: 'global' }
+        });
+    }
 
     return results;
 }
