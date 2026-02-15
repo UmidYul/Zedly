@@ -2340,21 +2340,106 @@
         width: 100%;
     }
 
-    /* Keep Users/Classes in classic row tables on mobile (compact, horizontal scroll) */
-    #usersContainer .table-responsive,
+    #usersContainer .bulk-toolbar {
+        gap: 8px;
+        padding: 10px;
+    }
+
+    #usersContainer .bulk-toolbar-left,
+    #usersContainer .bulk-toolbar-right {
+        width: 100%;
+    }
+
+    #usersContainer .bulk-toolbar .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #usersContainer .table-responsive {
+        overflow: visible;
+        margin: 10px 0;
+    }
+
+    #usersContainer .data-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        background: transparent;
+    }
+
+    #usersContainer .data-table thead {
+        display: none;
+    }
+
+    #usersContainer .data-table tbody,
+    #usersContainer .data-table tr,
+    #usersContainer .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    #usersContainer .data-table tr {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card);
+        padding: 6px 10px;
+    }
+
+    #usersContainer .data-table td {
+        border: 0;
+        border-bottom: 1px dashed var(--border);
+        padding: 7px 0;
+        white-space: normal;
+    }
+
+    #usersContainer .data-table td:last-child {
+        border-bottom: 0;
+    }
+
+    #usersContainer .data-table td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    #usersContainer .data-table td.bulk-checkbox-cell::before {
+        content: none;
+    }
+
+    #usersContainer .bulk-checkbox-cell {
+        width: auto;
+        text-align: left;
+        padding: 4px 0 !important;
+        border-bottom: 1px dashed var(--border) !important;
+    }
+
+    #usersContainer .action-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    #usersContainer .status-badge,
+    #usersContainer .role-badge {
+        white-space: nowrap;
+    }
+
+    /* Keep Classes in classic row tables on mobile (compact, horizontal scroll) */
     #classesContainer .table-responsive {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
 
-    #usersContainer .data-table,
     #classesContainer .data-table {
         min-width: 760px;
         font-size: 12px;
     }
 
-    #usersContainer .data-table th,
-    #usersContainer .data-table td,
     #classesContainer .data-table th,
     #classesContainer .data-table td {
         padding: 8px 8px;
