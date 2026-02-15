@@ -223,7 +223,7 @@
                             </span>
                         </td>
                         <td>
-                            <div class="user-name">${subject.name}</div>
+                            <div class="user-name">${subject.name_ru || subject.name || subject.name_uz || '-'}</div>
                         </td>
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>
@@ -457,16 +457,46 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Subject Name <span class="required">*</span>
+                                            Name (RU) <span class="required">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="form-input"
+                                            name="name_ru"
+                                            value="${subject?.name_ru || ''}"
+                                            required
+                                            placeholder="Математика"
+                                        />
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Name (UZ) <span class="required">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="form-input"
+                                            name="name_uz"
+                                            value="${subject?.name_uz || ''}"
+                                            required
+                                            placeholder="Matematika"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Base Name
                                         </label>
                                         <input
                                             type="text"
                                             class="form-input"
                                             name="name"
                                             value="${subject?.name || ''}"
-                                            required
-                                            placeholder="Математика"
+                                            placeholder="Math"
                                         />
+                                        <span class="form-hint">Optional internal/fallback name</span>
                                     </div>
 
                                     <div class="form-group">
@@ -565,8 +595,13 @@
 
             // Get form data
             const formData = new FormData(form);
+            const nameRu = formData.get('name_ru')?.trim() || '';
+            const nameUz = formData.get('name_uz')?.trim() || '';
+            const fallbackName = formData.get('name')?.trim() || '';
             const data = {
-                name: formData.get('name').trim(),
+                name_ru: nameRu,
+                name_uz: nameUz,
+                name: fallbackName || nameRu || nameUz,
                 code: formData.get('code').trim().toUpperCase()
             };
 
@@ -575,7 +610,7 @@
             }
 
             // Validation
-            if (!data.name || !data.code) {
+            if (!data.name_ru || !data.name_uz || !data.code) {
                 formAlert.className = 'alert alert-error';
                 formAlert.textContent = 'Please fill all required fields';
                 return;

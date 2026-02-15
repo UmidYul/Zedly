@@ -2065,7 +2065,7 @@ router.get('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
         const schoolId = req.user.school_id;
 
         const result = await query(
-            `SELECT id, name, code, color, is_active, created_at
+            `SELECT id, name_ru, name_uz, name, code, color, is_active, created_at
              FROM subjects
              WHERE id = $1 AND school_id = $2`,
             [id, schoolId]
@@ -2094,21 +2094,25 @@ router.get('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
  */
 router.post('/subjects', async (req, res) => {
     try {
-        const { name, code, color } = req.body;
+        const { name, name_ru, name_uz, code, color } = req.body;
         const schoolId = req.user.school_id;
+        const normalizedNameRu = String(name_ru || '').trim();
+        const normalizedNameUz = String(name_uz || '').trim();
+        const normalizedName = String(name || '').trim() || normalizedNameRu || normalizedNameUz;
+        const normalizedCode = String(code || '').trim().toUpperCase();
 
         // Validation
-        if (!name || !code) {
+        if (!normalizedNameRu || !normalizedNameUz || !normalizedCode) {
             return res.status(400).json({
                 error: 'validation_error',
-                message: 'Name and code are required'
+                message: 'name_ru, name_uz and code are required'
             });
         }
 
         // Check duplicate subject code in same school
         const duplicateCheck = await query(
             'SELECT id FROM subjects WHERE school_id = $1 AND code = $2',
-            [schoolId, code.trim().toUpperCase()]
+            [schoolId, normalizedCode]
         );
 
         if (duplicateCheck.rows.length > 0) {
@@ -2132,13 +2136,15 @@ router.post('/subjects', async (req, res) => {
 
         // Create subject
         const result = await query(
-            `INSERT INTO subjects (school_id, name, code, color, is_active)
-             VALUES ($1, $2, $3, $4, true)
-             RETURNING id, name, code, color, is_active, created_at`,
+            `INSERT INTO subjects (school_id, name_ru, name_uz, name, code, color, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6, true)
+             RETURNING id, name_ru, name_uz, name, code, color, is_active, created_at`,
             [
                 schoolId,
-                name.trim(),
-                code.trim().toUpperCase(),
+                normalizedNameRu,
+                normalizedNameUz,
+                normalizedName,
+                normalizedCode,
                 finalColor
             ]
         );
@@ -2157,7 +2163,7 @@ router.post('/subjects', async (req, res) => {
                         'create',
                         'subject',
                         result.rows[0].id,
-                        { name: name.trim(), code: code.trim() }
+                        { name: normalizedName, name_ru: normalizedNameRu, name_uz: normalizedNameUz, code: normalizedCode }
                     ]
                 );
             }
@@ -2185,7 +2191,7 @@ router.post('/subjects', async (req, res) => {
 router.put('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, code, color, is_active } = req.body;
+        const { name, name_ru, name_uz, code, color, is_active } = req.body;
         const schoolId = req.user.school_id;
 
         // Check if subject exists in same school
@@ -2231,6 +2237,16 @@ router.put('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
             updates.push(`code = $${paramCount++}`);
         }
 
+        if (name_ru !== undefined) {
+            params.push(String(name_ru || '').trim() || null);
+            updates.push(`name_ru = $${paramCount++}`);
+        }
+
+        if (name_uz !== undefined) {
+            params.push(String(name_uz || '').trim() || null);
+            updates.push(`name_uz = $${paramCount++}`);
+        }
+
         if (color !== undefined) {
             params.push(color);
             updates.push(`color = $${paramCount++}`);
@@ -2249,7 +2265,7 @@ router.put('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
             `UPDATE subjects
              SET ${updates.join(', ')}
              WHERE id = $${paramCount}
-             RETURNING id, name, code, color, is_active, updated_at`,
+             RETURNING id, name_ru, name_uz, name, code, color, is_active, updated_at`,
             params
         );
 
