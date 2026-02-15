@@ -319,26 +319,31 @@
             document.body.appendChild(backdrop);
         }
 
-        const translate = window.ZedlyI18n?.translate || ((key, fallback) => fallback || key);
+        const translate = window.ZedlyI18n?.translate || ((key) => key);
+        const t = (key, fallback) => {
+            const value = translate(key);
+            if (typeof value === 'string' && value !== key) return value;
+            return fallback || key;
+        };
         const visibleNotifications = getVisibleNotifications();
         const unreadOnly = currentFilter === 'unread';
 
         dropdown.innerHTML = `
             <div class="notifications-header">
                 <div class="notifications-headline">
-                    <h3>${escapeHtml(translate('notifications.title', 'Уведомления'))}</h3>
+                    <h3>${escapeHtml(t('notifications.title', 'Уведомления'))}</h3>
                     <span class="notifications-counter">${escapeHtml(String(unreadCount))}</span>
                 </div>
                 <div class="notifications-controls">
                     <div class="notifications-filter">
                         <button type="button" class="notif-filter-btn ${!unreadOnly ? 'active' : ''}" onclick="window.ZedlyNotifications.setFilter('all')">
-                            ${escapeHtml(translate('common.all', 'Все'))}
+                            ${escapeHtml(t('common.all', 'Все'))}
                         </button>
                         <button type="button" class="notif-filter-btn ${unreadOnly ? 'active' : ''}" onclick="window.ZedlyNotifications.setFilter('unread')">
-                            ${escapeHtml(translate('common.unread', 'Непрочитанные'))}
+                            ${escapeHtml(t('common.unread', 'Непрочитанные'))}
                         </button>
                     </div>
-                    <button type="button" class="notif-icon-btn" onclick="window.ZedlyNotifications.refresh()" title="${escapeHtml(translate('common.refresh', 'Обновить'))}" aria-label="${escapeHtml(translate('common.refresh', 'Обновить'))}">
+                    <button type="button" class="notif-icon-btn" onclick="window.ZedlyNotifications.refresh()" title="${escapeHtml(t('common.refresh', 'Обновить'))}" aria-label="${escapeHtml(t('common.refresh', 'Обновить'))}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="23 4 23 10 17 10"></polyline>
                             <polyline points="1 20 1 14 7 14"></polyline>
@@ -346,7 +351,7 @@
                             <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
                         </svg>
                     </button>
-                    <button type="button" class="notif-icon-btn close-btn" onclick="window.ZedlyNotifications.close()" title="${escapeHtml(translate('common.close', 'Закрыть'))}" aria-label="${escapeHtml(translate('common.close', 'Закрыть'))}">
+                    <button type="button" class="notif-icon-btn close-btn" onclick="window.ZedlyNotifications.close()" title="${escapeHtml(t('common.close', 'Закрыть'))}" aria-label="${escapeHtml(t('common.close', 'Закрыть'))}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -354,7 +359,7 @@
                     </button>
                 </div>
             </div>
-            ${unreadCount > 0 ? `<div class="notifications-toolbar"><button class="mark-all-read" onclick="window.ZedlyNotifications.markAllAsRead()">${escapeHtml(translate('notifications.markAllRead', 'Отметить все прочитанными'))}</button></div>` : ''}
+            ${unreadCount > 0 ? `<div class="notifications-toolbar"><button class="mark-all-read" onclick="window.ZedlyNotifications.markAllAsRead()">${escapeHtml(t('notifications.markAllRead', 'Отметить все прочитанными'))}</button></div>` : ''}
             <div class="notifications-list">
                 ${visibleNotifications.length > 0
                     ? visibleNotifications.map((notification) => `
@@ -368,7 +373,7 @@
                                     <div class="notification-time">${escapeHtml(formatTime(notification.timestamp))}</div>
                                 </div>
                                 <div class="notification-message">${escapeHtml(notification.message)}</div>
-                                ${!notification.read ? `<div class="notification-actions"><button class="mark-read-btn" onclick="window.ZedlyNotifications.markAsRead('${notification.id}')" title="${escapeHtml(translate('notifications.markRead', 'Отметить прочитанным'))}">${escapeHtml(translate('notifications.markRead', 'Отметить прочитанным'))}</button></div>` : ''}
+                                ${!notification.read ? `<div class="notification-actions"><button class="mark-read-btn" onclick="window.ZedlyNotifications.markAsRead('${notification.id}')" title="${escapeHtml(t('notifications.markRead', 'Отметить прочитанным'))}">${escapeHtml(t('notifications.markRead', 'Отметить прочитанным'))}</button></div>` : ''}
                             </div>
                         </div>
                     `).join('')
@@ -377,13 +382,13 @@
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                         </svg>
-                        <p>${escapeHtml(unreadOnly ? translate('common.noUnread', 'Нет непрочитанных уведомлений') : translate('notifications.empty', 'Нет уведомлений'))}</p>
+                        <p>${escapeHtml(unreadOnly ? t('common.noUnread', 'Нет непрочитанных уведомлений') : t('notifications.empty', 'Нет уведомлений'))}</p>
                     </div>`
                 }
             </div>
             ${visibleNotifications.length > 0 ? `
                 <div class="notifications-footer">
-                    <button onclick="window.ZedlyNotifications.viewAll()">${escapeHtml(translate('notifications.viewAll', 'Посмотреть все'))}</button>
+                    <button onclick="window.ZedlyNotifications.viewAll()">${escapeHtml(t('notifications.viewAll', 'Посмотреть все'))}</button>
                 </div>
             ` : ''}
         `;
@@ -436,7 +441,7 @@
         const hours = Math.floor(minutes / 60);
         const days = Math.floor(hours / 24);
 
-        const translate = window.ZedlyI18n?.translate || ((key, fallback) => fallback || key);
+        const translate = window.ZedlyI18n?.translate || ((key) => key);
         const lang = localStorage.getItem('zedly-lang') || 'ru';
 
         if (minutes < 1) return translate('time.justNow');
