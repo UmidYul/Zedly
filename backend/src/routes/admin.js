@@ -1336,7 +1336,7 @@ router.post('/import/credentials/export', async (req, res) => {
         }
 
         const rows = [
-            ['?', '?????', 'OTP ??????', '????', '?????'],
+            ['#', 'Login', 'OTP password', 'Role', 'Class'],
             ...users.map((user, index) => ([
                 index + 1,
                 String(user.username || '').trim(),
