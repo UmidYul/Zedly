@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
     <title>Информация о классе - ZEDLY</title>
@@ -11,6 +12,7 @@
     <link rel="stylesheet" href="css/tables.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/class-details.css">
+    <link rel="stylesheet" href="/css/notifications.css">
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript">
     (function(m,e,t,r,i,k,a){
@@ -27,20 +29,51 @@
 </head>
 
 <body>
-    <header class="header class-page-header">
-        <div class="header-inner">
-            <div class="logo">
-                <h1>ZEDLY</h1>
+    <header class="dashboard-header class-page-header">
+        <div class="header-left"></div>
+        <div class="header-center">
+            <div class="header-logo">
+                <img src="/images/zedly_logo_bg.png" alt="ZEDLY">
+                <span>ZEDLY</span>
             </div>
-            <button class="back-btn" onclick="history.back()" aria-label="Назад">
-                <span aria-hidden="true">←</span>
-                <span>Назад</span>
-            </button>
+        </div>
+        <div class="header-right">
+            <div class="header-actions">
+                <button class="icon-btn" id="telegramConnectBtn" title="Telegram">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 3L3 10l7 2 2 7 9-16z"></path>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="notificationsBtn" title="Notifications">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span class="badge" id="notificationBadge" style="display:none;">0</span>
+                </button>
+                <div class="lang-switch">
+                    <button class="lang-btn active" data-lang="ru">RU</button>
+                    <button class="lang-btn" data-lang="uz">UZ</button>
+                </div>
+                <button class="theme-toggle icon-btn" id="themeToggle" title="Theme">
+                    <svg class="theme-icon" width="20" height="20" viewBox="0 0 20 20">
+                        <path class="sun" d="M10 2v2m0 12v2M4.22 4.22l1.42 1.42m8.72 8.72l1.42 1.42M2 10h2m12 0h2M4.22 15.78l1.42-1.42m8.72-8.72l1.42-1.42M10 5.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z" />
+                        <path class="moon" d="M10 2c1.34 0 2.62.26 3.77.74A6 6 0 017.5 14a6 6 0 01-5.26-6.49A8 8 0 0010 2z" />
+                    </svg>
+                </button>
+            </div>
         </div>
     </header>
 
     <main class="main-content">
         <div class="content-wrapper">
+            <div class="class-top-actions">
+                <button class="btn btn-outline class-back-btn" id="backBtn" type="button" aria-label="Назад">
+                    <span aria-hidden="true">←</span>
+                    <span>Назад</span>
+                </button>
+            </div>
+
             <section class="class-hero card">
                 <div class="hero-main">
                     <p class="hero-label">Карточка класса</p>
@@ -98,8 +131,13 @@
         </div>
     </main>
 
-    <script src="js/class-details.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/auth-interceptor.js"></script>
+    <script src="/js/notifications.js"></script>
     <script src="/js/alert-modal.js"></script>
+    <script src="/js/telegram-connect.js"></script>
+    <script src="js/class-details.js"></script>
 </body>
 
 </html>

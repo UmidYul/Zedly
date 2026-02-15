@@ -23,6 +23,18 @@
             .replace(/'/g, '&#039;');
     }
 
+    function bindHeaderActions() {
+        const backBtn = document.getElementById('backBtn');
+        if (!backBtn) return;
+        backBtn.addEventListener('click', () => {
+            if (document.referrer) {
+                history.back();
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        });
+    }
+
     async function loadClassDetails() {
         const classId = getClassId();
         if (!classId) {
@@ -148,5 +160,8 @@
         }
     }
 
-    window.addEventListener('DOMContentLoaded', loadClassDetails);
+    window.addEventListener('DOMContentLoaded', () => {
+        bindHeaderActions();
+        loadClassDetails();
+    });
 })();

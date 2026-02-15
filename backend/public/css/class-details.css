@@ -1,30 +1,4 @@
-﻿.class-page-header {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-    background: linear-gradient(180deg, rgba(15, 23, 41, 0.92), rgba(15, 23, 41, 0.75));
-    backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--border-light);
-}
-
-.header-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.header .logo h1 {
-    margin: 0;
-    font-size: 1.3rem;
-    letter-spacing: 0.08em;
-    color: var(--text-primary);
-}
-
-.back-btn {
+.class-back-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -37,7 +11,7 @@
     transition: var(--transition-fast);
 }
 
-.back-btn:hover {
+.class-back-btn:hover {
     transform: translateX(-2px);
     border-color: var(--primary);
     background: rgba(74, 144, 226, 0.14);
@@ -52,6 +26,12 @@
     margin: 0 auto;
     display: grid;
     gap: 1rem;
+}
+
+.class-top-actions {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.35rem;
 }
 
 .class-hero {
@@ -211,13 +191,15 @@
     }
 }
 
-@media (max-width: 640px) {
-    .header-inner {
-        padding: 0.85rem 0.9rem;
-    }
-
+@media (max-width: 768px) {
     .main-content {
-        padding: 0.9rem 0.75rem 2rem;
+        padding: calc(64px + env(safe-area-inset-top)) 0.75rem 2rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .main-content {
+        padding: calc(64px + env(safe-area-inset-top)) 0.75rem 2rem;
     }
 
     .class-hero,
@@ -229,7 +211,7 @@
         grid-template-columns: 1fr;
     }
 
-    .back-btn {
+    .class-back-btn {
         padding: 0.5rem 0.8rem;
         font-size: 0.9rem;
     }
