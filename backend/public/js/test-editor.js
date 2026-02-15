@@ -158,7 +158,7 @@
                             <!-- Questions Section -->
                             <div class="test-editor-section">
                                 <div class="section-header">
-                                    <h3 class="section-title">Questions (${this.questions.length})</h3>
+                                    <h3 class="section-title" id="questionsSectionTitle">Questions (${this.questions.length})</h3>
                                     <button class="btn btn-primary btn-sm" onclick="TestEditor.showQuestionTypeSelector()">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1032,8 +1032,8 @@
                 container.innerHTML = this.renderQuestionsList();
             }
             // Also update the question count in the section header
-            const header = document.querySelector('.test-editor-section h3');
-            if (header && header.textContent.includes('Questions')) {
+            const header = document.getElementById('questionsSectionTitle');
+            if (header) {
                 header.textContent = `Questions (${this.questions.length})`;
             }
 
