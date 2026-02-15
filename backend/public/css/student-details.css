@@ -2,31 +2,6 @@
     position: sticky;
     top: var(--spacing-lg);
     z-index: 50;
-    background: transparent;
-    border: 0;
-    padding: 0 var(--spacing-lg);
-}
-
-.student-page-header__inner {
-    width: min(1280px, 100%);
-    margin: 0 auto;
-    padding: var(--spacing-md) var(--spacing-xl);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    background: var(--bg-header);
-    border: 1px solid var(--border-strong);
-    box-shadow: var(--shadow-md);
-    border-radius: 16px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-}
-
-.student-page-brand h1 {
-    margin: 0;
-    font-size: 1.3rem;
-    letter-spacing: 0.08em;
 }
 
 .student-back-btn {
@@ -35,6 +10,12 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
+}
+
+.student-top-actions {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.35rem;
 }
 
 .student-main-content {
@@ -367,19 +348,7 @@
 
 @media (max-width: 760px) {
     .student-page-header {
-        position: fixed;
         top: 0;
-        left: 0;
-        right: 0;
-        padding: 10px 12px;
-        z-index: 130;
-    }
-
-    .student-page-header__inner {
-        padding: 10px 12px;
-        border-radius: 0;
-        border-left: 0;
-        border-right: 0;
     }
 
     .student-main-content {

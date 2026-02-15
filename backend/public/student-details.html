@@ -26,20 +26,31 @@
 <!-- /Yandex.Metrika counter -->
 </head>
 <body>
-    <header class="student-page-header">
-        <div class="student-page-header__inner">
-            <div class="student-page-brand">
-                <h1>ZEDLY</h1>
+    <header class="dashboard-header student-page-header">
+        <div class="header-left"></div>
+        <div class="header-center">
+            <div class="header-logo">
+                <img src="/images/zedly_logo_bg.png" alt="ZEDLY">
+                <span>ZEDLY</span>
             </div>
-            <button class="btn btn-outline student-back-btn" id="backBtn" type="button" aria-label="Back">
-                <span aria-hidden="true">←</span>
-                <span>Back</span>
-            </button>
+        </div>
+        <div class="header-right">
+            <div class="lang-switch">
+                <button class="lang-btn active" data-lang="ru">RU</button>
+                <button class="lang-btn" data-lang="uz">UZ</button>
+            </div>
         </div>
     </header>
 
     <main class="student-main-content">
         <div class="student-content-wrapper">
+            <div class="student-top-actions">
+                <button class="btn btn-outline student-back-btn" id="backBtn" type="button" aria-label="Back">
+                    <span aria-hidden="true">←</span>
+                    <span>Back</span>
+                </button>
+            </div>
+
             <section class="student-hero card" id="heroSection">
                 <div class="student-hero__main">
                     <p class="hero-kicker">Student Profile</p>
