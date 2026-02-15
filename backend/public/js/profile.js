@@ -377,7 +377,14 @@
                     backgroundColor: 'rgba(74, 144, 226, 0.15)',
                     tension: 0.35,
                     fill: true,
-                    pointRadius: 4
+                    pointRadius: 4,
+                    ...(isMobile
+                        ? {
+                            barPercentage: 0.62,
+                            categoryPercentage: 0.72,
+                            borderRadius: 8
+                        }
+                        : {})
                 }]
             },
             options: {
@@ -397,7 +404,8 @@
                     y: {
                         ...(!isMobile ? { beginAtZero: true, max: 100 } : {}),
                         ticks: {
-                            autoSkip: false
+                            autoSkip: false,
+                            padding: isMobile ? 10 : 4
                         }
                     }
                 }

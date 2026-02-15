@@ -1639,6 +1639,13 @@ router.get('/dashboard/overview', async (req, res) => {
         const classStudentActiveFilter = classStudentColumns.has('is_active')
             ? 'AND cs.is_active = true'
             : '';
+        const hasTeacherClassSubjects = await tableExists('teacher_class_subjects');
+        const teacherClassSubjectColumns = hasTeacherClassSubjects
+            ? await getTableColumns('teacher_class_subjects')
+            : new Set();
+        const teacherClassSubjectActiveFilter = teacherClassSubjectColumns.has('is_active')
+            ? 'AND tcs.is_active = true'
+            : '';
 
         // Get tests assigned to student's classes
         const testsAssignedResult = await query(`
@@ -1729,14 +1736,30 @@ router.get('/dashboard/overview', async (req, res) => {
             classRank = rankResult.rows[0]?.rank || null;
         }
 
+        const taughtSubjectsSource = hasTeacherClassSubjects
+            ? `SELECT DISTINCT tcs.subject_id
+               FROM class_students cs
+               INNER JOIN teacher_class_subjects tcs ON tcs.class_id = cs.class_id
+               WHERE cs.student_id = $2 ${classStudentActiveFilter} ${teacherClassSubjectActiveFilter}`
+            : `SELECT DISTINCT t.subject_id
+               FROM class_students cs
+               INNER JOIN test_assignments ta ON ta.class_id = cs.class_id
+               INNER JOIN tests t ON t.id = ta.test_id
+               WHERE cs.student_id = $2 ${classStudentActiveFilter}`;
+
         const subjectPerformanceResult = await query(
-            `SELECT
+            `WITH student_subjects AS (
+                ${taughtSubjectsSource}
+            )
+            SELECT
                 s.id,
                 s.${subjectNameColumn} as subject_name,
                 s.color as subject_color,
                 COUNT(tatt.id) as attempts,
                 COALESCE(AVG(${scoreExpr}), 0)::float as avg_score
-             FROM subjects s
+             FROM student_subjects ss
+             INNER JOIN subjects s
+                ON s.id = ss.subject_id
              LEFT JOIN tests t
                 ON t.subject_id = s.id
                 AND t.school_id = s.school_id
@@ -1750,7 +1773,9 @@ router.get('/dashboard/overview', async (req, res) => {
                 ON tatt.assignment_id = ta.id
                 AND tatt.student_id = $2
                 AND ${completedFilter}
-             WHERE s.school_id = $1 ${subjectIsActiveFilter}
+             WHERE s.school_id = $1
+               ${subjectIsActiveFilter}
+               AND s.id IS NOT NULL
              GROUP BY s.id, s.${subjectNameColumn}, s.color${subjectCodeColumn ? `, s.${subjectCodeColumn}` : ''}
              ORDER BY ${subjectCodeColumn ? `s.${subjectCodeColumn} ASC NULLS LAST,` : ''} s.${subjectNameColumn} ASC`,
             [req.user.school_id, studentId]
