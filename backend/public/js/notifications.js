@@ -306,6 +306,9 @@
             dropdown.id = 'notificationsDropdown';
             dropdown.className = 'notifications-dropdown';
             dropdown.style.display = 'none';
+            dropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
         }
         if (dropdown.parentElement !== document.body) {
             document.body.appendChild(dropdown);
@@ -466,7 +469,9 @@
             document.addEventListener('click', (e) => {
                 const dropdown = document.getElementById('notificationsDropdown');
                 if (!dropdown) return;
-                if (dropdown.style.display === 'block' && !dropdown.contains(e.target)) {
+                const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+                const clickedInside = path.includes(dropdown) || dropdown.contains(e.target);
+                if (dropdown.style.display === 'block' && !clickedInside) {
                     closeDropdown();
                 }
             });
