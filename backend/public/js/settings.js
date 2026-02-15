@@ -11,7 +11,21 @@
         school_admin: 'School Admin',
         superadmin: 'SuperAdmin'
     };
+    const CHANNEL_LABELS = {
+        in_app: 'In-App',
+        email: 'Email',
+        telegram: 'Telegram'
+    };
     const CHANNEL_KEYS = ['in_app', 'email', 'telegram'];
+    const EVENT_LABELS = {
+        new_test: 'New test',
+        assignment_deadline: 'Deadline',
+        password_reset: 'Pwd reset',
+        profile_updates: 'Profile',
+        system_updates: 'System',
+        welcome: 'Welcome',
+        digest_summary: 'Digest'
+    };
     const EVENT_KEYS = [
         'new_test',
         'assignment_deadline',
@@ -80,12 +94,24 @@
     function normalizeRoleDefaults(roleData) {
         const channels = {};
         const events = {};
+        const matrix = {};
         for (const key of CHANNEL_KEYS) channels[key] = !!roleData?.channels?.[key];
         for (const key of EVENT_KEYS) events[key] = !!roleData?.events?.[key];
+        for (const channelKey of CHANNEL_KEYS) {
+            matrix[channelKey] = {};
+            for (const eventKey of EVENT_KEYS) {
+                const explicit = roleData?.matrix?.[channelKey]?.[eventKey];
+                if (explicit !== undefined) {
+                    matrix[channelKey][eventKey] = !!explicit;
+                } else {
+                    matrix[channelKey][eventKey] = channels[channelKey] && events[eventKey];
+                }
+            }
+        }
         const frequency = ['instant', 'daily', 'weekly'].includes(String(roleData?.frequency || 'instant'))
             ? String(roleData.frequency)
             : 'instant';
-        return { channels, events, frequency };
+        return { channels, events, matrix, frequency };
     }
 
     function setStatus(text, isError = false) {
@@ -99,47 +125,93 @@
         const wrap = document.getElementById('settingsNotificationDefaultsMatrix');
         if (!wrap) return;
 
-        let html = '<div class="table-responsive"><table class="data-table">';
-        html += '<thead><tr><th>Role</th>';
-        for (const key of CHANNEL_KEYS) html += `<th>Channel: ${esc(key)}</th>`;
-        for (const key of EVENT_KEYS) html += `<th>Event: ${esc(key)}</th>`;
-        html += '<th>Frequency</th></tr></thead><tbody>';
+        let html = '<div class="settings-role-grid">';
 
         for (const role of ROLES) {
             const row = normalizeRoleDefaults(state.defaults[role] || {});
-            html += `<tr><td><strong>${esc(ROLE_LABELS[role] || role)}</strong></td>`;
-            for (const key of CHANNEL_KEYS) {
-                html += `<td><input type="checkbox" data-role="${esc(role)}" data-scope="channels" data-key="${esc(key)}" ${row.channels[key] ? 'checked' : ''} ${state.readOnly ? 'disabled' : ''}></td>`;
-            }
-            for (const key of EVENT_KEYS) {
-                html += `<td><input type="checkbox" data-role="${esc(role)}" data-scope="events" data-key="${esc(key)}" ${row.events[key] ? 'checked' : ''} ${state.readOnly ? 'disabled' : ''}></td>`;
-            }
-            html += `<td>
-                <select data-role="${esc(role)}" data-scope="frequency" ${state.readOnly ? 'disabled' : ''}>
-                    <option value="instant" ${row.frequency === 'instant' ? 'selected' : ''}>instant</option>
-                    <option value="daily" ${row.frequency === 'daily' ? 'selected' : ''}>daily</option>
-                    <option value="weekly" ${row.frequency === 'weekly' ? 'selected' : ''}>weekly</option>
-                </select>
-            </td>`;
-            html += '</tr>';
+            html += `
+                <div class="dashboard-section settings-role-card">
+                    <div class="section-header">
+                        <h3 class="section-title">${esc(ROLE_LABELS[role] || role)}</h3>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <label class="text-secondary" for="settingsFrequency_${esc(role)}">Frequency</label>
+                            <select id="settingsFrequency_${esc(role)}" data-role="${esc(role)}" data-scope="frequency" ${state.readOnly ? 'disabled' : ''}>
+                                <option value="instant" ${row.frequency === 'instant' ? 'selected' : ''}>instant</option>
+                                <option value="daily" ${row.frequency === 'daily' ? 'selected' : ''}>daily</option>
+                                <option value="weekly" ${row.frequency === 'weekly' ? 'selected' : ''}>weekly</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table settings-role-table">
+                            <thead>
+                                <tr>
+                                    <th>Channel \ Event</th>
+                                    ${EVENT_KEYS.map((eventKey) => `<th>${esc(EVENT_LABELS[eventKey] || eventKey)}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${CHANNEL_KEYS.map((channelKey) => `
+                                    <tr>
+                                        <td><strong>${esc(CHANNEL_LABELS[channelKey] || channelKey)}</strong></td>
+                                        ${EVENT_KEYS.map((eventKey) => `
+                                            <td>
+                                                <input
+                                                    type="checkbox"
+                                                    data-role="${esc(role)}"
+                                                    data-scope="matrix"
+                                                    data-channel="${esc(channelKey)}"
+                                                    data-event="${esc(eventKey)}"
+                                                    ${row.matrix[channelKey][eventKey] ? 'checked' : ''}
+                                                    ${state.readOnly ? 'disabled' : ''}
+                                                >
+                                            </td>
+                                        `).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
         }
 
-        html += '</tbody></table></div>';
+        html += '</div>';
         wrap.innerHTML = html;
+    }
+
+    function deriveChannelsEventsFromMatrix(matrix) {
+        const channels = {};
+        const events = {};
+
+        for (const channelKey of CHANNEL_KEYS) {
+            channels[channelKey] = EVENT_KEYS.some((eventKey) => !!matrix[channelKey]?.[eventKey]);
+        }
+        for (const eventKey of EVENT_KEYS) {
+            events[eventKey] = CHANNEL_KEYS.some((channelKey) => !!matrix[channelKey]?.[eventKey]);
+        }
+
+        return { channels, events };
     }
 
     function collectPayload() {
         const defaults = {};
         for (const role of ROLES) {
-            defaults[role] = { channels: {}, events: {}, frequency: 'instant' };
+            defaults[role] = { channels: {}, events: {}, matrix: {}, frequency: 'instant' };
+            for (const channelKey of CHANNEL_KEYS) {
+                defaults[role].matrix[channelKey] = {};
+                for (const eventKey of EVENT_KEYS) {
+                    defaults[role].matrix[channelKey][eventKey] = false;
+                }
+            }
         }
 
-        document.querySelectorAll('#settingsNotificationDefaultsMatrix input[type="checkbox"]').forEach((el) => {
+        document.querySelectorAll('#settingsNotificationDefaultsMatrix input[type="checkbox"][data-scope="matrix"]').forEach((el) => {
             const role = String(el.getAttribute('data-role') || '');
-            const scope = String(el.getAttribute('data-scope') || '');
-            const key = String(el.getAttribute('data-key') || '');
-            if (!defaults[role] || !defaults[role][scope] || !key) return;
-            defaults[role][scope][key] = !!el.checked;
+            const channel = String(el.getAttribute('data-channel') || '');
+            const eventKey = String(el.getAttribute('data-event') || '');
+            if (!defaults[role] || !defaults[role].matrix[channel] || !eventKey) return;
+            defaults[role].matrix[channel][eventKey] = !!el.checked;
         });
 
         document.querySelectorAll('#settingsNotificationDefaultsMatrix select[data-scope="frequency"]').forEach((el) => {
@@ -148,6 +220,12 @@
             if (!defaults[role]) return;
             defaults[role].frequency = ['instant', 'daily', 'weekly'].includes(value) ? value : 'instant';
         });
+
+        for (const role of ROLES) {
+            const reduced = deriveChannelsEventsFromMatrix(defaults[role].matrix);
+            defaults[role].channels = reduced.channels;
+            defaults[role].events = reduced.events;
+        }
 
         return { defaults };
     }

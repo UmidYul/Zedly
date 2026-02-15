@@ -1370,6 +1370,7 @@ router.put('/notification-defaults', async (req, res) => {
             const fallbackRole = current[role] || {};
             const channels = normalizeBooleanMap(nextRole.channels, NOTIFICATION_CHANNEL_KEYS, fallbackRole.channels || {});
             const events = normalizeBooleanMap(nextRole.events, NOTIFICATION_EVENT_KEYS, fallbackRole.events || {});
+            const rawMatrix = nextRole.matrix && typeof nextRole.matrix === 'object' ? nextRole.matrix : null;
             const frequencyRaw = String(nextRole.frequency || fallbackRole.frequency || 'instant').toLowerCase();
             const frequency = ['instant', 'daily', 'weekly'].includes(frequencyRaw) ? frequencyRaw : 'instant';
 
@@ -1386,7 +1387,9 @@ router.put('/notification-defaults', async (req, res) => {
 
             for (const channelKey of NOTIFICATION_CHANNEL_KEYS) {
                 for (const eventKey of NOTIFICATION_EVENT_KEYS) {
-                    const enabled = !!channels[channelKey] && !!events[eventKey];
+                    const enabled = rawMatrix && rawMatrix[channelKey] && rawMatrix[channelKey][eventKey] !== undefined
+                        ? !!rawMatrix[channelKey][eventKey]
+                        : (!!channels[channelKey] && !!events[eventKey]);
                     await query(
                         `INSERT INTO notification_role_matrix (role, channel, event_key, enabled, updated_by, updated_at)
                          VALUES ($1, $2, $3, $4, $5, NOW())

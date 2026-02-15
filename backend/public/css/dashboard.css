@@ -1132,6 +1132,27 @@
     color: #ef4444;
 }
 
+.settings-role-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-md);
+}
+
+.settings-role-card {
+    margin: 0;
+}
+
+.settings-role-table th,
+.settings-role-table td {
+    white-space: nowrap;
+    text-align: center;
+}
+
+.settings-role-table th:first-child,
+.settings-role-table td:first-child {
+    text-align: left;
+}
+
 /* Students page */
 .students-page {
     width: min(1260px, 100%);
@@ -1468,6 +1489,9 @@
     .reports-notification-filters {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+    .settings-role-grid {
+        grid-template-columns: 1fr;
+    }
 
     .students-toolbar .students-filter-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1491,6 +1515,9 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .reports-notification-filters {
+        grid-template-columns: 1fr;
+    }
+    .settings-role-grid {
         grid-template-columns: 1fr;
     }
 
