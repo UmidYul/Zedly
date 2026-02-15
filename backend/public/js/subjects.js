@@ -262,16 +262,17 @@
         },
 
         toggleSelectSubject: function (subjectId) {
-            if (this.selectedIds.has(subjectId)) {
-                this.selectedIds.delete(subjectId);
+            const normalizedId = String(subjectId);
+            if (this.selectedIds.has(normalizedId)) {
+                this.selectedIds.delete(normalizedId);
             } else {
-                this.selectedIds.add(subjectId);
+                this.selectedIds.add(normalizedId);
             }
             this.syncSelectionUi();
         },
 
         toggleSelectAllSubjects: function (checked) {
-            const currentIds = this.lastRenderedSubjects.map(subject => subject.id);
+            const currentIds = this.lastRenderedSubjects.map(subject => String(subject.id));
             if (checked) {
                 currentIds.forEach(id => this.selectedIds.add(id));
             } else {
@@ -304,7 +305,7 @@
 
             const selectAllEl = document.getElementById('subjectsSelectAll');
             if (selectAllEl) {
-                const currentIds = this.lastRenderedSubjects.map(subject => subject.id);
+                const currentIds = this.lastRenderedSubjects.map(subject => String(subject.id));
                 const selectedOnPage = currentIds.filter(id => this.selectedIds.has(id)).length;
                 selectAllEl.checked = currentIds.length > 0 && selectedOnPage === currentIds.length;
                 selectAllEl.indeterminate = selectedOnPage > 0 && selectedOnPage < currentIds.length;
@@ -408,6 +409,7 @@
         showSubjectModal: async function (subjectId = null) {
             const isEdit = subjectId !== null;
             let subject = null;
+            const subjectIdArg = JSON.stringify(subjectId);
 
             // Load subject data if editing
             if (isEdit) {
@@ -448,7 +450,7 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <form id="subjectForm" onsubmit="SubjectsManager.submitSubject(event, ${subjectId})">
+                            <form id="subjectForm" onsubmit="SubjectsManager.submitSubject(event, ${subjectIdArg})">
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">

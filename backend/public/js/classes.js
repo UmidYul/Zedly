@@ -347,16 +347,17 @@
         },
 
         toggleSelectClass: function (classId) {
-            if (this.selectedIds.has(classId)) {
-                this.selectedIds.delete(classId);
+            const normalizedId = String(classId);
+            if (this.selectedIds.has(normalizedId)) {
+                this.selectedIds.delete(normalizedId);
             } else {
-                this.selectedIds.add(classId);
+                this.selectedIds.add(normalizedId);
             }
             this.syncSelectionUi();
         },
 
         toggleSelectAllClasses: function (checked) {
-            const currentIds = this.lastRenderedClasses.map(cls => cls.id);
+            const currentIds = this.lastRenderedClasses.map(cls => String(cls.id));
             if (checked) {
                 currentIds.forEach(id => this.selectedIds.add(id));
             } else {
@@ -389,7 +390,7 @@
 
             const selectAllEl = document.getElementById('classesSelectAll');
             if (selectAllEl) {
-                const currentIds = this.lastRenderedClasses.map(cls => cls.id);
+                const currentIds = this.lastRenderedClasses.map(cls => String(cls.id));
                 const selectedOnPage = currentIds.filter(id => this.selectedIds.has(id)).length;
                 selectAllEl.checked = currentIds.length > 0 && selectedOnPage === currentIds.length;
                 selectAllEl.indeterminate = selectedOnPage > 0 && selectedOnPage < currentIds.length;
