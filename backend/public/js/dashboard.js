@@ -621,10 +621,6 @@
                                             <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
                                             <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
                                         </div>
-                                        <div class="field-inline">
-                                            <input id="emailCodeInput" class="field-input" type="text" maxlength="6" placeholder="Код подтверждения">
-                                            <button id="verifyEmailBtn" class="btn btn-primary" type="button" data-i18n="profile.confirm">Подтвердить</button>
-                                        </div>
                                         <small id="emailStatusText">Email не подтвержден</small>
                                     </div>
                                     <div class="field-block">

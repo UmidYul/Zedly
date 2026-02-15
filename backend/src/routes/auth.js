@@ -678,7 +678,7 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
         }
 
         const userResult = await query(
-            'SELECT id, first_name, settings FROM users WHERE id = $1',
+            'SELECT id, first_name, email, phone, settings FROM users WHERE id = $1',
             [req.user.id]
         );
 
@@ -694,6 +694,17 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
         const profileSettings = settings.profile || {};
         const verification = profileSettings.contact_verification || {};
         const pending = verification.pending || {};
+        const verifiedFlag = !!verification[`${contactType}_verified`];
+        const currentValue = String(user[contactType] || '').trim();
+        const normalizedCurrent = contactType === 'email' ? currentValue.toLowerCase() : currentValue;
+        const normalizedInput = contactType === 'email' ? rawValue.toLowerCase() : rawValue;
+
+        if (normalizedCurrent && normalizedCurrent === normalizedInput && verifiedFlag) {
+            return res.status(409).json({
+                error: 'already_connected',
+                message: `${contactType === 'email' ? 'Email' : 'Phone'} is already connected to your account`
+            });
+        }
 
         const code = generateVerificationCode();
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();

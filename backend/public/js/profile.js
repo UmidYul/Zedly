@@ -11,6 +11,8 @@
     let careerChart = null;
     let phoneRequestPollTimer = null;
     let activePhoneRequestId = '';
+    let contactVerifyModalType = 'email';
+    let contactVerifyModalValue = '';
     const PROFILE_ACTIVITY_LIMIT = 10;
     function setProfileLoading(loading) {
         const stats = document.getElementById('statsContent');
@@ -523,6 +525,115 @@
         setVerificationStatus('email', !!user.email_verified);
         setVerificationStatus('phone', !!user.phone_verified);
     }
+    function normalizeContactValue(type, value) {
+        const raw = String(value || '').trim();
+        if (type === 'email') return raw.toLowerCase();
+        if (type === 'phone') return raw.replace(/\s+/g, '');
+        return raw;
+    }
+
+    function isContactAlreadyConnected(type, value) {
+        if (!profileUser) return false;
+
+        const normalizedInput = normalizeContactValue(type, value);
+        const current = normalizeContactValue(type, profileUser[type]);
+
+        if (!normalizedInput || !current) return false;
+        if (normalizedInput !== current) return false;
+
+        if (type === 'email') return !!profileUser.email_verified;
+        if (type === 'phone') return !!profileUser.phone_verified;
+        return false;
+    }
+
+    function ensureContactVerifyModal() {
+        if (document.getElementById('contactVerifyModal')) return;
+
+        const backdrop = document.createElement('div');
+        backdrop.id = 'contactVerifyModal';
+        backdrop.className = 'contact-verify-backdrop';
+        backdrop.innerHTML = `
+            <div class="contact-verify-modal" role="dialog" aria-modal="true" aria-labelledby="contactVerifyTitle">
+                <div class="contact-verify-header">
+                    <h3 id="contactVerifyTitle">Подтверждение email</h3>
+                    <button type="button" id="closeContactVerifyModalBtn" class="contact-verify-close" aria-label="Close">&times;</button>
+                </div>
+                <div class="contact-verify-body">
+                    <p id="contactVerifyTargetText" class="contact-verify-target"></p>
+                    <input id="contactVerifyCodeInput" class="contact-verify-input" type="text" maxlength="6" inputmode="numeric" placeholder="Код подтверждения">
+                    <p id="contactVerifyHint" class="contact-verify-hint"></p>
+                    <div class="contact-verify-actions">
+                        <button type="button" id="cancelContactVerifyBtn" class="btn btn-outline">Отмена</button>
+                        <button type="button" id="submitContactVerifyBtn" class="btn btn-primary">Подтвердить</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(backdrop);
+
+        const closeModal = () => {
+            backdrop.classList.remove('is-open');
+            const codeInput = document.getElementById('contactVerifyCodeInput');
+            if (codeInput) codeInput.value = '';
+        };
+
+        backdrop.addEventListener('click', (event) => {
+            if (event.target === backdrop) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('closeContactVerifyModalBtn')?.addEventListener('click', closeModal);
+        document.getElementById('cancelContactVerifyBtn')?.addEventListener('click', closeModal);
+
+        document.getElementById('submitContactVerifyBtn')?.addEventListener('click', async () => {
+            const code = document.getElementById('contactVerifyCodeInput')?.value?.trim() || '';
+            await verifyContactCode(contactVerifyModalType, code);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            if (backdrop.classList.contains('is-open')) {
+                closeModal();
+            }
+        });
+    }
+
+    function openContactVerifyModal({ type, value, devCode }) {
+        ensureContactVerifyModal();
+        contactVerifyModalType = type;
+        contactVerifyModalValue = value;
+
+        const title = document.getElementById('contactVerifyTitle');
+        const targetText = document.getElementById('contactVerifyTargetText');
+        const hint = document.getElementById('contactVerifyHint');
+        const codeInput = document.getElementById('contactVerifyCodeInput');
+        const backdrop = document.getElementById('contactVerifyModal');
+
+        if (title) {
+            title.textContent = type === 'email' ? 'Подтверждение email' : 'Подтверждение телефона';
+        }
+        if (targetText) {
+            targetText.textContent = `Код отправлен на: ${value}`;
+        }
+        if (hint) {
+            hint.textContent = devCode ? `DEV CODE: ${devCode}` : 'Код действует 10 минут';
+        }
+        if (codeInput) {
+            codeInput.value = '';
+            codeInput.focus();
+        }
+        if (backdrop) {
+            backdrop.classList.add('is-open');
+        }
+    }
+
+    function closeContactVerifyModal() {
+        const backdrop = document.getElementById('contactVerifyModal');
+        if (!backdrop) return;
+        backdrop.classList.remove('is-open');
+    }
 
     async function requestContactCode(type) {
         const inputId = type === 'email' ? 'emailInput' : 'phoneInput';
@@ -533,6 +644,13 @@
             return;
         }
 
+        if (isContactAlreadyConnected(type, value)) {
+            await showAlert(type === 'email'
+                ? 'Этот email уже привязан к вашему аккаунту'
+                : 'Этот телефон уже привязан к вашему аккаунту', 'Информация');
+            return;
+        }
+
         try {
             const data = await apiFetch('/api/auth/profile/contact/request-change', {
                 method: 'POST',
@@ -540,16 +658,18 @@
                 body: JSON.stringify({ type, value })
             });
 
-            const codeHint = data.dev_verification_code ? ` (dev code: ${data.dev_verification_code})` : '';
-            await showAlert((data.message || 'Код отправлен') + codeHint, 'Успешно');
+            openContactVerifyModal({
+                type,
+                value,
+                devCode: data.dev_verification_code || ''
+            });
         } catch (error) {
             await showAlert(error.message || 'Не удалось отправить код', 'Ошибка');
         }
     }
 
-    async function verifyContactCode(type) {
-        const codeInputId = type === 'email' ? 'emailCodeInput' : 'phoneCodeInput';
-        const code = document.getElementById(codeInputId)?.value?.trim() || '';
+    async function verifyContactCode(type, codeArg = '') {
+        const code = String(codeArg || '').trim();
 
         if (!code) {
             await showAlert('Введите код подтверждения', 'Ошибка');
@@ -564,12 +684,23 @@
             });
 
             if (type === 'email') {
-                document.getElementById('profileEmail').textContent = data.email || document.getElementById('emailInput')?.value || '-';
+                const nextEmail = data.email || contactVerifyModalValue || document.getElementById('emailInput')?.value || '-';
+                document.getElementById('profileEmail').textContent = nextEmail;
+                const emailInput = document.getElementById('emailInput');
+                if (emailInput && nextEmail !== '-') emailInput.value = nextEmail;
+                profileUser.email = nextEmail === '-' ? '' : nextEmail;
+                profileUser.email_verified = true;
             } else {
-                document.getElementById('profilePhone').textContent = data.phone || document.getElementById('phoneInput')?.value || '-';
+                const nextPhone = data.phone || contactVerifyModalValue || document.getElementById('phoneInput')?.value || '-';
+                document.getElementById('profilePhone').textContent = nextPhone;
+                const phoneInput = document.getElementById('phoneInput');
+                if (phoneInput && nextPhone !== '-') phoneInput.value = nextPhone;
+                profileUser.phone = nextPhone === '-' ? '' : nextPhone;
+                profileUser.phone_verified = true;
             }
 
             setVerificationStatus(type, true);
+            closeContactVerifyModal();
             await showAlert(data.message || 'Контакт подтвержден', 'Успешно');
         } catch (error) {
             await showAlert(error.message || 'Ошибка подтверждения', 'Ошибка');
@@ -749,8 +880,8 @@
     }
 
     function bindOwnActions() {
+        ensureContactVerifyModal();
         document.getElementById('requestEmailCodeBtn')?.addEventListener('click', () => requestContactCode('email'));
-        document.getElementById('verifyEmailBtn')?.addEventListener('click', () => verifyContactCode('email'));
         document.getElementById('requestPhoneFromTelegramBtn')?.addEventListener('click', requestPhoneFromTelegram);
         document.getElementById('saveNotificationsBtn')?.addEventListener('click', saveNotificationSettings);
         document.getElementById('savePersonalBtn')?.addEventListener('click', savePersonalInfo);
