@@ -6,7 +6,7 @@ const XLSX = require('xlsx');
 const ExcelJS = require('exceljs');
 const { query, getClient } = require('../config/database');
 const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
-const { notifyNewUser, notifySystemChange } = require('../utils/notifications');
+const { notifyNewUser, notifySystemChange, getRoleNotificationDefaultsMap } = require('../utils/notifications');
 
 // --- Career Analytics and Tests for SchoolAdmin ---
 const { getCareerStats, getCareerTests } = require('./careerHandlers');
@@ -3295,6 +3295,23 @@ const INTERNAL_IMPORT_FIELDS = new Set([
     'class_name',
     'academic_year'
 ]);
+
+/**
+ * GET /api/admin/notification-defaults
+ * Read-only role-based notification defaults for school admin.
+ */
+router.get('/notification-defaults', async (req, res) => {
+    try {
+        const defaults = await getRoleNotificationDefaultsMap();
+        res.json({ defaults });
+    } catch (error) {
+        console.error('Get notification defaults (admin) error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch notification defaults'
+        });
+    }
+});
 
 /**
  * GET /api/admin/notifications/logs

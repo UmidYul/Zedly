@@ -545,3 +545,6 @@
   - `backend/public/js/settings.js`
   - `settings` page content + script loader in `backend/public/js/dashboard.js`
 - [x] Connected notification resolver to DB defaults with in-memory cache + invalidation on update.
+- [x] Added SchoolAdmin read-only access to notification defaults matrix:
+  - `GET /api/admin/notification-defaults`
+  - `settings` page enabled for school_admin in read-only mode

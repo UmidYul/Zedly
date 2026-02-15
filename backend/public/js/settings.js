@@ -1,8 +1,9 @@
-// SuperAdmin Settings Page
+// Settings Page (SuperAdmin + SchoolAdmin read-only)
 (function () {
     'use strict';
 
-    const API = '/api/superadmin/notification-defaults';
+    const API_SUPERADMIN = '/api/superadmin/notification-defaults';
+    const API_SCHOOL_ADMIN = '/api/admin/notification-defaults';
     const ROLES = ['student', 'teacher', 'school_admin', 'superadmin'];
     const ROLE_LABELS = {
         student: 'Student',
@@ -22,15 +23,32 @@
     ];
 
     const state = {
-        defaults: {}
+        defaults: {},
+        role: '',
+        readOnly: true
     };
+
+    function getCurrentUserRole() {
+        try {
+            const raw = localStorage.getItem('user');
+            if (!raw) return '';
+            const parsed = JSON.parse(raw);
+            return String(parsed?.role || '');
+        } catch (_) {
+            return '';
+        }
+    }
+
+    function getApiEndpoint() {
+        return state.role === 'superadmin' ? API_SUPERADMIN : API_SCHOOL_ADMIN;
+    }
 
     function getToken() {
         return localStorage.getItem('access_token') || '';
     }
 
     async function apiGet() {
-        const response = await fetch(API, {
+        const response = await fetch(getApiEndpoint(), {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (!response.ok) throw new Error(`Request failed: ${response.status}`);
@@ -38,7 +56,7 @@
     }
 
     async function apiPut(payload) {
-        const response = await fetch(API, {
+        const response = await fetch(getApiEndpoint(), {
             method: 'PUT',
             headers: {
                 Authorization: `Bearer ${getToken()}`,
@@ -91,13 +109,13 @@
             const row = normalizeRoleDefaults(state.defaults[role] || {});
             html += `<tr><td><strong>${esc(ROLE_LABELS[role] || role)}</strong></td>`;
             for (const key of CHANNEL_KEYS) {
-                html += `<td><input type="checkbox" data-role="${esc(role)}" data-scope="channels" data-key="${esc(key)}" ${row.channels[key] ? 'checked' : ''}></td>`;
+                html += `<td><input type="checkbox" data-role="${esc(role)}" data-scope="channels" data-key="${esc(key)}" ${row.channels[key] ? 'checked' : ''} ${state.readOnly ? 'disabled' : ''}></td>`;
             }
             for (const key of EVENT_KEYS) {
-                html += `<td><input type="checkbox" data-role="${esc(role)}" data-scope="events" data-key="${esc(key)}" ${row.events[key] ? 'checked' : ''}></td>`;
+                html += `<td><input type="checkbox" data-role="${esc(role)}" data-scope="events" data-key="${esc(key)}" ${row.events[key] ? 'checked' : ''} ${state.readOnly ? 'disabled' : ''}></td>`;
             }
             html += `<td>
-                <select data-role="${esc(role)}" data-scope="frequency">
+                <select data-role="${esc(role)}" data-scope="frequency" ${state.readOnly ? 'disabled' : ''}>
                     <option value="instant" ${row.frequency === 'instant' ? 'selected' : ''}>instant</option>
                     <option value="daily" ${row.frequency === 'daily' ? 'selected' : ''}>daily</option>
                     <option value="weekly" ${row.frequency === 'weekly' ? 'selected' : ''}>weekly</option>
@@ -137,6 +155,11 @@
     function bindEvents() {
         const saveBtn = document.getElementById('settingsSaveNotificationDefaultsBtn');
         if (!saveBtn) return;
+        if (state.readOnly) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Read only';
+            return;
+        }
 
         saveBtn.addEventListener('click', async () => {
             try {
@@ -162,6 +185,8 @@
     async function init() {
         const matrix = document.getElementById('settingsNotificationDefaultsMatrix');
         if (!matrix) return;
+        state.role = getCurrentUserRole();
+        state.readOnly = state.role !== 'superadmin';
 
         setStatus('Loading defaults...');
         try {
