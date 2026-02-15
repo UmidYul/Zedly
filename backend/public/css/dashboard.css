@@ -2717,6 +2717,66 @@
         flex: 0 0 45%;
     }
 
+    .recent-activity-table {
+        overflow: visible;
+        margin: 10px 0;
+    }
+
+    .recent-activity-table .data-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        background: transparent;
+    }
+
+    .recent-activity-table .data-table thead {
+        display: none;
+    }
+
+    .recent-activity-table .data-table tbody,
+    .recent-activity-table .data-table tr,
+    .recent-activity-table .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .recent-activity-table .data-table tr {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card);
+        padding: 6px 10px;
+    }
+
+    .recent-activity-table .data-table td {
+        border: 0;
+        border-bottom: 1px dashed var(--border);
+        padding: 7px 0;
+        white-space: normal;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        text-align: right;
+    }
+
+    .recent-activity-table .data-table td:last-child {
+        border-bottom: 0;
+    }
+
+    .recent-activity-table .data-table td::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.72rem;
+        line-height: 1.25;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-align: left;
+        max-width: 45%;
+        flex: 0 0 45%;
+    }
+
     #studentsPage .students-bulk {
         flex-direction: column;
         align-items: flex-start;

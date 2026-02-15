@@ -2386,6 +2386,11 @@
             test: t('dashboard.activity.typeTest', 'Test'),
             user: t('dashboard.activity.typeUser', 'User')
         };
+        const colType = t('dashboard.activity.type', 'Type');
+        const colTitle = t('dashboard.activity.title', 'Title');
+        const colDetails = t('dashboard.activity.details', 'Details');
+        const colScore = t('dashboard.activity.score', 'Score');
+        const colDate = t('dashboard.activity.date', 'Date');
 
         const rows = items.map((item) => {
             const type = typeLabels[item.type] || item.type || 'Activity';
@@ -2394,25 +2399,25 @@
                 : '-';
             return `
                 <tr>
-                    <td>${type}</td>
-                    <td>${item.title || '-'}</td>
-                    <td>${item.subtitle || '-'}</td>
-                    <td>${score}</td>
-                    <td>${formatDateTime(item.date)}</td>
+                    <td data-label="${colType}">${type}</td>
+                    <td data-label="${colTitle}">${item.title || '-'}</td>
+                    <td data-label="${colDetails}">${item.subtitle || '-'}</td>
+                    <td data-label="${colScore}">${score}</td>
+                    <td data-label="${colDate}">${formatDateTime(item.date)}</td>
                 </tr>
             `;
         }).join('');
 
         return `
-            <div class="table-responsive">
+            <div class="table-responsive recent-activity-table">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>${t('dashboard.activity.type', 'Type')}</th>
-                            <th>${t('dashboard.activity.title', 'Title')}</th>
-                            <th>${t('dashboard.activity.details', 'Details')}</th>
-                            <th>${t('dashboard.activity.score', 'Score')}</th>
-                            <th>${t('dashboard.activity.date', 'Date')}</th>
+                            <th>${colType}</th>
+                            <th>${colTitle}</th>
+                            <th>${colDetails}</th>
+                            <th>${colScore}</th>
+                            <th>${colDate}</th>
                         </tr>
                     </thead>
                     <tbody>
