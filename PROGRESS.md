@@ -552,3 +552,15 @@
   - migration updated: `database/migrations/2026_02_15_notification_role_defaults.psql`
   - new table: `notification_role_matrix` (`role`, `channel`, `event_key`, `enabled`)
   - resolver supports normalized schema with legacy fallback
+- [x] Built SuperAdmin Audit Center (interactive):
+  - backend API:
+    - `GET /api/superadmin/audit/logs` (filters/sort/pagination)
+    - `GET /api/superadmin/audit/summary` (KPI/top actions/top actors/timeline)
+    - `GET /api/superadmin/audit/facets` (filter dictionaries)
+    - `GET /api/superadmin/audit/export.csv` (CSV export)
+  - frontend page `audit` with:
+    - advanced filters + presets (24h/7d/30d) + reset
+    - auto-refresh toggle
+    - KPI cards, top actions/actors, daily activity timeline
+    - detailed logs table, row drill-down with JSON details
+    - CSV export with bearer-auth fetch

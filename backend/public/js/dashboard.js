@@ -530,6 +530,7 @@
             'calendar': { src: '/js/calendar.js', manager: 'CalendarPage' },
             'reports': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/reports.js'], manager: 'ReportsManager' },
             'settings': { src: '/js/settings.js', manager: 'SettingsPage' },
+            'audit': { src: '/js/audit.js', manager: 'AuditPage' },
             'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' }
         };
 
@@ -2152,6 +2153,110 @@
                             <div id="reportsRiskSummary"></div>
                             <div id="reportsRiskTable"></div>
                         </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (page === 'audit') {
+            if (role !== 'superadmin') {
+                return `
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Audit</h2>
+                        </div>
+                        <p style="color: var(--text-secondary);">This section is only available for SuperAdmin.</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="audit-page">
+                    <div class="page-header-section">
+                        <h1 class="page-main-title">Audit Center</h1>
+                        <p class="page-subtitle">Interactive system activity monitoring and forensic analysis</p>
+                    </div>
+
+                    <div class="dashboard-section audit-toolbar">
+                        <div class="toolbar-filters">
+                            <div class="filter-group">
+                                <label for="auditSearch">Search</label>
+                                <input id="auditSearch" class="form-control" placeholder="action, entity, user, details">
+                            </div>
+                            <div class="filter-group">
+                                <label for="auditActionFilter">Action</label>
+                                <select id="auditActionFilter" class="filter-select"><option value="">All</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="auditEntityFilter">Entity</label>
+                                <select id="auditEntityFilter" class="filter-select"><option value="">All</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="auditRoleFilter">Actor Role</label>
+                                <select id="auditRoleFilter" class="filter-select"><option value="">All</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="auditStatusFilter">Status</label>
+                                <select id="auditStatusFilter" class="filter-select">
+                                    <option value="">All</option>
+                                    <option value="success">Success</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="auditFromFilter">From</label>
+                                <input id="auditFromFilter" class="form-control" type="datetime-local">
+                            </div>
+                            <div class="filter-group">
+                                <label for="auditToFilter">To</label>
+                                <input id="auditToFilter" class="form-control" type="datetime-local">
+                            </div>
+                            <div class="filter-group">
+                                <label for="auditPageSize">Per page</label>
+                                <select id="auditPageSize" class="filter-select">
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn btn-outline" id="auditPreset24hBtn" type="button">24h</button>
+                            <button class="btn btn-outline" id="auditPreset7dBtn" type="button">7d</button>
+                            <button class="btn btn-outline" id="auditPreset30dBtn" type="button">30d</button>
+                            <button class="btn btn-outline" id="auditResetFiltersBtn" type="button">Reset</button>
+                            <button class="btn btn-secondary" id="auditRefreshBtn" type="button">Refresh</button>
+                            <button class="btn btn-secondary" id="auditAutoRefreshBtn" type="button">Auto: Off</button>
+                            <button class="btn btn-primary" id="auditExportBtn" type="button">Export CSV</button>
+                        </div>
+                    </div>
+
+                    <div class="reports-grid-kpi" id="auditKpiGrid"></div>
+
+                    <div class="reports-grid-main">
+                        <div class="dashboard-section reports-card">
+                            <div class="section-header"><h2 class="section-title">Top Actions</h2></div>
+                            <div id="auditTopActions"></div>
+                        </div>
+                        <div class="dashboard-section reports-card">
+                            <div class="section-header"><h2 class="section-title">Top Actors</h2></div>
+                            <div id="auditTopActors"></div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-section reports-card">
+                        <div class="section-header"><h2 class="section-title">Daily Activity Timeline</h2></div>
+                        <div id="auditTimeline"></div>
+                    </div>
+
+                    <div class="dashboard-section reports-card">
+                        <div class="section-header"><h2 class="section-title">Audit Logs</h2></div>
+                        <div id="auditLogsTable"></div>
+                    </div>
+
+                    <div class="dashboard-section reports-card" id="auditDetailsCard" style="display:none;">
+                        <div class="section-header"><h2 class="section-title">Log Details</h2></div>
+                        <div id="auditDetailsView"></div>
                     </div>
                 </div>
             `;

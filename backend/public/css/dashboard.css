@@ -1153,6 +1153,110 @@
     text-align: left;
 }
 
+.audit-page {
+    width: min(1280px, 100%);
+    margin: 0 auto;
+    display: grid;
+    gap: var(--spacing-md);
+}
+
+.audit-toolbar .toolbar-filters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    gap: var(--spacing-sm);
+    width: 100%;
+}
+
+.audit-toolbar .filter-group {
+    min-width: 0;
+}
+
+.audit-bar-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 220px) 1fr auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.audit-bar-label {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+}
+
+.audit-bar-track {
+    height: 10px;
+    border-radius: 999px;
+    background: var(--bg-secondary);
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.audit-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2563eb, #06b6d4);
+}
+
+.audit-bar-value {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
+.audit-timeline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
+    align-items: end;
+    gap: 8px;
+    min-height: 160px;
+}
+
+.audit-timeline-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.audit-timeline-bar {
+    width: 100%;
+    max-width: 28px;
+    border-radius: 7px 7px 0 0;
+    background: linear-gradient(180deg, #22c55e, #0ea5e9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.audit-timeline-item span {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+.audit-log-row {
+    cursor: pointer;
+}
+
+.audit-log-row:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.audit-details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 14px;
+    margin-bottom: 12px;
+}
+
+.audit-details-json {
+    margin: 0;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    max-height: 420px;
+    overflow: auto;
+}
+
 /* Students page */
 .students-page {
     width: min(1260px, 100%);
@@ -1492,6 +1596,12 @@
     .settings-role-grid {
         grid-template-columns: 1fr;
     }
+    .audit-toolbar .toolbar-filters {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+    .audit-details-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 
     .students-toolbar .students-filter-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1519,6 +1629,16 @@
     }
     .settings-role-grid {
         grid-template-columns: 1fr;
+    }
+    .audit-toolbar .toolbar-filters {
+        grid-template-columns: 1fr;
+    }
+    .audit-details-grid {
+        grid-template-columns: 1fr;
+    }
+    .audit-bar-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
     }
 
     .reports-grid-main {

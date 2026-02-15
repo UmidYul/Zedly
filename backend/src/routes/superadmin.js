@@ -51,6 +51,74 @@ function normalizeBooleanMap(input, allowedKeys, fallback = {}) {
     return next;
 }
 
+function parsePositiveInt(value, fallback, min = 1, max = 100) {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(Math.max(parsed, min), max);
+}
+
+function buildAuditFilters(queryInput = {}) {
+    const where = [];
+    const params = [];
+
+    const search = String(queryInput.search || '').trim();
+    const action = String(queryInput.action || '').trim();
+    const entityType = String(queryInput.entity_type || '').trim();
+    const actorRole = String(queryInput.actor_role || '').trim();
+    const status = String(queryInput.status || '').trim().toLowerCase();
+    const from = String(queryInput.from || '').trim();
+    const to = String(queryInput.to || '').trim();
+    const actorId = String(queryInput.actor_id || '').trim();
+
+    if (search) {
+        params.push(`%${search}%`);
+        const p = `$${params.length}`;
+        where.push(`(
+            al.action ILIKE ${p}
+            OR al.entity_type ILIKE ${p}
+            OR COALESCE(al.entity_id::text, '') ILIKE ${p}
+            OR COALESCE(u.username, '') ILIKE ${p}
+            OR COALESCE(u.first_name, '') ILIKE ${p}
+            OR COALESCE(u.last_name, '') ILIKE ${p}
+            OR COALESCE(al.details::text, '') ILIKE ${p}
+        )`);
+    }
+    if (action) {
+        params.push(action);
+        where.push(`al.action = $${params.length}`);
+    }
+    if (entityType) {
+        params.push(entityType);
+        where.push(`al.entity_type = $${params.length}`);
+    }
+    if (actorRole) {
+        params.push(actorRole);
+        where.push(`u.role = $${params.length}`);
+    }
+    if (actorId) {
+        params.push(actorId);
+        where.push(`al.user_id = $${params.length}::uuid`);
+    }
+    if (status === 'failed') {
+        where.push(`(al.action ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%')`);
+    } else if (status === 'success') {
+        where.push(`NOT (al.action ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%')`);
+    }
+    if (from) {
+        params.push(from);
+        where.push(`al.created_at >= $${params.length}::timestamptz`);
+    }
+    if (to) {
+        params.push(to);
+        where.push(`al.created_at <= $${params.length}::timestamptz`);
+    }
+
+    return {
+        whereClause: where.length ? `WHERE ${where.join(' AND ')}` : '',
+        params
+    };
+}
+
 
 /**
  * GET /api/superadmin/schools
@@ -1345,6 +1413,283 @@ router.get('/notification-defaults', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to fetch notification defaults'
+        });
+    }
+});
+
+/**
+ * GET /api/superadmin/audit/logs
+ * Paginated audit log list with filters and sorting.
+ */
+router.get('/audit/logs', async (req, res) => {
+    try {
+        const page = parsePositiveInt(req.query.page, 1, 1, 100000);
+        const limit = parsePositiveInt(req.query.limit, 25, 1, 200);
+        const offset = (page - 1) * limit;
+
+        const sort = String(req.query.sort || 'created_at').trim();
+        const order = String(req.query.order || 'desc').trim().toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+        const sortMap = {
+            created_at: 'al.created_at',
+            action: 'al.action',
+            entity_type: 'al.entity_type',
+            actor: "COALESCE(u.username, '')"
+        };
+        const sortExpr = sortMap[sort] || sortMap.created_at;
+
+        const filters = buildAuditFilters(req.query);
+
+        const countResult = await query(
+            `SELECT COUNT(*) AS total
+             FROM audit_logs al
+             LEFT JOIN users u ON u.id = al.user_id
+             ${filters.whereClause}`,
+            filters.params
+        );
+        const total = parseInt(countResult.rows[0]?.total || 0, 10);
+
+        const schoolNameExpr = await getSchoolNameExpr();
+        const dataParams = [...filters.params, limit, offset];
+        const rowsResult = await query(
+            `SELECT
+                al.id,
+                al.user_id,
+                al.action,
+                al.entity_type,
+                al.entity_id,
+                al.details,
+                al.created_at,
+                u.username,
+                u.first_name,
+                u.last_name,
+                u.role AS actor_role,
+                s.id AS school_id,
+                ${schoolNameExpr} AS school_name,
+                (al.action ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%') AS is_failed
+             FROM audit_logs al
+             LEFT JOIN users u ON u.id = al.user_id
+             LEFT JOIN schools s ON s.id = u.school_id
+             ${filters.whereClause}
+             ORDER BY ${sortExpr} ${order}
+             LIMIT $${dataParams.length - 1}
+             OFFSET $${dataParams.length}`,
+            dataParams
+        );
+
+        res.json({
+            logs: rowsResult.rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.max(1, Math.ceil(total / limit))
+            }
+        });
+    } catch (error) {
+        console.error('Get audit logs error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch audit logs'
+        });
+    }
+});
+
+/**
+ * GET /api/superadmin/audit/summary
+ * KPI + activity aggregates for audit center.
+ */
+router.get('/audit/summary', async (req, res) => {
+    try {
+        const filters = buildAuditFilters(req.query);
+
+        const baseParams = filters.params;
+        const kpiResult = await query(
+            `WITH filtered AS (
+                SELECT al.user_id, al.action, al.details, al.created_at
+                FROM audit_logs al
+                LEFT JOIN users u ON u.id = al.user_id
+                ${filters.whereClause}
+            )
+            SELECT
+                COUNT(*)::int AS total_events,
+                COUNT(DISTINCT user_id)::int AS unique_actors,
+                COUNT(*) FILTER (WHERE action ILIKE '%failed%' OR COALESCE(details::text, '') ILIKE '%error%')::int AS failed_events
+            FROM filtered`,
+            baseParams
+        );
+
+        const topActionsResult = await query(
+            `WITH filtered AS (
+                SELECT al.action
+                FROM audit_logs al
+                LEFT JOIN users u ON u.id = al.user_id
+                ${filters.whereClause}
+            )
+            SELECT action, COUNT(*)::int AS count
+            FROM filtered
+            GROUP BY action
+            ORDER BY count DESC, action ASC
+            LIMIT 8`,
+            baseParams
+        );
+
+        const activityResult = await query(
+            `WITH filtered AS (
+                SELECT al.created_at
+                FROM audit_logs al
+                LEFT JOIN users u ON u.id = al.user_id
+                ${filters.whereClause}
+            )
+            SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day, COUNT(*)::int AS count
+            FROM filtered
+            GROUP BY date_trunc('day', created_at)
+            ORDER BY date_trunc('day', created_at) DESC
+            LIMIT 31`,
+            baseParams
+        );
+
+        const topActorsResult = await query(
+            `WITH filtered AS (
+                SELECT al.user_id
+                FROM audit_logs al
+                LEFT JOIN users u ON u.id = al.user_id
+                ${filters.whereClause}
+            )
+            SELECT
+                f.user_id,
+                COALESCE(u.username, 'system') AS username,
+                u.role,
+                COUNT(*)::int AS count
+            FROM filtered f
+            LEFT JOIN users u ON u.id = f.user_id
+            GROUP BY f.user_id, u.username, u.role
+            ORDER BY count DESC, username ASC
+            LIMIT 8`,
+            baseParams
+        );
+
+        res.json({
+            kpi: kpiResult.rows[0] || { total_events: 0, unique_actors: 0, failed_events: 0 },
+            top_actions: topActionsResult.rows || [],
+            activity_by_day: (activityResult.rows || []).reverse(),
+            top_actors: topActorsResult.rows || []
+        });
+    } catch (error) {
+        console.error('Get audit summary error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch audit summary'
+        });
+    }
+});
+
+/**
+ * GET /api/superadmin/audit/facets
+ * Distinct values for filter controls.
+ */
+router.get('/audit/facets', async (req, res) => {
+    try {
+        const actionsResult = await query(
+            `SELECT action, COUNT(*)::int AS count
+             FROM audit_logs
+             GROUP BY action
+             ORDER BY count DESC, action ASC
+             LIMIT 80`
+        );
+        const entityTypesResult = await query(
+            `SELECT entity_type, COUNT(*)::int AS count
+             FROM audit_logs
+             GROUP BY entity_type
+             ORDER BY count DESC, entity_type ASC
+             LIMIT 80`
+        );
+        const actorRolesResult = await query(
+            `SELECT role, COUNT(*)::int AS count
+             FROM users
+             GROUP BY role
+             ORDER BY count DESC, role ASC`
+        );
+
+        res.json({
+            actions: actionsResult.rows || [],
+            entity_types: entityTypesResult.rows || [],
+            actor_roles: actorRolesResult.rows || []
+        });
+    } catch (error) {
+        console.error('Get audit facets error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch audit facets'
+        });
+    }
+});
+
+/**
+ * GET /api/superadmin/audit/export.csv
+ * Export filtered audit logs to CSV.
+ */
+router.get('/audit/export.csv', async (req, res) => {
+    try {
+        const limit = parsePositiveInt(req.query.limit, 5000, 1, 20000);
+        const filters = buildAuditFilters(req.query);
+        const schoolNameExpr = await getSchoolNameExpr();
+
+        const params = [...filters.params, limit];
+        const rowsResult = await query(
+            `SELECT
+                al.id,
+                al.created_at,
+                COALESCE(u.username, '') AS actor_username,
+                COALESCE(u.role, '') AS actor_role,
+                al.action,
+                al.entity_type,
+                COALESCE(al.entity_id::text, '') AS entity_id,
+                ${schoolNameExpr} AS school_name,
+                COALESCE(al.details::text, '') AS details
+             FROM audit_logs al
+             LEFT JOIN users u ON u.id = al.user_id
+             LEFT JOIN schools s ON s.id = u.school_id
+             ${filters.whereClause}
+             ORDER BY al.created_at DESC
+             LIMIT $${params.length}`,
+            params
+        );
+
+        const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+        const header = [
+            'id',
+            'created_at',
+            'actor_username',
+            'actor_role',
+            'action',
+            'entity_type',
+            'entity_id',
+            'school_name',
+            'details'
+        ];
+        const lines = [header.join(',')];
+        for (const row of rowsResult.rows || []) {
+            lines.push([
+                row.id,
+                row.created_at,
+                row.actor_username,
+                row.actor_role,
+                row.action,
+                row.entity_type,
+                row.entity_id,
+                row.school_name,
+                row.details
+            ].map(escapeCsv).join(','));
+        }
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="audit_export_${Date.now()}.csv"`);
+        res.send(lines.join('\n'));
+    } catch (error) {
+        console.error('Export audit csv error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to export audit logs'
         });
     }
 });
