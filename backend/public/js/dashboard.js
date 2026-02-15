@@ -181,6 +181,10 @@
             const data = await response.json();
             console.log('✅ User authenticated:', data.user);
             currentUser = data.user;
+            const requestedPage = getRequestedPageFromUrl();
+            if (requestedPage && isPageAvailableForCurrentUser(requestedPage)) {
+                currentPageId = requestedPage;
+            }
 
             try {
                 // Update UI (with error handling for each step)
@@ -280,21 +284,32 @@
         sidebarNav.innerHTML = html;
 
         // Restore active state for current page
-        const currentItem = sidebarNav.querySelector(`.nav-item[data-page="${currentPageId}"]`);
-        if (currentItem) {
-            currentItem.classList.add('active');
-        } else {
-            const firstItem = sidebarNav.querySelector('.nav-item');
-            if (firstItem) {
-                firstItem.classList.add('active');
-                currentPageId = firstItem.dataset.page || 'overview';
-            }
-        }
+        syncActiveNavItem(currentPageId);
 
         // Add click handlers
         sidebarNav.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', handleNavClick);
         });
+    }
+
+    function syncActiveNavItem(pageId) {
+        const sidebarNav = document.getElementById('sidebarNav');
+        if (!sidebarNav) return;
+
+        const navItems = sidebarNav.querySelectorAll('.nav-item');
+        navItems.forEach((item) => item.classList.remove('active'));
+
+        const currentItem = sidebarNav.querySelector(`.nav-item[data-page="${pageId}"]`);
+        if (currentItem) {
+            currentItem.classList.add('active');
+            return;
+        }
+
+        const firstItem = sidebarNav.querySelector('.nav-item');
+        if (firstItem) {
+            firstItem.classList.add('active');
+            currentPageId = firstItem.dataset.page || 'overview';
+        }
     }
 
     function refreshTranslations() {
@@ -389,6 +404,7 @@
     async function loadPageContent(page) {
         const content = document.getElementById('dashboardContent');
         currentPageId = page || currentPageId;
+        syncActiveNavItem(currentPageId);
 
         if (!content) {
             console.warn('⚠️ dashboardContent element not found');
