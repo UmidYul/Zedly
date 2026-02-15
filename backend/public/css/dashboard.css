@@ -1430,6 +1430,32 @@
     display: flex;
     gap: var(--spacing-sm);
     flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.calendar-filters .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 150px;
+}
+
+.calendar-filters .filter-group label {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.2;
+}
+
+.calendar-filters .filter-select,
+.calendar-filters .form-input,
+.calendar-filters input,
+.calendar-filters select {
+    min-width: 150px;
+}
+
+.calendar-filters #calendarSearchInput {
+    min-width: 240px;
 }
 
 .calendar-kpi-grid {
