@@ -256,6 +256,10 @@
 
 /* Mobile responsiveness */
 @media (max-width: 968px) {
+    body.notifications-open {
+        overflow: hidden;
+    }
+
     .notifications-dropdown {
         position: fixed;
         top: calc(64px + env(safe-area-inset-top));

@@ -2007,6 +2007,7 @@
         display: flex;
         gap: 6px;
         align-items: center;
+        flex-wrap: nowrap;
         max-width: 100%;
         overflow-x: auto;
         overflow-y: hidden;
@@ -2026,6 +2027,7 @@
     .lang-switch {
         transform: scale(0.95);
         transform-origin: right center;
+        flex-shrink: 0;
     }
 
     .page-header-section {

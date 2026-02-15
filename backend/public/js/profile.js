@@ -347,23 +347,27 @@
         const data = values.map((v) => v.value);
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
         const chartWrap = canvas.parentElement;
-        if (chartWrap && isMobile) {
-            chartWrap.style.overflowX = 'auto';
-            chartWrap.style.overflowY = 'hidden';
-            chartWrap.style.webkitOverflowScrolling = 'touch';
-            canvas.style.minWidth = `${Math.max(360, labels.length * 70)}px`;
-            canvas.style.height = '280px';
-        } else {
-            canvas.style.minWidth = '';
-            canvas.style.height = '';
+        if (chartWrap) {
+            chartWrap.style.overflowX = '';
+            chartWrap.style.overflowY = '';
+        }
+        canvas.style.minWidth = '';
+        canvas.style.height = '';
+
+        if (isMobile) {
+            // Show all subjects on small screens in a readable order.
+            canvas.style.height = `${Math.max(280, labels.length * 34)}px`;
             if (chartWrap) {
-                chartWrap.style.overflowX = '';
-                chartWrap.style.overflowY = '';
+                chartWrap.style.maxHeight = '420px';
+                chartWrap.style.overflowY = 'auto';
+                chartWrap.style.webkitOverflowScrolling = 'touch';
             }
+        } else if (chartWrap) {
+            chartWrap.style.maxHeight = '';
         }
 
         performanceChart = new Chart(canvas, {
-            type: 'line',
+            type: isMobile ? 'bar' : 'line',
             data: {
                 labels,
                 datasets: [{
@@ -380,15 +384,22 @@
                 responsive: true,
                 maintainAspectRatio: !isMobile,
                 plugins: { legend: { display: false } },
+                indexAxis: isMobile ? 'y' : 'x',
                 scales: {
                     x: {
+                        ...(isMobile ? { beginAtZero: true, max: 100 } : {}),
                         ticks: {
                             autoSkip: false,
-                            maxRotation: isMobile ? 70 : 0,
-                            minRotation: isMobile ? 45 : 0
+                            maxRotation: isMobile ? 0 : 0,
+                            minRotation: isMobile ? 0 : 0
                         }
                     },
-                    y: { beginAtZero: true, max: 100 }
+                    y: {
+                        ...(!isMobile ? { beginAtZero: true, max: 100 } : {}),
+                        ticks: {
+                            autoSkip: false
+                        }
+                    }
                 }
             }
         });

@@ -286,11 +286,7 @@
             dropdown.id = 'notificationsDropdown';
             dropdown.className = 'notifications-dropdown';
             dropdown.style.display = 'none';
-
-            const notificationsBtn = document.getElementById('notificationsBtn');
-            if (notificationsBtn && notificationsBtn.parentElement) {
-                notificationsBtn.parentElement.appendChild(dropdown);
-            }
+            document.body.appendChild(dropdown);
         }
 
         const translate = window.ZedlyI18n?.translate || ((key) => key);
@@ -355,9 +351,7 @@
         if (listenersAttached) return;
 
         const notificationsBtn = document.getElementById('notificationsBtn');
-        const dropdown = document.getElementById('notificationsDropdown');
-
-        if (notificationsBtn && dropdown) {
+        if (notificationsBtn) {
             notificationsBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 await loadNotifications();
@@ -365,7 +359,15 @@
             });
 
             document.addEventListener('click', (e) => {
+                const dropdown = document.getElementById('notificationsDropdown');
+                if (!dropdown) return;
                 if (dropdown.style.display === 'block' && !dropdown.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
                     closeDropdown();
                 }
             });
@@ -379,6 +381,7 @@
         if (dropdown) {
             const isVisible = dropdown.style.display === 'block';
             dropdown.style.display = isVisible ? 'none' : 'block';
+            document.body.classList.toggle('notifications-open', !isVisible && window.matchMedia('(max-width: 968px)').matches);
         }
     }
 
@@ -387,6 +390,7 @@
         if (dropdown) {
             dropdown.style.display = 'none';
         }
+        document.body.classList.remove('notifications-open');
     }
 
     function markAsRead(notificationId) {
@@ -446,5 +450,4 @@
         initNotifications();
     }
 })();
-
 

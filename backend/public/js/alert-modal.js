@@ -478,13 +478,24 @@
 
     function initGlobalLanguageSwitch() {
         if (!document.body) return;
+        const existingGlobal = document.getElementById('globalLangSwitch');
         const nativeSwitch = document.querySelector('.lang-switch');
         if (nativeSwitch) {
             const style = window.getComputedStyle(nativeSwitch);
             const hiddenByCss = style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || 1) === 0;
-            if (!hiddenByCss) return;
+            const rect = nativeSwitch.getBoundingClientRect();
+            const visibleInViewport = rect.width > 0
+                && rect.height > 0
+                && rect.bottom > 0
+                && rect.right > 0
+                && rect.top < window.innerHeight
+                && rect.left < window.innerWidth;
+            if (!hiddenByCss && visibleInViewport) {
+                if (existingGlobal) existingGlobal.remove();
+                return;
+            }
         }
-        if (document.getElementById('globalLangSwitch')) return;
+        if (existingGlobal) return;
 
         ensureGlobalLangStyles();
         ensureI18nLoaded();
@@ -514,4 +525,6 @@
     } else {
         initGlobalLanguageSwitch();
     }
+
+    window.addEventListener('resize', initGlobalLanguageSwitch);
 })();
