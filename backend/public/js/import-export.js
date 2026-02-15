@@ -6,6 +6,11 @@
     const IMPORT_CREDENTIALS_KEY = 'zedly_last_import_credentials_v1';
     const EXPORT_META_KEY = 'zedly_last_export_meta_v1';
     let pendingAutoCreatedClasses = [];
+    const importProgressState = {
+        running: false,
+        timer: null,
+        value: 0
+    };
 
     function showAlert(message, title = 'РћС€РёР±РєР°') {
         if (window.ZedlyDialog?.alert) {
@@ -115,12 +120,14 @@
     }
 
     async function handleImport(importType = null, fileInput = null) {
+        if (importProgressState.running) return;
+
         const resolvedType = importType || (document.getElementById('importType')?.value || 'student');
         const resolvedInput = fileInput || getImportInputForType(resolvedType) || document.getElementById('importFile');
         const resultsContainer = document.getElementById('importResults');
 
         if (!resolvedInput || !resolvedInput.files || resolvedInput.files.length === 0) {
-            renderMessage(resultsContainer, 'Р’С‹Р±РµСЂРёС‚Рµ С„Р°Р№Р» РґР»СЏ РёРјРїРѕСЂС‚Р°', 'warning');
+            renderMessage(resultsContainer, 'Выберите файл для импорта', 'warning');
             return;
         }
 
@@ -128,7 +135,8 @@
         formData.append('file', resolvedInput.files[0]);
         formData.append('import_type', resolvedType);
 
-        renderMessage(resultsContainer, 'РРјРїРѕСЂС‚РёСЂСѓРµРј...', 'info');
+        setImportControlsBusy(true);
+        startImportProgress(resultsContainer, 'Импорт данных...');
 
         try {
             const response = await fetch(`${API_URL}/import/users`, {
@@ -139,15 +147,86 @@
             const data = await response.json();
 
             if (!response.ok) {
-                renderMessage(resultsContainer, data.message || 'РћС€РёР±РєР° РёРјРїРѕСЂС‚Р°', 'error');
+                finishImportProgress(resultsContainer, 100, 'Импорт завершен с ошибкой');
+                renderMessage(resultsContainer, data.message || 'Ошибка импорта', 'error');
                 return;
             }
 
+            finishImportProgress(resultsContainer, 100, 'Импорт завершен');
             renderImportResults(resultsContainer, data);
         } catch (error) {
             console.error('Import error:', error);
-            renderMessage(resultsContainer, 'РћС€РёР±РєР° РёРјРїРѕСЂС‚Р°', 'error');
+            finishImportProgress(resultsContainer, 100, 'Импорт завершен с ошибкой');
+            renderMessage(resultsContainer, 'Ошибка импорта', 'error');
+        } finally {
+            setImportControlsBusy(false);
         }
+    }
+
+    function setImportControlsBusy(isBusy) {
+        importProgressState.running = !!isBusy;
+
+        document.querySelectorAll('.start-import-btn, #startImportBtn, .download-template-btn, #downloadTemplateBtn, .import-file-trigger')
+            .forEach((el) => {
+                if (el && typeof el.disabled !== 'undefined') {
+                    el.disabled = !!isBusy;
+                }
+            });
+
+        document.querySelectorAll('.import-file-input').forEach((el) => {
+            if (el && typeof el.disabled !== 'undefined') {
+                el.disabled = !!isBusy;
+            }
+        });
+    }
+
+    function startImportProgress(container, label) {
+        if (!container) return;
+        if (importProgressState.timer) {
+            clearInterval(importProgressState.timer);
+            importProgressState.timer = null;
+        }
+
+        importProgressState.value = 8;
+        renderProgressCard(container, importProgressState.value, label);
+
+        importProgressState.timer = setInterval(() => {
+            if (importProgressState.value >= 92) return;
+            importProgressState.value = Math.min(
+                92,
+                importProgressState.value + Math.max(2, Math.round((100 - importProgressState.value) / 12))
+            );
+            renderProgressCard(container, importProgressState.value, label);
+        }, 260);
+    }
+
+    function finishImportProgress(container, percent, label) {
+        if (!container) return;
+        if (importProgressState.timer) {
+            clearInterval(importProgressState.timer);
+            importProgressState.timer = null;
+        }
+        importProgressState.value = Number(percent) || 100;
+        renderProgressCard(container, importProgressState.value, label);
+    }
+
+    function renderProgressCard(container, percent, label) {
+        if (!container) return;
+        const safe = Math.max(0, Math.min(100, Number(percent) || 0));
+        container.innerHTML = `
+            <div class="progress-card">
+                <div class="progress-head">
+                    <div class="progress-label">
+                        <span class="spinner" style="display:inline-block;"></span>
+                        <span>${label || 'Выполняется...'}</span>
+                    </div>
+                    <strong>${safe}%</strong>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width:${safe}%"></div>
+                </div>
+            </div>
+        `;
     }
 
     async function downloadTemplate(importType = null) {

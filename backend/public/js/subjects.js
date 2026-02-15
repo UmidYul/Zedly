@@ -17,6 +17,42 @@
         return Promise.resolve(confirm(message));
     }
 
+    function showBulkProgress(total) {
+        const existing = document.getElementById('subjectsBulkDeleteOverlay');
+        if (existing) existing.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'subjectsBulkDeleteOverlay';
+        overlay.className = 'operation-progress-overlay';
+        overlay.innerHTML = `
+            <div class="operation-progress-modal">
+                <div class="progress-head">
+                    <div class="progress-label"><span class="spinner" style="display:inline-block;"></span><span>Массовое удаление...</span></div>
+                    <strong id="subjectsBulkDeletePercent">0%</strong>
+                </div>
+                <div class="progress-track"><div class="progress-fill" id="subjectsBulkDeleteFill" style="width:0%"></div></div>
+                <div id="subjectsBulkDeleteMeta" class="text-secondary" style="margin-top:8px;">0 / ${Number(total) || 0}</div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    function updateBulkProgress(done, total, failed) {
+        const safeTotal = Math.max(1, Number(total) || 1);
+        const safeDone = Math.min(safeTotal, Math.max(0, Number(done) || 0));
+        const percent = Math.round((safeDone / safeTotal) * 100);
+        const fill = document.getElementById('subjectsBulkDeleteFill');
+        const pct = document.getElementById('subjectsBulkDeletePercent');
+        const meta = document.getElementById('subjectsBulkDeleteMeta');
+        if (fill) fill.style.width = `${percent}%`;
+        if (pct) pct.textContent = `${percent}%`;
+        if (meta) meta.textContent = `${safeDone} / ${safeTotal}` + (failed ? ` · Failed: ${failed}` : '');
+    }
+
+    function hideBulkProgress() {
+        const overlay = document.getElementById('subjectsBulkDeleteOverlay');
+        if (overlay) overlay.remove();
+    }
+
     window.SubjectsManager = {
         currentPage: 1,
         limit: 10,
@@ -291,21 +327,28 @@
 
             const token = localStorage.getItem('access_token');
             let failed = 0;
-
-            const results = await Promise.allSettled(
-                ids.map(id => fetch(`/api/admin/subjects/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+            let done = 0;
+            showBulkProgress(ids.length);
+            updateBulkProgress(done, ids.length, failed);
+            try {
+                for (const id of ids) {
+                    try {
+                        const response = await fetch(`/api/admin/subjects/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        if (!response.ok) failed += 1;
+                    } catch (_) {
+                        failed += 1;
                     }
-                }))
-            );
-
-            results.forEach(result => {
-                if (result.status !== 'fulfilled' || !result.value.ok) {
-                    failed += 1;
+                    done += 1;
+                    updateBulkProgress(done, ids.length, failed);
                 }
-            });
+            } finally {
+                setTimeout(hideBulkProgress, 240);
+            }
 
             const deleted = ids.length - failed;
             this.clearSelection();

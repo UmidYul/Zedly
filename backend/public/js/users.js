@@ -12,6 +12,7 @@
         pageSizeStorageKey: 'users_page_limit',
         searchDebounceTimer: null,
         activeUsersRequest: null,
+        bulkDeleteInProgress: false,
         t: function (key, fallback, params) {
             const tr = window.ZedlyI18n?.translate?.(key, params);
             return tr && tr !== key ? tr : (fallback || key);
@@ -51,6 +52,49 @@
         },
         copyTempPasswordFromModal: async function () {
             return Promise.resolve();
+        },
+
+        showBulkDeleteProgress: function (total) {
+            const existing = document.getElementById('usersBulkDeleteOverlay');
+            if (existing) existing.remove();
+            const overlay = document.createElement('div');
+            overlay.id = 'usersBulkDeleteOverlay';
+            overlay.className = 'operation-progress-overlay';
+            overlay.innerHTML = `
+                <div class="operation-progress-modal">
+                    <div class="progress-head">
+                        <div class="progress-label">
+                            <span class="spinner" style="display:inline-block;"></span>
+                            <span>${this.t('users.bulkDeleteProgress', 'Массовое удаление...')}</span>
+                        </div>
+                        <strong id="usersBulkDeletePercent">0%</strong>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="usersBulkDeleteFill" style="width:0%"></div>
+                    </div>
+                    <div id="usersBulkDeleteMeta" class="text-secondary" style="margin-top:8px;">
+                        0 / ${Number(total) || 0}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        },
+
+        updateBulkDeleteProgress: function (done, total, failed) {
+            const safeTotal = Math.max(1, Number(total) || 1);
+            const safeDone = Math.min(safeTotal, Math.max(0, Number(done) || 0));
+            const percent = Math.round((safeDone / safeTotal) * 100);
+            const fill = document.getElementById('usersBulkDeleteFill');
+            const pct = document.getElementById('usersBulkDeletePercent');
+            const meta = document.getElementById('usersBulkDeleteMeta');
+            if (fill) fill.style.width = `${percent}%`;
+            if (pct) pct.textContent = `${percent}%`;
+            if (meta) meta.textContent = `${safeDone} / ${safeTotal}` + (failed ? ` · ${this.t('audit.failed', 'Ошибка')}: ${failed}` : '');
+        },
+
+        hideBulkDeleteProgress: function () {
+            const overlay = document.getElementById('usersBulkDeleteOverlay');
+            if (overlay) overlay.remove();
         },
 
         formatUzPhone: function (value) {
@@ -371,27 +415,40 @@
         bulkDeleteUsers: async function () {
             const ids = Array.from(this.selectedIds);
             if (ids.length === 0) return;
+            if (this.bulkDeleteInProgress) return;
 
             const confirmed = await this.confirmAction(this.t('users.bulkDeleteConfirm', undefined, { count: ids.length }));
             if (!confirmed) return;
 
             const token = localStorage.getItem('access_token');
+            this.bulkDeleteInProgress = true;
             let failed = 0;
+            let done = 0;
+            this.showBulkDeleteProgress(ids.length);
+            this.updateBulkDeleteProgress(done, ids.length, failed);
 
-            const results = await Promise.allSettled(
-                ids.map(id => fetch(`/api/admin/users/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+            try {
+                for (const id of ids) {
+                    try {
+                        const response = await fetch(`/api/admin/users/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        if (!response.ok) {
+                            failed += 1;
+                        }
+                    } catch (_) {
+                        failed += 1;
                     }
-                }))
-            );
-
-            results.forEach(result => {
-                if (result.status !== 'fulfilled' || !result.value.ok) {
-                    failed += 1;
+                    done += 1;
+                    this.updateBulkDeleteProgress(done, ids.length, failed);
                 }
-            });
+            } finally {
+                setTimeout(() => this.hideBulkDeleteProgress(), 240);
+                this.bulkDeleteInProgress = false;
+            }
 
             const deleted = ids.length - failed;
             this.clearSelection();
