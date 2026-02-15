@@ -71,8 +71,9 @@ app.use(cors({
 app.use(compression());
 
 // Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const jsonBodyLimit = process.env.JSON_BODY_LIMIT || '20mb';
+app.use(express.json({ limit: jsonBodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: jsonBodyLimit }));
 app.use((req, res, next) => {
     const incomingId = req.headers['x-request-id'];
     const requestId = typeof incomingId === 'string' && incomingId.trim()
