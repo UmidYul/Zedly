@@ -454,10 +454,15 @@ router.post('/users', async (req, res) => {
             });
         }
 
-        const userSettings = mergeSettingsWithPersonalInfo(
+        let userSettings = mergeSettingsWithPersonalInfo(
             settingsInput.provided ? settingsInput.value : {},
             personalInfoPatch.data
         );
+        userSettings = applyAdminContactVerificationPolicy(userSettings, {
+            mode: 'create',
+            nextEmail: email || '',
+            nextPhone: normalizedPhone || ''
+        }).settings;
 
         // Validation
         if (!username || !role || !first_name || !last_name) {
@@ -687,7 +692,7 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
 
         // Check if user exists in same school
         const existingUser = await query(
-            'SELECT id, settings FROM users WHERE id = $1 AND school_id = $2',
+            'SELECT id, email, phone, settings FROM users WHERE id = $1 AND school_id = $2',
             [id, schoolId]
         );
 
@@ -771,13 +776,25 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
             updates.push(`is_active = $${paramCount++}`);
         }
 
-        const shouldUpdateSettings = settingsInput.provided || Object.keys(personalInfoPatch.data).length > 0;
+        const baseSettings = settingsInput.provided
+            ? settingsInput.value
+            : parseSettingsValue(existingUser.rows[0].settings);
+        const mergedSettings = mergeSettingsWithPersonalInfo(baseSettings, personalInfoPatch.data);
+        const contactPolicy = applyAdminContactVerificationPolicy(mergedSettings, {
+            mode: 'update',
+            prevEmail: existingUser.rows[0].email || '',
+            prevPhone: existingUser.rows[0].phone || '',
+            nextEmailProvided: email !== undefined,
+            nextPhoneProvided: phone !== undefined,
+            nextEmail: email !== undefined ? (email || '') : '',
+            nextPhone: phone !== undefined ? (normalizedPhone || '') : ''
+        });
+        const shouldUpdateSettings = settingsInput.provided
+            || Object.keys(personalInfoPatch.data).length > 0
+            || contactPolicy.changed;
+
         if (shouldUpdateSettings) {
-            const baseSettings = settingsInput.provided
-                ? settingsInput.value
-                : parseSettingsValue(existingUser.rows[0].settings);
-            const mergedSettings = mergeSettingsWithPersonalInfo(baseSettings, personalInfoPatch.data);
-            params.push(mergedSettings);
+            params.push(contactPolicy.settings);
             updates.push(`settings = $${paramCount++}`);
         }
 
@@ -2711,6 +2728,75 @@ function mergeSettingsWithPersonalInfo(baseSettings, personalInfoPatch) {
         }
     };
     return settings;
+}
+
+function normalizeContactValueForCompare(type, value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return type === 'email' ? raw.toLowerCase() : raw;
+}
+
+function applyAdminContactVerificationPolicy(baseSettings, options = {}) {
+    const {
+        mode = 'update',
+        prevEmail = '',
+        prevPhone = '',
+        nextEmailProvided = false,
+        nextPhoneProvided = false,
+        nextEmail = '',
+        nextPhone = ''
+    } = options;
+
+    const settings = parseSettingsValue(baseSettings);
+    const profile = (settings.profile && typeof settings.profile === 'object' && !Array.isArray(settings.profile))
+        ? settings.profile
+        : {};
+    const verification = (profile.contact_verification && typeof profile.contact_verification === 'object' && !Array.isArray(profile.contact_verification))
+        ? profile.contact_verification
+        : {};
+    const pending = (verification.pending && typeof verification.pending === 'object' && !Array.isArray(verification.pending))
+        ? verification.pending
+        : {};
+
+    const prevEmailNorm = normalizeContactValueForCompare('email', prevEmail);
+    const prevPhoneNorm = normalizeContactValueForCompare('phone', prevPhone);
+    const nextEmailNorm = normalizeContactValueForCompare('email', nextEmail);
+    const nextPhoneNorm = normalizeContactValueForCompare('phone', nextPhone);
+
+    let changed = false;
+    const nextVerification = {
+        ...verification,
+        pending: { ...pending }
+    };
+
+    const shouldResetEmail = mode === 'create'
+        ? !!nextEmailNorm
+        : (nextEmailProvided && nextEmailNorm !== prevEmailNorm);
+    if (shouldResetEmail) {
+        nextVerification.email_verified = false;
+        nextVerification.pending.email = null;
+        changed = true;
+    }
+
+    const shouldResetPhone = mode === 'create'
+        ? !!nextPhoneNorm
+        : (nextPhoneProvided && nextPhoneNorm !== prevPhoneNorm);
+    if (shouldResetPhone) {
+        nextVerification.phone_verified = false;
+        nextVerification.pending.phone = null;
+        changed = true;
+    }
+
+    if (!changed && !profile.contact_verification) {
+        return { settings, changed: false };
+    }
+
+    settings.profile = {
+        ...profile,
+        contact_verification: nextVerification
+    };
+
+    return { settings, changed };
 }
 
 function buildImportedUserSettings(row) {

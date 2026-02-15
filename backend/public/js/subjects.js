@@ -200,11 +200,15 @@
                         <tbody>
             `;
 
+            const currentLang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
             subjects.forEach(subject => {
                 const statusClass = subject.is_active ? 'status-active' : 'status-inactive';
                 const statusText = subject.is_active ? 'Active' : 'Inactive';
                 const safeName = (subject.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 const isSelected = this.selectedIds.has(String(subject.id));
+                const subjectDisplayName = currentLang === 'uz'
+                    ? (subject.name_uz || subject.name_ru || subject.name || '-')
+                    : (subject.name_ru || subject.name_uz || subject.name || '-');
 
                 html += `
                     <tr data-subject-id="${subject.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
@@ -223,7 +227,7 @@
                             </span>
                         </td>
                         <td>
-                            <div class="user-name">${subject.name_ru || subject.name || subject.name_uz || '-'}</div>
+                            <div class="user-name">${subjectDisplayName}</div>
                         </td>
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>
@@ -487,20 +491,6 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Base Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            class="form-input"
-                                            name="name"
-                                            value="${subject?.name || ''}"
-                                            placeholder="Math"
-                                        />
-                                        <span class="form-hint">Optional internal/fallback name</span>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="form-label">
                                             Subject Code <span class="required">*</span>
                                         </label>
                                         <input
@@ -597,11 +587,10 @@
             const formData = new FormData(form);
             const nameRu = formData.get('name_ru')?.trim() || '';
             const nameUz = formData.get('name_uz')?.trim() || '';
-            const fallbackName = formData.get('name')?.trim() || '';
             const data = {
                 name_ru: nameRu,
                 name_uz: nameUz,
-                name: fallbackName || nameRu || nameUz,
+                name: nameRu || nameUz,
                 code: formData.get('code').trim().toUpperCase()
             };
 

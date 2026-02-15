@@ -437,6 +437,28 @@
         el.style.color = isVerified ? '#16a34a' : '';
     }
 
+    function updateContactVerificationBanner(user) {
+        const banner = document.getElementById('contactVerificationBanner');
+        if (!banner) return;
+
+        const missing = [];
+        if (String(user?.email || '').trim() && !user?.email_verified) {
+            missing.push('Email');
+        }
+        if (String(user?.phone || '').trim() && !user?.phone_verified) {
+            missing.push('Телефон');
+        }
+
+        if (!missing.length) {
+            banner.style.display = 'none';
+            banner.textContent = '';
+            return;
+        }
+
+        banner.textContent = `Не подтверждены: ${missing.join(', ')}. Доступ к системе не ограничен, но рекомендуем подтвердить контакты.`;
+        banner.style.display = 'block';
+    }
+
     function parseActivityDetails(rawDetails) {
         if (!rawDetails) return {};
         if (typeof rawDetails === 'object') return rawDetails;
@@ -531,6 +553,7 @@
 
         setVerificationStatus('email', !!user.email_verified);
         setVerificationStatus('phone', !!user.phone_verified);
+        updateContactVerificationBanner(user);
     }
     function normalizeContactValue(type, value) {
         const raw = String(value || '').trim();
@@ -707,6 +730,7 @@
             }
 
             setVerificationStatus(type, true);
+            updateContactVerificationBanner(profileUser);
             closeContactVerifyModal();
             await showAlert(data.message || 'Контакт подтвержден', 'Успешно');
         } catch (error) {
@@ -752,6 +776,7 @@
                 if (phoneInput) phoneInput.value = phoneValue;
                 document.getElementById('profilePhone').textContent = phoneValue;
                 setVerificationStatus('phone', true);
+                updateContactVerificationBanner(profileUser);
 
                 await showAlert('Номер телефона обновлен через Telegram', 'Успешно');
             } else {

@@ -701,18 +701,6 @@
                                     </div>
                                 </div>
 
-                                <div class="form-group">
-                                    <label class="form-label">${this.t('users.telegramId', 'Telegram ID')}</label>
-                                    <input
-                                        type="text"
-                                        class="form-input"
-                                        name="telegram_id"
-                                        value="${user?.telegram_id || ''}"
-                                        placeholder="123456789"
-                                    />
-                                    <span class="form-hint">For Telegram notifications</span>
-                                </div>
-
                                 ${isEdit ? `
                                 <div class="form-group">
                                     <div class="form-check">
@@ -798,8 +786,7 @@
                 username: formData.get('username').trim(),
                 role: formData.get('role'),
                 email: formData.get('email')?.trim() || null,
-                phone: formData.get('phone')?.trim() || null,
-                telegram_id: formData.get('telegram_id')?.trim() || null
+                phone: formData.get('phone')?.trim() || null
             };
             // Add student_class_id if student
             if (data.role === 'student') {

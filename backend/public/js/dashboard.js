@@ -616,6 +616,7 @@
 
                             <article class="profile-card card-surface" id="profileActionsCard" style="display: none;">
                                 <h2 data-i18n="profile.contactChanges">Смена контактов</h2>
+                                <div id="contactVerificationBanner" class="contact-verification-banner" style="display:none;"></div>
                                 <div class="profile-form-grid">
                                     <div class="field-block">
                                         <label for="emailInput" data-i18n="profile.email">Email</label>
