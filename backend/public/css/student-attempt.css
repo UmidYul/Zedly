@@ -1,0 +1,88 @@
+.test-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.question-status .status-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.question-status .status-icon svg,
+.badge-icon svg,
+.result-icon svg,
+.option-marker svg {
+    width: 14px;
+    height: 14px;
+}
+
+.option-marker {
+    min-width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+}
+
+.option-marker.is-correct {
+    border-color: color-mix(in srgb, var(--success) 70%, var(--border) 30%);
+    color: var(--success);
+}
+
+.option-marker.is-wrong {
+    border-color: color-mix(in srgb, var(--error) 70%, var(--border) 30%);
+    color: var(--error);
+}
+
+.option-marker.is-answer {
+    border-color: color-mix(in srgb, var(--primary) 70%, var(--border) 30%);
+    color: var(--primary);
+}
+
+.option-marker.is-empty {
+    opacity: 0.35;
+}
+
+.result-icon {
+    margin-left: auto;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+.result-icon.ok {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 70%, var(--border) 30%);
+}
+
+.result-icon.bad {
+    color: var(--error);
+    border-color: color-mix(in srgb, var(--error) 70%, var(--border) 30%);
+}
+
+.matching-student {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
