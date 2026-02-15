@@ -246,16 +246,9 @@
     }
 
     function updateImportHint() {
-        const importTypeSelect = document.getElementById('importType');
         const importHint = document.getElementById('importHint');
         if (!importHint) return;
-
-        const type = importTypeSelect?.value || 'student';
-        if (type === 'teacher') {
-            importHint.textContent = 'Supported columns: No, Full Name, Gender, Birth Date, PINFL, Position, Classes, Phones, Email';
-        } else {
-            importHint.textContent = 'Supported columns: No, Student, Gender, Birth Date, Class, Phone, Email';
-        }
+        importHint.textContent = '';
     }
 
     function getImportInputForType(importType) {

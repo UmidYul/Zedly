@@ -1181,7 +1181,6 @@
                                 <h2 class="section-title">Students</h2>
                                 <button class="btn btn-secondary download-template-btn" data-import-type="student" data-i18n="import.downloadTemplate">Download template</button>
                             </div>
-                            <p class="import-hint">Columns: No, Student, Gender, Date of birth, Class, Phone, Email.</p>
                             <input type="file" id="importFileStudent" class="import-file-input" data-import-type="student" accept=".xlsx,.xls,.csv" />
                             <div class="import-file-row">
                                 <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileStudent">Choose file</button>
@@ -1195,7 +1194,6 @@
                                 <h2 class="section-title">Teachers</h2>
                                 <button class="btn btn-secondary download-template-btn" data-import-type="teacher" data-i18n="import.downloadTemplate">Download template</button>
                             </div>
-                            <p class="import-hint">Columns: No, Full name, Gender, Date of birth, Position, Classes, Phone, Email.</p>
                             <input type="file" id="importFileTeacher" class="import-file-input" data-import-type="teacher" accept=".xlsx,.xls,.csv" />
                             <div class="import-file-row">
                                 <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileTeacher">Choose file</button>
