@@ -271,7 +271,7 @@
                 const statusText = cls.is_active ? 'Active' : 'Inactive';
                 const teacherName = cls.homeroom_teacher_name || '<span class="text-secondary">Not assigned</span>';
                 const safeClassName = (cls.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const isSelected = this.selectedIds.has(cls.id);
+                const isSelected = this.selectedIds.has(String(cls.id));
 
                 html += `
                         <tr data-class-id="${cls.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
@@ -397,7 +397,11 @@
             }
 
             document.querySelectorAll('tr[data-class-id]').forEach(row => {
-                row.classList.toggle('bulk-row-selected', this.selectedIds.has(row.dataset.classId));
+                const rowId = String(row.dataset.classId || '');
+                const isSelected = this.selectedIds.has(rowId);
+                row.classList.toggle('bulk-row-selected', isSelected);
+                const checkbox = row.querySelector('.bulk-row-checkbox');
+                if (checkbox) checkbox.checked = isSelected;
             });
         },
 
