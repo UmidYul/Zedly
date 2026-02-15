@@ -1003,29 +1003,54 @@ router.get('/classes', async (req, res) => {
 
 /**
  * GET /api/student/subjects
- * Get subjects from student's assigned tests
+ * Get subjects taught to student (including subjects without assignments)
  */
 router.get('/subjects', async (req, res) => {
     try {
         const studentId = req.user.id;
+        const schoolId = req.user.school_id;
         const subjectColumns = await getTableColumns('subjects');
         const classStudentColumns = await getTableColumns('class_students');
+        const hasTeacherClassSubjects = await tableExists('teacher_class_subjects');
+        const teacherClassSubjectColumns = hasTeacherClassSubjects
+            ? await getTableColumns('teacher_class_subjects')
+            : new Set();
         const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
         const classStudentActiveFilter = classStudentColumns.has('is_active')
             ? 'AND cs.is_active = true'
             : '';
+        const subjectActiveFilter = subjectColumns.has('is_active')
+            ? 'AND s.is_active = true'
+            : '';
+        const teacherClassSubjectActiveFilter = teacherClassSubjectColumns.has('is_active')
+            ? 'AND tcs.is_active = true'
+            : '';
+
+        const taughtSubjectsSource = hasTeacherClassSubjects
+            ? `SELECT DISTINCT tcs.subject_id
+               FROM class_students cs
+               INNER JOIN teacher_class_subjects tcs ON tcs.class_id = cs.class_id
+               WHERE cs.student_id = $1 ${classStudentActiveFilter} ${teacherClassSubjectActiveFilter}`
+            : `SELECT DISTINCT t.subject_id
+               FROM class_students cs
+               INNER JOIN test_assignments ta ON ta.class_id = cs.class_id
+               INNER JOIN tests t ON t.id = ta.test_id
+               WHERE cs.student_id = $1 ${classStudentActiveFilter}`;
 
         const result = await query(
-            `SELECT DISTINCT s.id,
+            `WITH student_subjects AS (
+                ${taughtSubjectsSource}
+            )
+            SELECT DISTINCT s.id,
                 s.${subjectNameColumn} as name,
                 s.color
-             FROM test_assignments ta
-             JOIN tests t ON t.id = ta.test_id
-             JOIN class_students cs ON cs.class_id = ta.class_id
-             JOIN subjects s ON s.id = t.subject_id
-             WHERE cs.student_id = $1 ${classStudentActiveFilter}
+             FROM student_subjects ss
+             JOIN subjects s ON s.id = ss.subject_id
+             WHERE s.school_id = $2
+               ${subjectActiveFilter}
+               AND s.id IS NOT NULL
              ORDER BY s.${subjectNameColumn} ASC`,
-            [studentId]
+            [studentId, schoolId]
         );
 
         res.json({ subjects: result.rows });
