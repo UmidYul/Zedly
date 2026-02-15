@@ -726,7 +726,7 @@
                             </article>
 
                             <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
-                                <h2 data-i18n="profile.recentActions">Последние действия</h2>
+                                <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'Последние действия')}</h2>
                                 <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
                             </article>
                         </div>
