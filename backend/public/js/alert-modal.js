@@ -395,4 +395,118 @@
     window.alert = function (message) {
         alertModal(message);
     };
+
+    function ensureGlobalLangStyles() {
+        if (document.getElementById('zedly-global-lang-style')) return;
+        const style = document.createElement('style');
+        style.id = 'zedly-global-lang-style';
+        style.textContent = `
+            .global-lang-switch {
+                position: fixed;
+                top: max(10px, env(safe-area-inset-top));
+                right: max(10px, env(safe-area-inset-right));
+                z-index: 9500;
+                display: inline-flex;
+                gap: 6px;
+                padding: 4px;
+                border-radius: 12px;
+                border: 1px solid rgba(148, 163, 184, 0.3);
+                background: rgba(15, 23, 42, 0.66);
+                backdrop-filter: blur(8px);
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+            }
+
+            .global-lang-switch .lang-btn {
+                min-width: 42px;
+                height: 32px;
+                border: 1px solid transparent;
+                border-radius: 8px;
+                padding: 0 10px;
+                color: #cbd5e1;
+                background: transparent;
+                font-size: 12px;
+                font-weight: 700;
+                cursor: pointer;
+            }
+
+            .global-lang-switch .lang-btn.active {
+                color: #fff;
+                background: linear-gradient(135deg, #4A90E2, #357ABD);
+                border-color: rgba(74, 144, 226, 0.8);
+            }
+
+            @media (max-width: 768px) {
+                .global-lang-switch {
+                    top: calc(max(8px, env(safe-area-inset-top)) + 2px);
+                    right: max(8px, env(safe-area-inset-right));
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function setActiveLangButton(lang, root) {
+        root.querySelectorAll('.lang-btn').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
+    }
+
+    function applyLang(lang, root) {
+        localStorage.setItem('zedly-lang', lang);
+        document.documentElement.setAttribute('lang', lang);
+        setActiveLangButton(lang, root);
+        if (window.ZedlyI18n?.setLang) {
+            window.ZedlyI18n.setLang(lang);
+        }
+        window.dispatchEvent(new CustomEvent('zedly:lang-change', { detail: { lang } }));
+    }
+
+    function ensureI18nLoaded() {
+        if (window.ZedlyI18n?.setLang) return;
+        if (document.querySelector('script[data-global-i18n-loader]')) return;
+        const script = document.createElement('script');
+        script.src = '/js/i18n.js';
+        script.dataset.globalI18nLoader = 'true';
+        script.onload = () => {
+            const lang = localStorage.getItem('zedly-lang') || 'ru';
+            if (window.ZedlyI18n?.setLang) {
+                window.ZedlyI18n.setLang(lang);
+            }
+        };
+        document.head.appendChild(script);
+    }
+
+    function initGlobalLanguageSwitch() {
+        if (!document.body) return;
+        if (document.querySelector('.lang-switch')) return;
+        if (document.getElementById('globalLangSwitch')) return;
+
+        ensureGlobalLangStyles();
+        ensureI18nLoaded();
+
+        const wrapper = document.createElement('div');
+        wrapper.id = 'globalLangSwitch';
+        wrapper.className = 'global-lang-switch';
+        wrapper.setAttribute('role', 'group');
+        wrapper.setAttribute('aria-label', 'Language switch');
+        wrapper.innerHTML = `
+            <button type="button" class="lang-btn" data-lang="ru">RU</button>
+            <button type="button" class="lang-btn" data-lang="uz">UZ</button>
+        `;
+
+        const initialLang = localStorage.getItem('zedly-lang') || 'ru';
+        setActiveLangButton(initialLang, wrapper);
+
+        wrapper.querySelectorAll('.lang-btn').forEach((btn) => {
+            btn.addEventListener('click', () => applyLang(btn.dataset.lang, wrapper));
+        });
+
+        document.body.appendChild(wrapper);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initGlobalLanguageSwitch);
+    } else {
+        initGlobalLanguageSwitch();
+    }
 })();
