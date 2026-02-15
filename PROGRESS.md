@@ -520,4 +520,9 @@
 - [x] Email + Telegram send paths now respect per-user preferences for events: `new_test`, `password_reset`, `welcome`.
 - [x] Delivery logging started in code (`logNotificationAttempt`) for email and telegram results.
 - [x] Added DB migration scaffold for delivery logs: `database/migrations/2026_02_15_notification_log.psql`.
-- [ ] Next: add read API for notification delivery logs and admin diagnostics UI.
+- [x] Added read APIs for notification delivery logs:
+  - `GET /api/admin/notifications/logs` (school-scoped)
+  - `GET /api/superadmin/notifications/logs` (global)
+- [x] Added Reports diagnostics UI block for notification delivery logs:
+  - filters: channel, event, status, from, to, page size
+  - compact pagination and status badges

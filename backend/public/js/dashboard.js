@@ -2062,6 +2062,56 @@
                         <div id="reportsInsights"></div>
                     </div>
 
+                    <div class="dashboard-section reports-card" id="reportsNotificationsCard" style="display:none;">
+                        <div class="section-header">
+                            <h2 class="section-title">Notification Delivery Log</h2>
+                        </div>
+                        <div class="reports-notification-filters">
+                            <div class="filter-group">
+                                <label for="reportsNotificationChannel">Channel</label>
+                                <select id="reportsNotificationChannel" class="filter-select">
+                                    <option value="">All</option>
+                                    <option value="email">Email</option>
+                                    <option value="telegram">Telegram</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="reportsNotificationEvent">Event</label>
+                                <select id="reportsNotificationEvent" class="filter-select">
+                                    <option value="">All</option>
+                                    <option value="welcome">Welcome</option>
+                                    <option value="password_reset">Password reset</option>
+                                    <option value="new_test">New test</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="reportsNotificationStatus">Status</label>
+                                <select id="reportsNotificationStatus" class="filter-select">
+                                    <option value="">All</option>
+                                    <option value="sent">Sent</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="reportsNotificationFrom">From</label>
+                                <input id="reportsNotificationFrom" class="form-control" type="datetime-local">
+                            </div>
+                            <div class="filter-group">
+                                <label for="reportsNotificationTo">To</label>
+                                <input id="reportsNotificationTo" class="form-control" type="datetime-local">
+                            </div>
+                            <div class="filter-group">
+                                <label for="reportsNotificationLimit">Per page</label>
+                                <select id="reportsNotificationLimit" class="filter-select">
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="reportsNotificationsTable"></div>
+                    </div>
+
                     <div class="dashboard-section reports-card">
                         <div class="section-header">
                             <h2 class="section-title">At Risk Students</h2>
@@ -2457,5 +2507,4 @@
         console.log('Dashboard initialized ✓');
     });
 })();
-
 

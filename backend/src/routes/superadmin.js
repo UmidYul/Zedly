@@ -1300,4 +1300,106 @@ router.get('/comparison', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/superadmin/notifications/logs
+ * Global delivery logs for notifications.
+ */
+router.get('/notifications/logs', async (req, res) => {
+    try {
+        const parsedPage = parseInt(req.query.page, 10);
+        const parsedLimit = parseInt(req.query.limit, 10);
+        const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+            ? Math.min(parsedLimit, 100)
+            : 20;
+        const offset = (page - 1) * limit;
+
+        const channel = String(req.query.channel || '').trim().toLowerCase();
+        const eventKey = String(req.query.event_key || '').trim();
+        const status = String(req.query.status || '').trim().toLowerCase();
+        const from = String(req.query.from || '').trim();
+        const to = String(req.query.to || '').trim();
+
+        const where = [];
+        const params = [];
+
+        if (channel) {
+            params.push(channel);
+            where.push(`nl.channel = $${params.length}`);
+        }
+        if (eventKey) {
+            params.push(eventKey);
+            where.push(`nl.event_key = $${params.length}`);
+        }
+        if (status) {
+            params.push(status);
+            where.push(`nl.status = $${params.length}`);
+        }
+        if (from) {
+            params.push(from);
+            where.push(`nl.created_at >= $${params.length}::timestamptz`);
+        }
+        if (to) {
+            params.push(to);
+            where.push(`nl.created_at <= $${params.length}::timestamptz`);
+        }
+
+        const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+        const countResult = await query(
+            `SELECT COUNT(*) AS total
+             FROM notification_log nl
+             ${whereClause}`,
+            params
+        );
+        const total = parseInt(countResult.rows[0]?.total || 0, 10);
+
+        const dataParams = params.slice();
+        dataParams.push(limit, offset);
+        const rowsResult = await query(
+            `SELECT
+                nl.id,
+                nl.user_id,
+                nl.channel,
+                nl.event_key,
+                nl.status,
+                nl.recipient,
+                nl.subject,
+                nl.error_message,
+                nl.metadata,
+                nl.created_at,
+                u.username,
+                u.first_name,
+                u.last_name,
+                u.role,
+                s.id AS school_id,
+                ${await getSchoolNameExpr()} AS school_name
+             FROM notification_log nl
+             LEFT JOIN users u ON u.id = nl.user_id
+             LEFT JOIN schools s ON s.id = u.school_id
+             ${whereClause}
+             ORDER BY nl.created_at DESC
+             LIMIT $${dataParams.length - 1}
+             OFFSET $${dataParams.length}`,
+            dataParams
+        );
+
+        res.json({
+            logs: rowsResult.rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.max(1, Math.ceil(total / limit))
+            }
+        });
+    } catch (error) {
+        console.error('Get global notification logs error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch notification logs'
+        });
+    }
+});
+
 module.exports = router;

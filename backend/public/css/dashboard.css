@@ -1097,6 +1097,41 @@
     color: #22c55e;
 }
 
+.reports-notification-filters {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(140px, 1fr));
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.reports-notification-footer {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.reports-notification-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.reports-notification-status.sent {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.reports-notification-status.failed {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
 /* Students page */
 .students-page {
     width: min(1260px, 100%);
@@ -1430,6 +1465,9 @@
     .reports-grid-kpi {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+    .reports-notification-filters {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 
     .students-toolbar .students-filter-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1451,6 +1489,9 @@
 @media (max-width: 768px) {
     .reports-grid-kpi {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .reports-notification-filters {
+        grid-template-columns: 1fr;
     }
 
     .reports-grid-main {

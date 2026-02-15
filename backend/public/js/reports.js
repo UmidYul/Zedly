@@ -15,6 +15,15 @@
         riskStudents: [],
         riskPagination: { page: 1, limit: 20, total: 0, has_more: false },
         riskRequestController: null,
+        notifications: [],
+        notificationsPagination: { page: 1, limit: 20, total: 0, pages: 1 },
+        notificationsFilters: {
+            channel: '',
+            eventKey: '',
+            status: '',
+            from: '',
+            to: ''
+        },
         chart: null
     };
 
@@ -361,6 +370,99 @@
         return html;
     }
 
+    function isNotificationsDiagnosticsEnabled() {
+        return state.role === 'superadmin' || state.role === 'school_admin';
+    }
+
+    function getNotificationsEndpoint() {
+        if (state.role === 'superadmin') return `${API}/superadmin/notifications/logs`;
+        if (state.role === 'school_admin') return `${API}/admin/notifications/logs`;
+        return '';
+    }
+
+    function formatDateTimeLocalToIso(value) {
+        if (!value) return '';
+        const normalized = String(value).trim();
+        if (!normalized) return '';
+        const d = new Date(normalized);
+        if (Number.isNaN(d.getTime())) return '';
+        return d.toISOString();
+    }
+
+    function buildNotificationRecipientLabel(row) {
+        if (row?.recipient) return String(row.recipient);
+        if (row?.channel === 'email') return '-';
+        return 'n/a';
+    }
+
+    function renderNotificationLogs() {
+        const card = document.getElementById('reportsNotificationsCard');
+        const tableEl = document.getElementById('reportsNotificationsTable');
+        if (!card || !tableEl) return;
+
+        if (!isNotificationsDiagnosticsEnabled()) {
+            card.style.display = 'none';
+            return;
+        }
+
+        card.style.display = '';
+        const rows = Array.isArray(state.notifications) ? state.notifications : [];
+        if (!rows.length) {
+            tableEl.innerHTML = '<p class="text-secondary">No notification logs for selected filters.</p>';
+            return;
+        }
+
+        const pagination = state.notificationsPagination || {};
+        const totalPages = Math.max(1, Number(pagination.pages) || 1);
+        const currentPage = Math.min(Math.max(1, Number(pagination.page) || 1), totalPages);
+        const total = Number(pagination.total) || 0;
+
+        tableEl.innerHTML = `
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            ${state.role === 'superadmin' ? '<th>School</th>' : ''}
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Channel</th>
+                            <th>Event</th>
+                            <th>Status</th>
+                            <th>Recipient</th>
+                            <th>Error</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map((row) => `
+                            <tr>
+                                <td>${row.created_at ? new Date(row.created_at).toLocaleString('ru-RU') : '-'}</td>
+                                ${state.role === 'superadmin' ? `<td>${escapeHtml(row.school_name || '-')}</td>` : ''}
+                                <td>${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
+                                <td>${escapeHtml(row.role || '-')}</td>
+                                <td>${escapeHtml(row.channel || '-')}</td>
+                                <td>${escapeHtml(row.event_key || '-')}</td>
+                                <td>
+                                    <span class="reports-notification-status ${(row.status || '').toLowerCase() === 'sent' ? 'sent' : 'failed'}">
+                                        ${escapeHtml(row.status || '-')}
+                                    </span>
+                                </td>
+                                <td>${escapeHtml(buildNotificationRecipientLabel(row))}</td>
+                                <td>${escapeHtml(row.error_message || '-')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="reports-notification-footer">
+                <span class="text-secondary">Page ${fmtInt(currentPage)} / ${fmtInt(totalPages)} · Total: ${fmtInt(total)}</span>
+                <div class="pagination">
+                    ${buildCompactPaginationHtml(currentPage, totalPages, 'window.ReportsManager.goToNotificationPageFromEvent(event)')}
+                </div>
+            </div>
+        `;
+    }
+
     function renderRiskDashboard() {
         const summaryEl = document.getElementById('reportsRiskSummary');
         const tableEl = document.getElementById('reportsRiskTable');
@@ -609,6 +711,38 @@
         return d.toISOString().slice(0, 10);
     }
 
+    async function loadNotificationLogs(page = 1) {
+        if (!isNotificationsDiagnosticsEnabled()) {
+            state.notifications = [];
+            state.notificationsPagination = { page: 1, limit: 20, total: 0, pages: 1 };
+            return;
+        }
+
+        const endpoint = getNotificationsEndpoint();
+        if (!endpoint) return;
+
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('limit', String(state.notificationsPagination.limit || 20));
+        if (state.notificationsFilters.channel) params.set('channel', state.notificationsFilters.channel);
+        if (state.notificationsFilters.eventKey) params.set('event_key', state.notificationsFilters.eventKey);
+        if (state.notificationsFilters.status) params.set('status', state.notificationsFilters.status);
+
+        const fromIso = formatDateTimeLocalToIso(state.notificationsFilters.from);
+        const toIso = formatDateTimeLocalToIso(state.notificationsFilters.to);
+        if (fromIso) params.set('from', fromIso);
+        if (toIso) params.set('to', toIso);
+
+        const data = await apiGet(`${endpoint}?${params.toString()}`);
+        state.notifications = Array.isArray(data.logs) ? data.logs : [];
+        state.notificationsPagination = {
+            page: data.pagination?.page || page,
+            limit: data.pagination?.limit || (state.notificationsPagination.limit || 20),
+            total: data.pagination?.total || 0,
+            pages: data.pagination?.pages || 1
+        };
+    }
+
     async function loadData() {
         const period = Number(state.period);
         if (state.role === 'superadmin') {
@@ -623,6 +757,7 @@
             state.risk = null;
             state.riskStudents = [];
             state.riskPagination = { page: 1, limit: 20, total: 0, has_more: false };
+            await loadNotificationLogs(1);
             return;
         }
 
@@ -633,6 +768,7 @@
         state.overview = overview;
         state.comparison = comparison;
         await loadRiskPage(1, false);
+        await loadNotificationLogs(1);
     }
 
     async function loadRiskPage(page = 1, append = false) {
@@ -761,6 +897,12 @@
         const refresh = document.getElementById('reportsRefreshBtn');
         const exportBtn = document.getElementById('reportsExportBtn');
         const pdfBtn = document.getElementById('reportsPdfBtn');
+        const notificationsChannel = document.getElementById('reportsNotificationChannel');
+        const notificationsEvent = document.getElementById('reportsNotificationEvent');
+        const notificationsStatus = document.getElementById('reportsNotificationStatus');
+        const notificationsFrom = document.getElementById('reportsNotificationFrom');
+        const notificationsTo = document.getElementById('reportsNotificationTo');
+        const notificationsLimit = document.getElementById('reportsNotificationLimit');
 
         if (period) {
             period.addEventListener('change', () => {
@@ -791,6 +933,37 @@
                 }
             });
         }
+
+        const onNotificationsFilterChange = async () => {
+            if (!isNotificationsDiagnosticsEnabled()) return;
+            state.notificationsFilters.channel = notificationsChannel?.value || '';
+            state.notificationsFilters.eventKey = notificationsEvent?.value || '';
+            state.notificationsFilters.status = notificationsStatus?.value || '';
+            state.notificationsFilters.from = notificationsFrom?.value || '';
+            state.notificationsFilters.to = notificationsTo?.value || '';
+            try {
+                setHtml('reportsNotificationsTable', '<p class="text-secondary">Loading...</p>');
+                await loadNotificationLogs(1);
+                renderNotificationLogs();
+            } catch (error) {
+                console.error('Notification logs filter error:', error);
+                setHtml('reportsNotificationsTable', '<p class="text-secondary">Failed to load notification logs.</p>');
+            }
+        };
+
+        if (notificationsChannel) notificationsChannel.addEventListener('change', onNotificationsFilterChange);
+        if (notificationsEvent) notificationsEvent.addEventListener('change', onNotificationsFilterChange);
+        if (notificationsStatus) notificationsStatus.addEventListener('change', onNotificationsFilterChange);
+        if (notificationsFrom) notificationsFrom.addEventListener('change', onNotificationsFilterChange);
+        if (notificationsTo) notificationsTo.addEventListener('change', onNotificationsFilterChange);
+        if (notificationsLimit) {
+            notificationsLimit.addEventListener('change', async () => {
+                const nextLimit = Number.parseInt(String(notificationsLimit.value || '20'), 10);
+                if (![20, 50, 100].includes(nextLimit)) return;
+                state.notificationsPagination.limit = nextLimit;
+                await onNotificationsFilterChange();
+            });
+        }
     }
 
     async function refreshView() {
@@ -801,6 +974,7 @@
         setHtml('reportsInsights', '<p class="text-secondary">Loading...</p>');
         setHtml('reportsRiskSummary', '<p class="text-secondary">Loading...</p>');
         setHtml('reportsRiskTable', '<p class="text-secondary">Loading...</p>');
+        setHtml('reportsNotificationsTable', '<p class="text-secondary">Loading...</p>');
         const empty = document.getElementById('reportsTrendsEmpty');
         if (empty) empty.style.display = 'none';
 
@@ -813,11 +987,13 @@
             renderInsights();
             renderTrendsChart();
             renderRiskDashboard();
+            renderNotificationLogs();
         } catch (error) {
             console.error('Reports load error:', error);
             setHtml('reportsInsights', '<p class="text-secondary">Failed to load reports data.</p>');
             setHtml('reportsRiskSummary', '<p class="text-secondary">Failed to load risk dashboard.</p>');
             setHtml('reportsRiskTable', '');
+            setHtml('reportsNotificationsTable', '<p class="text-secondary">Failed to load notification logs.</p>');
         }
     }
 
@@ -834,8 +1010,16 @@
         if (!document.getElementById('reportsSummaryGrid')) return;
         state.role = getUserRole();
         const metricWrap = document.getElementById('reportsMetricWrap');
+        const notificationsCard = document.getElementById('reportsNotificationsCard');
+        const notificationsLimit = document.getElementById('reportsNotificationLimit');
         if (metricWrap) {
             metricWrap.style.display = state.role === 'superadmin' ? 'block' : 'none';
+        }
+        if (notificationsCard) {
+            notificationsCard.style.display = isNotificationsDiagnosticsEnabled() ? '' : 'none';
+        }
+        if (notificationsLimit) {
+            notificationsLimit.value = String(state.notificationsPagination.limit || 20);
         }
         updatePresetSelect();
         bindEvents();
@@ -865,6 +1049,19 @@
             } catch (error) {
                 if (error.name === 'AbortError') return;
                 console.error('Risk page switch error:', error);
+            }
+        },
+        goToNotificationPageFromEvent: async (event) => {
+            if (!isNotificationsDiagnosticsEnabled()) return;
+            const target = event?.currentTarget;
+            const page = Number.parseInt(String(target?.dataset?.riskPage || ''), 10);
+            if (!Number.isFinite(page) || page < 1) return;
+            try {
+                await loadNotificationLogs(page);
+                renderNotificationLogs();
+            } catch (error) {
+                console.error('Notification page switch error:', error);
+                setHtml('reportsNotificationsTable', '<p class="text-secondary">Failed to load notification logs.</p>');
             }
         }
     };
