@@ -194,28 +194,39 @@ async function sendVerificationCodeEmail({ to, code, firstName, expiresMinutes =
  * @param {string} chatId - Telegram chat ID or username
  * @param {string} message - Message text
  * @param {Object} options - Additional options
- * @returns {Promise<boolean>}
+ * @returns {Promise<boolean|{ok:boolean,error:string|null}>}
  */
 async function sendTelegram(chatId, message, options = {}) {
+    const { returnDetails = false, ...telegramOptions } = options || {};
+
     if (!telegramBot) {
         console.warn('Telegram bot not configured. Skipping Telegram notification.');
-        return false;
+        return returnDetails
+            ? { ok: false, error: 'Telegram bot not configured' }
+            : false;
     }
 
     if (process.env.ENABLE_TELEGRAM_NOTIFICATIONS === 'false') {
-        return false;
+        return returnDetails
+            ? { ok: false, error: 'Telegram notifications disabled by ENABLE_TELEGRAM_NOTIFICATIONS=false' }
+            : false;
     }
 
     try {
         await telegramBot.sendMessage(chatId, message, {
             parse_mode: 'HTML',
-            ...options
+            ...telegramOptions
         });
         console.log(`Telegram message sent to ${chatId}`);
-        return true;
+        return returnDetails ? { ok: true, error: null } : true;
     } catch (error) {
-        console.error('Telegram send error:', error);
-        return false;
+        const tgError =
+            error?.response?.body?.description
+            || error?.response?.body?.error_code
+            || error?.message
+            || 'Unknown Telegram error';
+        console.error('Telegram send error:', tgError);
+        return returnDetails ? { ok: false, error: String(tgError) } : false;
     }
 }
 
@@ -664,7 +675,12 @@ async function sendWithFallback({
         && telegramPayload?.message
         && await isEventEnabledForChannel(user, 'telegram', eventKey)
     ) {
-        const ok = await sendTelegram(user.telegram_id, telegramPayload.message, telegramPayload.options || {});
+        const telegramResult = await sendTelegram(
+            user.telegram_id,
+            telegramPayload.message,
+            { ...(telegramPayload.options || {}), returnDetails: true }
+        );
+        const ok = !!telegramResult.ok;
         result.telegram = ok;
 
         await logNotificationAttempt({
@@ -673,6 +689,7 @@ async function sendWithFallback({
             eventKey,
             status: ok ? 'sent' : 'failed',
             recipient: String(user.telegram_id),
+            errorMessage: ok ? null : (telegramResult.error || 'Telegram delivery failed'),
             metadata: { scope: 'user', fallback_step: 1, ...mergedMeta }
         });
 
@@ -912,10 +929,12 @@ async function notifyNewTest(user, test, language = 'ru') {
     results.delivered = fallbackResult.delivered;
 
     if (process.env.TELEGRAM_CHAT_ID) {
-        const globalOk = await sendTelegram(
+        const globalTelegram = await sendTelegram(
             process.env.TELEGRAM_CHAT_ID,
-            `<b>New test assigned</b>\n\nUser: ${user.first_name} ${user.last_name || ''}\nTest: ${test.title}`
+            `<b>New test assigned</b>\n\nUser: ${escapeHtml(user.first_name)} ${escapeHtml(user.last_name || '')}\nTest: ${escapeHtml(test.title)}`,
+            { returnDetails: true }
         );
+        const globalOk = !!globalTelegram.ok;
         results.telegram = results.telegram || globalOk;
 
         await logNotificationAttempt({
@@ -924,6 +943,7 @@ async function notifyNewTest(user, test, language = 'ru') {
             eventKey: 'new_test',
             status: globalOk ? 'sent' : 'failed',
             recipient: process.env.TELEGRAM_CHAT_ID,
+            errorMessage: globalOk ? null : (globalTelegram.error || 'Telegram delivery failed'),
             metadata: { scope: 'global', test_id: test.id || null }
         });
     }
@@ -1031,10 +1051,12 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
     results.delivered = fallbackResult.delivered;
 
     if (process.env.TELEGRAM_CHAT_ID) {
-        const globalOk = await sendTelegram(
+        const globalTelegram = await sendTelegram(
             process.env.TELEGRAM_CHAT_ID,
-            `<b>Password reset</b>\n\nUser: ${user.first_name} ${user.last_name || ''}\nLogin: ${user.username || ''}`
+            `<b>Password reset</b>\n\nUser: ${escapeHtml(user.first_name)} ${escapeHtml(user.last_name || '')}\nLogin: ${escapeHtml(user.username || '')}`,
+            { returnDetails: true }
         );
+        const globalOk = !!globalTelegram.ok;
         results.telegram = results.telegram || globalOk;
 
         await logNotificationAttempt({
@@ -1043,6 +1065,7 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
             eventKey: 'password_reset',
             status: globalOk ? 'sent' : 'failed',
             recipient: process.env.TELEGRAM_CHAT_ID,
+            errorMessage: globalOk ? null : (globalTelegram.error || 'Telegram delivery failed'),
             metadata: { scope: 'global' }
         });
     }
@@ -1168,10 +1191,12 @@ async function notifyNewUser(user, password, language = 'ru') {
     results.delivered = fallbackResult.delivered;
 
     if (process.env.TELEGRAM_CHAT_ID) {
-        const globalOk = await sendTelegram(
+        const globalTelegram = await sendTelegram(
             process.env.TELEGRAM_CHAT_ID,
-            `<b>New user created</b>\n\nUser: ${user.first_name} ${user.last_name || ''}\nLogin: ${user.username || ''}`
+            `<b>New user created</b>\n\nUser: ${escapeHtml(user.first_name)} ${escapeHtml(user.last_name || '')}\nLogin: ${escapeHtml(user.username || '')}`,
+            { returnDetails: true }
         );
+        const globalOk = !!globalTelegram.ok;
         results.telegram = results.telegram || globalOk;
 
         await logNotificationAttempt({
@@ -1180,6 +1205,7 @@ async function notifyNewUser(user, password, language = 'ru') {
             eventKey: 'welcome',
             status: globalOk ? 'sent' : 'failed',
             recipient: process.env.TELEGRAM_CHAT_ID,
+            errorMessage: globalOk ? null : (globalTelegram.error || 'Telegram delivery failed'),
             metadata: { scope: 'global' }
         });
     }
