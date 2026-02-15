@@ -1548,6 +1548,23 @@
     overflow: auto;
 }
 
+.calendar-side .section-header {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.calendar-side .section-title {
+    margin-bottom: 4px;
+}
+
+#calendarSelectedDateLabel {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.35;
+    text-transform: capitalize;
+}
+
 .calendar-event-card {
     border: 1px solid var(--border);
     border-radius: 10px;

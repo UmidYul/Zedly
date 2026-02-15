@@ -187,6 +187,19 @@
     min-width: min(320px, 100%);
 }
 
+.filter-select {
+    color-scheme: dark;
+}
+
+.filter-select option {
+    background-color: #0f1729;
+    color: #e5e7eb;
+}
+
+.filter-select option:disabled {
+    color: #9ca3af;
+}
+
 .table-wrap {
     overflow: auto;
     border-radius: var(--radius-lg);
