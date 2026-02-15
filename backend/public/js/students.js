@@ -7,6 +7,7 @@
 
     const state = {
         classes: [],
+        homeroomClassId: null,
         subjects: [],
         selectedClassId: '',
         selectedSubjectId: '',
@@ -101,12 +102,14 @@
     }
 
     async function loadFilters() {
-        const [classesRes, subjectsRes] = await Promise.all([
+        const [classesRes, subjectsRes, homeroomRes] = await Promise.all([
             apiGet(`${API}/teacher/classes?page=1&limit=100`),
-            apiGet(`${API}/teacher/subjects`)
+            apiGet(`${API}/teacher/subjects`),
+            apiGet(`${API}/teacher/homeroom-class`).catch(() => null)
         ]);
         state.classes = classesRes.classes || [];
         state.subjects = subjectsRes.subjects || [];
+        state.homeroomClassId = homeroomRes?.class?.id ? String(homeroomRes.class.id) : null;
 
         const classSelect = byId('studentsClassFilter');
         const subjectSelect = byId('studentsSubjectFilter');
@@ -262,6 +265,9 @@
     function renderTable() {
         const tbody = byId('studentsTableBody');
         if (!tbody) return;
+        const canResetPasswords = !!state.selectedClassId
+            && !!state.homeroomClassId
+            && String(state.selectedClassId) === String(state.homeroomClassId);
 
         const pageRows = getPagedRows();
         if (!pageRows.length) {
@@ -285,7 +291,9 @@
                     <td data-label="Действия">
                         <div class="table-actions">
                             <button class="btn btn-outline students-action-btn" data-action="report" data-id="${studentId}" type="button">Отчет</button>
-                            <button class="btn btn-secondary students-action-btn" data-action="reset" data-id="${studentId}" type="button">Сброс пароля</button>
+                            ${canResetPasswords
+                                ? `<button class="btn btn-secondary students-action-btn" data-action="reset" data-id="${studentId}" type="button">Сброс пароля</button>`
+                                : ''}
                         </div>
                     </td>
                 </tr>
@@ -294,7 +302,6 @@
 
         renderPagination();
     }
-
     function renderPagination() {
         const container = byId('studentsPagination');
         if (!container) return;
@@ -399,7 +406,14 @@
         if (!confirmed) return;
 
         try {
-            const data = await apiPost(`${API}/teacher/students/${encodeURIComponent(studentId)}/reset-password`, {});
+            const classId = state.selectedClassId ? String(state.selectedClassId) : '';
+            if (!classId) {
+                throw new Error('Выберите класс');
+            }
+            const data = await apiPost(
+                `${API}/teacher/students/${encodeURIComponent(studentId)}/reset-password?class_id=${encodeURIComponent(classId)}`,
+                {}
+            );
             const userName = data.user?.name || data.user?.username || 'Ученик';
 
             if (window.ZedlyDialog?.temporaryPassword) {
