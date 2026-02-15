@@ -484,7 +484,7 @@
                                     </label>
                                     <select class="form-input" name="class_ids" multiple size="8" required ${isEdit ? 'disabled' : ''}>
                                     </select>
-                                    <span class="form-hint">Hold Ctrl (Cmd on Mac) to select multiple classes</span>
+                                    <span class="form-hint">Опция "Все классы" выбирает сразу все доступные классы.</span>
                                 </div>
                                 ` : `
                                 <div class="alert alert-info">
@@ -594,7 +594,7 @@
                         return;
                     }
                     classSelect.innerHTML = `
-                        
+                        <option value="__all__">Все классы</option>
                         ${classes.map(cls =>
                             `<option value="${cls.id}">${cls.name} - ${cls.grade_level} класс</option>`
                         ).join('')}
@@ -673,6 +673,19 @@
                     testSelect.addEventListener('change', () => {
                         const subjectId = testSelect.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
                         loadClassesForSubject(subjectId);
+                    });
+                }
+
+                if (classSelect) {
+                    classSelect.addEventListener('change', () => {
+                        const allOption = Array.from(classSelect.options).find((opt) => opt.value === '__all__');
+                        if (!allOption || !allOption.selected) return;
+                        Array.from(classSelect.options).forEach((opt) => {
+                            if (opt.value !== '__all__') {
+                                opt.selected = true;
+                            }
+                        });
+                        allOption.selected = false;
                     });
                 }
 
@@ -781,9 +794,19 @@
             if (!assignmentId) {
                 data.test_id = formData.get('test_id');
                 const classSelect = form.querySelector('select[name="class_ids"]');
-                data.class_ids = classSelect
-                    ? Array.from(classSelect.selectedOptions).map((opt) => opt.value).filter(Boolean)
-                    : [];
+                if (classSelect) {
+                    const selectedValues = Array.from(classSelect.selectedOptions)
+                        .map((opt) => String(opt.value))
+                        .filter(Boolean);
+                    const hasAllOption = selectedValues.includes('__all__');
+                    data.class_ids = hasAllOption
+                        ? Array.from(classSelect.options)
+                            .map((opt) => String(opt.value))
+                            .filter((value) => value && value !== '__all__')
+                        : selectedValues.filter((value) => value !== '__all__');
+                } else {
+                    data.class_ids = [];
+                }
             }
 
             data.start_date = toIso(formData.get('start_date'));
@@ -1077,5 +1100,3 @@
         }
     };
 })();
-
-

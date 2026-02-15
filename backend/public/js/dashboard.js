@@ -932,16 +932,11 @@
                         <div class="dashboard-section students-card">
                             <div class="section-header">
                                 <h2 class="section-title">Список учеников</h2>
-                                <div class="students-bulk">
-                                    <label class="table-checkbox"><input type="checkbox" id="studentsSelectAll"> Выбрать всех</label>
-                                    <span id="studentsSelectedInfo">Выбрано: 0</span>
-                                </div>
                             </div>
                             <div class="table-responsive mobile-stack-table">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th></th>
                                             <th>Ученик</th>
                                             <th>Логин</th>
                                             <th>Класс</th>
@@ -952,7 +947,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="studentsTableBody">
-                                        <tr><td colspan="8" class="empty-row">Загрузка...</td></tr>
+                                        <tr><td colspan="7" class="empty-row">Загрузка...</td></tr>
                                     </tbody>
                                 </table>
                             </div>

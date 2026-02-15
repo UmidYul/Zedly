@@ -1280,8 +1280,37 @@
 
 .students-toolbar .students-filter-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: var(--spacing-sm);
+    grid-template-columns: minmax(170px, 1fr) minmax(170px, 1fr) minmax(220px, 1.3fr) minmax(160px, 1fr) minmax(170px, 1fr);
+    gap: 10px 12px;
+    align-items: end;
+}
+
+.students-toolbar .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.students-toolbar .filter-group label {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+.students-toolbar .filter-select,
+.students-toolbar .form-input,
+.students-toolbar input,
+.students-toolbar select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+}
+
+.students-toolbar #studentsSearchInput {
+    min-width: 0;
 }
 
 .students-kpi-grid {

@@ -19,7 +19,6 @@
         scoreBand: 'all',
         sort: 'score_desc',
         page: 1,
-        selectedIds: new Set(),
         charts: {
             subject: null,
             assignments: null
@@ -141,7 +140,6 @@
         state.students = (data.students || []).map((s) => ({ ...s, class_name: data.class?.name || '' }));
         state.assignments = data.assignments || [];
         state.subjectPerformance = data.subject_performance || [];
-        state.selectedIds.clear();
         state.page = 1;
         applyFiltersAndRender();
     }
@@ -175,7 +173,6 @@
         renderCharts();
         renderTable();
         renderInsights();
-        updateSelectedInfo();
     }
 
     function renderKpi() {
@@ -271,17 +268,15 @@
 
         const pageRows = getPagedRows();
         if (!pageRows.length) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Нет данных по выбранным фильтрам</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-row">Нет данных по выбранным фильтрам</td></tr>';
             renderPagination();
             return;
         }
 
         tbody.innerHTML = pageRows.map((s) => {
             const studentId = String(s.id);
-            const checked = state.selectedIds.has(studentId) ? 'checked' : '';
             return `
                 <tr>
-                    <td class="bulk-checkbox-cell" data-label=""><input type="checkbox" class="students-row-checkbox" data-id="${studentId}" ${checked}></td>
                     <td data-label="Ученик">${escapeHtml(safeName(s))}</td>
                     <td data-label="Логин">${escapeHtml(s.username || '-')}</td>
                     <td data-label="Класс">${escapeHtml(s.class_name || '-')}</td>
@@ -318,15 +313,6 @@
             <span>Страница ${state.page} из ${totalPages}</span>
             <button class="btn btn-outline" type="button" ${state.page >= totalPages ? 'disabled' : ''} data-page="${state.page + 1}">Вперед</button>
         `;
-    }
-
-    function updateSelectedInfo() {
-        setText('studentsSelectedInfo', `Выбрано: ${state.selectedIds.size}`);
-        const selectAll = byId('studentsSelectAll');
-        if (!selectAll) return;
-        const allIds = state.filtered.map((x) => String(x.id));
-        const allChecked = allIds.length > 0 && allIds.every((id) => state.selectedIds.has(id));
-        selectAll.checked = allChecked;
     }
 
     function renderInsights() {
@@ -445,9 +431,7 @@
         }
     }
     function exportCsv() {
-        const base = state.selectedIds.size
-            ? state.filtered.filter((s) => state.selectedIds.has(String(s.id)))
-            : state.filtered;
+        const base = state.filtered;
         if (!base.length) {
             alert('Нет данных для экспорта');
             return;
@@ -537,7 +521,6 @@
         const pdfBtn = byId('studentsPdfBtn');
         const tbody = byId('studentsTableBody');
         const pagination = byId('studentsPagination');
-        const selectAll = byId('studentsSelectAll');
 
         if (classFilter) {
             classFilter.addEventListener('change', async () => {
@@ -580,28 +563,7 @@
         if (exportBtn) exportBtn.addEventListener('click', exportCsv);
         if (pdfBtn) pdfBtn.addEventListener('click', handlePdfExport);
 
-        if (selectAll) {
-            selectAll.addEventListener('change', () => {
-                if (selectAll.checked) {
-                    state.filtered.forEach((x) => state.selectedIds.add(String(x.id)));
-                } else {
-                    state.filtered.forEach((x) => state.selectedIds.delete(String(x.id)));
-                }
-                renderTable();
-                updateSelectedInfo();
-            });
-        }
-
         if (tbody) {
-            tbody.addEventListener('change', (e) => {
-                const input = e.target.closest('.students-row-checkbox');
-                if (!input) return;
-                const id = input.dataset.id;
-                if (!id) return;
-                if (input.checked) state.selectedIds.add(id);
-                else state.selectedIds.delete(id);
-                updateSelectedInfo();
-            });
 
             tbody.addEventListener('click', async (e) => {
                 const btn = e.target.closest('.students-action-btn');
