@@ -281,13 +281,17 @@
     function renderNotifications() {
         let dropdown = document.getElementById('notificationsDropdown');
         let backdrop = document.getElementById('notificationsBackdrop');
+        const notificationsBtn = document.getElementById('notificationsBtn');
+        const dropdownHost = notificationsBtn?.closest('.header-actions') || notificationsBtn?.parentElement || document.body;
 
         if (!dropdown) {
             dropdown = document.createElement('div');
             dropdown.id = 'notificationsDropdown';
             dropdown.className = 'notifications-dropdown';
             dropdown.style.display = 'none';
-            document.body.appendChild(dropdown);
+        }
+        if (dropdown.parentElement !== dropdownHost) {
+            dropdownHost.appendChild(dropdown);
         }
         if (!backdrop) {
             backdrop = document.createElement('div');
