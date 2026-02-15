@@ -1493,6 +1493,7 @@ router.post('/users/:id/reset-password', enforceSchoolIsolation, async (req, res
             `UPDATE users 
              SET password_hash = $1, 
                  must_change_password = true, 
+                 token_version = token_version + 1,
                  updated_at = CURRENT_TIMESTAMP 
              WHERE id = $2`,
             [hashedPassword, id]

@@ -84,6 +84,17 @@ app.use((req, res, next) => {
     next();
 });
 
+// SEO: index only the landing page, block private/app pages and API routes.
+app.use((req, res, next) => {
+    const path = req.path || '/';
+    const indexablePaths = new Set(['/', '/index.html']);
+    const xRobotsTag = indexablePaths.has(path)
+        ? 'index, follow'
+        : 'noindex, nofollow, noarchive, nosnippet';
+    res.setHeader('X-Robots-Tag', xRobotsTag);
+    next();
+});
+
 // Logging
 if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
@@ -244,6 +255,50 @@ app.use((err, req, res, next) => {
             request_id: req.requestId || null
         }
     });
+});
+
+app.get('/robots.txt', (req, res) => {
+    const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`)
+        .replace(/\/+$/, '')
+        .replace(/\/api$/i, '');
+    const robots = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /api/',
+        'Disallow: /dashboard',
+        'Disallow: /dashboard.html',
+        'Disallow: /change-password',
+        'Disallow: /change-password.html',
+        'Disallow: /student-',
+        'Disallow: /teacher-',
+        'Disallow: /advanced-analytics',
+        'Disallow: /grading',
+        'Disallow: /grade-attempt',
+        'Disallow: /class-details',
+        'Disallow: /import-users',
+        'Disallow: /telegram-status',
+        `Sitemap: ${appUrl}/sitemap.xml`
+    ].join('\n');
+
+    res.type('text/plain').send(robots);
+});
+
+app.get('/sitemap.xml', (req, res) => {
+    const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`)
+        .replace(/\/+$/, '')
+        .replace(/\/api$/i, '');
+    const now = new Date().toISOString();
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${appUrl}/</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`;
+
+    res.type('application/xml').send(xml);
 });
 
 // ==============================================

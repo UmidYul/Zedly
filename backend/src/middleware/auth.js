@@ -30,12 +30,27 @@ function authenticate(req, res, next) {
         // Verify token
         const decoded = verifyAccessToken(token);
 
+        const isTempToken = decoded && decoded.temp === true;
+        if (isTempToken) {
+            const isAllowedTempRoute = req.baseUrl === '/api/auth'
+                && (req.path === '/change-password' || req.path === '/logout');
+
+            if (!isAllowedTempRoute) {
+                return res.status(403).json({
+                    error: 'password_change_required',
+                    message: 'You must change your password before accessing this resource'
+                });
+            }
+        }
+
         // Attach user info to request
         req.user = {
             id: decoded.id,
             username: decoded.username,
             role: decoded.role,
-            school_id: decoded.school_id
+            school_id: decoded.school_id,
+            temp: isTempToken,
+            token_version: decoded.token_version
         };
 
         next();

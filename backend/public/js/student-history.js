@@ -3,6 +3,9 @@
     'use strict';
 
     const API_URL = '/api';
+    function getAccessToken() {
+        return localStorage.getItem('access_token') || localStorage.getItem('accessToken');
+    }
     let currentUser = null;
     let attempts = [];
     let subjects = [];
@@ -55,7 +58,7 @@
     async function fetchCurrentUser() {
         const response = await fetch(`${API_URL}/auth/me`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                'Authorization': `Bearer ${getAccessToken()}`
             }
         });
 
@@ -118,7 +121,7 @@
         try {
             const response = await fetch(`${API_URL}/student/attempts`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 }
             });
 

@@ -153,7 +153,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
         // Find user
         const result = await query(
-            `SELECT id, username, password_hash, role, school_id, is_active, first_name, last_name, must_change_password
+            `SELECT id, username, password_hash, role, school_id, is_active, first_name, last_name, must_change_password, token_version
              FROM users
              WHERE username = $1`,
             [username]
@@ -214,7 +214,8 @@ router.post('/login', loginLimiter, async (req, res) => {
             id: user.id,
             username: user.username,
             role: user.role,
-            school_id: user.school_id
+            school_id: user.school_id,
+            token_version: user.token_version
         });
 
         // Update last login
@@ -286,7 +287,9 @@ router.post('/refresh', async (req, res) => {
 
         // Verify user still exists and is active
         const result = await query(
-            'SELECT id, username, role, school_id, is_active FROM users WHERE id = $1',
+            `SELECT id, username, role, school_id, is_active, must_change_password, token_version
+             FROM users
+             WHERE id = $1`,
             [decoded.id]
         );
 
@@ -306,12 +309,27 @@ router.post('/refresh', async (req, res) => {
             });
         }
 
+        if (user.must_change_password) {
+            return res.status(403).json({
+                error: 'password_change_required',
+                message: 'You must change your password before requesting a new access token'
+            });
+        }
+
+        if ((decoded.token_version ?? 0) !== (user.token_version ?? 0)) {
+            return res.status(401).json({
+                error: 'invalid_token',
+                message: 'Refresh token is no longer valid'
+            });
+        }
+
         // Generate new access token
         const access_token = generateAccessToken({
             id: user.id,
             username: user.username,
             role: user.role,
-            school_id: user.school_id
+            school_id: user.school_id,
+            token_version: user.token_version
         });
 
         res.json({
@@ -332,6 +350,14 @@ router.post('/refresh', async (req, res) => {
  */
 router.post('/logout', authenticate, async (req, res) => {
     try {
+        await query(
+            `UPDATE users
+             SET token_version = token_version + 1,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1`,
+            [req.user.id]
+        );
+
         // Log logout event
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id)
@@ -388,7 +414,7 @@ router.post('/change-password', authenticate, async (req, res) => {
 
         // Get user's current password
         const result = await query(
-            'SELECT id, password_hash, must_change_password FROM users WHERE id = $1',
+            'SELECT id, username, role, school_id, password_hash, must_change_password, token_version FROM users WHERE id = $1',
             [req.user.id]
         );
 
@@ -424,13 +450,15 @@ router.post('/change-password', authenticate, async (req, res) => {
         // Hash new password
         const hashedPassword = await bcrypt.hash(new_password, 10);
 
-        // Update password and remove must_change_password flag
-        await query(
+        // Update password, revoke old refresh tokens, and remove must_change_password flag
+        const updateResult = await query(
             `UPDATE users 
              SET password_hash = $1, 
                  must_change_password = false, 
+                 token_version = token_version + 1,
                  updated_at = CURRENT_TIMESTAMP 
-             WHERE id = $2`,
+             WHERE id = $2
+             RETURNING id, username, role, school_id, token_version`,
             [hashedPassword, req.user.id]
         );
 
@@ -449,10 +477,11 @@ router.post('/change-password', authenticate, async (req, res) => {
 
         // Generate new tokens
         const tokens = generateTokens({
-            id: user.id,
-            username: req.user.username,
-            role: req.user.role,
-            school_id: req.user.school_id
+            id: updateResult.rows[0].id,
+            username: updateResult.rows[0].username,
+            role: updateResult.rows[0].role,
+            school_id: updateResult.rows[0].school_id,
+            token_version: updateResult.rows[0].token_version
         });
 
         res.json({

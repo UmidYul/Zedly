@@ -1,0 +1,4 @@
+-- Add token version for refresh token invalidation strategy
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
+

@@ -1,10 +1,18 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key_here';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your_refresh_secret_here';
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
+
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+}
+
+if (!JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET is not configured');
+}
 
 /**
  * Generate access token
@@ -76,7 +84,8 @@ function generateTokens(user) {
         id: user.id,
         username: user.username,
         role: user.role,
-        school_id: user.school_id
+        school_id: user.school_id,
+        token_version: Number.isInteger(user.token_version) ? user.token_version : 0
     };
 
     return {
