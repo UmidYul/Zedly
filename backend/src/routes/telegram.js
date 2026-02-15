@@ -834,8 +834,10 @@ router.get('/me/status', authenticate, async (req, res) => {
  */
 router.post('/me/phone/request', authenticate, async (req, res) => {
     try {
+        const forceRelink = req.body?.force_relink === true;
         console.log('[TG_PHONE] /me/phone/request:start', {
-            user_id: String(req.user.id)
+            user_id: String(req.user.id),
+            force_relink: forceRelink
         });
         if (!telegramBot) {
             return res.status(400).json({
@@ -860,17 +862,19 @@ router.post('/me/phone/request', authenticate, async (req, res) => {
             });
         }
 
-        if (!state.user.telegram_id) {
+        if (forceRelink || !state.user.telegram_id) {
             const { token, expiresAt } = createLinkTokenWithPayload(state.user.id, { request_phone: true });
             const link = `https://t.me/${botInfo.username}?start=${encodeURIComponent(token)}`;
-            console.log('[TG_PHONE] /me/phone/request:needs_link', {
+            console.log('[TG_PHONE] /me/phone/request:link_flow', {
                 user_id: String(state.user.id),
+                mode: forceRelink ? 'relink' : 'link',
                 link_preview: link.slice(0, 80),
                 expires_at: new Date(expiresAt).toISOString()
             });
             return res.json({
-                message: 'Telegram link flow started',
+                message: forceRelink ? 'Telegram relink flow started' : 'Telegram link flow started',
                 needs_link: true,
+                relink: forceRelink,
                 link,
                 token_expires_at: new Date(expiresAt).toISOString()
             });

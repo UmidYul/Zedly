@@ -80,6 +80,13 @@
         return Promise.resolve(true);
     }
 
+    async function showConfirm(message, title = 'Подтверждение') {
+        if (window.ZedlyDialog?.confirm) {
+            return window.ZedlyDialog.confirm(message, { title });
+        }
+        return Promise.resolve(confirm(message));
+    }
+
     async function apiFetch(url, options = {}) {
         const makeRequest = async () => {
             const headers = {
@@ -763,8 +770,27 @@
             if (btn) btn.disabled = true;
             console.log('[TG_PHONE_UI] requestPhoneFromTelegram:click');
 
+            let forceRelink = false;
+            const hasLinkedTelegram = !!profileUser?.telegram_id;
+            const hasPhoneToReplace = !!String(profileUser?.phone || '').trim();
+
+            if (hasLinkedTelegram && hasPhoneToReplace) {
+                const confirmed = await showConfirm(
+                    'При смене номера текущий Telegram-аккаунт будет отвязан, и нужно будет привязать новый аккаунт в боте. Продолжить?',
+                    'Смена Telegram аккаунта'
+                );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                forceRelink = true;
+            }
+
             const data = await apiFetch('/api/telegram/me/phone/request', {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ force_relink: forceRelink })
             });
             console.log('[TG_PHONE_UI] requestPhoneFromTelegram:response', data);
 
