@@ -8,36 +8,181 @@
         attempt: null,
         questions: [],
         currentFilter: 'all',
+        lastErrorMessage: '',
+        currentLang: localStorage.getItem('zedly-lang') || 'ru',
+        translations: {
+            ru: {
+                backToDashboard: 'Назад в дашборд',
+                loading: 'Загрузка результатов...',
+                summaryTitle: 'Сводка теста',
+                yourScore: 'Ваш балл',
+                percentage: 'Процент',
+                timeTaken: 'Время',
+                correctAnswers: 'Верных ответов',
+                testLabel: 'Тест:',
+                subjectLabel: 'Предмет:',
+                dateLabel: 'Дата:',
+                questionsReview: 'Разбор вопросов',
+                filterAll: 'Все вопросы',
+                filterCorrect: 'Верные',
+                filterIncorrect: 'Неверные',
+                failedTitle: 'Не удалось загрузить результаты',
+                failedMessage: 'Произошла ошибка при загрузке результатов теста.',
+                resultsSuffix: 'Результаты',
+                pendingReview: 'Ожидает проверки',
+                passed: 'Пройден',
+                failed: 'Не пройден',
+                correct: 'Верно',
+                incorrect: 'Неверно',
+                question: 'Вопрос',
+                marks: 'балл.',
+                noQuestionsByFilter: 'Нет вопросов по выбранному фильтру.',
+                unsupportedAnswerType: 'Тип ответа не поддерживается',
+                yourAnswer: 'Ваш ответ',
+                notAnswered: 'Нет ответа',
+                correctAnswerLabel: 'Правильный ответ',
+                correctAnswersLabel: 'Правильные ответы',
+                or: 'или',
+                blank: 'Пропуск',
+                empty: 'Пусто',
+                yourOrder: 'Ваш порядок',
+                correctOrder: 'Правильный порядок',
+                notMatched: 'Не сопоставлено',
+                yourMatch: 'Ваше соответствие',
+                correctLabel: 'Правильно',
+                minutesShort: 'м',
+                secondsShort: 'с',
+                trueLabel: 'Верно',
+                falseLabel: 'Неверно',
+                errorMissingAttempt: 'Некорректный запрос. Нет attempt_id или assignment_id.',
+                errorLoadFailed: 'Не удалось загрузить результаты',
+                errorNoCompleted: 'Нет завершённых попыток',
+                errorNotCompleted: 'Этот тест ещё не завершён.'
+            },
+            uz: {
+                backToDashboard: 'Dashboardga qaytish',
+                loading: 'Natijalar yuklanmoqda...',
+                summaryTitle: 'Test xulosasi',
+                yourScore: 'Sizning balingiz',
+                percentage: 'Foiz',
+                timeTaken: 'Vaqt',
+                correctAnswers: "To'g'ri javoblar",
+                testLabel: 'Test:',
+                subjectLabel: 'Fan:',
+                dateLabel: 'Sana:',
+                questionsReview: 'Savollar tahlili',
+                filterAll: 'Barcha savollar',
+                filterCorrect: "To'g'ri",
+                filterIncorrect: "Noto'g'ri",
+                failedTitle: "Natijalarni yuklab bo'lmadi",
+                failedMessage: "Test natijalarini yuklashda xatolik yuz berdi.",
+                resultsSuffix: 'Natijalar',
+                pendingReview: 'Tekshiruv kutilmoqda',
+                passed: "O'tgan",
+                failed: "O'tmagan",
+                correct: "To'g'ri",
+                incorrect: "Noto'g'ri",
+                question: 'Savol',
+                marks: 'ball',
+                noQuestionsByFilter: "Tanlangan filtr bo'yicha savollar topilmadi.",
+                unsupportedAnswerType: "Javob turi qo'llab-quvvatlanmaydi",
+                yourAnswer: 'Sizning javobingiz',
+                notAnswered: 'Javob berilmagan',
+                correctAnswerLabel: "To'g'ri javob",
+                correctAnswersLabel: "To'g'ri javoblar",
+                or: 'yoki',
+                blank: "Bo'sh joy",
+                empty: "Bo'sh",
+                yourOrder: 'Sizning tartibingiz',
+                correctOrder: "To'g'ri tartib",
+                notMatched: 'Moslanmagan',
+                yourMatch: 'Sizning moslash',
+                correctLabel: "To'g'ri",
+                minutesShort: 'daq',
+                secondsShort: 'son',
+                trueLabel: 'Rost',
+                falseLabel: "Yolg'on",
+                errorMissingAttempt: "Noto'g'ri so'rov. attempt_id yoki assignment_id yo'q.",
+                errorLoadFailed: "Natijalarni yuklab bo'lmadi",
+                errorNoCompleted: "Yakunlangan urinishlar yo'q",
+                errorNotCompleted: 'Ushbu test hali yakunlanmagan.'
+            }
+        },
+
+        t: function (key, fallback, params) {
+            const dict = this.translations[this.currentLang] || this.translations.ru;
+            return dict[key] || fallback || key;
+        },
+
+        applyLangButtons: function () {
+            document.querySelectorAll('.lang-btn').forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.lang === this.currentLang);
+            });
+        },
+
+        bindLangEvents: function () {
+            document.querySelectorAll('.lang-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const nextLang = btn.dataset.lang === 'uz' ? 'uz' : 'ru';
+                    this.currentLang = nextLang;
+                    localStorage.setItem('zedly-lang', nextLang);
+                    this.applyLangButtons();
+                    this.renderStaticTexts();
+                    if (this.attempt) this.renderResults();
+                    if (this.lastErrorMessage) this.showError(this.lastErrorMessage);
+                });
+            });
+        },
+
+        renderStaticTexts: function () {
+            const setText = (selector, value) => {
+                const el = document.querySelector(selector);
+                if (el) el.textContent = value;
+            };
+            setText('.btn-back span', this.t('backToDashboard'));
+            setText('#loadingState p', this.t('loading'));
+            setText('.summary-header h2', this.t('summaryTitle'));
+            setText('#resultsContent .summary-grid .summary-item:nth-child(1) .summary-label', this.t('yourScore'));
+            setText('#resultsContent .summary-grid .summary-item:nth-child(2) .summary-label', this.t('percentage'));
+            setText('#resultsContent .summary-grid .summary-item:nth-child(3) .summary-label', this.t('timeTaken'));
+            setText('#resultsContent .summary-grid .summary-item:nth-child(4) .summary-label', this.t('correctAnswers'));
+            setText('#resultsContent .summary-footer .test-info-item:nth-child(1) strong', this.t('testLabel'));
+            setText('#resultsContent .summary-footer .test-info-item:nth-child(2) strong', this.t('subjectLabel'));
+            setText('#resultsContent .summary-footer .test-info-item:nth-child(3) strong', this.t('dateLabel'));
+            setText('.review-header h2', this.t('questionsReview'));
+            setText('.filter-btn[data-filter="all"]', this.t('filterAll'));
+            setText('.filter-btn[data-filter="correct"]', this.t('filterCorrect'));
+            setText('.filter-btn[data-filter="incorrect"]', this.t('filterIncorrect'));
+            setText('#errorState h3', this.t('failedTitle'));
+            if (!this.lastErrorMessage) {
+                setText('#errorMessage', this.t('failedMessage'));
+            }
+            setText('#errorState .btn.btn-primary span', this.t('backToDashboard'));
+        },
 
         // Initialize results viewer
         init: async function () {
-            // Get IDs from URL
             const urlParams = new URLSearchParams(window.location.search);
             this.attemptId = urlParams.get('attempt_id');
             this.assignmentId = urlParams.get('assignment_id');
 
             if (!this.attemptId && !this.assignmentId) {
-                this.showError('Invalid request. Missing attempt or assignment ID.');
+                this.showError(this.t('errorMissingAttempt', 'Некорректный запрос. Нет attempt_id или assignment_id.'));
                 return;
             }
+            this.applyLangButtons();
+            this.bindLangEvents();
+            this.renderStaticTexts();
 
-            // Load results
             await this.loadResults();
         },
 
-        // Load results from API
         loadResults: async function () {
             try {
                 const token = localStorage.getItem('access_token');
-                let url;
-
-                if (this.attemptId) {
-                    // Load specific attempt
-                    url = `/api/student/attempts/${this.attemptId}`;
-                } else {
-                    // Load best attempt for assignment
-                    url = `/api/student/assignments/${this.assignmentId}`;
-                }
+                const url = this.attemptId
+                    ? `/api/student/attempts/${this.attemptId}`
+                    : `/api/student/assignments/${this.assignmentId}`;
 
                 const response = await fetch(url, {
                     headers: {
@@ -46,113 +191,92 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load results');
+                    throw new Error(this.t('errorLoadFailed', 'Не удалось загрузить результаты'));
                 }
 
                 const data = await response.json();
 
                 if (this.attemptId) {
                     this.attempt = data.attempt;
-                    this.questions = data.questions;
+                    this.questions = data.questions || [];
                 } else {
-                    // Get best attempt from attempts list
                     const attempts = (data.attempts || []).filter(item => item.is_completed);
                     if (attempts.length === 0) {
-                        throw new Error('No completed attempts found');
+                        throw new Error(this.t('errorNoCompleted', 'Нет завершённых попыток'));
                     }
-                    // Get the attempt with highest score
                     const bestAttempt = attempts.reduce((best, current) =>
                         current.percentage > best.percentage ? current : best
                     );
 
-                    // Load that specific attempt
                     const attemptResponse = await fetch(`/api/student/attempts/${bestAttempt.id}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
+                    if (!attemptResponse.ok) {
+                        throw new Error(this.t('errorLoadFailed', 'Не удалось загрузить результаты'));
+                    }
                     const attemptData = await attemptResponse.json();
                     this.attempt = attemptData.attempt;
-                    this.questions = attemptData.questions;
+                    this.questions = attemptData.questions || [];
                 }
 
-                // Check if completed
-                if (!this.attempt.is_completed) {
-                    this.showError('This test has not been completed yet.');
+                if (!this.attempt?.is_completed) {
+                    this.showError(this.t('errorNotCompleted', 'Этот тест ещё не завершён.'));
                     return;
                 }
 
-                // Render results
                 this.renderResults();
-
             } catch (error) {
                 console.error('Load results error:', error);
-                this.showError(error.message || 'Failed to load test results');
+                this.showError(error.message || this.t('errorLoadFailed', 'Не удалось загрузить результаты теста'));
             }
         },
 
-        // Render results
         renderResults: function () {
-            // Hide loading, show content
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('resultsContent').style.display = 'block';
 
-            // Update title
-            document.getElementById('resultsTitle').textContent = `${this.attempt.test_title} - Results`;
+            document.getElementById('resultsTitle').textContent =
+                `${this.attempt.test_title} - ${this.t('resultsSuffix', 'Результаты')}`;
 
-            // Render summary
             this.renderSummary();
-
-            // Render questions
             this.renderQuestions();
         },
 
-        // Render summary card
         renderSummary: function () {
-            const percentage = parseFloat(this.attempt.percentage);
+            const percentage = parseFloat(this.attempt.percentage || 0);
             const answers = this.attempt.answers || {};
-
-            // Check if there are any ungraded questions
             const hasUngradedQuestions = Object.values(answers).some(a => a.is_correct === null);
+            const passed = percentage >= parseFloat(this.attempt.passing_score || 0);
 
-            const passed = percentage >= this.attempt.passing_score;
-
-            // Badge
             const badge = document.getElementById('testBadge');
             if (hasUngradedQuestions) {
                 badge.className = 'test-badge pending';
-                badge.textContent = '⏳ Pending Review';
+                badge.textContent = `⏳ ${this.t('pendingReview', 'Ожидает проверки')}`;
             } else {
                 badge.className = `test-badge ${passed ? 'passed' : 'failed'}`;
-                badge.textContent = passed ? '✓ Passed' : '✗ Failed';
+                badge.textContent = passed
+                    ? `✓ ${this.t('passed', 'Пройден')}`
+                    : `✗ ${this.t('failed', 'Не пройден')}`;
             }
 
-            // Score
             document.getElementById('scoreValue').textContent = `${this.attempt.score} / ${this.attempt.max_score}`;
 
-            // Percentage
             const percentageEl = document.getElementById('percentageValue');
             percentageEl.textContent = `${percentage.toFixed(1)}%`;
-            if (hasUngradedQuestions) {
-                percentageEl.className = 'summary-value pending';
-            } else {
-                percentageEl.className = 'summary-value ' + (passed ? 'passed' : 'failed');
-            }
+            percentageEl.className = hasUngradedQuestions
+                ? 'summary-value pending'
+                : `summary-value ${passed ? 'passed' : 'failed'}`;
 
-            // Time
-            const timeSpent = this.formatTime(this.attempt.time_spent_seconds);
-            document.getElementById('timeValue').textContent = timeSpent;
+            document.getElementById('timeValue').textContent = this.formatTime(this.attempt.time_spent_seconds || 0);
 
-            // Correct answers
             const correctCount = Object.values(answers).filter(a => a.is_correct === true).length;
-            const totalQuestions = this.questions.length;
-            document.getElementById('correctValue').textContent = `${correctCount} / ${totalQuestions}`;
+            document.getElementById('correctValue').textContent = `${correctCount} / ${this.questions.length}`;
 
-            // Test info
-            document.getElementById('testName').textContent = this.attempt.test_title;
+            document.getElementById('testName').textContent = this.attempt.test_title || '-';
             document.getElementById('subjectName').textContent = this.attempt.subject_name || '-';
             document.getElementById('testDate').textContent = this.formatDate(this.attempt.submitted_at);
         },
 
-        // Render questions
         renderQuestions: function () {
             const container = document.getElementById('questionsContainer');
             const answers = this.attempt.answers || {};
@@ -162,26 +286,26 @@
                 const answer = answers[question.id];
                 const isCorrect = answer?.is_correct === true;
                 const isWrong = answer?.is_correct === false;
-                const isManual = answer?.is_correct === null;
 
-                // Apply filter
                 if (this.currentFilter === 'correct' && !isCorrect) return;
                 if (this.currentFilter === 'incorrect' && !isWrong) return;
 
                 const statusClass = isCorrect ? 'correct' : (isWrong ? 'incorrect' : 'manual');
                 const statusIcon = isCorrect ? '✓' : (isWrong ? '✗' : '⏳');
-                const statusText = isCorrect ? 'Correct' : (isWrong ? 'Incorrect' : 'Pending Review');
+                const statusText = isCorrect
+                    ? this.t('correct', 'Верно')
+                    : (isWrong ? this.t('incorrect', 'Неверно') : this.t('pendingReview', 'Ожидает проверки'));
 
                 html += `
                     <div class="question-review-card ${statusClass}">
                         <div class="question-review-header">
-                            <div class="question-number-badge">Question ${index + 1}</div>
+                            <div class="question-number-badge">${this.t('question', 'Вопрос')} ${index + 1}</div>
                             <div class="question-status ${statusClass}">
                                 <span class="status-icon">${statusIcon}</span>
                                 <span>${statusText}</span>
                             </div>
                             <div class="question-marks">
-                                <strong>${answer?.earned_marks || 0}</strong> / ${question.marks} marks
+                                <strong>${answer?.earned_marks || 0}</strong> / ${question.marks} ${this.t('marks', 'балл.')}
                             </div>
                         </div>
 
@@ -198,13 +322,12 @@
             });
 
             if (html === '') {
-                html = '<div class="no-results">No questions match the current filter.</div>';
+                html = `<div class="no-results">${this.t('noQuestionsByFilter', 'Нет вопросов по выбранному фильтру.')}</div>`;
             }
 
             container.innerHTML = html;
         },
 
-        // Render answer based on question type
         renderQuestionAnswer: function (question, answer) {
             const studentAnswer = answer?.student_answer;
             const isCorrect = answer?.is_correct ?? null;
@@ -212,36 +335,27 @@
             switch (question.question_type) {
                 case 'singlechoice':
                 case 'multiplechoice':
-                    return this.renderChoiceAnswer(question, studentAnswer, isCorrect);
-
+                    return this.renderChoiceAnswer(question, studentAnswer);
                 case 'truefalse':
-                    return this.renderTrueFalseAnswer(question, studentAnswer, isCorrect);
-
+                    return this.renderTrueFalseAnswer(question, studentAnswer);
                 case 'shortanswer':
                     return this.renderShortAnswer(question, studentAnswer, isCorrect);
-
                 case 'fillblanks':
-                    return this.renderFillBlanksAnswer(question, studentAnswer, isCorrect);
-
+                    return this.renderFillBlanksAnswer(question, studentAnswer);
                 case 'ordering':
-                    return this.renderOrderingAnswer(question, studentAnswer, isCorrect);
-
+                    return this.renderOrderingAnswer(question, studentAnswer);
                 case 'matching':
-                    return this.renderMatchingAnswer(question, studentAnswer, isCorrect);
-
+                    return this.renderMatchingAnswer(question, studentAnswer);
                 case 'imagebased':
-                    return this.renderChoiceAnswer(question, studentAnswer, isCorrect);
-
+                    return this.renderChoiceAnswer(question, studentAnswer);
                 default:
-                    return '<p>Answer type not supported</p>';
+                    return `<p>${this.t('unsupportedAnswerType', 'Тип ответа не поддерживается')}</p>`;
             }
         },
 
-        // Render choice answer
-        renderChoiceAnswer: function (question, studentAnswer, isCorrect) {
+        renderChoiceAnswer: function (question, studentAnswer) {
             const options = question.options || [];
             const correctAnswer = question.correct_answer;
-            const isMultiple = question.question_type === 'multiplechoice';
             const correctAnswers = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
             const studentAnswers = Array.isArray(studentAnswer) ? studentAnswer : [studentAnswer];
 
@@ -265,53 +379,50 @@
                 `;
             });
             html += '</div>';
-
             return html;
         },
 
-        // Render true/false answer
-        renderTrueFalseAnswer: function (question, studentAnswer, isCorrect) {
-            const correctAnswer = question.correct_answer;
+        renderTrueFalseAnswer: function (question, studentAnswer) {
+            const correctValue = String(question.correct_answer);
             const studentValue = String(studentAnswer);
-            const correctValue = String(correctAnswer);
 
             return `
                 <div class="answer-options">
                     <div class="answer-option ${correctValue === 'true' ? 'correct-option' : ''} ${studentValue === 'true' ? (correctValue === 'true' ? 'selected' : 'wrong-option selected') : ''}">
                         <div class="option-marker">${studentValue === 'true' ? (correctValue === 'true' ? '✓' : '✗') : (correctValue === 'true' ? '→' : '')}</div>
-                        <div class="option-text">True</div>
+                        <div class="option-text">${this.t('trueLabel', 'Верно')}</div>
                     </div>
                     <div class="answer-option ${correctValue === 'false' ? 'correct-option' : ''} ${studentValue === 'false' ? (correctValue === 'false' ? 'selected' : 'wrong-option selected') : ''}">
                         <div class="option-marker">${studentValue === 'false' ? (correctValue === 'false' ? '✓' : '✗') : (correctValue === 'false' ? '→' : '')}</div>
-                        <div class="option-text">False</div>
+                        <div class="option-text">${this.t('falseLabel', 'Неверно')}</div>
                     </div>
                 </div>
             `;
         },
 
-        // Render short answer
         renderShortAnswer: function (question, studentAnswer, isCorrect) {
             const correctAnswers = Array.isArray(question.correct_answer) ? question.correct_answer : [question.correct_answer];
+            const correctLabel = correctAnswers.length > 1
+                ? this.t('correctAnswersLabel', 'Правильные ответы')
+                : this.t('correctAnswerLabel', 'Правильный ответ');
 
             return `
                 <div class="answer-text-display">
-                    <div class="answer-label">Your Answer:</div>
+                    <div class="answer-label">${this.t('yourAnswer', 'Ваш ответ')}:</div>
                     <div class="answer-value ${isCorrect ? 'correct-answer' : 'wrong-answer'}">
-                        ${studentAnswer || '<em>Not answered</em>'}
+                        ${studentAnswer || `<em>${this.t('notAnswered', 'Нет ответа')}</em>`}
                     </div>
                 </div>
                 <div class="answer-text-display">
-                    <div class="answer-label">Correct Answer${correctAnswers.length > 1 ? 's' : ''}:</div>
+                    <div class="answer-label">${correctLabel}:</div>
                     <div class="answer-value correct-answer">
-                        ${correctAnswers.join(' <strong>or</strong> ')}
+                        ${correctAnswers.join(` <strong>${this.t('or', 'или')}</strong> `)}
                     </div>
                 </div>
             `;
         },
 
-
-        // Render fill blanks answer
-        renderFillBlanksAnswer: function (question, studentAnswer, isCorrect) {
+        renderFillBlanksAnswer: function (question, studentAnswer) {
             const correctAnswers = Array.isArray(question.correct_answer) ? question.correct_answer : [];
             const studentAnswers = Array.isArray(studentAnswer) ? studentAnswer : [];
 
@@ -322,14 +433,14 @@
 
                 html += `
                     <div class="blank-review-item">
-                        <div class="blank-label">Blank ${index + 1}:</div>
+                        <div class="blank-label">${this.t('blank', 'Пропуск')} ${index + 1}:</div>
                         <div class="blank-answers">
                             <div class="blank-answer ${isBlankCorrect ? 'correct-answer' : 'wrong-answer'}">
-                                <strong>Your answer:</strong> ${student || '<em>Empty</em>'}
+                                <strong>${this.t('yourAnswer', 'Ваш ответ')}:</strong> ${student || `<em>${this.t('empty', 'Пусто')}</em>`}
                             </div>
                             ${!isBlankCorrect ? `
                                 <div class="blank-answer correct-answer">
-                                    <strong>Correct answer:</strong> ${correct}
+                                    <strong>${this.t('correctAnswerLabel', 'Правильный ответ')}:</strong> ${correct}
                                 </div>
                             ` : ''}
                         </div>
@@ -337,18 +448,16 @@
                 `;
             });
             html += '</div>';
-
             return html;
         },
 
-        // Render ordering answer
-        renderOrderingAnswer: function (question, studentAnswer, isCorrect) {
+        renderOrderingAnswer: function (question, studentAnswer) {
             const items = question.options || [];
             const correctOrder = Array.isArray(question.correct_answer) ? question.correct_answer : [];
             const studentOrder = Array.isArray(studentAnswer) ? studentAnswer : [];
 
             let html = '<div class="ordering-review">';
-            html += '<div class="ordering-column"><h4>Your Order:</h4>';
+            html += `<div class="ordering-column"><h4>${this.t('yourOrder', 'Ваш порядок')}:</h4>`;
             studentOrder.forEach((itemIndex, position) => {
                 const isInCorrectPosition = correctOrder[position] === itemIndex;
                 html += `
@@ -361,7 +470,7 @@
             });
             html += '</div>';
 
-            html += '<div class="ordering-column"><h4>Correct Order:</h4>';
+            html += `<div class="ordering-column"><h4>${this.t('correctOrder', 'Правильный порядок')}:</h4>`;
             correctOrder.forEach((itemIndex, position) => {
                 html += `
                     <div class="ordering-review-item correct-position">
@@ -376,13 +485,10 @@
             return html;
         },
 
-        // Render matching answer
-        renderMatchingAnswer: function (question, studentAnswer, isCorrect) {
+        renderMatchingAnswer: function (question, studentAnswer) {
             const pairs = question.options || [];
             const correctMatches = Array.isArray(question.correct_answer) ? question.correct_answer : [];
             const studentMatches = Array.isArray(studentAnswer) ? studentAnswer : [];
-
-            // Extract all right items into an array
             const rightItems = pairs.map(p => p.right);
 
             let html = '<div class="matching-review">';
@@ -391,10 +497,9 @@
                 const correctMatch = correctMatches[index];
                 const isMatchCorrect = studentMatch === correctMatch;
 
-                // Get the text for student's match and correct match
                 const studentMatchText = studentMatch !== null && studentMatch !== undefined
                     ? rightItems[studentMatch]
-                    : 'Not matched';
+                    : this.t('notMatched', 'Не сопоставлено');
                 const correctMatchText = rightItems[correctMatch];
 
                 html += `
@@ -402,12 +507,12 @@
                         <div class="matching-left">${pair.left}</div>
                         <div class="matching-center">
                             <div class="matching-student ${isMatchCorrect ? 'correct-match' : 'wrong-match'}">
-                                Your match: <strong>${studentMatchText}</strong>
+                                ${this.t('yourMatch', 'Ваше соответствие')}: <strong>${studentMatchText}</strong>
                                 ${isMatchCorrect ? '✓' : '✗'}
                             </div>
                             ${!isMatchCorrect ? `
                                 <div class="matching-correct">
-                                    Correct: <strong>${correctMatchText}</strong>
+                                    ${this.t('correctLabel', 'Правильно')}: <strong>${correctMatchText}</strong>
                                 </div>
                             ` : ''}
                         </div>
@@ -415,35 +520,25 @@
                 `;
             });
             html += '</div>';
-
             return html;
         },
 
-        // Filter questions
         filterQuestions: function (filter) {
             this.currentFilter = filter;
-
-            // Update active button
             document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.filter === filter) {
-                    btn.classList.add('active');
-                }
+                btn.classList.toggle('active', btn.dataset.filter === filter);
             });
-
-            // Re-render questions
             this.renderQuestions();
         },
 
-        // Format time
         formatTime: function (seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${minutes}m ${secs}s`;
+            const minutes = Math.floor((seconds || 0) / 60);
+            const secs = (seconds || 0) % 60;
+            return `${minutes}${this.t('minutesShort', 'м')} ${secs}${this.t('secondsShort', 'с')}`;
         },
 
-        // Format date
         formatDate: function (dateString) {
+            if (!dateString) return '-';
             const date = new Date(dateString);
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -453,8 +548,8 @@
             return `${day}.${month}.${year} ${hours}:${minutes}`;
         },
 
-        // Show error
         showError: function (message) {
+            this.lastErrorMessage = message;
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('resultsContent').style.display = 'none';
             document.getElementById('errorState').style.display = 'flex';
@@ -462,7 +557,6 @@
         }
     };
 
-    // Initialize on load
     document.addEventListener('DOMContentLoaded', () => {
         ResultsViewer.init();
     });

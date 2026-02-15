@@ -1,9 +1,10 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 
 <head>
     <meta charset="UTF-8">
-        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
     <title>Test Results - Zedly</title>
@@ -32,9 +33,13 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
-                Back to Dashboard
+                <span data-i18n="testResults.backToDashboard">Назад в дашборд</span>
             </button>
             <h1 class="results-title" id="resultsTitle">Test Results</h1>
+            <div class="lang-switch">
+                <button class="lang-btn active" data-lang="ru">RU</button>
+                <button class="lang-btn" data-lang="uz">UZ</button>
+            </div>
         </div>
     </div>
 
@@ -43,7 +48,7 @@
         <!-- Loading State -->
         <div id="loadingState" class="loading-state">
             <div class="spinner-large"></div>
-            <p>Loading results...</p>
+            <p data-i18n="testResults.loading">Загрузка результатов...</p>
         </div>
 
         <!-- Results Content -->
@@ -52,7 +57,7 @@
             <!-- Summary Card -->
             <div class="summary-card">
                 <div class="summary-header">
-                    <h2>Test Summary</h2>
+                    <h2 data-i18n="testResults.summaryTitle">Сводка теста</h2>
                     <div class="test-badge" id="testBadge"></div>
                 </div>
 
@@ -67,7 +72,7 @@
                             </svg>
                         </div>
                         <div class="summary-details">
-                            <div class="summary-label">Your Score</div>
+                            <div class="summary-label" data-i18n="testResults.yourScore">Ваш балл</div>
                             <div class="summary-value" id="scoreValue">-</div>
                         </div>
                     </div>
@@ -81,7 +86,7 @@
                             </svg>
                         </div>
                         <div class="summary-details">
-                            <div class="summary-label">Percentage</div>
+                            <div class="summary-label" data-i18n="testResults.percentage">Процент</div>
                             <div class="summary-value" id="percentageValue">-</div>
                         </div>
                     </div>
@@ -95,7 +100,7 @@
                             </svg>
                         </div>
                         <div class="summary-details">
-                            <div class="summary-label">Time Taken</div>
+                            <div class="summary-label" data-i18n="testResults.timeTaken">Время</div>
                             <div class="summary-value" id="timeValue">-</div>
                         </div>
                     </div>
@@ -108,7 +113,7 @@
                             </svg>
                         </div>
                         <div class="summary-details">
-                            <div class="summary-label">Correct Answers</div>
+                            <div class="summary-label" data-i18n="testResults.correctAnswers">Верных ответов</div>
                             <div class="summary-value" id="correctValue">-</div>
                         </div>
                     </div>
@@ -116,13 +121,13 @@
 
                 <div class="summary-footer">
                     <div class="test-info-item">
-                        <strong>Test:</strong> <span id="testName">-</span>
+                        <strong data-i18n="testResults.testLabel">Тест:</strong> <span id="testName">-</span>
                     </div>
                     <div class="test-info-item">
-                        <strong>Subject:</strong> <span id="subjectName">-</span>
+                        <strong data-i18n="testResults.subjectLabel">Предмет:</strong> <span id="subjectName">-</span>
                     </div>
                     <div class="test-info-item">
-                        <strong>Date:</strong> <span id="testDate">-</span>
+                        <strong data-i18n="testResults.dateLabel">Дата:</strong> <span id="testDate">-</span>
                     </div>
                 </div>
             </div>
@@ -130,19 +135,19 @@
             <!-- Questions Review -->
             <div class="questions-review">
                 <div class="review-header">
-                    <h2>Questions Review</h2>
+                    <h2 data-i18n="testResults.questionsReview">Разбор вопросов</h2>
                     <div class="filter-buttons">
-                        <button class="filter-btn active" data-filter="all"
+                        <button class="filter-btn active" data-filter="all" data-i18n="testResults.filterAll"
                             onclick="ResultsViewer.filterQuestions('all')">
-                            All Questions
+                            Все вопросы
                         </button>
-                        <button class="filter-btn" data-filter="correct"
+                        <button class="filter-btn" data-filter="correct" data-i18n="testResults.filterCorrect"
                             onclick="ResultsViewer.filterQuestions('correct')">
-                            Correct
+                            Верные
                         </button>
-                        <button class="filter-btn" data-filter="incorrect"
+                        <button class="filter-btn" data-filter="incorrect" data-i18n="testResults.filterIncorrect"
                             onclick="ResultsViewer.filterQuestions('incorrect')">
-                            Incorrect
+                            Неверные
                         </button>
                     </div>
                 </div>
@@ -157,10 +162,10 @@
         <!-- Error State -->
         <div id="errorState" class="error-state" style="display: none;">
             <div class="error-icon">❌</div>
-            <h3>Failed to load results</h3>
-            <p id="errorMessage">An error occurred while loading your test results.</p>
+            <h3 data-i18n="testResults.failedTitle">Не удалось загрузить результаты</h3>
+            <p id="errorMessage" data-i18n="testResults.failedMessage">Произошла ошибка при загрузке результатов теста.</p>
             <button class="btn btn-primary" onclick="window.location.href='/dashboard.html'">
-                Back to Dashboard
+                <span data-i18n="testResults.backToDashboard">Назад в дашборд</span>
             </button>
         </div>
     </div>
