@@ -1275,6 +1275,9 @@
         document.documentElement.lang = lang;
         translatePage(lang);
         updateLangButtons(lang);
+        window.dispatchEvent(new CustomEvent('zedly:lang-changed', {
+            detail: { lang }
+        }));
     }
 
     // Translate page
@@ -1375,6 +1378,18 @@
 
     // Short alias for convenience
     window.i18n = {
-        t: (key, paramsOrLang, lang) => window.ZedlyI18n.translate(key, paramsOrLang, lang)
+        t: (key, paramsOrLang, lang) => window.ZedlyI18n.translate(key, paramsOrLang, lang),
+        translate: (key, paramsOrLang, lang) => {
+            if (typeof key === 'string' && key.length > 0) {
+                return window.ZedlyI18n.translate(key, paramsOrLang, lang);
+            }
+
+            const currentLang = getCurrentLang();
+            translatePage(currentLang);
+            updateLangButtons(currentLang);
+            return currentLang;
+        },
+        setLang,
+        getCurrentLang
     };
 })();

@@ -15,6 +15,12 @@
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem(THEME_KEY, theme);
         updateThemeIcon(theme);
+        document.dispatchEvent(new CustomEvent('themeChanged', {
+            detail: { theme }
+        }));
+        window.dispatchEvent(new CustomEvent('zedly:theme-changed', {
+            detail: { theme }
+        }));
     }
 
     // Update theme icon
@@ -33,6 +39,12 @@
                 sunIcon.style.display = 'none';
                 moonIcon.style.display = 'block';
             }
+            return;
+        }
+
+        const fallbackIcon = themeToggleBtn.querySelector('.icon');
+        if (fallbackIcon) {
+            fallbackIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
         }
     }
 
