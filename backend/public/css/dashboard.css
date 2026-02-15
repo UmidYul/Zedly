@@ -1990,6 +1990,8 @@
     }
 
     .header-left {
+        width: 44px;
+        flex: 0 0 44px;
         margin-right: 8px;
     }
 
@@ -2001,6 +2003,7 @@
 
     .header-right {
         justify-content: flex-end;
+        flex-shrink: 0;
     }
 
     .header-actions {
@@ -2452,7 +2455,7 @@
     .header-logo span {
         display: block;
         font-size: 0.82rem;
-        max-width: 90px;
+        max-width: 96px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
