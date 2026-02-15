@@ -164,6 +164,13 @@ router.get('/dashboard/overview', async (req, res) => {
             [schoolId]
         );
 
+        const adminsResult = await query(
+            `SELECT COUNT(*) as count
+             FROM users
+             WHERE school_id = $1 AND role = 'school_admin' AND is_active = true`,
+            [schoolId]
+        );
+
         const classesResult = await query(
             `SELECT COUNT(*) as count
              FROM classes
@@ -254,6 +261,7 @@ router.get('/dashboard/overview', async (req, res) => {
             stats: {
                 students: parseInt(studentsResult.rows[0]?.count || 0),
                 teachers: parseInt(teachersResult.rows[0]?.count || 0),
+                admins: parseInt(adminsResult.rows[0]?.count || 0),
                 classes: parseInt(classesResult.rows[0]?.count || 0),
                 subjects: parseInt(subjectsResult.rows[0]?.count || 0),
                 tests: parseInt(testsResult.rows[0]?.count || 0),
@@ -3522,6 +3530,5 @@ router.get('/notifications/logs', async (req, res) => {
 });
 
 module.exports = router;
-
 
 

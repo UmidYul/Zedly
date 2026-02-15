@@ -300,6 +300,7 @@
             // Admin Profile Stats
             'profile.totalStudents': 'Всего учеников',
             'profile.totalTeachers': 'Всего учителей',
+            'profile.totalAdmins': 'Всего администраторов',
             'profile.totalClasses': 'Всего классов',
             'profile.totalUsers': 'Всего пользователей',
             'profile.totalSubjects': 'Всего предметов',
@@ -725,6 +726,7 @@
             // Admin Profile Stats
             'profile.totalStudents': 'Jami o\'quvchilar',
             'profile.totalTeachers': 'Jami o\'qituvchilar',
+            'profile.totalAdmins': 'Jami administratorlar',
             'profile.totalClasses': 'Jami sinflar',
             'profile.totalUsers': 'Jami foydalanuvchilar',
             'profile.totalSubjects': 'Jami fanlar',

@@ -286,11 +286,15 @@
             document.getElementById('chartsCard').style.display = 'block';
             renderPerformanceChart([]);
         } else if (user.role === 'school_admin') {
+            const studentsCount = Number(apiStats.students || 0);
+            const teachersCount = Number(apiStats.teachers || 0);
+            const adminsCount = Number(apiStats.admins || 0);
+            const totalUsers = studentsCount + teachersCount + adminsCount;
             cards = [
-                { value: String((apiStats.students || 0) + (apiStats.teachers || 0)), label: i18n.translate('profile.totalUsers') },
-                { value: String(apiStats.classes ?? '-'), label: i18n.translate('profile.totalClasses') },
-                { value: String(apiStats.subjects ?? '-'), label: i18n.translate('profile.totalSubjects') },
-                { value: String(apiStats.tests ?? '-'), label: i18n.translate('profile.totalTests') }
+                { value: String(studentsCount), label: i18n.translate('profile.totalStudents') },
+                { value: String(teachersCount), label: i18n.translate('profile.totalTeachers') },
+                { value: String(adminsCount), label: i18n.translate('profile.totalAdmins') || 'Всего администраторов' },
+                { value: String(totalUsers), label: i18n.translate('profile.totalUsers') }
             ];
         } else {
             cards = [
