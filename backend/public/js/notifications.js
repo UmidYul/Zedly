@@ -9,6 +9,7 @@
     let listenersAttached = false;
     let lastLoadedAt = 0;
     const REFRESH_INTERVAL_MS = 30 * 1000;
+    const MOBILE_MEDIA_QUERY = '(max-width: 968px)';
 
     function getReadState() {
         try {
@@ -281,8 +282,6 @@
     function renderNotifications() {
         let dropdown = document.getElementById('notificationsDropdown');
         let backdrop = document.getElementById('notificationsBackdrop');
-        const notificationsBtn = document.getElementById('notificationsBtn');
-        const dropdownHost = notificationsBtn?.closest('.header-actions') || notificationsBtn?.parentElement || document.body;
 
         if (!dropdown) {
             dropdown = document.createElement('div');
@@ -290,8 +289,8 @@
             dropdown.className = 'notifications-dropdown';
             dropdown.style.display = 'none';
         }
-        if (dropdown.parentElement !== dropdownHost) {
-            dropdownHost.appendChild(dropdown);
+        if (dropdown.parentElement !== document.body) {
+            document.body.appendChild(dropdown);
         }
         if (!backdrop) {
             backdrop = document.createElement('div');
@@ -341,6 +340,46 @@
                 </div>
             ` : ''}
         `;
+
+        positionDropdown();
+    }
+
+    function isDropdownOpen() {
+        const dropdown = document.getElementById('notificationsDropdown');
+        return !!dropdown && dropdown.style.display === 'block';
+    }
+
+    function positionDropdown() {
+        const dropdown = document.getElementById('notificationsDropdown');
+        const notificationsBtn = document.getElementById('notificationsBtn');
+        if (!dropdown || !notificationsBtn) return;
+
+        const isMobile = window.matchMedia(MOBILE_MEDIA_QUERY).matches;
+        if (isMobile) {
+            dropdown.style.left = '';
+            dropdown.style.right = '';
+            dropdown.style.top = '';
+            dropdown.style.bottom = '';
+            dropdown.style.width = '';
+            dropdown.style.maxHeight = '';
+            dropdown.style.position = '';
+            return;
+        }
+
+        const rect = notificationsBtn.getBoundingClientRect();
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        const desiredWidth = 380;
+        const minGap = 8;
+        const width = Math.min(desiredWidth, Math.max(260, viewportWidth - minGap * 2));
+        const left = Math.max(minGap, Math.min(rect.right - width, viewportWidth - width - minGap));
+
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = `${Math.round(rect.bottom + 10)}px`;
+        dropdown.style.left = `${Math.round(left)}px`;
+        dropdown.style.right = 'auto';
+        dropdown.style.bottom = 'auto';
+        dropdown.style.width = `${Math.round(width)}px`;
+        dropdown.style.maxHeight = '500px';
     }
 
     function formatTime(timestamp) {
@@ -384,6 +423,18 @@
                     closeDropdown();
                 }
             });
+
+            window.addEventListener('resize', () => {
+                if (isDropdownOpen()) {
+                    positionDropdown();
+                }
+            });
+
+            window.addEventListener('scroll', () => {
+                if (isDropdownOpen()) {
+                    positionDropdown();
+                }
+            }, { passive: true });
         }
 
         listenersAttached = true;
@@ -395,7 +446,10 @@
         if (dropdown) {
             const isVisible = dropdown.style.display === 'block';
             dropdown.style.display = isVisible ? 'none' : 'block';
-            const isMobile = window.matchMedia('(max-width: 968px)').matches;
+            const isMobile = window.matchMedia(MOBILE_MEDIA_QUERY).matches;
+            if (!isVisible) {
+                positionDropdown();
+            }
             if (backdrop) {
                 backdrop.style.display = !isVisible && isMobile ? 'block' : 'none';
             }
