@@ -232,9 +232,9 @@
                         <tbody>
                             ${top.map((row) => `
                                 <tr>
-                                    <td>${escapeHtml(row.school_name || '-')}</td>
-                                    <td>${fmtInt(row.attempts)}</td>
-                                    <td>${fmtPct(row.avg_score)}</td>
+                                    <td data-label="${t('reports.school', 'Школа')}">${escapeHtml(row.school_name || '-')}</td>
+                                    <td data-label="${t('reports.attempts', 'Попытки')}">${fmtInt(row.attempts)}</td>
+                                    <td data-label="${t('reports.avgScore', 'Средний балл')}">${fmtPct(row.avg_score)}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -256,10 +256,10 @@
                     <tbody>
                         ${topClasses.map((row) => `
                             <tr>
-                                <td>${escapeHtml(row.name || '-')}</td>
-                                <td>${fmtInt(row.student_count)}</td>
-                                <td>${fmtInt(row.total_attempts)}</td>
-                                <td>${fmtPct(row.avg_score)}</td>
+                                <td data-label="${t('reports.class', 'Класс')}">${escapeHtml(row.name || '-')}</td>
+                                <td data-label="${t('reports.students', 'Ученики')}">${fmtInt(row.student_count)}</td>
+                                <td data-label="${t('reports.attempts', 'Попытки')}">${fmtInt(row.total_attempts)}</td>
+                                <td data-label="${t('reports.avgScore', 'Средний балл')}">${fmtPct(row.avg_score)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -317,9 +317,9 @@
                     <tbody>
                         ${rows.slice(0, 50).map((row) => `
                             <tr>
-                                <td>${escapeHtml(row[keyName] || row.name_ru || row.subject || '-')}</td>
-                                <td>${typeof row[keyValue] === 'number' ? fmtPct(row[keyValue]) : escapeHtml(String(row[keyValue] ?? '-'))}</td>
-                                <td>${escapeHtml(buildRowDetails(row))}</td>
+                                <td data-label="${t('reports.name', 'Название')}">${escapeHtml(row[keyName] || row.name_ru || row.subject || '-')}</td>
+                                <td data-label="${t('reports.mainMetric', 'Основная метрика')}">${typeof row[keyValue] === 'number' ? fmtPct(row[keyValue]) : escapeHtml(String(row[keyValue] ?? '-'))}</td>
+                                <td data-label="${t('common.details', 'Детали')}">${escapeHtml(buildRowDetails(row))}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -525,12 +525,12 @@
                     <tbody>
                         ${students.map((row) => `
                             <tr>
-                                <td>${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
-                                <td>${escapeHtml(row.class_name || '-')}</td>
-                                <td>${fmtPct(row.avg_score)}</td>
-                                <td>${fmtInt(row.attempts_completed)}</td>
-                                <td><span class="reports-risk-badge ${escapeHtml(String(row.risk_level || 'safe'))}">${riskLevelLabel(row.risk_level)}</span></td>
-                                <td>${row.last_attempt_at ? new Date(row.last_attempt_at).toLocaleDateString('ru-RU') : '-'}</td>
+                                <td data-label="${t('reports.students', 'Ученики')}">${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
+                                <td data-label="${t('reports.class', 'Класс')}">${escapeHtml(row.class_name || '-')}</td>
+                                <td data-label="${t('reports.score', 'Балл')}">${fmtPct(row.avg_score)}</td>
+                                <td data-label="${t('reports.attempts', 'Попытки')}">${fmtInt(row.attempts_completed)}</td>
+                                <td data-label="${t('reports.risk', 'Риск')}"><span class="reports-risk-badge ${escapeHtml(String(row.risk_level || 'safe'))}">${riskLevelLabel(row.risk_level)}</span></td>
+                                <td data-label="${t('reports.lastAttempt', 'Последняя попытка')}">${row.last_attempt_at ? new Date(row.last_attempt_at).toLocaleDateString('ru-RU') : '-'}</td>
                             </tr>
                         `).join('')}
                     </tbody>

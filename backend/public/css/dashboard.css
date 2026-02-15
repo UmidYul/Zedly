@@ -2497,6 +2497,95 @@
     }
 }
 
+@media (max-width: 600px) {
+    .reports-page {
+        gap: 10px;
+    }
+
+    .reports-page .page-main-title {
+        font-size: 1.3rem;
+        line-height: 1.2;
+    }
+
+    .reports-page .page-subtitle {
+        font-size: 0.88rem;
+    }
+
+    .reports-page .section-header {
+        align-items: flex-start;
+    }
+
+    .reports-activity-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .reports-trends-wrap {
+        min-height: 220px;
+    }
+
+    .reports-trends-wrap canvas {
+        height: 220px !important;
+    }
+
+    .reports-page .table-responsive {
+        overflow: visible;
+    }
+
+    .reports-page .data-table {
+        min-width: 0;
+        width: 100%;
+        font-size: 0.83rem;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+
+    .reports-page .data-table thead {
+        display: none;
+    }
+
+    .reports-page .data-table tbody,
+    .reports-page .data-table tr,
+    .reports-page .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .reports-page .data-table tr {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg-secondary);
+        padding: 6px 10px;
+        margin-bottom: 8px;
+    }
+
+    .reports-page .data-table td {
+        white-space: normal;
+        padding: 6px 0;
+        border: 0;
+        border-bottom: 1px dashed var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .reports-page .data-table td:last-child {
+        border-bottom: 0;
+    }
+
+    .reports-page .data-table td::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.78rem;
+        line-height: 1.25;
+        max-width: 45%;
+        flex: 0 0 45%;
+    }
+}
+
 /* ==============================================
    My Class (Dashboard Page)
    ============================================== */
