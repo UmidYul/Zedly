@@ -33,14 +33,17 @@
 
         const token = localStorage.getItem('access_token');
         let userRole = 'teacher';
+        let currentUserId = '';
 
         const userDataStr = localStorage.getItem('user');
         if (userDataStr) {
             try {
                 const userData = JSON.parse(userDataStr);
                 userRole = userData.role || 'teacher';
+                currentUserId = userData.id || '';
             } catch (error) {
                 userRole = 'teacher';
+                currentUserId = '';
             }
         }
 
@@ -63,6 +66,9 @@
         const academicYear = safeText(classObj.academic_year);
         const gradeLevel = safeText(classObj.grade_level);
         const homeroom = safeText(classObj.homeroom_teacher_name || classObj.homeroom_name, 'Не назначен');
+        const isTeacher = userRole === 'teacher';
+        const isHomeroomTeacher = isTeacher && String(classObj.homeroom_teacher_id || '') === String(currentUserId || '');
+        const canViewStudentLogin = !isTeacher || isHomeroomTeacher;
 
         document.getElementById('className').textContent = className;
         document.getElementById('classInfo').textContent = `Учебный год: ${academicYear} • Параллель: ${gradeLevel} • Классный руководитель: ${homeroom}`;
@@ -109,16 +115,31 @@
         }
 
         const studBody = document.getElementById('studentsTableBody');
+        const studentsHeadRow = document.querySelector('.students-section thead tr');
+        if (studentsHeadRow) {
+            studentsHeadRow.innerHTML = canViewStudentLogin
+                ? '<th>Имя</th><th>Логин</th><th>Действия</th>'
+                : '<th>Имя</th><th>Действия</th>';
+        }
+
         if (!students.length) {
-            studBody.innerHTML = '<tr><td colspan="3" class="empty-row">В классе пока нет учеников</td></tr>';
+            studBody.innerHTML = `<tr><td colspan="${canViewStudentLogin ? 3 : 2}" class="empty-row">В классе пока нет учеников</td></tr>`;
         } else {
             studBody.innerHTML = students.map((student) => {
                 const name = student.name || student.full_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Без имени';
                 const login = student.login || student.username || '—';
+                if (canViewStudentLogin) {
+                    return `
+                        <tr>
+                            <td>${escapeHtml(name)}</td>
+                            <td>${escapeHtml(login)}</td>
+                            <td class="actions-cell"><a href="student-details.html?id=${student.id}">Профиль ученика</a></td>
+                        </tr>
+                    `;
+                }
                 return `
                     <tr>
                         <td>${escapeHtml(name)}</td>
-                        <td>${escapeHtml(login)}</td>
                         <td class="actions-cell"><a href="student-details.html?id=${student.id}">Профиль ученика</a></td>
                     </tr>
                 `;

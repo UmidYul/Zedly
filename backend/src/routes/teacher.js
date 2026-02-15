@@ -977,11 +977,20 @@ router.get('/classes/:id', async (req, res) => {
             [id]
         );
 
+        const classRow = classResult.rows[0];
+        const canViewStudentLogin = classRow && String(classRow.homeroom_teacher_id || '') === String(teacherId);
+
         // Get subjects taught by this teacher in this class
         const subjectsResult = await query(
-            `SELECT s.id, s.name, s.code, s.color
+            `SELECT
+                s.id,
+                s.name,
+                s.code,
+                s.color,
+                CONCAT(u.first_name, ' ', u.last_name) as teacher_name
              FROM teacher_class_subjects tcs
              JOIN subjects s ON tcs.subject_id = s.id
+             JOIN users u ON u.id = tcs.teacher_id
              WHERE tcs.class_id = $1 AND tcs.teacher_id = $2
              ORDER BY s.name ASC`,
             [id, teacherId]
@@ -992,6 +1001,7 @@ router.get('/classes/:id', async (req, res) => {
             `SELECT
                 u.id,
                 CONCAT(u.first_name, ' ', u.last_name) as full_name,
+                ${canViewStudentLogin ? 'u.username' : 'NULL::text'} as login,
                 u.email,
                 cs.roll_number
              FROM class_students cs
