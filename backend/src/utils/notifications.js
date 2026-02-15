@@ -452,24 +452,38 @@ function cloneDefaultsMap(map) {
     return JSON.parse(JSON.stringify(map || {}));
 }
 
-function normalizeRoleDefaultsRecord(row, base) {
-    const channels = { ...(base?.channels || {}) };
-    const events = { ...(base?.events || {}) };
-    const rawChannels = row?.channels && typeof row.channels === 'object' ? row.channels : {};
-    const rawEvents = row?.events && typeof row.events === 'object' ? row.events : {};
-
-    for (const key of Object.keys(channels)) {
-        if (rawChannels[key] !== undefined) channels[key] = !!rawChannels[key];
+function buildMatrixFromChannelsEvents(channels, events) {
+    const matrix = {};
+    for (const channelKey of Object.keys(channels || {})) {
+        matrix[channelKey] = {};
+        for (const eventKey of Object.keys(events || {})) {
+            matrix[channelKey][eventKey] = !!channels[channelKey] && !!events[eventKey];
+        }
     }
-    for (const key of Object.keys(events)) {
-        if (rawEvents[key] !== undefined) events[key] = !!rawEvents[key];
+    return matrix;
+}
+
+function computeChannelsEventsFromMatrix(baseChannels, baseEvents, matrix) {
+    const channels = { ...(baseChannels || {}) };
+    const events = { ...(baseEvents || {}) };
+
+    for (const channelKey of Object.keys(channels)) {
+        const row = matrix?.[channelKey] || {};
+        channels[channelKey] = Object.values(row).some((value) => !!value);
     }
 
-    return {
-        channels,
-        events,
-        frequency: String(row?.frequency || base?.frequency || 'instant')
-    };
+    for (const eventKey of Object.keys(events)) {
+        let enabled = false;
+        for (const channelKey of Object.keys(channels)) {
+            if (matrix?.[channelKey]?.[eventKey]) {
+                enabled = true;
+                break;
+            }
+        }
+        events[eventKey] = enabled;
+    }
+
+    return { channels, events };
 }
 
 async function getRoleNotificationDefaultsMap() {
@@ -479,18 +493,80 @@ async function getRoleNotificationDefaultsMap() {
     }
 
     const merged = cloneDefaultsMap(STATIC_ROLE_NOTIFICATION_DEFAULTS);
+    for (const role of Object.keys(merged)) {
+        merged[role].matrix = buildMatrixFromChannelsEvents(merged[role].channels, merged[role].events);
+    }
+
     try {
-        const result = await query(
-            `SELECT role, channels, events, frequency
+        // New normalized schema
+        const defaultsResult = await query(
+            `SELECT role, frequency
              FROM notification_role_defaults`
         );
-        for (const row of result.rows || []) {
+        const matrixResult = await query(
+            `SELECT role, channel, event_key, enabled
+             FROM notification_role_matrix`
+        );
+        if (!Array.isArray(matrixResult.rows) || matrixResult.rows.length === 0) {
+            throw new Error('notification_role_matrix is empty');
+        }
+
+        for (const row of defaultsResult.rows || []) {
             const role = String(row.role || '').trim();
             if (!role || !merged[role]) continue;
-            merged[role] = normalizeRoleDefaultsRecord(row, merged[role]);
+            merged[role].frequency = String(row.frequency || merged[role].frequency || 'instant');
         }
-    } catch (error) {
-        // Table may be absent before migration; fallback to static defaults.
+
+        for (const row of matrixResult.rows || []) {
+            const role = String(row.role || '').trim();
+            const channel = String(row.channel || '').trim();
+            const eventKey = String(row.event_key || '').trim();
+            if (!role || !channel || !eventKey || !merged[role]) continue;
+
+            if (!merged[role].matrix[channel]) merged[role].matrix[channel] = {};
+            merged[role].matrix[channel][eventKey] = !!row.enabled;
+        }
+
+        for (const role of Object.keys(merged)) {
+            const reduced = computeChannelsEventsFromMatrix(
+                merged[role].channels,
+                merged[role].events,
+                merged[role].matrix
+            );
+            merged[role].channels = reduced.channels;
+            merged[role].events = reduced.events;
+        }
+    } catch (normalizedError) {
+        try {
+            // Legacy schema fallback (json columns in notification_role_defaults)
+            const legacyResult = await query(
+                `SELECT role, channels, events, frequency
+                 FROM notification_role_defaults`
+            );
+            for (const row of legacyResult.rows || []) {
+                const role = String(row.role || '').trim();
+                if (!role || !merged[role]) continue;
+
+                const channels = { ...merged[role].channels };
+                const events = { ...merged[role].events };
+                const rawChannels = row?.channels && typeof row.channels === 'object' ? row.channels : {};
+                const rawEvents = row?.events && typeof row.events === 'object' ? row.events : {};
+
+                for (const key of Object.keys(channels)) {
+                    if (rawChannels[key] !== undefined) channels[key] = !!rawChannels[key];
+                }
+                for (const key of Object.keys(events)) {
+                    if (rawEvents[key] !== undefined) events[key] = !!rawEvents[key];
+                }
+
+                merged[role].channels = channels;
+                merged[role].events = events;
+                merged[role].frequency = String(row?.frequency || merged[role].frequency || 'instant');
+                merged[role].matrix = buildMatrixFromChannelsEvents(channels, events);
+            }
+        } catch (legacyError) {
+            // Table may be absent before migration; fallback to static defaults.
+        }
     }
 
     roleDefaultsCache = { loadedAt: now, value: merged };
@@ -516,6 +592,7 @@ async function isEventEnabledForChannel(user, channel, eventKey) {
     const profilePrefs = settings?.profile?.notification_preferences;
     const legacyTelegramPrefs = settings?.telegram_notifications;
 
+    const matrixDefault = defaults.matrix?.[safeChannel]?.[safeEvent];
     let channelEnabled = defaults.channels?.[safeChannel] !== false;
     if (profilePrefs?.channels && profilePrefs.channels[safeChannel] !== undefined) {
         channelEnabled = !!profilePrefs.channels[safeChannel];
@@ -529,7 +606,9 @@ async function isEventEnabledForChannel(user, channel, eventKey) {
         return false;
     }
 
-    let eventEnabled = defaults.events?.[safeEvent] !== false;
+    let eventEnabled = matrixDefault !== undefined
+        ? !!matrixDefault
+        : (defaults.events?.[safeEvent] !== false);
     if (profilePrefs?.events && profilePrefs.events[safeEvent] !== undefined) {
         eventEnabled = !!profilePrefs.events[safeEvent];
     }

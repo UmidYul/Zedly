@@ -1374,17 +1374,31 @@ router.put('/notification-defaults', async (req, res) => {
             const frequency = ['instant', 'daily', 'weekly'].includes(frequencyRaw) ? frequencyRaw : 'instant';
 
             await query(
-                `INSERT INTO notification_role_defaults (role, channels, events, frequency, updated_by, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, NOW())
+                `INSERT INTO notification_role_defaults (role, frequency, updated_by, updated_at)
+                 VALUES ($1, $2, $3, NOW())
                  ON CONFLICT (role)
                  DO UPDATE SET
-                    channels = EXCLUDED.channels,
-                    events = EXCLUDED.events,
                     frequency = EXCLUDED.frequency,
                     updated_by = EXCLUDED.updated_by,
                     updated_at = NOW()`,
-                [role, channels, events, frequency, req.user.id]
+                [role, frequency, req.user.id]
             );
+
+            for (const channelKey of NOTIFICATION_CHANNEL_KEYS) {
+                for (const eventKey of NOTIFICATION_EVENT_KEYS) {
+                    const enabled = !!channels[channelKey] && !!events[eventKey];
+                    await query(
+                        `INSERT INTO notification_role_matrix (role, channel, event_key, enabled, updated_by, updated_at)
+                         VALUES ($1, $2, $3, $4, $5, NOW())
+                         ON CONFLICT (role, channel, event_key)
+                         DO UPDATE SET
+                            enabled = EXCLUDED.enabled,
+                            updated_by = EXCLUDED.updated_by,
+                            updated_at = NOW()`,
+                        [role, channelKey, eventKey, enabled, req.user.id]
+                    );
+                }
+            }
         }
 
         invalidateNotificationDefaultsCache();

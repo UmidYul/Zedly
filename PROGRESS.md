@@ -548,3 +548,7 @@
 - [x] Added SchoolAdmin read-only access to notification defaults matrix:
   - `GET /api/admin/notification-defaults`
   - `settings` page enabled for school_admin in read-only mode
+- [x] Restructured notification defaults storage to normalized matrix:
+  - migration updated: `database/migrations/2026_02_15_notification_role_defaults.psql`
+  - new table: `notification_role_matrix` (`role`, `channel`, `event_key`, `enabled`)
+  - resolver supports normalized schema with legacy fallback

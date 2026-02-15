@@ -1,41 +1,145 @@
--- Role-based notification defaults matrix
+-- Role-based notification defaults (normalized matrix)
+-- Y axis: channel
+-- X axis: event_key
 
 CREATE TABLE IF NOT EXISTS notification_role_defaults (
     role VARCHAR(32) PRIMARY KEY,
-    channels JSONB NOT NULL DEFAULT '{}'::jsonb,
-    events JSONB NOT NULL DEFAULT '{}'::jsonb,
     frequency VARCHAR(16) NOT NULL DEFAULT 'instant',
     updated_by UUID NULL REFERENCES users(id) ON DELETE SET NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS notification_role_matrix (
+    role VARCHAR(32) NOT NULL,
+    channel VARCHAR(32) NOT NULL,
+    event_key VARCHAR(64) NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT true,
+    updated_by UUID NULL REFERENCES users(id) ON DELETE SET NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (role, channel, event_key),
+    CONSTRAINT fk_notification_role_matrix_role
+        FOREIGN KEY (role)
+        REFERENCES notification_role_defaults(role)
+        ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_notification_role_defaults_updated_at
     ON notification_role_defaults (updated_at DESC);
 
-INSERT INTO notification_role_defaults (role, channels, events, frequency)
+CREATE INDEX IF NOT EXISTS idx_notification_role_matrix_role_channel
+    ON notification_role_matrix (role, channel);
+
+CREATE INDEX IF NOT EXISTS idx_notification_role_matrix_role_event
+    ON notification_role_matrix (role, event_key);
+
+INSERT INTO notification_role_defaults (role, frequency)
 VALUES
-(
-    'student',
-    '{"in_app": true, "email": true, "telegram": true}'::jsonb,
-    '{"new_test": true, "assignment_deadline": true, "password_reset": true, "profile_updates": true, "system_updates": false, "welcome": true, "digest_summary": true}'::jsonb,
-    'instant'
-),
-(
-    'teacher',
-    '{"in_app": true, "email": true, "telegram": true}'::jsonb,
-    '{"new_test": false, "assignment_deadline": true, "password_reset": true, "profile_updates": true, "system_updates": true, "welcome": true, "digest_summary": true}'::jsonb,
-    'instant'
-),
-(
-    'school_admin',
-    '{"in_app": true, "email": true, "telegram": true}'::jsonb,
-    '{"new_test": false, "assignment_deadline": true, "password_reset": true, "profile_updates": true, "system_updates": true, "welcome": true, "digest_summary": true}'::jsonb,
-    'instant'
-),
-(
-    'superadmin',
-    '{"in_app": true, "email": true, "telegram": true}'::jsonb,
-    '{"new_test": false, "assignment_deadline": true, "password_reset": true, "profile_updates": true, "system_updates": true, "welcome": true, "digest_summary": true}'::jsonb,
-    'instant'
-)
+    ('student', 'instant'),
+    ('teacher', 'instant'),
+    ('school_admin', 'instant'),
+    ('superadmin', 'instant')
 ON CONFLICT (role) DO NOTHING;
+
+-- student
+INSERT INTO notification_role_matrix (role, channel, event_key, enabled)
+VALUES
+    ('student', 'in_app', 'new_test', true),
+    ('student', 'in_app', 'assignment_deadline', true),
+    ('student', 'in_app', 'password_reset', true),
+    ('student', 'in_app', 'profile_updates', true),
+    ('student', 'in_app', 'system_updates', false),
+    ('student', 'in_app', 'welcome', true),
+    ('student', 'in_app', 'digest_summary', true),
+    ('student', 'email', 'new_test', true),
+    ('student', 'email', 'assignment_deadline', true),
+    ('student', 'email', 'password_reset', true),
+    ('student', 'email', 'profile_updates', true),
+    ('student', 'email', 'system_updates', false),
+    ('student', 'email', 'welcome', true),
+    ('student', 'email', 'digest_summary', true),
+    ('student', 'telegram', 'new_test', true),
+    ('student', 'telegram', 'assignment_deadline', true),
+    ('student', 'telegram', 'password_reset', true),
+    ('student', 'telegram', 'profile_updates', true),
+    ('student', 'telegram', 'system_updates', false),
+    ('student', 'telegram', 'welcome', true),
+    ('student', 'telegram', 'digest_summary', true)
+ON CONFLICT (role, channel, event_key) DO NOTHING;
+
+-- teacher
+INSERT INTO notification_role_matrix (role, channel, event_key, enabled)
+VALUES
+    ('teacher', 'in_app', 'new_test', false),
+    ('teacher', 'in_app', 'assignment_deadline', true),
+    ('teacher', 'in_app', 'password_reset', true),
+    ('teacher', 'in_app', 'profile_updates', true),
+    ('teacher', 'in_app', 'system_updates', true),
+    ('teacher', 'in_app', 'welcome', true),
+    ('teacher', 'in_app', 'digest_summary', true),
+    ('teacher', 'email', 'new_test', false),
+    ('teacher', 'email', 'assignment_deadline', true),
+    ('teacher', 'email', 'password_reset', true),
+    ('teacher', 'email', 'profile_updates', true),
+    ('teacher', 'email', 'system_updates', true),
+    ('teacher', 'email', 'welcome', true),
+    ('teacher', 'email', 'digest_summary', true),
+    ('teacher', 'telegram', 'new_test', false),
+    ('teacher', 'telegram', 'assignment_deadline', true),
+    ('teacher', 'telegram', 'password_reset', true),
+    ('teacher', 'telegram', 'profile_updates', true),
+    ('teacher', 'telegram', 'system_updates', true),
+    ('teacher', 'telegram', 'welcome', true),
+    ('teacher', 'telegram', 'digest_summary', true)
+ON CONFLICT (role, channel, event_key) DO NOTHING;
+
+-- school_admin
+INSERT INTO notification_role_matrix (role, channel, event_key, enabled)
+VALUES
+    ('school_admin', 'in_app', 'new_test', false),
+    ('school_admin', 'in_app', 'assignment_deadline', true),
+    ('school_admin', 'in_app', 'password_reset', true),
+    ('school_admin', 'in_app', 'profile_updates', true),
+    ('school_admin', 'in_app', 'system_updates', true),
+    ('school_admin', 'in_app', 'welcome', true),
+    ('school_admin', 'in_app', 'digest_summary', true),
+    ('school_admin', 'email', 'new_test', false),
+    ('school_admin', 'email', 'assignment_deadline', true),
+    ('school_admin', 'email', 'password_reset', true),
+    ('school_admin', 'email', 'profile_updates', true),
+    ('school_admin', 'email', 'system_updates', true),
+    ('school_admin', 'email', 'welcome', true),
+    ('school_admin', 'email', 'digest_summary', true),
+    ('school_admin', 'telegram', 'new_test', false),
+    ('school_admin', 'telegram', 'assignment_deadline', true),
+    ('school_admin', 'telegram', 'password_reset', true),
+    ('school_admin', 'telegram', 'profile_updates', true),
+    ('school_admin', 'telegram', 'system_updates', true),
+    ('school_admin', 'telegram', 'welcome', true),
+    ('school_admin', 'telegram', 'digest_summary', true)
+ON CONFLICT (role, channel, event_key) DO NOTHING;
+
+-- superadmin
+INSERT INTO notification_role_matrix (role, channel, event_key, enabled)
+VALUES
+    ('superadmin', 'in_app', 'new_test', false),
+    ('superadmin', 'in_app', 'assignment_deadline', true),
+    ('superadmin', 'in_app', 'password_reset', true),
+    ('superadmin', 'in_app', 'profile_updates', true),
+    ('superadmin', 'in_app', 'system_updates', true),
+    ('superadmin', 'in_app', 'welcome', true),
+    ('superadmin', 'in_app', 'digest_summary', true),
+    ('superadmin', 'email', 'new_test', false),
+    ('superadmin', 'email', 'assignment_deadline', true),
+    ('superadmin', 'email', 'password_reset', true),
+    ('superadmin', 'email', 'profile_updates', true),
+    ('superadmin', 'email', 'system_updates', true),
+    ('superadmin', 'email', 'welcome', true),
+    ('superadmin', 'email', 'digest_summary', true),
+    ('superadmin', 'telegram', 'new_test', false),
+    ('superadmin', 'telegram', 'assignment_deadline', true),
+    ('superadmin', 'telegram', 'password_reset', true),
+    ('superadmin', 'telegram', 'profile_updates', true),
+    ('superadmin', 'telegram', 'system_updates', true),
+    ('superadmin', 'telegram', 'welcome', true),
+    ('superadmin', 'telegram', 'digest_summary', true)
+ON CONFLICT (role, channel, event_key) DO NOTHING;
