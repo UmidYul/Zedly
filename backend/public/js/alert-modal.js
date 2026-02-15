@@ -478,6 +478,16 @@
 
     function initGlobalLanguageSwitch() {
         if (!document.body) return;
+        const pathname = (window.location && window.location.pathname) ? window.location.pathname : '';
+        const isLandingPage = document.body.classList.contains('landing-page')
+            || pathname === '/'
+            || pathname === '/index.html'
+            || !!document.getElementById('landingLangBtn');
+        if (isLandingPage) {
+            const existingGlobal = document.getElementById('globalLangSwitch');
+            if (existingGlobal) existingGlobal.remove();
+            return;
+        }
         const existingGlobal = document.getElementById('globalLangSwitch');
         const nativeSwitch = document.querySelector('.lang-switch');
         if (nativeSwitch) {
