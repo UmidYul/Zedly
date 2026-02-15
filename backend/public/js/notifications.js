@@ -4,6 +4,7 @@
 
     let notifications = [];
     let unreadCount = 0;
+    let currentFilter = 'all';
     const READ_STATE_KEY = 'zedly_notifications_read_v1';
     let readIds = new Set();
     let listenersAttached = false;
@@ -143,6 +144,23 @@
             icon: resolveIcon(item.action, item.entity_type)
         };
     }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getVisibleNotifications() {
+        if (currentFilter === 'unread') {
+            return notifications.filter((item) => !item.read);
+        }
+        return notifications;
+    }
+
     function getCurrentUserRole() {
         try {
             const raw = localStorage.getItem('user');
@@ -301,28 +319,57 @@
             document.body.appendChild(backdrop);
         }
 
-        const translate = window.ZedlyI18n?.translate || ((key) => key);
+        const translate = window.ZedlyI18n?.translate || ((key, fallback) => fallback || key);
+        const visibleNotifications = getVisibleNotifications();
+        const unreadOnly = currentFilter === 'unread';
 
         dropdown.innerHTML = `
             <div class="notifications-header">
-                <h3>${translate('notifications.title')}</h3>
-                ${unreadCount > 0 ? `<button class="mark-all-read" onclick="window.ZedlyNotifications.markAllAsRead()">${translate('notifications.markAllRead')}</button>` : ''}
+                <div class="notifications-headline">
+                    <h3>${escapeHtml(translate('notifications.title', 'Уведомления'))}</h3>
+                    <span class="notifications-counter">${escapeHtml(String(unreadCount))}</span>
+                </div>
+                <div class="notifications-controls">
+                    <div class="notifications-filter">
+                        <button type="button" class="notif-filter-btn ${!unreadOnly ? 'active' : ''}" onclick="window.ZedlyNotifications.setFilter('all')">
+                            ${escapeHtml(translate('common.all', 'Все'))}
+                        </button>
+                        <button type="button" class="notif-filter-btn ${unreadOnly ? 'active' : ''}" onclick="window.ZedlyNotifications.setFilter('unread')">
+                            ${escapeHtml(translate('common.unread', 'Непрочитанные'))}
+                        </button>
+                    </div>
+                    <button type="button" class="notif-icon-btn" onclick="window.ZedlyNotifications.refresh()" title="${escapeHtml(translate('common.refresh', 'Обновить'))}" aria-label="${escapeHtml(translate('common.refresh', 'Обновить'))}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+                            <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="notif-icon-btn close-btn" onclick="window.ZedlyNotifications.close()" title="${escapeHtml(translate('common.close', 'Закрыть'))}" aria-label="${escapeHtml(translate('common.close', 'Закрыть'))}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
+            ${unreadCount > 0 ? `<div class="notifications-toolbar"><button class="mark-all-read" onclick="window.ZedlyNotifications.markAllAsRead()">${escapeHtml(translate('notifications.markAllRead', 'Отметить все прочитанными'))}</button></div>` : ''}
             <div class="notifications-list">
-                ${notifications.length > 0
-                    ? notifications.map((notification) => `
+                ${visibleNotifications.length > 0
+                    ? visibleNotifications.map((notification) => `
                         <div class="notification-item ${notification.read ? 'read' : 'unread'}" data-id="${notification.id}">
-                            <div class="notification-icon">${notification.icon}</div>
-                            <div class="notification-content">
-                                <div class="notification-title">${notification.title}</div>
-                                <div class="notification-message">${notification.message}</div>
-                                <div class="notification-time">${formatTime(notification.timestamp)}</div>
+                            <div class="notification-icon-wrap">
+                                <div class="notification-icon">${notification.icon}</div>
                             </div>
-                            ${!notification.read ? `<button class="mark-read-btn" onclick="window.ZedlyNotifications.markAsRead('${notification.id}')" title="${translate('notifications.markRead')}">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </button>` : ''}
+                            <div class="notification-content">
+                                <div class="notification-top">
+                                    <div class="notification-title">${escapeHtml(notification.title)}</div>
+                                    <div class="notification-time">${escapeHtml(formatTime(notification.timestamp))}</div>
+                                </div>
+                                <div class="notification-message">${escapeHtml(notification.message)}</div>
+                                ${!notification.read ? `<div class="notification-actions"><button class="mark-read-btn" onclick="window.ZedlyNotifications.markAsRead('${notification.id}')" title="${escapeHtml(translate('notifications.markRead', 'Отметить прочитанным'))}">${escapeHtml(translate('notifications.markRead', 'Отметить прочитанным'))}</button></div>` : ''}
+                            </div>
                         </div>
                     `).join('')
                     : `<div class="notifications-empty">
@@ -330,13 +377,13 @@
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                         </svg>
-                        <p>${translate('notifications.empty')}</p>
+                        <p>${escapeHtml(unreadOnly ? translate('common.noUnread', 'Нет непрочитанных уведомлений') : translate('notifications.empty', 'Нет уведомлений'))}</p>
                     </div>`
                 }
             </div>
-            ${notifications.length > 0 ? `
+            ${visibleNotifications.length > 0 ? `
                 <div class="notifications-footer">
-                    <button onclick="window.ZedlyNotifications.viewAll()">${translate('notifications.viewAll')}</button>
+                    <button onclick="window.ZedlyNotifications.viewAll()">${escapeHtml(translate('notifications.viewAll', 'Посмотреть все'))}</button>
                 </div>
             ` : ''}
         `;
@@ -368,7 +415,7 @@
 
         const rect = notificationsBtn.getBoundingClientRect();
         const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-        const desiredWidth = 380;
+        const desiredWidth = 420;
         const minGap = 8;
         const width = Math.min(desiredWidth, Math.max(260, viewportWidth - minGap * 2));
         const left = Math.max(minGap, Math.min(rect.right - width, viewportWidth - width - minGap));
@@ -389,14 +436,15 @@
         const hours = Math.floor(minutes / 60);
         const days = Math.floor(hours / 24);
 
-        const translate = window.ZedlyI18n?.translate || ((key) => key);
+        const translate = window.ZedlyI18n?.translate || ((key, fallback) => fallback || key);
+        const lang = localStorage.getItem('zedly-lang') || 'ru';
 
         if (minutes < 1) return translate('time.justNow');
         if (minutes < 60) return `${minutes} ${translate('time.minutesAgo')}`;
         if (hours < 24) return `${hours} ${translate('time.hoursAgo')}`;
         if (days < 7) return `${days} ${translate('time.daysAgo')}`;
 
-        return new Date(timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        return new Date(timestamp).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'ru-RU', { day: 'numeric', month: 'short' });
     }
 
     function attachEventListeners() {
@@ -435,6 +483,10 @@
                     positionDropdown();
                 }
             }, { passive: true });
+
+            window.addEventListener('zedly:lang-changed', () => {
+                renderNotifications();
+            });
         }
 
         listenersAttached = true;
@@ -497,6 +549,11 @@
         window.location.hash = 'profile';
     }
 
+    function setFilter(nextFilter) {
+        currentFilter = nextFilter === 'unread' ? 'unread' : 'all';
+        renderNotifications();
+    }
+
     function addNotification(notification) {
         const id = String(Date.now());
         notifications.unshift({
@@ -515,6 +572,7 @@
         markAsRead,
         markAllAsRead,
         viewAll,
+        setFilter,
         add: addNotification,
         close: closeDropdown,
         refresh: () => loadNotifications(true)
