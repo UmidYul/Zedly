@@ -9,22 +9,71 @@ function getAppUrl() {
  * Email Transporter Configuration
  * Настройте SMTP в .env файле
  */
-const emailTransporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 587,
-    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS
+function envValue(...keys) {
+    for (const key of keys) {
+        const value = process.env[key];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+            return String(value).trim();
+        }
     }
+    return '';
+}
+
+function parseBoolean(value, fallback = false) {
+    if (value === undefined || value === null || value === '') return fallback;
+    return String(value).trim().toLowerCase() === 'true';
+}
+
+function getEmailConfig() {
+    const host = envValue('SMTP_HOST', 'EMAIL_HOST') || 'smtp.gmail.com';
+    const rawPort = envValue('SMTP_PORT', 'EMAIL_PORT') || '587';
+    const port = Number.parseInt(rawPort, 10) || 587;
+    const secureRaw = envValue('SMTP_SECURE', 'EMAIL_SECURE');
+    const secure = secureRaw ? parseBoolean(secureRaw) : port === 465;
+    const user = envValue('SMTP_USER', 'EMAIL_USER');
+    const pass = envValue('SMTP_PASSWORD', 'SMTP_PASS', 'EMAIL_PASSWORD', 'EMAIL_PASS');
+    const rejectUnauthorized = parseBoolean(envValue('SMTP_TLS_REJECT_UNAUTHORIZED', 'EMAIL_TLS_REJECT_UNAUTHORIZED'), true);
+    const connectionTimeout = Number.parseInt(envValue('SMTP_CONNECTION_TIMEOUT_MS', 'EMAIL_CONNECTION_TIMEOUT_MS') || '15000', 10);
+    const greetingTimeout = Number.parseInt(envValue('SMTP_GREETING_TIMEOUT_MS', 'EMAIL_GREETING_TIMEOUT_MS') || '10000', 10);
+    const socketTimeout = Number.parseInt(envValue('SMTP_SOCKET_TIMEOUT_MS', 'EMAIL_SOCKET_TIMEOUT_MS') || '20000', 10);
+
+    return {
+        host,
+        port,
+        secure,
+        user,
+        pass,
+        rejectUnauthorized,
+        connectionTimeout,
+        greetingTimeout,
+        socketTimeout
+    };
+}
+
+const emailConfig = getEmailConfig();
+const emailTransporter = nodemailer.createTransport({
+    host: emailConfig.host,
+    port: emailConfig.port,
+    secure: emailConfig.secure,
+    auth: {
+        user: emailConfig.user,
+        pass: emailConfig.pass
+    },
+    tls: {
+        servername: emailConfig.host,
+        rejectUnauthorized: emailConfig.rejectUnauthorized
+    },
+    connectionTimeout: emailConfig.connectionTimeout,
+    greetingTimeout: emailConfig.greetingTimeout,
+    socketTimeout: emailConfig.socketTimeout
 });
 
 function isEmailConfigured() {
-    return !!(process.env.SMTP_USER && (process.env.SMTP_PASSWORD || process.env.SMTP_PASS));
+    return !!(emailConfig.user && emailConfig.pass);
 }
 
 function getEmailFrom() {
-    return process.env.EMAIL_FROM || `"ZEDLY Platform" <${process.env.SMTP_USER}>`;
+    return process.env.EMAIL_FROM || `"ZEDLY Platform" <${emailConfig.user}>`;
 }
 
 /**
@@ -94,6 +143,15 @@ async function sendEmail({ to, subject, text, html }) {
     }
 
     try {
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[email] transport config', {
+                host: emailConfig.host,
+                port: emailConfig.port,
+                secure: emailConfig.secure,
+                user: emailConfig.user
+            });
+        }
+
         await emailTransporter.sendMail({
             from: getEmailFrom(),
             to,
