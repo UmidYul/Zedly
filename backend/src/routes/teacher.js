@@ -781,14 +781,21 @@ router.get('/classes-by-subject', async (req, res) => {
 router.get('/classes', async (req, res) => {
     try {
         const { page = 1, limit = 10, search = '', grade = 'all' } = req.query;
-        const offset = (page - 1) * limit;
+        const safePage = Math.max(1, parseInt(page, 10) || 1);
+        const safeLimit = Math.max(1, parseInt(limit, 10) || 10);
+        const offset = (safePage - 1) * safeLimit;
         const teacherId = req.user.id;
         const schoolId = req.user.school_id;
 
         // Build WHERE clause
         let whereClause = `WHERE c.school_id = $1
             AND c.is_active = true
-            AND (c.homeroom_teacher_id = $2 OR tcs.teacher_id = $2)`;
+            AND EXISTS (
+                SELECT 1
+                FROM teacher_class_subjects tcs_scope
+                WHERE tcs_scope.class_id = c.id
+                  AND tcs_scope.teacher_id = $2
+            )`;
         const params = [schoolId, teacherId];
         let paramCount = 3;
 
@@ -806,29 +813,32 @@ router.get('/classes', async (req, res) => {
 
         // Get total count
         const countResult = await query(
-            `SELECT COUNT(DISTINCT c.id)
+            `SELECT COUNT(*)
              FROM classes c
-             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
              ${whereClause}`,
             params
         );
         const total = parseInt(countResult.rows[0].count);
 
-        // Get classes where teacher teaches or is homeroom teacher
-        params.push(limit, offset);
+        // Get classes where teacher teaches and include taught subjects
+        params.push(safeLimit, offset);
         const result = await query(
-            `SELECT DISTINCT
+            `SELECT
                 c.id, c.name, c.grade_level,
                 c.academic_year, c.is_active,
                 CONCAT(ht.first_name, ' ', ht.last_name) as homeroom_teacher_name,
                 (SELECT COUNT(*) FROM class_students cs WHERE cs.class_id = c.id AND cs.is_active = true) as student_count,
-                (SELECT COUNT(DISTINCT tcs.subject_id)
-                 FROM teacher_class_subjects tcs
-                 WHERE tcs.class_id = c.id AND tcs.teacher_id = $2) as subject_count
+                COUNT(DISTINCT tcs.subject_id)::int as subject_count,
+                COALESCE(
+                    STRING_AGG(DISTINCT s.name, ', ' ORDER BY s.name),
+                    ''
+                ) as taught_subjects
              FROM classes c
              LEFT JOIN users ht ON c.homeroom_teacher_id = ht.id
-             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id
+             LEFT JOIN teacher_class_subjects tcs ON c.id = tcs.class_id AND tcs.teacher_id = $2
+             LEFT JOIN subjects s ON s.id = tcs.subject_id
              ${whereClause}
+             GROUP BY c.id, c.name, c.grade_level, c.academic_year, c.is_active, ht.first_name, ht.last_name
              ORDER BY c.grade_level DESC, c.name ASC
              LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
             params
@@ -838,9 +848,9 @@ router.get('/classes', async (req, res) => {
             classes: result.rows,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                pages: Math.ceil(total / limit)
+                page: safePage,
+                limit: safeLimit,
+                pages: Math.ceil(total / safeLimit)
             }
         });
     } catch (error) {

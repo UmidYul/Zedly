@@ -2584,6 +2584,167 @@
         max-width: 45%;
         flex: 0 0 45%;
     }
+
+    #studentsPage .students-bulk {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    #studentsPage .mobile-stack-table {
+        overflow: visible;
+    }
+
+    #studentsPage .mobile-stack-table .data-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        background: transparent;
+    }
+
+    #studentsPage .mobile-stack-table .data-table thead {
+        display: none;
+    }
+
+    #studentsPage .mobile-stack-table .data-table tbody,
+    #studentsPage .mobile-stack-table .data-table tr,
+    #studentsPage .mobile-stack-table .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    #studentsPage .mobile-stack-table .data-table tr {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card);
+        padding: 6px 10px;
+    }
+
+    #studentsPage .mobile-stack-table .data-table td {
+        border: 0;
+        border-bottom: 1px dashed var(--border);
+        padding: 7px 0;
+        white-space: normal;
+    }
+
+    #studentsPage .mobile-stack-table .data-table td:last-child {
+        border-bottom: 0;
+    }
+
+    #studentsPage .mobile-stack-table .data-table td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    #studentsPage .mobile-stack-table .data-table td.bulk-checkbox-cell::before {
+        content: none;
+    }
+
+    #studentsPage .mobile-stack-table .data-table .table-actions {
+        flex-direction: column;
+    }
+
+    #studentsPage .mobile-stack-table .data-table .students-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #studentsPage .students-pagination {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #studentsPage .students-pagination span {
+        width: 100%;
+        text-align: center;
+        order: -1;
+    }
+
+    #studentsPage .students-pagination .btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 120px;
+        justify-content: center;
+    }
+
+    #classesContainer .table-responsive {
+        overflow: visible;
+        margin: 10px 0;
+    }
+
+    #classesContainer .data-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        background: transparent;
+    }
+
+    #classesContainer .data-table thead {
+        display: none;
+    }
+
+    #classesContainer .data-table tbody,
+    #classesContainer .data-table tr,
+    #classesContainer .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    #classesContainer .data-table tr {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card);
+        padding: 6px 10px;
+    }
+
+    #classesContainer .data-table td {
+        border: 0;
+        border-bottom: 1px dashed var(--border);
+        padding: 7px 0;
+        white-space: normal;
+    }
+
+    #classesContainer .data-table td:last-child {
+        border-bottom: 0;
+    }
+
+    #classesContainer .data-table td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    #classesContainer .data-table td.bulk-checkbox-cell::before {
+        content: none;
+    }
+
+    #classesContainer .bulk-checkbox-cell {
+        width: auto;
+        text-align: left;
+        padding: 4px 0 !important;
+        border-bottom: 1px dashed var(--border) !important;
+    }
+
+    #classesContainer .action-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    #classesContainer .status-badge {
+        white-space: nowrap;
+    }
 }
 
 /* ==============================================

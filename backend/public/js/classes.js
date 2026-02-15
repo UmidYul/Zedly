@@ -260,7 +260,7 @@
                                 <th>Homeroom Teacher</th>
                                 <th>Students</th>
                                 ${this.userRole === 'school_admin' ? '<th>Status</th>' : ''}
-                                ${this.userRole === 'school_admin' ? '<th>Actions</th>' : '<th>Subjects</th>'}
+                                ${this.userRole === 'school_admin' ? '<th>Actions</th>' : '<th>Teaching Subjects</th>'}
                             </tr>
                         </thead>
                         <tbody>
@@ -270,6 +270,7 @@
                 const statusClass = cls.is_active ? 'status-active' : 'status-inactive';
                 const statusText = cls.is_active ? 'Active' : 'Inactive';
                 const teacherName = cls.homeroom_teacher_name || '<span class="text-secondary">Not assigned</span>';
+                const taughtSubjects = cls.taught_subjects || `${cls.subject_count || 0} subjects`;
                 const safeClassName = (cls.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 const isSelected = this.selectedIds.has(String(cls.id));
 
@@ -318,9 +319,9 @@
                         </td>
                     `;
                 } else {
-                    // For teachers, show subject count
+                    // For teachers, show taught subject names in this class
                     html += `
-                        <td data-label="Subjects">${cls.subject_count || 0} subjects</td>
+                        <td data-label="Teaching Subjects">${taughtSubjects}</td>
                     `;
                 }
 

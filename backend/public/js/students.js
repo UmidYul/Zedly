@@ -275,7 +275,7 @@
             const checked = state.selectedIds.has(studentId) ? 'checked' : '';
             return `
                 <tr>
-                    <td data-label=""><input type="checkbox" class="students-row-checkbox" data-id="${studentId}" ${checked}></td>
+                    <td class="bulk-checkbox-cell" data-label=""><input type="checkbox" class="students-row-checkbox" data-id="${studentId}" ${checked}></td>
                     <td data-label="Ученик">${escapeHtml(safeName(s))}</td>
                     <td data-label="Логин">${escapeHtml(s.username || '-')}</td>
                     <td data-label="Класс">${escapeHtml(s.class_name || '-')}</td>
