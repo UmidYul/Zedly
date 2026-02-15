@@ -32,6 +32,17 @@
                     }
                 });
             }
+
+            const assignmentsContainer = document.getElementById('classAnalyticsAssignments');
+            if (assignmentsContainer) {
+                assignmentsContainer.addEventListener('click', (event) => {
+                    const button = event.target.closest('.js-view-assignment-results');
+                    if (!button) return;
+                    const assignmentId = button.dataset.assignmentId;
+                    if (!assignmentId) return;
+                    window.location.href = `/teacher-results.html?assignment_id=${encodeURIComponent(assignmentId)}`;
+                });
+            }
         },
 
         loadClasses: async function () {
@@ -237,13 +248,13 @@
 
                 html += `
                     <tr>
-                        <td>${item.test_title}</td>
+                        <td>${this.escapeHtml(item.test_title)}</td>
                         <td>${windowText}</td>
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>${completed}</td>
                         <td>${avg}</td>
                         <td>
-                            <button class="btn-icon" onclick="window.location.href='/teacher-results.html?assignment_id='+'${item.id}'" title="View Results">
+                            <button class="btn-icon js-view-assignment-results" data-assignment-id="${this.escapeHtml(item.id)}" title="View Results">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
@@ -290,6 +301,15 @@
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
             return `${day}.${month}.${year}`;
+        },
+
+        escapeHtml: function (value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
     };
 })();
