@@ -514,7 +514,7 @@
 - [x] Add delivery logging table (`notification_log`) with status/error/retry metadata.
 - [x] Add digest scheduler for `daily/weekly` frequency.
 - [x] Add fallback chain by channel (telegram -> email -> in-app).
-- [ ] Add role-specific event matrix and admin UI for defaults.
+- [x] Add role-specific event matrix and admin UI for defaults.
 ### 2026-02-15 Worklog (in this session)
 - [x] Unified channel/event preference resolver added to notifications core.
 - [x] Email + Telegram send paths now respect per-user preferences for events: `new_test`, `password_reset`, `welcome`.
@@ -537,3 +537,11 @@
   - primary Telegram (if enabled) -> fallback Email -> fallback In-App (`audit_logs`)
   - applied to `notifyNewTest`, `notifyPasswordReset`, `notifyNewUser`
   - every fallback step logged to `notification_log` with `fallback_step` metadata
+- [x] Added role defaults storage migration: `database/migrations/2026_02_15_notification_role_defaults.psql`.
+- [x] Added SuperAdmin API for defaults matrix:
+  - `GET /api/superadmin/notification-defaults`
+  - `PUT /api/superadmin/notification-defaults`
+- [x] Added SuperAdmin settings UI matrix:
+  - `backend/public/js/settings.js`
+  - `settings` page content + script loader in `backend/public/js/dashboard.js`
+- [x] Connected notification resolver to DB defaults with in-memory cache + invalidation on update.

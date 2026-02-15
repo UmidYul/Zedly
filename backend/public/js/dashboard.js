@@ -528,6 +528,7 @@
             'students': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/students.js'], manager: 'StudentsPage' },
             'calendar': { src: '/js/calendar.js', manager: 'CalendarPage' },
             'reports': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/reports.js'], manager: 'ReportsManager' },
+            'settings': { src: '/js/settings.js', manager: 'SettingsPage' },
             'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' }
         };
 
@@ -1976,6 +1977,34 @@
             `;
         }
 
+        if (page === 'settings') {
+            if (role !== 'superadmin') {
+                return `
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Settings</h2>
+                        </div>
+                        <p style="color: var(--text-secondary);">This section is only available for SuperAdmin.</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title">Notification Defaults</h1>
+                    <p class="page-subtitle">Role-based channel and event defaults for new notification preferences</p>
+                </div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Role Matrix</h2>
+                        <button class="btn btn-primary" id="settingsSaveNotificationDefaultsBtn" type="button">Save defaults</button>
+                    </div>
+                    <div id="settingsNotificationDefaultsStatus" class="text-secondary" style="margin-bottom:10px;"></div>
+                    <div id="settingsNotificationDefaultsMatrix"></div>
+                </div>
+            `;
+        }
+
         if (page === 'reports') {
             return `
                 <div class="reports-page">
@@ -2507,4 +2536,3 @@
         console.log('Dashboard initialized ✓');
     });
 })();
-

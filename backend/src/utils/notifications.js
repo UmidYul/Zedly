@@ -387,68 +387,132 @@ function parseUserSettings(settings) {
     return {};
 }
 
-function getDefaultNotificationPreferencesByRole(role) {
-    const defaults = {
-        student: {
-            channels: { in_app: true, email: true, telegram: true },
-            events: {
-                new_test: true,
-                assignment_deadline: true,
-                password_reset: true,
-                profile_updates: true,
-                system_updates: false,
-                welcome: true,
-                digest_summary: true
-            }
+const STATIC_ROLE_NOTIFICATION_DEFAULTS = {
+    student: {
+        channels: { in_app: true, email: true, telegram: true },
+        events: {
+            new_test: true,
+            assignment_deadline: true,
+            password_reset: true,
+            profile_updates: true,
+            system_updates: false,
+            welcome: true,
+            digest_summary: true
         },
-        teacher: {
-            channels: { in_app: true, email: true, telegram: true },
-            events: {
-                new_test: false,
-                assignment_deadline: true,
-                password_reset: true,
-                profile_updates: true,
-                system_updates: true,
-                welcome: true,
-                digest_summary: true
-            }
+        frequency: 'instant'
+    },
+    teacher: {
+        channels: { in_app: true, email: true, telegram: true },
+        events: {
+            new_test: false,
+            assignment_deadline: true,
+            password_reset: true,
+            profile_updates: true,
+            system_updates: true,
+            welcome: true,
+            digest_summary: true
         },
-        school_admin: {
-            channels: { in_app: true, email: true, telegram: true },
-            events: {
-                new_test: false,
-                assignment_deadline: true,
-                password_reset: true,
-                profile_updates: true,
-                system_updates: true,
-                welcome: true,
-                digest_summary: true
-            }
+        frequency: 'instant'
+    },
+    school_admin: {
+        channels: { in_app: true, email: true, telegram: true },
+        events: {
+            new_test: false,
+            assignment_deadline: true,
+            password_reset: true,
+            profile_updates: true,
+            system_updates: true,
+            welcome: true,
+            digest_summary: true
         },
-        superadmin: {
-            channels: { in_app: true, email: true, telegram: true },
-            events: {
-                new_test: false,
-                assignment_deadline: true,
-                password_reset: true,
-                profile_updates: true,
-                system_updates: true,
-                welcome: true,
-                digest_summary: true
-            }
-        }
-    };
+        frequency: 'instant'
+    },
+    superadmin: {
+        channels: { in_app: true, email: true, telegram: true },
+        events: {
+            new_test: false,
+            assignment_deadline: true,
+            password_reset: true,
+            profile_updates: true,
+            system_updates: true,
+            welcome: true,
+            digest_summary: true
+        },
+        frequency: 'instant'
+    }
+};
 
-    return defaults[role] || defaults.teacher;
+const ROLE_DEFAULTS_CACHE_TTL_MS = 2 * 60 * 1000;
+let roleDefaultsCache = {
+    loadedAt: 0,
+    value: null
+};
+
+function cloneDefaultsMap(map) {
+    return JSON.parse(JSON.stringify(map || {}));
 }
 
-function isEventEnabledForChannel(user, channel, eventKey) {
+function normalizeRoleDefaultsRecord(row, base) {
+    const channels = { ...(base?.channels || {}) };
+    const events = { ...(base?.events || {}) };
+    const rawChannels = row?.channels && typeof row.channels === 'object' ? row.channels : {};
+    const rawEvents = row?.events && typeof row.events === 'object' ? row.events : {};
+
+    for (const key of Object.keys(channels)) {
+        if (rawChannels[key] !== undefined) channels[key] = !!rawChannels[key];
+    }
+    for (const key of Object.keys(events)) {
+        if (rawEvents[key] !== undefined) events[key] = !!rawEvents[key];
+    }
+
+    return {
+        channels,
+        events,
+        frequency: String(row?.frequency || base?.frequency || 'instant')
+    };
+}
+
+async function getRoleNotificationDefaultsMap() {
+    const now = Date.now();
+    if (roleDefaultsCache.value && (now - roleDefaultsCache.loadedAt) < ROLE_DEFAULTS_CACHE_TTL_MS) {
+        return roleDefaultsCache.value;
+    }
+
+    const merged = cloneDefaultsMap(STATIC_ROLE_NOTIFICATION_DEFAULTS);
+    try {
+        const result = await query(
+            `SELECT role, channels, events, frequency
+             FROM notification_role_defaults`
+        );
+        for (const row of result.rows || []) {
+            const role = String(row.role || '').trim();
+            if (!role || !merged[role]) continue;
+            merged[role] = normalizeRoleDefaultsRecord(row, merged[role]);
+        }
+    } catch (error) {
+        // Table may be absent before migration; fallback to static defaults.
+    }
+
+    roleDefaultsCache = { loadedAt: now, value: merged };
+    return merged;
+}
+
+function invalidateNotificationDefaultsCache() {
+    roleDefaultsCache = { loadedAt: 0, value: null };
+}
+
+async function getDefaultNotificationPreferencesByRole(role) {
+    const map = await getRoleNotificationDefaultsMap();
+    return map[role] || map.teacher || STATIC_ROLE_NOTIFICATION_DEFAULTS.teacher;
+}
+
+async function isEventEnabledForChannel(user, channel, eventKey) {
     const safeChannel = String(channel || '').trim().toLowerCase();
     const safeEvent = String(eventKey || '').trim().toLowerCase();
     if (!safeChannel || !safeEvent) return false;
 
     const settings = parseUserSettings(user?.settings);
-    const defaults = getDefaultNotificationPreferencesByRole(user?.role);
+    const defaults = await getDefaultNotificationPreferencesByRole(user?.role);
     const profilePrefs = settings?.profile?.notification_preferences;
     const legacyTelegramPrefs = settings?.telegram_notifications;
 
@@ -477,7 +541,7 @@ function isEventEnabledForChannel(user, channel, eventKey) {
     return eventEnabled;
 }
 
-function isTelegramEventEnabled(user, eventKey) {
+async function isTelegramEventEnabled(user, eventKey) {
     return isEventEnabledForChannel(user, 'telegram', eventKey);
 }
 
@@ -519,7 +583,7 @@ async function sendWithFallback({
     if (
         user?.telegram_id
         && telegramPayload?.message
-        && isEventEnabledForChannel(user, 'telegram', eventKey)
+        && await isEventEnabledForChannel(user, 'telegram', eventKey)
     ) {
         const ok = await sendTelegram(user.telegram_id, telegramPayload.message, telegramPayload.options || {});
         result.telegram = ok;
@@ -543,7 +607,7 @@ async function sendWithFallback({
     if (
         user?.email
         && emailPayload?.subject
-        && isEventEnabledForChannel(user, 'email', eventKey)
+        && await isEventEnabledForChannel(user, 'email', eventKey)
     ) {
         const ok = await sendEmail({
             to: user.email,
@@ -570,7 +634,7 @@ async function sendWithFallback({
         }
     }
 
-    if (isEventEnabledForChannel(user, 'in_app', eventKey)) {
+    if (await isEventEnabledForChannel(user, 'in_app', eventKey)) {
         try {
             const ok = await sendInAppNotification(user.id, inAppPayload || {});
             result.in_app = ok;
@@ -1052,6 +1116,8 @@ module.exports = {
     telegramBot,
     sendTelegramToTargets,
     isEventEnabledForChannel,
+    getRoleNotificationDefaultsMap,
+    invalidateNotificationDefaultsCache,
     notifySystemChange,
     notifyNewTest,
     notifyPasswordReset,

@@ -2,7 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
-const { notifyNewUser, notifyPasswordReset, notifySystemChange } = require('../utils/notifications');
+const {
+    notifyNewUser,
+    notifyPasswordReset,
+    notifySystemChange,
+    getRoleNotificationDefaultsMap,
+    invalidateNotificationDefaultsCache
+} = require('../utils/notifications');
 const { getTableColumns, pickColumn, getSchoolNameExpr } = require('../utils/db');
 const { getGlobalCareerStats } = require('./careerHandlers');
 
@@ -18,6 +24,32 @@ router.get('/career/analytics', async (req, res) => {
 });
 router.use(authenticate);
 router.use(authorize('superadmin'));
+
+const NOTIFICATION_DEFAULT_ROLES = ['student', 'teacher', 'school_admin', 'superadmin'];
+const NOTIFICATION_CHANNEL_KEYS = ['in_app', 'email', 'telegram'];
+const NOTIFICATION_EVENT_KEYS = [
+    'new_test',
+    'assignment_deadline',
+    'password_reset',
+    'profile_updates',
+    'system_updates',
+    'welcome',
+    'digest_summary'
+];
+
+function normalizeBooleanMap(input, allowedKeys, fallback = {}) {
+    const next = {};
+    for (const key of allowedKeys) {
+        if (input && typeof input === 'object' && input[key] !== undefined) {
+            next[key] = !!input[key];
+        } else if (fallback[key] !== undefined) {
+            next[key] = !!fallback[key];
+        } else {
+            next[key] = false;
+        }
+    }
+    return next;
+}
 
 
 /**
@@ -1296,6 +1328,76 @@ router.get('/comparison', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to fetch school comparison data'
+        });
+    }
+});
+
+/**
+ * GET /api/superadmin/notification-defaults
+ * Get role-based default notification matrix.
+ */
+router.get('/notification-defaults', async (req, res) => {
+    try {
+        const defaults = await getRoleNotificationDefaultsMap();
+        res.json({ defaults });
+    } catch (error) {
+        console.error('Get notification defaults error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch notification defaults'
+        });
+    }
+});
+
+/**
+ * PUT /api/superadmin/notification-defaults
+ * Update role-based default notification matrix.
+ */
+router.put('/notification-defaults', async (req, res) => {
+    try {
+        const payload = req.body?.defaults;
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'defaults object is required'
+            });
+        }
+
+        const current = await getRoleNotificationDefaultsMap();
+        for (const role of NOTIFICATION_DEFAULT_ROLES) {
+            if (!payload[role]) continue;
+            const nextRole = payload[role];
+            const fallbackRole = current[role] || {};
+            const channels = normalizeBooleanMap(nextRole.channels, NOTIFICATION_CHANNEL_KEYS, fallbackRole.channels || {});
+            const events = normalizeBooleanMap(nextRole.events, NOTIFICATION_EVENT_KEYS, fallbackRole.events || {});
+            const frequencyRaw = String(nextRole.frequency || fallbackRole.frequency || 'instant').toLowerCase();
+            const frequency = ['instant', 'daily', 'weekly'].includes(frequencyRaw) ? frequencyRaw : 'instant';
+
+            await query(
+                `INSERT INTO notification_role_defaults (role, channels, events, frequency, updated_by, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, NOW())
+                 ON CONFLICT (role)
+                 DO UPDATE SET
+                    channels = EXCLUDED.channels,
+                    events = EXCLUDED.events,
+                    frequency = EXCLUDED.frequency,
+                    updated_by = EXCLUDED.updated_by,
+                    updated_at = NOW()`,
+                [role, channels, events, frequency, req.user.id]
+            );
+        }
+
+        invalidateNotificationDefaultsCache();
+        const defaults = await getRoleNotificationDefaultsMap();
+        res.json({
+            message: 'Notification defaults updated successfully',
+            defaults
+        });
+    } catch (error) {
+        console.error('Update notification defaults error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to update notification defaults'
         });
     }
 });

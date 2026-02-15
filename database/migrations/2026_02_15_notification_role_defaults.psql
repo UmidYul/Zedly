@@ -1,0 +1,41 @@
+-- Role-based notification defaults matrix
+
+CREATE TABLE IF NOT EXISTS notification_role_defaults (
+    role VARCHAR(32) PRIMARY KEY,
+    channels JSONB NOT NULL DEFAULT '{}'::jsonb,
+    events JSONB NOT NULL DEFAULT '{}'::jsonb,
+    frequency VARCHAR(16) NOT NULL DEFAULT 'instant',
+    updated_by UUID NULL REFERENCES users(id) ON DELETE SET NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_role_defaults_updated_at
+    ON notification_role_defaults (updated_at DESC);
+
+INSERT INTO notification_role_defaults (role, channels, events, frequency)
+VALUES
+(
+    'student',
+    '{"in_app": true, "email": true, "telegram": true}'::jsonb,
+    '{"new_test": true, "assignment_deadline": true, "password_reset": true, "profile_updates": true, "system_updates": false, "welcome": true, "digest_summary": true}'::jsonb,
+    'instant'
+),
+(
+    'teacher',
+    '{"in_app": true, "email": true, "telegram": true}'::jsonb,
+    '{"new_test": false, "assignment_deadline": true, "password_reset": true, "profile_updates": true, "system_updates": true, "welcome": true, "digest_summary": true}'::jsonb,
+    'instant'
+),
+(
+    'school_admin',
+    '{"in_app": true, "email": true, "telegram": true}'::jsonb,
+    '{"new_test": false, "assignment_deadline": true, "password_reset": true, "profile_updates": true, "system_updates": true, "welcome": true, "digest_summary": true}'::jsonb,
+    'instant'
+),
+(
+    'superadmin',
+    '{"in_app": true, "email": true, "telegram": true}'::jsonb,
+    '{"new_test": false, "assignment_deadline": true, "password_reset": true, "profile_updates": true, "system_updates": true, "welcome": true, "digest_summary": true}'::jsonb,
+    'instant'
+)
+ON CONFLICT (role) DO NOTHING;

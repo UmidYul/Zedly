@@ -241,7 +241,7 @@ async function runNotificationDigestOnce(now = new Date()) {
 
             let delivered = false;
 
-            if (user.email && isEventEnabledForChannel(user, 'email', 'digest_summary')) {
+            if (user.email && await isEventEnabledForChannel(user, 'email', 'digest_summary')) {
                 const emailOk = await sendEmail({
                     to: user.email,
                     subject: content.subject,
@@ -259,7 +259,7 @@ async function runNotificationDigestOnce(now = new Date()) {
                 delivered = delivered || emailOk;
             }
 
-            if (user.telegram_id && isEventEnabledForChannel(user, 'telegram', 'digest_summary')) {
+            if (user.telegram_id && await isEventEnabledForChannel(user, 'telegram', 'digest_summary')) {
                 const telegramOk = await sendTelegram(user.telegram_id, content.telegram);
                 await logDigestAttempt({
                     user,
