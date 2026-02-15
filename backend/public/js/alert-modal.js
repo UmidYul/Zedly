@@ -478,7 +478,12 @@
 
     function initGlobalLanguageSwitch() {
         if (!document.body) return;
-        if (document.querySelector('.lang-switch')) return;
+        const nativeSwitch = document.querySelector('.lang-switch');
+        if (nativeSwitch) {
+            const style = window.getComputedStyle(nativeSwitch);
+            const hiddenByCss = style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || 1) === 0;
+            if (!hiddenByCss) return;
+        }
         if (document.getElementById('globalLangSwitch')) return;
 
         ensureGlobalLangStyles();

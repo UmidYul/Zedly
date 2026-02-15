@@ -2241,6 +2241,154 @@
 }
 
 /* ==============================================
+   Role Pages Mobile Redesign (Requested Scope)
+   ============================================== */
+@media (max-width: 768px) {
+    /* School Admin + SuperAdmin: users/classes/schools/school-admins toolbars */
+    #usersContainer,
+    #classesContainer,
+    #schoolsContainer,
+    #adminsContainer {
+        width: 100%;
+    }
+
+    .page-toolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .page-toolbar .search-box,
+    .page-toolbar .toolbar-right {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .page-toolbar .toolbar-right {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .page-toolbar .toolbar-right .btn,
+    .page-toolbar .toolbar-right select,
+    .page-toolbar .toolbar-right input {
+        width: 100%;
+    }
+
+    /* SuperAdmin + SchoolAdmin reports/settings/statistics/comparison */
+    .reports-page,
+    .audit-page,
+    .advanced-analytics,
+    #comparisonContainer {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .reports-grid-main,
+    .reports-risk-grid,
+    .settings-role-grid,
+    .audit-toolbar .toolbar-filters,
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .reports-grid-kpi,
+    .reports-risk-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .reports-notification-filters {
+        grid-template-columns: 1fr;
+    }
+
+    /* Teacher: students/calendar */
+    .students-page,
+    .calendar-page {
+        width: 100%;
+        max-width: 100%;
+        gap: 10px;
+    }
+
+    .students-grid-top,
+    .students-grid-bottom,
+    .students-kpi-grid,
+    .students-toolbar .students-filter-grid,
+    .calendar-kpi-grid,
+    .calendar-event-details-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .students-pagination {
+        flex-wrap: wrap;
+    }
+
+    .students-pagination .btn,
+    .students-pagination button {
+        width: 100%;
+    }
+
+    .calendar-nav {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .calendar-nav h2 {
+        min-width: 0;
+        width: 100%;
+        text-align: left;
+        margin-top: 4px;
+    }
+
+    .calendar-filters {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .calendar-filters .filter-group,
+    .calendar-filters .filter-select,
+    .calendar-filters input,
+    .calendar-filters select {
+        width: 100%;
+    }
+
+    /* Notifications panel on mobile */
+    .notifications-dropdown {
+        width: auto !important;
+    }
+}
+
+@media (max-width: 430px) {
+    .dashboard-header {
+        padding: 8px 10px;
+    }
+
+    .header-logo span {
+        font-size: 0.88rem;
+    }
+
+    .header-actions {
+        gap: 4px;
+    }
+
+    .icon-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .reports-grid-kpi,
+    .reports-risk-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .students-chart-wrap {
+        height: 220px;
+    }
+}
+
+/* ==============================================
    My Class (Dashboard Page)
    ============================================== */
 
