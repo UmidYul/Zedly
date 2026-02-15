@@ -380,8 +380,10 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            ${commonFieldsHtml}
-                            ${editorBodyHtml}
+                            ${question.question_type === 'fillblanks'
+                                ? `${editorBodyHtml}${commonFieldsHtml}`
+                                : `${commonFieldsHtml}${editorBodyHtml}`
+                            }
                         </div>
                         <div class="modal-footer">
                             <button class="btn btn-outline" onclick="TestEditor.closeQuestionEditor()">Cancel</button>
