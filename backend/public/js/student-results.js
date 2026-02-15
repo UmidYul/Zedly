@@ -33,6 +33,17 @@
             if (refresh) {
                 refresh.addEventListener('click', () => this.loadResults());
             }
+
+            const table = document.getElementById('studentResultsTable');
+            if (table) {
+                table.addEventListener('click', (event) => {
+                    const button = event.target.closest('.js-view-attempt');
+                    if (!button) return;
+                    const attemptId = button.dataset.attemptId;
+                    if (!attemptId) return;
+                    this.viewAttempt(attemptId);
+                });
+            }
         },
 
         loadResults: async function () {
@@ -166,27 +177,32 @@
                 const passed = this.isPassed(result);
                 const statusClass = passed ? 'status-active' : 'status-warning';
                 const statusText = passed ? 'Passed' : 'Failed';
+                const attemptId = String(result.attempt_id || '');
+                const testTitle = this.escapeHtml(result.test_title || '-');
+                const className = this.escapeHtml(result.class_name || '-');
+                const subjectName = this.escapeHtml(result.subject_name || '-');
+                const subjectColor = this.escapeHtml(result.subject_color || '#4A90E2');
 
                 html += `
                     <tr>
                         <td>
-                            <div class="user-name">${result.test_title}</div>
+                            <div class="user-name">${testTitle}</div>
                         </td>
                         <td>
                             ${result.subject_name ? `
-                                <span class="subject-badge" style="background-color: ${result.subject_color}20; color: ${result.subject_color};">
-                                    ${result.subject_name}
+                                <span class="subject-badge" style="background-color: ${subjectColor}20; color: ${subjectColor};">
+                                    ${subjectName}
                                 </span>
                             ` : '-'}
                         </td>
-                        <td>${result.class_name}</td>
+                        <td>${className}</td>
                         <td>${this.formatDate(result.submitted_at)}</td>
                         <td>${result.score} / ${result.max_score}</td>
                         <td>
                             <span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="StudentResults.viewAttempt(${result.attempt_id})" title="View Details">
+                            <button class="btn-icon js-view-attempt" data-attempt-id="${this.escapeHtml(attemptId)}" title="View Details">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
@@ -227,6 +243,15 @@
             const hours = String(date.getHours()).padStart(2, '0');
             const minutes = String(date.getMinutes()).padStart(2, '0');
             return `${day}.${month}.${year} ${hours}:${minutes}`;
+        },
+
+        escapeHtml: function (value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
     };
 })();
