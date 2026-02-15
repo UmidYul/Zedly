@@ -193,7 +193,6 @@
                                 </th>
                                 <th>Code</th>
                                 <th>Subject Name</th>
-                                <th>Description</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -204,7 +203,6 @@
             subjects.forEach(subject => {
                 const statusClass = subject.is_active ? 'status-active' : 'status-inactive';
                 const statusText = subject.is_active ? 'Active' : 'Inactive';
-                const description = subject.description || '<span class="text-secondary">No description</span>';
                 const safeName = (subject.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 const isSelected = this.selectedIds.has(subject.id);
 
@@ -227,7 +225,6 @@
                         <td>
                             <div class="user-name">${subject.name}</div>
                         </td>
-                        <td>${description}</td>
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>
                             <div class="action-buttons">
@@ -485,17 +482,6 @@
                                     </div>
                                 </div>
 
-
-                                <div class="form-group">
-                                    <label class="form-label">Description</label>
-                                    <textarea
-                                        class="form-textarea"
-                                        name="description"
-                                        placeholder="Brief description of the subject"
-                                        rows="3"
-                                    >${subject?.description || ''}</textarea>
-                                </div>
-
                                 ${isEdit ? `
                                 <div class="form-group">
                                     <div class="form-check">
@@ -571,8 +557,7 @@
             const formData = new FormData(form);
             const data = {
                 name: formData.get('name').trim(),
-                code: formData.get('code').trim().toUpperCase(),
-                description: formData.get('description')?.trim() || null
+                code: formData.get('code').trim().toUpperCase()
             };
 
             if (subjectId) {
