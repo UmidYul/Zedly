@@ -297,6 +297,13 @@ if (require.main === module) {
     } catch (jobError) {
         console.error('Failed to start deadline reminder job:', jobError.message);
     }
+
+    try {
+        const { startNotificationDigestJob } = require('./jobs/notificationDigest');
+        startNotificationDigestJob();
+    } catch (jobError) {
+        console.error('Failed to start notification digest job:', jobError.message);
+    }
 }
 
 module.exports = app;

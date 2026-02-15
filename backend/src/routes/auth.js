@@ -39,7 +39,9 @@ function normalizeNotificationPreferences(prefs) {
             assignment_deadline: true,
             password_reset: true,
             profile_updates: true,
-            system_updates: false
+            system_updates: false,
+            welcome: true,
+            digest_summary: true
         },
         frequency: 'instant'
     };

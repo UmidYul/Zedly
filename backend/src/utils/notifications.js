@@ -390,47 +390,51 @@ function parseUserSettings(settings) {
 function getDefaultNotificationPreferencesByRole(role) {
     const defaults = {
         student: {
-            channels: { email: true, telegram: true },
+            channels: { in_app: true, email: true, telegram: true },
             events: {
                 new_test: true,
                 assignment_deadline: true,
                 password_reset: true,
                 profile_updates: true,
                 system_updates: false,
-                welcome: true
+                welcome: true,
+                digest_summary: true
             }
         },
         teacher: {
-            channels: { email: true, telegram: true },
+            channels: { in_app: true, email: true, telegram: true },
             events: {
                 new_test: false,
                 assignment_deadline: true,
                 password_reset: true,
                 profile_updates: true,
                 system_updates: true,
-                welcome: true
+                welcome: true,
+                digest_summary: true
             }
         },
         school_admin: {
-            channels: { email: true, telegram: true },
+            channels: { in_app: true, email: true, telegram: true },
             events: {
                 new_test: false,
                 assignment_deadline: true,
                 password_reset: true,
                 profile_updates: true,
                 system_updates: true,
-                welcome: true
+                welcome: true,
+                digest_summary: true
             }
         },
         superadmin: {
-            channels: { email: true, telegram: true },
+            channels: { in_app: true, email: true, telegram: true },
             events: {
                 new_test: false,
                 assignment_deadline: true,
                 password_reset: true,
                 profile_updates: true,
                 system_updates: true,
-                welcome: true
+                welcome: true,
+                digest_summary: true
             }
         }
     };
@@ -475,6 +479,131 @@ function isEventEnabledForChannel(user, channel, eventKey) {
 
 function isTelegramEventEnabled(user, eventKey) {
     return isEventEnabledForChannel(user, 'telegram', eventKey);
+}
+
+async function sendInAppNotification(userId, payload = {}) {
+    if (!userId) return false;
+    const action = String(payload.action || 'notification').slice(0, 64);
+    const entityType = String(payload.entityType || 'notification').slice(0, 64);
+    const entityId = payload.entityId || null;
+    const details = payload.details && typeof payload.details === 'object'
+        ? payload.details
+        : {};
+
+    await query(
+        `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [userId, action, entityType, entityId, details]
+    );
+    return true;
+}
+
+async function sendWithFallback({
+    user,
+    eventKey,
+    emailPayload,
+    telegramPayload,
+    inAppPayload,
+    metadata
+}) {
+    const result = {
+        delivered: false,
+        channel: null,
+        email: false,
+        telegram: false,
+        in_app: false
+    };
+
+    const mergedMeta = metadata && typeof metadata === 'object' ? metadata : {};
+
+    if (
+        user?.telegram_id
+        && telegramPayload?.message
+        && isEventEnabledForChannel(user, 'telegram', eventKey)
+    ) {
+        const ok = await sendTelegram(user.telegram_id, telegramPayload.message, telegramPayload.options || {});
+        result.telegram = ok;
+
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'telegram',
+            eventKey,
+            status: ok ? 'sent' : 'failed',
+            recipient: String(user.telegram_id),
+            metadata: { scope: 'user', fallback_step: 1, ...mergedMeta }
+        });
+
+        if (ok) {
+            result.delivered = true;
+            result.channel = 'telegram';
+            return result;
+        }
+    }
+
+    if (
+        user?.email
+        && emailPayload?.subject
+        && isEventEnabledForChannel(user, 'email', eventKey)
+    ) {
+        const ok = await sendEmail({
+            to: user.email,
+            subject: emailPayload.subject,
+            text: emailPayload.text,
+            html: emailPayload.html
+        });
+        result.email = ok;
+
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'email',
+            eventKey,
+            status: ok ? 'sent' : 'failed',
+            recipient: user.email,
+            subject: emailPayload.subject,
+            metadata: { fallback_step: 2, ...mergedMeta }
+        });
+
+        if (ok) {
+            result.delivered = true;
+            result.channel = 'email';
+            return result;
+        }
+    }
+
+    if (isEventEnabledForChannel(user, 'in_app', eventKey)) {
+        try {
+            const ok = await sendInAppNotification(user.id, inAppPayload || {});
+            result.in_app = ok;
+            await logNotificationAttempt({
+                userId: user.id,
+                channel: 'in_app',
+                eventKey,
+                status: ok ? 'sent' : 'failed',
+                recipient: String(user.id),
+                subject: inAppPayload?.details?.title || null,
+                metadata: { fallback_step: 3, ...mergedMeta }
+            });
+
+            if (ok) {
+                result.delivered = true;
+                result.channel = 'in_app';
+                return result;
+            }
+        } catch (error) {
+            await logNotificationAttempt({
+                userId: user.id,
+                channel: 'in_app',
+                eventKey,
+                status: 'failed',
+                recipient: String(user.id),
+                subject: inAppPayload?.details?.title || null,
+                errorMessage: error.message || 'Failed to write in-app notification',
+                metadata: { fallback_step: 3, ...mergedMeta }
+            });
+        }
+    }
+
+    return result;
 }
 
 /**
@@ -588,74 +717,69 @@ async function notifyNewTest(user, test, language = 'ru') {
     };
 
     const msg = messages[language] || messages.ru;
-    const results = { email: false, telegram: false };
+    const results = { email: false, telegram: false, in_app: false, delivered: false };
     const testLink = buildNewTestLink(test);
+    const openButtonText = language === 'uz' ? 'Testni ochish' : 'Open test';
+    const emailHtml = buildModernEmailTemplate({
+        title: msg.subject,
+        eyebrow: language === 'uz' ? 'Yangi test' : 'New test',
+        bodyHtml: plainTextToEmailHtml(msg.text),
+        ctaText: openButtonText,
+        ctaUrl: `${getAppUrl()}/take-test.html?id=${test.id}`,
+        footerNote: language === 'uz'
+            ? "Ushbu xabar avtomatik yuborildi."
+            : 'This is an automated message.'
+    });
 
-    // Send email
-    if (user.email && isEventEnabledForChannel(user, 'email', 'new_test')) {
-        const emailHtml = buildModernEmailTemplate({
-            title: msg.subject,
-            eyebrow: language === 'uz' ? 'Yangi test' : 'Новый тест',
-            bodyHtml: plainTextToEmailHtml(msg.text),
-            ctaText: language === 'uz' ? 'Testni ochish' : 'Открыть тест',
-            ctaUrl: `${getAppUrl()}/take-test.html?id=${test.id}`,
-            footerNote: language === 'uz'
-                ? "Ushbu xabar avtomatik yuborildi."
-                : 'Это автоматическое сообщение.'
-        });
-
-        results.email = await sendEmail({
-            to: user.email,
+    const fallbackResult = await sendWithFallback({
+        user,
+        eventKey: 'new_test',
+        emailPayload: {
             subject: msg.subject,
             text: msg.text,
             html: emailHtml
-        });
-
-        await logNotificationAttempt({
-            userId: user.id,
-            channel: 'email',
-            eventKey: 'new_test',
-            status: results.email ? 'sent' : 'failed',
-            recipient: user.email,
-            subject: msg.subject,
-            metadata: { test_id: test.id || null }
-        });
-    }
-
-    // Send Telegram (role-aware preferences)
-    const userChatId = isEventEnabledForChannel(user, 'telegram', 'new_test') ? user.telegram_id : null;
-    const openButtonText = language === 'uz' ? 'Testni ochish' : 'Открыть тест';
-    const telegramResults = await sendTelegramToTargets(
-        userChatId,
-        msg.telegram,
-        `🆕 <b>Новый тест назначен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n📚 ${test.title}`,
-        {
-            userOptions: {
+        },
+        telegramPayload: {
+            message: msg.telegram,
+            options: {
                 reply_markup: {
                     inline_keyboard: [[
                         { text: openButtonText, url: testLink }
                     ]]
                 }
             }
-        }
-    );
-    results.telegram = telegramResults.user || telegramResults.global;
-    if (userChatId) {
-        await logNotificationAttempt({
-            userId: user.id,
-            channel: 'telegram',
-            eventKey: 'new_test',
-            status: telegramResults.user ? 'sent' : 'failed',
-            recipient: userChatId,
-            metadata: { scope: 'user', test_id: test.id || null }
-        });
-    }
+        },
+        inAppPayload: {
+            action: 'notification_new_test',
+            entityType: 'test',
+            entityId: test.id || null,
+            details: {
+                event_key: 'new_test',
+                title: msg.subject,
+                message: msg.text,
+                test_id: test.id || null
+            }
+        },
+        metadata: { test_id: test.id || null }
+    });
+
+    results.email = fallbackResult.email;
+    results.telegram = fallbackResult.telegram;
+    results.in_app = fallbackResult.in_app;
+    results.delivered = fallbackResult.delivered;
+
     if (process.env.TELEGRAM_CHAT_ID) {
+        const globalOk = await sendTelegram(
+            process.env.TELEGRAM_CHAT_ID,
+            `<b>New test assigned</b>\n\nUser: ${user.first_name} ${user.last_name || ''}\nTest: ${test.title}`
+        );
+        results.telegram = results.telegram || globalOk;
+
         await logNotificationAttempt({
             userId: user.id,
             channel: 'telegram',
             eventKey: 'new_test',
-            status: telegramResults.global ? 'sent' : 'failed',
+            status: globalOk ? 'sent' : 'failed',
             recipient: process.env.TELEGRAM_CHAT_ID,
             metadata: { scope: 'global', test_id: test.id || null }
         });
@@ -723,62 +847,58 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
     };
 
     const msg = messages[language] || messages.ru;
-    const results = { email: false, telegram: false };
+    const results = { email: false, telegram: false, in_app: false, delivered: false };
+    const emailHtml = buildModernEmailTemplate({
+        title: msg.subject,
+        eyebrow: language === 'uz' ? 'Xavfsizlik' : 'Security',
+        bodyHtml: plainTextToEmailHtml(msg.text),
+        ctaText: language === 'uz' ? 'Tizimga kirish' : 'Sign in',
+        ctaUrl: `${getAppUrl()}/login.html`,
+        footerNote: language === 'uz'
+            ? "Parolni iloji boricha tezroq o'zgartiring."
+            : 'Please change your password as soon as possible.'
+    });
 
-    // Send email
-    if (user.email && isEventEnabledForChannel(user, 'email', 'password_reset')) {
-        const emailHtml = buildModernEmailTemplate({
-            title: msg.subject,
-            eyebrow: language === 'uz' ? 'Xavfsizlik' : 'Безопасность',
-            bodyHtml: plainTextToEmailHtml(msg.text),
-            ctaText: language === 'uz' ? 'Tizimga kirish' : 'Войти в систему',
-            ctaUrl: `${getAppUrl()}/login.html`,
-            footerNote: language === 'uz'
-                ? "Parolni iloji boricha tezroq o'zgartiring."
-                : 'Пожалуйста, смените пароль как можно скорее.'
-        });
-
-        results.email = await sendEmail({
-            to: user.email,
+    const fallbackResult = await sendWithFallback({
+        user,
+        eventKey: 'password_reset',
+        emailPayload: {
             subject: msg.subject,
             text: msg.text,
             html: emailHtml
-        });
+        },
+        telegramPayload: {
+            message: msg.telegram
+        },
+        inAppPayload: {
+            action: 'notification_password_reset',
+            entityType: 'security',
+            entityId: user.id || null,
+            details: {
+                event_key: 'password_reset',
+                title: msg.subject,
+                message: msg.text
+            }
+        }
+    });
 
-        await logNotificationAttempt({
-            userId: user.id,
-            channel: 'email',
-            eventKey: 'password_reset',
-            status: results.email ? 'sent' : 'failed',
-            recipient: user.email,
-            subject: msg.subject
-        });
-    }
+    results.email = fallbackResult.email;
+    results.telegram = fallbackResult.telegram;
+    results.in_app = fallbackResult.in_app;
+    results.delivered = fallbackResult.delivered;
 
-    // Send Telegram (role-aware preferences)
-    const userChatId = isEventEnabledForChannel(user, 'telegram', 'password_reset') ? user.telegram_id : null;
-    const telegramResults = await sendTelegramToTargets(
-        userChatId,
-        msg.telegram,
-        `🔐 <b>Пароль сброшен</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n🆔 ${user.username || ''}`
-    );
-    results.telegram = telegramResults.user || telegramResults.global;
-    if (userChatId) {
-        await logNotificationAttempt({
-            userId: user.id,
-            channel: 'telegram',
-            eventKey: 'password_reset',
-            status: telegramResults.user ? 'sent' : 'failed',
-            recipient: userChatId,
-            metadata: { scope: 'user' }
-        });
-    }
     if (process.env.TELEGRAM_CHAT_ID) {
+        const globalOk = await sendTelegram(
+            process.env.TELEGRAM_CHAT_ID,
+            `<b>Password reset</b>\n\nUser: ${user.first_name} ${user.last_name || ''}\nLogin: ${user.username || ''}`
+        );
+        results.telegram = results.telegram || globalOk;
+
         await logNotificationAttempt({
             userId: user.id,
             channel: 'telegram',
             eventKey: 'password_reset',
-            status: telegramResults.global ? 'sent' : 'failed',
+            status: globalOk ? 'sent' : 'failed',
             recipient: process.env.TELEGRAM_CHAT_ID,
             metadata: { scope: 'global' }
         });
@@ -864,62 +984,58 @@ async function notifyNewUser(user, password, language = 'ru') {
     };
 
     const msg = messages[language] || messages.ru;
-    const results = { email: false, telegram: false };
+    const results = { email: false, telegram: false, in_app: false, delivered: false };
+    const emailHtml = buildModernEmailTemplate({
+        title: msg.subject,
+        eyebrow: 'Welcome',
+        bodyHtml: plainTextToEmailHtml(msg.text),
+        ctaText: language === 'uz' ? 'Tizimga kirish' : 'Sign in',
+        ctaUrl: `${getAppUrl()}/login.html`,
+        footerNote: language === 'uz'
+            ? "Xavfsizlik uchun birinchi kirishda parolni almashtiring."
+            : 'For security, change your password on first login.'
+    });
 
-    // Send email
-    if (user.email && isEventEnabledForChannel(user, 'email', 'welcome')) {
-        const emailHtml = buildModernEmailTemplate({
-            title: msg.subject,
-            eyebrow: 'Welcome',
-            bodyHtml: plainTextToEmailHtml(msg.text),
-            ctaText: language === 'uz' ? 'Tizimga kirish' : 'Войти в систему',
-            ctaUrl: `${getAppUrl()}/login.html`,
-            footerNote: language === 'uz'
-                ? "Xavfsizlik uchun birinchi kirishda parolni almashtiring."
-                : 'Для безопасности смените пароль при первом входе.'
-        });
-
-        results.email = await sendEmail({
-            to: user.email,
+    const fallbackResult = await sendWithFallback({
+        user,
+        eventKey: 'welcome',
+        emailPayload: {
             subject: msg.subject,
             text: msg.text,
             html: emailHtml
-        });
+        },
+        telegramPayload: {
+            message: msg.telegram
+        },
+        inAppPayload: {
+            action: 'notification_welcome',
+            entityType: 'user',
+            entityId: user.id || null,
+            details: {
+                event_key: 'welcome',
+                title: msg.subject,
+                message: msg.text
+            }
+        }
+    });
 
-        await logNotificationAttempt({
-            userId: user.id,
-            channel: 'email',
-            eventKey: 'welcome',
-            status: results.email ? 'sent' : 'failed',
-            recipient: user.email,
-            subject: msg.subject
-        });
-    }
+    results.email = fallbackResult.email;
+    results.telegram = fallbackResult.telegram;
+    results.in_app = fallbackResult.in_app;
+    results.delivered = fallbackResult.delivered;
 
-    // Send Telegram (role-aware preferences)
-    const userChatId = isEventEnabledForChannel(user, 'telegram', 'welcome') ? user.telegram_id : null;
-    const telegramResults = await sendTelegramToTargets(
-        userChatId,
-        msg.telegram,
-        `👋 <b>Новый пользователь</b>\n\n👤 ${user.first_name} ${user.last_name || ''}\n🆔 ${user.username || ''}`
-    );
-    results.telegram = telegramResults.user || telegramResults.global;
-    if (userChatId) {
-        await logNotificationAttempt({
-            userId: user.id,
-            channel: 'telegram',
-            eventKey: 'welcome',
-            status: telegramResults.user ? 'sent' : 'failed',
-            recipient: userChatId,
-            metadata: { scope: 'user' }
-        });
-    }
     if (process.env.TELEGRAM_CHAT_ID) {
+        const globalOk = await sendTelegram(
+            process.env.TELEGRAM_CHAT_ID,
+            `<b>New user created</b>\n\nUser: ${user.first_name} ${user.last_name || ''}\nLogin: ${user.username || ''}`
+        );
+        results.telegram = results.telegram || globalOk;
+
         await logNotificationAttempt({
             userId: user.id,
             channel: 'telegram',
             eventKey: 'welcome',
-            status: telegramResults.global ? 'sent' : 'failed',
+            status: globalOk ? 'sent' : 'failed',
             recipient: process.env.TELEGRAM_CHAT_ID,
             metadata: { scope: 'global' }
         });
@@ -935,6 +1051,7 @@ module.exports = {
     sendTelegram,
     telegramBot,
     sendTelegramToTargets,
+    isEventEnabledForChannel,
     notifySystemChange,
     notifyNewTest,
     notifyPasswordReset,

@@ -13,7 +13,8 @@
     "test:smoke": "NODE_ENV=test jest src/tests/smoke.e2e.test.js --runInBand --forceExit",
     "lint": "eslint src/**/*.js",
     "cron:reports": "node src/jobs/reports.js",
-    "cron:backups": "node src/jobs/backups.js"
+    "cron:backups": "node src/jobs/backups.js",
+    "cron:notifications": "node -e \"require('./src/jobs/notificationDigest').runNotificationDigestOnce().then((s)=>{console.log(s);process.exit(0)}).catch((e)=>{console.error(e);process.exit(1)})\""
   },
   "keywords": [
     "education",

@@ -512,8 +512,8 @@
 
 ### Next tasks in progress
 - [x] Add delivery logging table (`notification_log`) with status/error/retry metadata.
-- [ ] Add digest scheduler for `daily/weekly` frequency.
-- [ ] Add fallback chain by channel (telegram -> email -> in-app).
+- [x] Add digest scheduler for `daily/weekly` frequency.
+- [x] Add fallback chain by channel (telegram -> email -> in-app).
 - [ ] Add role-specific event matrix and admin UI for defaults.
 ### 2026-02-15 Worklog (in this session)
 - [x] Unified channel/event preference resolver added to notifications core.
@@ -526,3 +526,14 @@
 - [x] Added Reports diagnostics UI block for notification delivery logs:
   - filters: channel, event, status, from, to, page size
   - compact pagination and status badges
+- [x] Added notification digest cron job: `backend/src/jobs/notificationDigest.js`
+  - respects `settings.profile.notification_preferences.frequency` (`daily|weekly`)
+  - sends digest via enabled channels (email/telegram)
+  - writes delivery attempts to `notification_log` (`digest_daily` / `digest_weekly`)
+  - dedupes by period via `audit_logs` (`notification_digest_daily` / `notification_digest_weekly`)
+- [x] Connected digest job startup in `backend/src/server.js`.
+- [x] Added digest env config to `backend/.env.example`.
+- [x] Added fallback delivery chain in `backend/src/utils/notifications.js`:
+  - primary Telegram (if enabled) -> fallback Email -> fallback In-App (`audit_logs`)
+  - applied to `notifyNewTest`, `notifyPasswordReset`, `notifyNewUser`
+  - every fallback step logged to `notification_log` with `fallback_step` metadata
