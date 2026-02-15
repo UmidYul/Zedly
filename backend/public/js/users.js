@@ -256,7 +256,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive mobile-stack-table">
                     <table class="data-table">
                         <thead>
                             <tr>
