@@ -586,8 +586,8 @@
             return `
                 <div class="form-group">
                     <label class="form-label">Text with Blanks <span class="required">*</span></label>
-                    <p class="form-hint">Use double underscores __ to mark blanks. Example: "The __ is the largest planet"</p>
-                    <textarea id="blanksText" class="form-textarea" rows="4" placeholder="Enter text with __ for blanks">${question.question_text || ''}</textarea>
+                    <p class="form-hint">Используйте тройное подчеркивание ___ для пропусков. Пример: "___ — самая большая планета"</p>
+                    <textarea id="blanksText" class="form-textarea" rows="4" placeholder="Введите текст с ___ для пропусков">${question.question_text || ''}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Correct Answers for Blanks <span class="required">*</span></label>
@@ -801,7 +801,7 @@
 
         detectBlanks: function () {
             const text = document.getElementById('blanksText').value;
-            const blanksCount = (text.match(/__/g) || []).length;
+            const blanksCount = (text.match(/___/g) || []).length;
             const container = document.getElementById('blanksAnswers');
 
             let html = '';
