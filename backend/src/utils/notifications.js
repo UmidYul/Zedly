@@ -171,17 +171,19 @@ async function sendVerificationCodeEmail({ to, code, firstName, expiresMinutes =
     const safeFirstName = firstName ? `, ${String(firstName).trim()}` : '';
     const subject = 'ZEDLY: Email verification code';
     const text = `Hello${safeFirstName}. Your verification code is: ${code}. It expires in ${expiresMinutes} minutes.`;
-    const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #111827;">
-            <h2 style="margin: 0 0 12px; color: #2563eb;">Email Verification</h2>
-            <p style="margin: 0 0 10px;">Hello${safeFirstName}.</p>
-            <p style="margin: 0 0 14px;">Use this code to confirm your email address:</p>
-            <div style="display: inline-block; padding: 10px 16px; border-radius: 8px; background: #eff6ff; border: 1px solid #bfdbfe; font-size: 24px; font-weight: 700; letter-spacing: 1px;">
-                ${code}
+    const html = buildModernEmailTemplate({
+        title: 'Email Verification',
+        eyebrow: 'Security',
+        bodyHtml: `
+            <p style="margin: 0 0 12px; color: #334155; line-height: 1.7;">Hello${escapeHtmlEmail(safeFirstName)}.</p>
+            <p style="margin: 0 0 14px; color: #334155; line-height: 1.7;">Use this code to confirm your email address:</p>
+            <div style="display:inline-block;padding:12px 18px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;font-size:28px;font-weight:800;letter-spacing:4px;color:#1e3a8a;">
+                ${escapeHtmlEmail(code)}
             </div>
-            <p style="margin: 14px 0 0; color: #4b5563;">Code expires in ${expiresMinutes} minutes.</p>
-        </div>
-    `;
+            <p style="margin: 14px 0 0; color: #64748b;">Code expires in ${escapeHtmlEmail(expiresMinutes)} minutes.</p>
+        `,
+        footerNote: 'If you did not request this code, you can ignore this email.'
+    });
 
     return sendEmail({ to, subject, text, html });
 }
@@ -259,6 +261,50 @@ function escapeHtml(value) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
+}
+
+function escapeHtmlEmail(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function plainTextToEmailHtml(text) {
+    const safe = escapeHtmlEmail(text || '');
+    return safe
+        .split('\n\n')
+        .map((chunk) => `<p style="margin: 0 0 12px; color: #334155; line-height: 1.7;">${chunk.replace(/\n/g, '<br>')}</p>`)
+        .join('');
+}
+
+function buildModernEmailTemplate({ title, eyebrow = 'ZEDLY', bodyHtml, ctaText, ctaUrl, footerNote }) {
+    const safeTitle = escapeHtmlEmail(title || 'Notification');
+    const safeEyebrow = escapeHtmlEmail(eyebrow || 'ZEDLY');
+    const safeFooter = escapeHtmlEmail(footerNote || 'This is an automated message from ZEDLY.');
+    const button = ctaText && ctaUrl
+        ? `<div style="margin-top: 18px;"><a href="${escapeHtmlEmail(ctaUrl)}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;">${escapeHtmlEmail(ctaText)}</a></div>`
+        : '';
+
+    return `
+        <div style="margin:0;padding:28px 12px;background:#f1f5f9;">
+            <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
+                <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 100%);">
+                    <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#bfdbfe;margin-bottom:8px;">${safeEyebrow}</div>
+                    <div style="font-size:24px;line-height:1.25;font-weight:800;color:#ffffff;">${safeTitle}</div>
+                </div>
+                <div style="padding:24px;">
+                    ${bodyHtml}
+                    ${button}
+                </div>
+                <div style="padding:14px 24px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;">
+                    ${safeFooter}
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function parseUserSettings(settings) {
@@ -424,11 +470,22 @@ async function notifyNewTest(user, test, language = 'ru') {
 
     // Send email
     if (user.email) {
+        const emailHtml = buildModernEmailTemplate({
+            title: msg.subject,
+            eyebrow: language === 'uz' ? 'Yangi test' : 'Новый тест',
+            bodyHtml: plainTextToEmailHtml(msg.text),
+            ctaText: language === 'uz' ? 'Testni ochish' : 'Открыть тест',
+            ctaUrl: `${getAppUrl()}/take-test.html?id=${test.id}`,
+            footerNote: language === 'uz'
+                ? "Ushbu xabar avtomatik yuborildi."
+                : 'Это автоматическое сообщение.'
+        });
+
         results.email = await sendEmail({
             to: user.email,
             subject: msg.subject,
             text: msg.text,
-            html: msg.html
+            html: emailHtml
         });
     }
 
@@ -517,11 +574,22 @@ async function notifyPasswordReset(user, newPassword, language = 'ru') {
 
     // Send email
     if (user.email) {
+        const emailHtml = buildModernEmailTemplate({
+            title: msg.subject,
+            eyebrow: language === 'uz' ? 'Xavfsizlik' : 'Безопасность',
+            bodyHtml: plainTextToEmailHtml(msg.text),
+            ctaText: language === 'uz' ? 'Tizimga kirish' : 'Войти в систему',
+            ctaUrl: `${getAppUrl()}/login.html`,
+            footerNote: language === 'uz'
+                ? "Parolni iloji boricha tezroq o'zgartiring."
+                : 'Пожалуйста, смените пароль как можно скорее.'
+        });
+
         results.email = await sendEmail({
             to: user.email,
             subject: msg.subject,
             text: msg.text,
-            html: msg.html
+            html: emailHtml
         });
     }
 
@@ -618,11 +686,22 @@ async function notifyNewUser(user, password, language = 'ru') {
 
     // Send email
     if (user.email) {
+        const emailHtml = buildModernEmailTemplate({
+            title: msg.subject,
+            eyebrow: 'Welcome',
+            bodyHtml: plainTextToEmailHtml(msg.text),
+            ctaText: language === 'uz' ? 'Tizimga kirish' : 'Войти в систему',
+            ctaUrl: `${getAppUrl()}/login.html`,
+            footerNote: language === 'uz'
+                ? "Xavfsizlik uchun birinchi kirishda parolni almashtiring."
+                : 'Для безопасности смените пароль при первом входе.'
+        });
+
         results.email = await sendEmail({
             to: user.email,
             subject: msg.subject,
             text: msg.text,
-            html: msg.html
+            html: emailHtml
         });
     }
 
