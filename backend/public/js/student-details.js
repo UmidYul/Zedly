@@ -7,6 +7,7 @@
         currentUser: null,
         studentId: null,
         sourceClassId: null,
+        teacherHomeroomClassId: null,
         report: null,
         subjectSearch: '',
         subjectSort: 'avg_desc',
@@ -135,6 +136,15 @@
         }
 
         return response.json();
+    }
+
+    async function fetchTeacherHomeroomClassId() {
+        const response = await fetch(`${API_URL}/teacher/homeroom-class`, {
+            headers: { Authorization: `Bearer ${state.token}` }
+        });
+        if (!response.ok) return null;
+        const data = await response.json().catch(() => ({}));
+        return data?.class?.id ? String(data.class.id) : null;
     }
 
     function renderHero() {
@@ -330,6 +340,13 @@
         if (!['school_admin', 'teacher'].includes(role)) {
             return showAlert('Only school admin or teacher can reset student password.', 'Access');
         }
+        if (role === 'teacher') {
+            const sourceClassId = state.sourceClassId ? String(state.sourceClassId) : '';
+            const homeroomClassId = state.teacherHomeroomClassId ? String(state.teacherHomeroomClassId) : '';
+            if (!sourceClassId || !homeroomClassId || sourceClassId !== homeroomClassId) {
+                return showAlert('You can reset password only for students from your homeroom class.', 'Access');
+            }
+        }
 
         const studentName = document.getElementById('studentFullName').textContent || 'Student';
         const approved = await showConfirm(`Reset password for ${studentName}?`, 'Confirm');
@@ -434,9 +451,13 @@
             return;
         }
 
-        if (state.currentUser.role === 'teacher' && !state.sourceClassId) {
-            btn.style.display = 'none';
-            return;
+        if (state.currentUser.role === 'teacher') {
+            const sourceClassId = state.sourceClassId ? String(state.sourceClassId) : '';
+            const homeroomClassId = state.teacherHomeroomClassId ? String(state.teacherHomeroomClassId) : '';
+            if (!sourceClassId || !homeroomClassId || sourceClassId !== homeroomClassId) {
+                btn.style.display = 'none';
+                return;
+            }
         }
     }
 
@@ -451,6 +472,9 @@
             state.currentUser = await fetchCurrentUser(state.token);
             state.studentId = resolveStudentId(state.currentUser);
             state.sourceClassId = resolveSourceClassId();
+            if (state.currentUser.role === 'teacher') {
+                state.teacherHomeroomClassId = await fetchTeacherHomeroomClassId();
+            }
             if (!state.studentId) {
                 throw new Error('Student id is required in URL (?id=...) for this role');
             }
