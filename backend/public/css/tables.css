@@ -446,6 +446,62 @@
 }
 
 @media (max-width: 480px) {
+    .mobile-stack-table .data-table {
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        background: transparent;
+    }
+
+    .mobile-stack-table .data-table thead {
+        display: none;
+    }
+
+    .mobile-stack-table .data-table tbody,
+    .mobile-stack-table .data-table tr,
+    .mobile-stack-table .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .mobile-stack-table .data-table tr {
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        background: var(--surface-card);
+        overflow: hidden;
+    }
+
+    .mobile-stack-table .data-table td {
+        border: none;
+        border-bottom: 1px solid var(--border-light);
+        padding: 9px 10px;
+        white-space: normal;
+    }
+
+    .mobile-stack-table .data-table td:last-child {
+        border-bottom: none;
+    }
+
+    .mobile-stack-table .data-table td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .mobile-stack-table .data-table td.bulk-checkbox-cell::before {
+        content: '';
+        margin: 0;
+    }
+
+    .mobile-stack-table .data-table .action-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
     .data-table {
         font-size: 0.8125rem;
     }

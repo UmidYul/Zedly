@@ -256,7 +256,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive mobile-stack-table">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -292,7 +292,7 @@
 
                 html += `
                     <tr data-user-id="${user.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
-                        <td class="bulk-checkbox-cell">
+                        <td class="bulk-checkbox-cell" data-label="">
                             <input
                                 type="checkbox"
                                 class="bulk-row-checkbox"
@@ -301,18 +301,18 @@
                                 aria-label="${this.t('users.selectUserAria', undefined, { name: fullName || this.t('reports.user') })}"
                             >
                         </td>
-                        <td>
+                        <td data-label="${this.t('users.fullNameHeader')}">
                             <div class="user-name">${fullName}</div>
                         </td>
-                        <td>${user.username}</td>
-                        <td><span class="role-badge role-${user.role}">${roleLabel}</span></td>
-                        <td>
+                        <td data-label="${this.t('users.username')}">${user.username}</td>
+                        <td data-label="${this.t('common.role')}"><span class="role-badge role-${user.role}">${roleLabel}</span></td>
+                        <td data-label="${this.t('users.contact')}">
                             ${user.email ? `<div>${user.email}</div>` : ''}
                             ${formattedPhone ? `<div class="text-secondary">${formattedPhone}</div>` : ''}
                         </td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td class="text-secondary">${lastLogin}</td>
-                        <td>
+                        <td data-label="${this.t('common.status')}"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td class="text-secondary" data-label="${this.t('users.lastLogin')}">${lastLogin}</td>
+                        <td data-label="${this.t('common.actions')}">
                             <div class="action-buttons">
                                 <button class="btn-icon" onclick="UsersManager.resetPassword('${user.id}', '${user.first_name} ${user.last_name}')" title="${this.t('users.resetPasswordTitle')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

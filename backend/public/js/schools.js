@@ -132,7 +132,7 @@
             }
 
             let html = `
-                <div class="table-responsive">
+                <div class="table-responsive mobile-stack-table">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -156,18 +156,18 @@
 
                 html += `
                     <tr>
-                        <td>
+                        <td data-label="School Name">
                             <div class="school-name">${school.name}</div>
                         </td>
-                        <td>${school.address || '-'}</td>
-                        <td>
+                        <td data-label="Address">${school.address || '-'}</td>
+                        <td data-label="Contact">
                             ${school.phone ? `<div>${school.phone}</div>` : ''}
                             ${school.email ? `<div class="text-secondary">${school.email}</div>` : ''}
                         </td>
-                        <td>${school.user_count || 0}</td>
-                        <td>${school.class_count || 0}</td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td>
+                        <td data-label="Users">${school.user_count || 0}</td>
+                        <td data-label="Classes">${school.class_count || 0}</td>
+                        <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td data-label="Actions">
                             <div class="action-buttons">
                                 <button class="btn-icon" onclick="SchoolsManager.manageAdmins('${school.id}', '${escapedName}')" title="Manage Admins">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

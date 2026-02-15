@@ -345,6 +345,22 @@
 
         const labels = values.map((v) => v.label);
         const data = values.map((v) => v.value);
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const chartWrap = canvas.parentElement;
+        if (chartWrap && isMobile) {
+            chartWrap.style.overflowX = 'auto';
+            chartWrap.style.overflowY = 'hidden';
+            chartWrap.style.webkitOverflowScrolling = 'touch';
+            canvas.style.minWidth = `${Math.max(360, labels.length * 70)}px`;
+            canvas.style.height = '280px';
+        } else {
+            canvas.style.minWidth = '';
+            canvas.style.height = '';
+            if (chartWrap) {
+                chartWrap.style.overflowX = '';
+                chartWrap.style.overflowY = '';
+            }
+        }
 
         performanceChart = new Chart(canvas, {
             type: 'line',
@@ -362,9 +378,16 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: !isMobile,
                 plugins: { legend: { display: false } },
                 scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: isMobile ? 70 : 0,
+                            minRotation: isMobile ? 45 : 0
+                        }
+                    },
                     y: { beginAtZero: true, max: 100 }
                 }
             }

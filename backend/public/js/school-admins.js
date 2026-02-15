@@ -141,7 +141,7 @@ const SchoolAdminsManager = (function () {
         }
 
         let html = `
-            <div class="table-container">
+            <div class="table-container mobile-stack-table">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -169,14 +169,14 @@ const SchoolAdminsManager = (function () {
 
             html += `
                 <tr>
-                    <td>${fullName}</td>
-                    <td>${admin.username}</td>
-                    <td>${admin.school_name || 'N/A'}</td>
-                    <td>${admin.email || 'N/A'}</td>
-                    <td>${admin.phone || 'N/A'}</td>
-                    <td>${statusBadge}</td>
-                    <td>${lastLogin}</td>
-                    <td>
+                    <td data-label="Name">${fullName}</td>
+                    <td data-label="Username">${admin.username}</td>
+                    <td data-label="School">${admin.school_name || 'N/A'}</td>
+                    <td data-label="Email">${admin.email || 'N/A'}</td>
+                    <td data-label="Phone">${admin.phone || 'N/A'}</td>
+                    <td data-label="Status">${statusBadge}</td>
+                    <td data-label="Last Login">${lastLogin}</td>
+                    <td data-label="Actions">
                         <div class="action-buttons">
                             <button class="btn-icon" onclick="SchoolAdminsManager.editAdmin('${admin.id}', '${admin.school_id}')" title="Edit">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

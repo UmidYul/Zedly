@@ -240,7 +240,7 @@
                     </div>
                 </div>
                 ` : ''}
-                <div class="table-responsive">
+                <div class="table-responsive mobile-stack-table">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -276,7 +276,7 @@
                 html += `
                         <tr data-class-id="${cls.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
                             ${canManage ? `
-                            <td class="bulk-checkbox-cell">
+                            <td class="bulk-checkbox-cell" data-label="">
                                 <input
                                     type="checkbox"
                                     class="bulk-row-checkbox"
@@ -286,21 +286,21 @@
                                 >
                             </td>
                             ` : ''}
-                            <td>
+                            <td data-label="Class Name">
                                 <div class="user-name">
                                     <a href="class-details.html?id=${cls.id}" class="class-link">${cls.name}</a>
                                 </div>
                             </td>
-                            <td>${cls.grade_level} класс</td>
-                            <td>${cls.academic_year}</td>
-                            <td>${teacherName}</td>
-                            <td>${cls.student_count || 0} students</td>
+                            <td data-label="Grade Level">${cls.grade_level} класс</td>
+                            <td data-label="Academic Year">${cls.academic_year}</td>
+                            <td data-label="Homeroom Teacher">${teacherName}</td>
+                            <td data-label="Students">${cls.student_count || 0} students</td>
                     `;
 
                 if (this.userRole === 'school_admin') {
                     html += `
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td>
+                        <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td data-label="Actions">
                             <div class="action-buttons">
                                 <button class="btn-icon" onclick="ClassesManager.editClass('${cls.id}')" title="Edit">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -320,7 +320,7 @@
                 } else {
                     // For teachers, show subject count
                     html += `
-                        <td>${cls.subject_count || 0} subjects</td>
+                        <td data-label="Subjects">${cls.subject_count || 0} subjects</td>
                     `;
                 }
 

@@ -2007,6 +2007,15 @@
         display: flex;
         gap: 6px;
         align-items: center;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .header-actions::-webkit-scrollbar {
+        display: none;
     }
 
     .icon-btn {
@@ -2127,13 +2136,80 @@
     }
 
     .lang-switch {
-        display: none;
+        display: inline-flex;
+        gap: 4px;
+        padding: 3px;
+    }
+
+    .lang-switch .lang-btn {
+        min-width: 34px;
+        padding: 5px 6px;
+        font-size: 11px;
     }
 
     .icon-btn .badge {
         top: -2px;
         right: -2px;
         padding: 1px 5px;
+    }
+}
+
+@media (max-width: 768px) {
+    .students-hero-actions,
+    .calendar-hero-actions,
+    .reports-toolbar .toolbar-right {
+        width: 100%;
+    }
+
+    .students-hero-actions .btn,
+    .calendar-hero-actions .btn,
+    .reports-toolbar .toolbar-right .btn {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+
+    .reports-toolbar .toolbar-filters {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .reports-toolbar .filter-select,
+    .reports-toolbar .btn,
+    .reports-toolbar input,
+    .reports-toolbar select {
+        width: 100%;
+    }
+
+    .reports-toolbar .filter-group {
+        min-width: 0;
+    }
+
+    .reports-card,
+    .students-card,
+    .dashboard-section {
+        border-radius: 12px;
+    }
+
+    .reports-page .table-responsive,
+    .settings-role-card .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Calendar stays readable on narrow phones by enabling horizontal scroll */
+    .calendar-layout > .dashboard-section:first-child {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+        min-width: 680px;
+    }
+
+    #comparisonContainer .dashboard-section {
+        overflow-x: auto;
     }
 }
 
