@@ -318,12 +318,15 @@
 
             let editorBodyHtml = '';
 
-            // Common fields for all question types
+            // Common fields for all question types except fill-in-the-blanks
+            const showQuestionTextField = question.question_type !== 'fillblanks';
             const commonFieldsHtml = `
+                ${showQuestionTextField ? `
                 <div class="form-group">
                     <label class="form-label">Question Text <span class="required">*</span></label>
                     <textarea id="questionText" class="form-textarea" rows="3" placeholder="Enter your question" required>${question.question_text || ''}</textarea>
                 </div>
+                ` : ''}
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Marks <span class="required">*</span></label>
@@ -827,7 +830,7 @@
             const mediaUrl = document.getElementById('questionMediaUrl')?.value.trim() || null;
 
             // Validation
-            if (!questionText) {
+            if (questionType !== 'fillblanks' && !questionText) {
                 alert('Please enter question text');
                 return;
             }
@@ -912,8 +915,6 @@
                         alert('Please fill in all blanks and their answers');
                         return;
                     }
-                    // Override questionText with blanksText for fill in blanks
-                    document.getElementById('questionText').value = blanksText;
                     correctAnswer = blankAnswers;
                     break;
 
