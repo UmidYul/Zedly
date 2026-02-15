@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+    <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <title>Student Details - ZEDLY</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/tables.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/student-details.css">
+</head>
+<body>
+    <header class="student-page-header">
+        <div class="student-page-header__inner">
+            <div class="student-page-brand">
+                <h1>ZEDLY</h1>
+            </div>
+            <button class="back-btn" id="backBtn" type="button" aria-label="Back">
+                <span aria-hidden="true">←</span>
+                <span>Back</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="student-main-content">
+        <div class="student-content-wrapper">
+            <section class="student-hero card" id="heroSection">
+                <div class="student-hero__main">
+                    <p class="hero-kicker">Student Profile</p>
+                    <h2 id="studentFullName">Loading...</h2>
+                    <p id="studentMeta">Preparing student report...</p>
+                    <div class="hero-actions">
+                        <button class="btn btn-outline" id="copyEmailBtn" type="button">Copy Email</button>
+                        <button class="btn btn-outline" id="exportJsonBtn" type="button">Export JSON</button>
+                        <button class="btn btn-secondary" id="printBtn" type="button">Print</button>
+                        <button class="btn btn-primary" id="resetPasswordBtn" type="button">Reset Password</button>
+                    </div>
+                </div>
+                <div class="student-hero__side">
+                    <div class="student-avatar" id="studentAvatar">S</div>
+                    <p class="updated-at">Updated: <span id="updatedAt">-</span></p>
+                </div>
+            </section>
+
+            <section class="kpi-grid">
+                <article class="kpi-card">
+                    <p class="kpi-label">Attempts</p>
+                    <p class="kpi-value" id="kpiAttempts">0</p>
+                </article>
+                <article class="kpi-card">
+                    <p class="kpi-label">Average Score</p>
+                    <p class="kpi-value" id="kpiAvgScore">0%</p>
+                </article>
+                <article class="kpi-card">
+                    <p class="kpi-label">Pass Rate</p>
+                    <p class="kpi-value" id="kpiPassRate">0%</p>
+                </article>
+                <article class="kpi-card">
+                    <p class="kpi-label">Class Rank</p>
+                    <p class="kpi-value" id="kpiRank">-</p>
+                </article>
+                <article class="kpi-card">
+                    <p class="kpi-label">Best Score</p>
+                    <p class="kpi-value" id="kpiBest">0%</p>
+                </article>
+                <article class="kpi-card">
+                    <p class="kpi-label">Average Time</p>
+                    <p class="kpi-value" id="kpiAvgTime">0m</p>
+                </article>
+            </section>
+
+            <section class="tabs-card card">
+                <div class="tabs-bar" role="tablist" aria-label="Student report tabs">
+                    <button type="button" class="tab-btn is-active" data-tab="subjects" role="tab" aria-selected="true">Subjects</button>
+                    <button type="button" class="tab-btn" data-tab="progress" role="tab" aria-selected="false">Progress</button>
+                    <button type="button" class="tab-btn" data-tab="insights" role="tab" aria-selected="false">Insights</button>
+                </div>
+
+                <div class="tab-panel is-active" data-panel="subjects">
+                    <div class="panel-toolbar">
+                        <input id="subjectSearch" class="filter-input" type="search" placeholder="Search subject...">
+                        <select id="subjectSort" class="filter-select">
+                            <option value="avg_desc">Top Score</option>
+                            <option value="avg_asc">Lowest Score</option>
+                            <option value="attempts_desc">Most Attempts</option>
+                            <option value="pass_desc">Top Pass Rate</option>
+                            <option value="name_asc">Name A-Z</option>
+                        </select>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Attempts</th>
+                                    <th>Avg Score</th>
+                                    <th>Best</th>
+                                    <th>Worst</th>
+                                    <th>Pass Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subjectsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-panel" data-panel="progress">
+                    <div class="panel-toolbar">
+                        <div class="segmented" id="rangeControls">
+                            <button type="button" class="segment-btn is-active" data-range="30">30d</button>
+                            <button type="button" class="segment-btn" data-range="90">90d</button>
+                            <button type="button" class="segment-btn" data-range="all">All</button>
+                        </div>
+                    </div>
+                    <div class="progress-visual" id="progressVisual"></div>
+                </div>
+
+                <div class="tab-panel" data-panel="insights">
+                    <div class="insight-grid">
+                        <article class="insight-card">
+                            <h3>Strengths</h3>
+                            <div class="tag-list" id="strengthsList"></div>
+                        </article>
+                        <article class="insight-card">
+                            <h3>Growth Areas</h3>
+                            <div class="tag-list" id="weaknessesList"></div>
+                        </article>
+                        <article class="insight-card">
+                            <h3>Class Position</h3>
+                            <p class="rank-value" id="rankDetail">-</p>
+                            <p class="rank-note" id="rankNote">No class ranking data yet.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="/js/alert-modal.js"></script>
+    <script src="/js/student-details.js"></script>
+</body>
+</html>

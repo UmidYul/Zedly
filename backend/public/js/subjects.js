@@ -204,7 +204,7 @@
                 const statusClass = subject.is_active ? 'status-active' : 'status-inactive';
                 const statusText = subject.is_active ? 'Active' : 'Inactive';
                 const safeName = (subject.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const isSelected = this.selectedIds.has(subject.id);
+                const isSelected = this.selectedIds.has(String(subject.id));
 
                 html += `
                     <tr data-subject-id="${subject.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
@@ -312,7 +312,11 @@
             }
 
             document.querySelectorAll('tr[data-subject-id]').forEach(row => {
-                row.classList.toggle('bulk-row-selected', this.selectedIds.has(row.dataset.subjectId));
+                const rowId = String(row.dataset.subjectId || '');
+                const isSelected = this.selectedIds.has(rowId);
+                row.classList.toggle('bulk-row-selected', isSelected);
+                const checkbox = row.querySelector('.bulk-row-checkbox');
+                if (checkbox) checkbox.checked = isSelected;
             });
         },
 
@@ -409,7 +413,6 @@
         showSubjectModal: async function (subjectId = null) {
             const isEdit = subjectId !== null;
             let subject = null;
-            const subjectIdArg = JSON.stringify(subjectId);
 
             // Load subject data if editing
             if (isEdit) {
@@ -450,7 +453,7 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <form id="subjectForm" onsubmit="SubjectsManager.submitSubject(event, ${subjectIdArg})">
+                            <form id="subjectForm">
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
@@ -526,6 +529,11 @@
                     this.closeModal();
                 }
             });
+
+            const formEl = document.getElementById('subjectForm');
+            if (formEl) {
+                formEl.addEventListener('submit', (event) => this.submitSubject(event, subjectId));
+            }
 
             // Close on Escape key
             document.addEventListener('keydown', this.handleEscapeKey);

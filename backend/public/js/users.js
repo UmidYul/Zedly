@@ -287,7 +287,7 @@
                 const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : this.t('users.never');
                 const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
                 const safeFullName = fullName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const isSelected = this.selectedIds.has(user.id);
+                const isSelected = this.selectedIds.has(String(user.id));
                 const formattedPhone = this.formatUzPhone(user.phone);
 
                 html += `
