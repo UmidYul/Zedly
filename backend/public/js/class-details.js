@@ -128,19 +128,20 @@
             studBody.innerHTML = students.map((student) => {
                 const name = student.name || student.full_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Без имени';
                 const login = student.login || student.username || '—';
+                const profileHref = `student-details.html?id=${encodeURIComponent(student.id)}&class_id=${encodeURIComponent(classId)}`;
                 if (canViewStudentLogin) {
                     return `
                         <tr>
                             <td>${escapeHtml(name)}</td>
                             <td>${escapeHtml(login)}</td>
-                            <td class="actions-cell"><a href="student-details.html?id=${student.id}">Профиль ученика</a></td>
+                            <td class="actions-cell"><a href="${profileHref}">Профиль ученика</a></td>
                         </tr>
                     `;
                 }
                 return `
                     <tr>
                         <td>${escapeHtml(name)}</td>
-                        <td class="actions-cell"><a href="student-details.html?id=${student.id}">Профиль ученика</a></td>
+                        <td class="actions-cell"><a href="${profileHref}">Профиль ученика</a></td>
                     </tr>
                 `;
             }).join('');

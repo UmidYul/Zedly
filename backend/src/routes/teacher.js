@@ -1177,9 +1177,17 @@ router.post('/students/:id/reset-password', async (req, res) => {
     let studentId = null;
     try {
         const { id } = req.params;
+        const sourceClassId = req.query.class_id ? String(req.query.class_id) : '';
         studentId = id;
         teacherId = req.user.id;
         schoolId = req.user.school_id;
+
+        if (!sourceClassId) {
+            return res.status(403).json({
+                error: 'forbidden',
+                message: 'Reset is allowed only from your homeroom class context'
+            });
+        }
 
         const studentResult = await query(
             `SELECT
@@ -1191,10 +1199,11 @@ router.post('/students/:id/reset-password', async (req, res) => {
                AND cs.is_active = true
                AND c.school_id = $2
                AND c.homeroom_teacher_id = $3
+               AND c.id = $4
                AND u.role = 'student'
                AND u.is_active = true
              LIMIT 1`,
-            [id, schoolId, teacherId]
+            [id, schoolId, teacherId, sourceClassId]
         );
 
         if (studentResult.rows.length === 0) {

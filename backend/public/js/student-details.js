@@ -6,6 +6,7 @@
         token: null,
         currentUser: null,
         studentId: null,
+        sourceClassId: null,
         report: null,
         subjectSearch: '',
         subjectSort: 'avg_desc',
@@ -114,6 +115,12 @@
         if (fromQuery) return String(fromQuery);
         if (currentUser?.role === 'student') return String(currentUser.id);
         return null;
+    }
+
+    function resolveSourceClassId() {
+        const params = new URLSearchParams(window.location.search);
+        const classId = params.get('class_id');
+        return classId ? String(classId) : null;
     }
 
     async function fetchStudentReport() {
@@ -329,7 +336,7 @@
         if (!approved) return;
 
         const endpoint = role === 'teacher'
-            ? `${API_URL}/teacher/students/${encodeURIComponent(state.studentId)}/reset-password`
+            ? `${API_URL}/teacher/students/${encodeURIComponent(state.studentId)}/reset-password?class_id=${encodeURIComponent(state.sourceClassId || '')}`
             : `${API_URL}/admin/users/${encodeURIComponent(state.studentId)}/reset-password`;
 
         const response = await fetch(endpoint, {
@@ -424,6 +431,12 @@
         const btn = document.getElementById('resetPasswordBtn');
         if (!state.currentUser || !['school_admin', 'teacher'].includes(state.currentUser.role)) {
             btn.style.display = 'none';
+            return;
+        }
+
+        if (state.currentUser.role === 'teacher' && !state.sourceClassId) {
+            btn.style.display = 'none';
+            return;
         }
     }
 
@@ -437,6 +450,7 @@
 
             state.currentUser = await fetchCurrentUser(state.token);
             state.studentId = resolveStudentId(state.currentUser);
+            state.sourceClassId = resolveSourceClassId();
             if (!state.studentId) {
                 throw new Error('Student id is required in URL (?id=...) for this role');
             }
