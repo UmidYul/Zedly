@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zedly-shell-v3';
+const CACHE_NAME = 'zedly-shell-v4';
 const APP_SHELL = [
   '/',
   '/dashboard',

@@ -288,37 +288,30 @@
 
         <!-- Info Alert -->
         <div class="alert alert-info">
-            <strong data-i18n="import_info_title">ℹ️ Информация:</strong>
-            <span data-i18n="import_info_text">
-                Вы можете импортировать несколько пользователей одновременно из Excel файла.
-                Каждый пользователь получит автоматически сгенерированный логин и временный пароль.
-            </span>
+            <strong data-i18n="import_info_title">Информация:</strong>
+            <span data-i18n="import_info_text">Вы можете импортировать несколько пользователей одновременно из Excel-файла. Каждый пользователь получит автоматически сгенерированный логин и временный пароль.</span>
         </div>
 
         <!-- Step 1: Download Template -->
         <div class="import-card">
             <h2>
-                <span>1️⃣</span>
+                <span>1.</span>
                 <span data-i18n="step1_title">Скачайте шаблон</span>
             </h2>
-            <p data-i18n="step1_description">
-                Загрузите Excel шаблон с примерами и инструкциями для заполнения
-            </p>
+            <p data-i18n="step1_description">Загрузите Excel-шаблон с примерами и инструкциями для заполнения</p>
             <a href="#" class="btn-download" id="downloadTemplate">
-                <span>📥</span>
+                <span>Скачать</span>
                 <span data-i18n="download_template">Скачать шаблон Excel</span>
             </a>
         </div>
 
         <!-- Instructions -->
         <div class="instructions">
-            <h3 data-i18n="instructions_title">📋 Инструкции по заполнению</h3>
+            <h3 data-i18n="instructions_title">Инструкции по заполнению</h3>
             <ol>
                 <li data-i18n="instruction1">Откройте скачанный шаблон в Excel или Google Sheets</li>
-                <li data-i18n="instruction2">Заполните данные пользователей (role, first_name, last_name обязательны)
-                </li>
-                <li data-i18n="instruction3">Для студентов можно указать class_name для автоматического добавления в
-                    класс</li>
+                <li data-i18n="instruction2">Заполните данные пользователей (role, first_name, last_name обязательны)</li>
+                <li data-i18n="instruction3">Для учеников можно указать class_name для автоматического добавления в класс</li>
                 <li data-i18n="instruction4">Email и Telegram ID опциональны, но рекомендуются для уведомлений</li>
                 <li data-i18n="instruction5">Сохраните файл и загрузите его ниже</li>
             </ol>
@@ -327,27 +320,23 @@
         <!-- Step 2: Upload File -->
         <div class="import-card">
             <h2>
-                <span>2️⃣</span>
+                <span>2.</span>
                 <span data-i18n="step2_title">Загрузите файл</span>
             </h2>
-            <p data-i18n="step2_description">
-                Перетащите файл сюда или кликните для выбора
-            </p>
+            <p data-i18n="step2_description">Перетащите файл сюда или кликните для выбора</p>
 
             <div class="upload-zone" id="uploadZone">
                 <input type="file" id="fileInput" accept=".xlsx,.xls">
-                <div class="upload-icon">📄</div>
+                <div class="upload-icon">Файл</div>
                 <div>
-                    <strong data-i18n="upload_zone_text">Кликните или перетащите Excel файл</strong>
+                    <strong data-i18n="upload_zone_text">Кликните или перетащите Excel-файл</strong>
                     <br>
-                    <span data-i18n="upload_zone_hint" style="color: var(--text-secondary);">
-                        Поддерживаются файлы .xlsx (максимум 5MB)
-                    </span>
+                    <span data-i18n="upload_zone_hint" style="color: var(--text-secondary);">Поддерживаются файлы .xlsx (максимум 5MB)</span>
                 </div>
             </div>
 
             <div class="file-info" id="fileInfo">
-                <div class="file-info-icon">✅</div>
+                <div class="file-info-icon">OK</div>
                 <div class="file-info-details">
                     <div class="file-info-name" id="fileName"></div>
                     <div class="file-info-size" id="fileSize"></div>
@@ -373,7 +362,7 @@
 
         <!-- Results -->
         <div class="results-card" id="resultsCard">
-            <h2 data-i18n="import_results">📊 Результаты импорта</h2>
+            <h2 data-i18n="import_results">Результаты импорта</h2>
 
             <div class="result-stats">
                 <div class="stat-item">
@@ -393,13 +382,13 @@
             <div class="results-details">
                 <!-- Success section -->
                 <div class="result-section" id="successSection" style="display: none;">
-                    <h3 data-i18n="success_list">✅ Успешно добавлены</h3>
+                    <h3 data-i18n="success_list">Успешно добавлены</h3>
                     <div class="result-list" id="successList"></div>
                 </div>
 
                 <!-- Error section -->
                 <div class="result-section" id="errorSection" style="display: none;">
-                    <h3 data-i18n="error_list">❌ Ошибки</h3>
+                    <h3 data-i18n="error_list">Ошибки</h3>
                     <div class="result-list" id="errorList"></div>
                 </div>
             </div>
@@ -422,7 +411,6 @@
         const API_URL = 'http://localhost:5000/api';
         let selectedFile = null;
 
-        // Elements
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
@@ -435,15 +423,12 @@
         const resultsCard = document.getElementById('resultsCard');
         const downloadTemplateBtn = document.getElementById('downloadTemplate');
 
-        // Download template
         downloadTemplateBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             try {
                 const token = localStorage.getItem('access_token');
                 const response = await fetch(`${API_URL}/admin/users/template`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!response.ok) throw new Error('Failed to download template');
@@ -463,12 +448,8 @@
             }
         });
 
-        // Upload zone click
-        uploadZone.addEventListener('click', () => {
-            fileInput.click();
-        });
+        uploadZone.addEventListener('click', () => fileInput.click());
 
-        // Drag and drop
         uploadZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadZone.classList.add('drag-over');
@@ -481,29 +462,20 @@
         uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadZone.classList.remove('drag-over');
-
             const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileSelect(files[0]);
-            }
+            if (files.length > 0) handleFileSelect(files[0]);
         });
 
-        // File input change
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
+            if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
         });
 
-        // Handle file selection
         function handleFileSelect(file) {
-            // Validate file type
-            if (!file.name.match(/\.(xlsx|xls)$/)) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
                 alert('Пожалуйста, выберите Excel файл (.xlsx или .xls)');
                 return;
             }
 
-            // Validate file size (5MB)
             if (file.size > 5 * 1024 * 1024) {
                 alert('Файл слишком большой. Максимальный размер: 5MB');
                 return;
@@ -516,7 +488,6 @@
             uploadBtn.disabled = false;
         }
 
-        // Remove file
         removeFileBtn.addEventListener('click', () => {
             selectedFile = null;
             fileInfo.classList.remove('show');
@@ -524,14 +495,11 @@
             fileInput.value = '';
         });
 
-        // Upload and import
         uploadBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
 
             const formData = new FormData();
             formData.append('file', selectedFile);
-
-            // Get current language
             const lang = localStorage.getItem('lang') || 'ru';
 
             try {
@@ -539,7 +507,6 @@
                 progressBar.classList.add('show');
                 progressFill.style.width = '0%';
 
-                // Simulate progress
                 const progressInterval = setInterval(() => {
                     const currentWidth = parseFloat(progressFill.style.width);
                     if (currentWidth < 90) {
@@ -550,9 +517,7 @@
                 const token = localStorage.getItem('access_token');
                 const response = await fetch(`${API_URL}/admin/users/import?lang=${lang}`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
 
@@ -566,7 +531,6 @@
 
                 const result = await response.json();
                 displayResults(result.results);
-
             } catch (error) {
                 console.error('Import error:', error);
                 alert('Ошибка при импорте: ' + error.message);
@@ -575,7 +539,6 @@
             }
         });
 
-        // Display results
         function displayResults(results) {
             progressBar.classList.remove('show');
             resultsCard.classList.add('show');
@@ -584,21 +547,19 @@
             document.getElementById('successCount').textContent = results.success;
             document.getElementById('errorCount').textContent = results.errors;
 
-            // Display success list
             if (results.details.success.length > 0) {
                 const successSection = document.getElementById('successSection');
                 const successList = document.getElementById('successList');
                 successSection.style.display = 'block';
                 successList.innerHTML = results.details.success.map(item => `
                     <div class="result-item">
-                        <strong>${item.name}</strong> — 
+                        <strong>${item.name}</strong> -
                         Логин: <span class="password-display">${item.username}</span>
                         Пароль: <span class="password-display">${item.password}</span>
                     </div>
                 `).join('');
             }
 
-            // Display error list
             if (results.details.errors.length > 0) {
                 const errorSection = document.getElementById('errorSection');
                 const errorList = document.getElementById('errorList');
@@ -610,20 +571,17 @@
                 `).join('');
             }
 
-            // Scroll to results
             resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // Format file size
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
         }
 
-        // Initialize i18n
         document.addEventListener('DOMContentLoaded', () => {
             i18n.init();
         });
@@ -632,3 +590,4 @@
 </body>
 
 </html>
+
