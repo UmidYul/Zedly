@@ -352,7 +352,7 @@ router.get('/users/:id', enforceSchoolIsolation, async (req, res) => {
         const result = await query(
             `SELECT
                 id, username, role, first_name, last_name, email, phone,
-                telegram_id, is_active, created_at, last_login
+                telegram_id, is_active, created_at, last_login, settings
              FROM users
              WHERE id = $1 AND school_id = $2`,
             [id, schoolId]
@@ -369,6 +369,11 @@ router.get('/users/:id', enforceSchoolIsolation, async (req, res) => {
         if (user.phone) {
             user.phone = normalizeUzPhone(user.phone);
         }
+        const settings = parseSettingsValue(user.settings);
+        const personalInfo = settings?.profile?.personal_info || {};
+        user.date_of_birth = personalInfo.date_of_birth || null;
+        user.gender = personalInfo.gender || null;
+        delete user.settings;
 
         if (user.role === 'teacher') {
             const assignmentsResult = await query(

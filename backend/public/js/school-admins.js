@@ -161,8 +161,8 @@ const SchoolAdminsManager = (function () {
         admins.forEach(admin => {
             const fullName = `${admin.first_name || ''} ${admin.last_name || ''}`.trim() || 'N/A';
             const statusBadge = admin.is_active
-                ? '<span class="badge badge-success">Active</span>'
-                : '<span class="badge badge-danger">Inactive</span>';
+                ? '<span class="status-badge status-active">Active</span>'
+                : '<span class="status-badge status-inactive">Inactive</span>';
             const lastLogin = admin.last_login
                 ? new Date(admin.last_login).toLocaleString()
                 : 'Never';

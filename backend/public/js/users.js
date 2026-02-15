@@ -701,6 +701,28 @@
                                     </div>
                                 </div>
 
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Date of Birth</label>
+                                        <input
+                                            type="date"
+                                            class="form-input"
+                                            name="date_of_birth"
+                                            value="${user?.date_of_birth || ''}"
+                                        />
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Gender</label>
+                                        <select class="form-input" name="gender">
+                                            <option value="">Select gender</option>
+                                            <option value="male" ${user?.gender === 'male' ? 'selected' : ''}>Male</option>
+                                            <option value="female" ${user?.gender === 'female' ? 'selected' : ''}>Female</option>
+                                            <option value="other" ${user?.gender === 'other' ? 'selected' : ''}>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 ${isEdit ? `
                                 <div class="form-group">
                                     <div class="form-check">
@@ -786,7 +808,9 @@
                 username: formData.get('username').trim(),
                 role: formData.get('role'),
                 email: formData.get('email')?.trim() || null,
-                phone: formData.get('phone')?.trim() || null
+                phone: formData.get('phone')?.trim() || null,
+                date_of_birth: formData.get('date_of_birth')?.trim() || null,
+                gender: formData.get('gender')?.trim() || null
             };
             // Add student_class_id if student
             if (data.role === 'student') {
