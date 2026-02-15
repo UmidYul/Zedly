@@ -275,14 +275,14 @@
             const checked = state.selectedIds.has(studentId) ? 'checked' : '';
             return `
                 <tr>
-                    <td><input type="checkbox" class="students-row-checkbox" data-id="${studentId}" ${checked}></td>
-                    <td>${escapeHtml(safeName(s))}</td>
-                    <td>${escapeHtml(s.username || '-')}</td>
-                    <td>${escapeHtml(s.class_name || '-')}</td>
-                    <td>${Number(s.tests_completed || 0)}</td>
-                    <td><strong>${formatPercent(s.avg_score)}</strong></td>
-                    <td><span class="students-band ${scoreBand(s.avg_score)}">${scoreBandLabel(s.avg_score)}</span></td>
-                    <td>
+                    <td data-label=""><input type="checkbox" class="students-row-checkbox" data-id="${studentId}" ${checked}></td>
+                    <td data-label="Ученик">${escapeHtml(safeName(s))}</td>
+                    <td data-label="Логин">${escapeHtml(s.username || '-')}</td>
+                    <td data-label="Класс">${escapeHtml(s.class_name || '-')}</td>
+                    <td data-label="Тесты">${Number(s.tests_completed || 0)}</td>
+                    <td data-label="Средний балл"><strong>${formatPercent(s.avg_score)}</strong></td>
+                    <td data-label="Статус"><span class="students-band ${scoreBand(s.avg_score)}">${scoreBandLabel(s.avg_score)}</span></td>
+                    <td data-label="Действия">
                         <div class="table-actions">
                             <button class="btn btn-outline students-action-btn" data-action="report" data-id="${studentId}" type="button">Отчет</button>
                             <button class="btn btn-secondary students-action-btn" data-action="reset" data-id="${studentId}" type="button">Сброс пароля</button>

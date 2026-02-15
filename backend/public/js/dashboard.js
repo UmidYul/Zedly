@@ -937,7 +937,7 @@
                                     <span id="studentsSelectedInfo">Выбрано: 0</span>
                                 </div>
                             </div>
-                            <div class="table-responsive">
+                            <div class="table-responsive mobile-stack-table">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
@@ -1054,7 +1054,7 @@
                         <div class="section-header">
                             <h2 class="section-title">Ближайшие назначения</h2>
                         </div>
-                        <div class="table-responsive">
+                        <div class="table-responsive mobile-stack-table">
                             <table class="data-table">
                                 <thead>
                                     <tr>

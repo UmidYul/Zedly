@@ -2136,9 +2136,10 @@
     }
 
     .lang-switch {
-        display: inline-flex;
+        display: inline-flex !important;
         gap: 4px;
         padding: 3px;
+        flex-shrink: 0;
     }
 
     .lang-switch .lang-btn {
@@ -2183,6 +2184,14 @@
 
     .reports-toolbar .filter-group {
         min-width: 0;
+    }
+
+    .header-right {
+        min-width: 0;
+    }
+
+    .header-right .lang-switch {
+        display: inline-flex !important;
     }
 
     .reports-card,

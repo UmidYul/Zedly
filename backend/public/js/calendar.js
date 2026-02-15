@@ -245,13 +245,13 @@
 
         tbody.innerHTML = rows.map((ev) => `
             <tr>
-                <td>${escapeHtml(ev.test_title || '-')}</td>
-                <td>${escapeHtml(ev.class_name || '-')}</td>
-                <td>${escapeHtml(ev.subject_name || '-')}</td>
-                <td>${formatDateTime(ev.start_date)}</td>
-                <td>${formatDateTime(ev.end_date)}</td>
-                <td><span class="students-band ${ev.status === 'active' ? 'high' : (ev.status === 'upcoming' ? 'mid' : 'risk')}">${statusLabel(ev.status)}</span></td>
-                <td><button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">Открыть</button></td>
+                <td data-label="Тест">${escapeHtml(ev.test_title || '-')}</td>
+                <td data-label="Класс">${escapeHtml(ev.class_name || '-')}</td>
+                <td data-label="Предмет">${escapeHtml(ev.subject_name || '-')}</td>
+                <td data-label="Начало">${formatDateTime(ev.start_date)}</td>
+                <td data-label="Окончание">${formatDateTime(ev.end_date)}</td>
+                <td data-label="Статус"><span class="students-band ${ev.status === 'active' ? 'high' : (ev.status === 'upcoming' ? 'mid' : 'risk')}">${statusLabel(ev.status)}</span></td>
+                <td data-label="Действия"><button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">Открыть</button></td>
             </tr>
         `).join('');
     }
