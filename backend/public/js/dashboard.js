@@ -59,8 +59,7 @@
                 section: 'dashboard.nav.tools',
                 items: [
                     { icon: 'upload', label: 'dashboard.nav.import', id: 'import', href: '#import' },
-                    { icon: 'download', label: 'dashboard.nav.export', id: 'export', href: '#export' },
-                    { icon: 'sliders', label: 'dashboard.nav.settings', id: 'settings', href: '#settings' }
+                    { icon: 'download', label: 'dashboard.nav.export', id: 'export', href: '#export' }
                 ]
             }
         ],
@@ -1980,7 +1979,7 @@
         }
 
         if (page === 'settings') {
-            if (role !== 'superadmin' && role !== 'school_admin') {
+            if (role !== 'superadmin') {
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
@@ -1994,14 +1993,12 @@
             return `
                 <div class="page-header-section">
                     <h1 class="page-main-title">Notification Defaults</h1>
-                    <p class="page-subtitle">${role === 'superadmin'
-                        ? 'Role-based channel and event defaults for new notification preferences'
-                        : 'Read-only notification defaults configured by SuperAdmin'}</p>
+                    <p class="page-subtitle">Role-based channel and event defaults for new notification preferences</p>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
                         <h2 class="section-title">Role Matrix</h2>
-                        <button class="btn btn-primary" id="settingsSaveNotificationDefaultsBtn" type="button">${role === 'superadmin' ? 'Save defaults' : 'Read only'}</button>
+                        <button class="btn btn-primary" id="settingsSaveNotificationDefaultsBtn" type="button">Save defaults</button>
                     </div>
                     <div id="settingsNotificationDefaultsStatus" class="text-secondary" style="margin-bottom:10px;"></div>
                     <div id="settingsNotificationDefaultsMatrix"></div>
