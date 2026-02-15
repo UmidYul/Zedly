@@ -714,14 +714,42 @@
 
 .assignment-row {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr) auto;
     gap: var(--spacing-md);
-    align-items: start;
+    align-items: end;
 }
 
-.assignment-row .btn-remove {
+.assignment-col {
+    min-width: 0;
+}
+
+.assignment-remove-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(239, 83, 80, 0.45);
+    background: rgba(239, 83, 80, 0.14);
+    color: #fca5a5;
+    border-radius: var(--radius-md);
+    font-size: 1.15rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    padding: 0;
     justify-self: end;
-    margin-top: 6px;
+}
+
+.assignment-remove-btn:hover {
+    background: rgba(239, 83, 80, 0.24);
+    border-color: #ef5350;
+    color: #fff;
+}
+
+.assignment-remove-btn:focus-visible {
+    outline: 2px solid rgba(74, 144, 226, 0.55);
+    outline-offset: 2px;
 }
 
 .assignment-row .form-group {
@@ -767,6 +795,17 @@
 
 .teacher-assignment .multi-choice-option input[type="checkbox"] {
     margin-right: 0.5em;
+}
+
+@media (max-width: 768px) {
+    .assignment-row {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .assignment-remove-btn {
+        justify-self: start;
+    }
 }
 
 .flex-1 {
