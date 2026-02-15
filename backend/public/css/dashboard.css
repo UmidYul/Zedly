@@ -2384,6 +2384,7 @@
         border-radius: 12px;
         background: var(--bg-card);
         padding: 6px 10px;
+        margin-bottom: 10px;
     }
 
     #usersContainer .data-table td {
@@ -2391,6 +2392,7 @@
         border-bottom: 1px dashed var(--border);
         padding: 7px 0;
         white-space: normal;
+        text-align: center;
     }
 
     #usersContainer .data-table td:last-child {
@@ -2406,6 +2408,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+        text-align: center;
     }
 
     #usersContainer .data-table td.bulk-checkbox-cell::before {
@@ -2422,6 +2425,7 @@
     #usersContainer .action-buttons {
         flex-direction: row;
         flex-wrap: wrap;
+        justify-content: center;
     }
 
     #usersContainer .status-badge,
