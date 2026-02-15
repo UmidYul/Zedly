@@ -396,6 +396,10 @@
             `;
 
             document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            if (question.question_type === 'imagebased') {
+                this.bindImageAnswerTypeChange(question);
+            }
         },
 
         // Single Choice Editor
@@ -615,6 +619,7 @@
         // Image Based Editor
         renderImageBasedEditor: function (question) {
             const options = question.options || ['', '', '', ''];
+            const answerType = Array.isArray(question.correct_answer) ? 'multiple' : 'single';
             return `
                 <div class="form-group">
                     <label class="form-label">Question Image URL <span class="required">*</span></label>
@@ -633,14 +638,61 @@
                 <div class="form-group">
                     <label class="form-label">Answer Type</label>
                     <select id="imageAnswerType" class="form-input">
-                        <option value="choice" ${!question.correct_answer || typeof question.correct_answer === 'number' ? 'selected' : ''}>Multiple Choice</option>
-                        <option value="text" ${typeof question.correct_answer === 'string' ? 'selected' : ''}>Text Answer</option>
+                        <option value="single" ${answerType === 'single' ? 'selected' : ''}>Single Choice</option>
+                        <option value="multiple" ${answerType === 'multiple' ? 'selected' : ''}>Multiple Choice</option>
                     </select>
                 </div>
                 <div id="imageAnswerOptions">
-                    ${this.renderSingleChoiceEditor(question)}
+                    ${this.renderImageAnswerOptions(answerType, question)}
                 </div>
             `;
+        },
+
+        renderImageAnswerOptions: function (answerType, question) {
+            if (answerType === 'multiple') {
+                const multiQuestion = {
+                    ...question,
+                    options: question.options || ['', '', '', ''],
+                    correct_answer: Array.isArray(question.correct_answer)
+                        ? question.correct_answer
+                        : (question.correct_answer !== undefined && question.correct_answer !== null ? [question.correct_answer] : [])
+                };
+                return this.renderMultipleChoiceEditor(multiQuestion);
+            }
+
+            const singleQuestion = {
+                ...question,
+                options: question.options || ['', '', '', ''],
+                correct_answer: Array.isArray(question.correct_answer)
+                    ? (question.correct_answer[0] ?? null)
+                    : question.correct_answer
+            };
+            return this.renderSingleChoiceEditor(singleQuestion);
+        },
+
+        bindImageAnswerTypeChange: function (question) {
+            const select = document.getElementById('imageAnswerType');
+            const container = document.getElementById('imageAnswerOptions');
+            if (!select || !container) return;
+
+            select.addEventListener('change', () => {
+                const options = Array.from(document.querySelectorAll('#imageAnswerOptions .option-input'))
+                    .map((el) => el.value.trim());
+                const selected = Array.from(document.querySelectorAll('#imageAnswerOptions input[name="correctAnswer"]:checked'))
+                    .map((el) => parseInt(el.value, 10))
+                    .filter((value) => Number.isFinite(value));
+
+                const answerType = select.value === 'multiple' ? 'multiple' : 'single';
+                const nextQuestion = {
+                    ...question,
+                    options: options.length ? options : (question.options || ['', '', '', '']),
+                    correct_answer: answerType === 'multiple'
+                        ? selected
+                        : (selected[0] ?? (Array.isArray(question.correct_answer) ? question.correct_answer[0] : question.correct_answer))
+                };
+
+                container.innerHTML = this.renderImageAnswerOptions(answerType, nextQuestion);
+            });
         },
 
         uploadImageForQuestion: async function () {
@@ -926,16 +978,26 @@
                         alert('Please provide an image URL');
                         return;
                     }
+                    const imageAnswerType = document.getElementById('imageAnswerType')?.value || 'single';
                     options = Array.from(document.querySelectorAll('.option-input')).map(el => el.value.trim());
-                    const imgRadio = document.querySelector('input[name="correctAnswer"]:checked');
-                    if (!imgRadio) {
-                        alert('Please select the correct answer');
-                        return;
-                    }
-                    correctAnswer = parseInt(imgRadio.value);
                     if (options.some(opt => !opt)) {
                         alert('Please fill in all options');
                         return;
+                    }
+                    if (imageAnswerType === 'multiple') {
+                        const imgChecks = Array.from(document.querySelectorAll('input[name="correctAnswer"]:checked'));
+                        if (imgChecks.length === 0) {
+                            alert('Please select at least one correct answer');
+                            return;
+                        }
+                        correctAnswer = imgChecks.map(cb => parseInt(cb.value, 10));
+                    } else {
+                        const imgRadio = document.querySelector('input[name="correctAnswer"]:checked');
+                        if (!imgRadio) {
+                            alert('Please select the correct answer');
+                            return;
+                        }
+                        correctAnswer = parseInt(imgRadio.value, 10);
                     }
                     break;
             }

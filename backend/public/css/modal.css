@@ -304,6 +304,50 @@
     border: 1px solid var(--border-color);
 }
 
+/* Test editor: image upload input */
+#questionEditorModal #imageFileInput {
+    padding: 8px 10px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+#questionEditorModal #imageFileInput::file-selector-button {
+    margin-right: 10px;
+    padding: 8px 14px;
+    border: 1px solid rgba(59, 130, 246, 0.55);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+#questionEditorModal #imageFileInput::-webkit-file-upload-button {
+    margin-right: 10px;
+    padding: 8px 14px;
+    border: 1px solid rgba(59, 130, 246, 0.55);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+#questionEditorModal #imageFileInput:hover::file-selector-button,
+#questionEditorModal #imageFileInput:hover::-webkit-file-upload-button {
+    filter: brightness(1.07);
+}
+
+#questionEditorModal #imageFileInput:active::file-selector-button,
+#questionEditorModal #imageFileInput:active::-webkit-file-upload-button {
+    transform: translateY(1px);
+}
+
 .section-title {
     font-size: 1.125rem;
     font-weight: 700;
