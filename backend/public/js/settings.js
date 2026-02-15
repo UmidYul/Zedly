@@ -6,25 +6,25 @@
     const API_SCHOOL_ADMIN = '/api/admin/notification-defaults';
     const ROLES = ['student', 'teacher', 'school_admin', 'superadmin'];
     const ROLE_LABELS = {
-        student: 'Student',
-        teacher: 'Teacher',
-        school_admin: 'School Admin',
-        superadmin: 'SuperAdmin'
+        student: 'settings.role.student',
+        teacher: 'settings.role.teacher',
+        school_admin: 'settings.role.school_admin',
+        superadmin: 'settings.role.superadmin'
     };
     const CHANNEL_LABELS = {
-        in_app: 'In-App',
-        email: 'Email',
-        telegram: 'Telegram'
+        in_app: 'settings.channel.in_app',
+        email: 'settings.channel.email',
+        telegram: 'settings.channel.telegram'
     };
     const CHANNEL_KEYS = ['in_app', 'email', 'telegram'];
     const EVENT_LABELS = {
-        new_test: 'New test',
-        assignment_deadline: 'Deadline',
-        password_reset: 'Pwd reset',
-        profile_updates: 'Profile',
-        system_updates: 'System',
-        welcome: 'Welcome',
-        digest_summary: 'Digest'
+        new_test: 'settings.event.new_test',
+        assignment_deadline: 'settings.event.assignment_deadline',
+        password_reset: 'settings.event.password_reset',
+        profile_updates: 'settings.event.profile_updates',
+        system_updates: 'settings.event.system_updates',
+        welcome: 'settings.event.welcome',
+        digest_summary: 'settings.event.digest_summary'
     };
     const EVENT_KEYS = [
         'new_test',
@@ -59,6 +59,11 @@
 
     function getToken() {
         return localStorage.getItem('access_token') || '';
+    }
+
+    function t(key, fallback, params) {
+        const tr = window.ZedlyI18n?.translate?.(key, params);
+        return tr && tr !== key ? tr : (fallback || key);
     }
 
     async function apiGet() {
@@ -132,13 +137,13 @@
             html += `
                 <div class="dashboard-section settings-role-card">
                     <div class="section-header">
-                        <h3 class="section-title">${esc(ROLE_LABELS[role] || role)}</h3>
+                        <h3 class="section-title">${esc(t(ROLE_LABELS[role] || role, role))}</h3>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <label class="text-secondary" for="settingsFrequency_${esc(role)}">Frequency</label>
+                            <label class="text-secondary" for="settingsFrequency_${esc(role)}">${t('settings.notificationDefaults.frequency', 'Частота')}</label>
                             <select id="settingsFrequency_${esc(role)}" data-role="${esc(role)}" data-scope="frequency" ${state.readOnly ? 'disabled' : ''}>
-                                <option value="instant" ${row.frequency === 'instant' ? 'selected' : ''}>instant</option>
-                                <option value="daily" ${row.frequency === 'daily' ? 'selected' : ''}>daily</option>
-                                <option value="weekly" ${row.frequency === 'weekly' ? 'selected' : ''}>weekly</option>
+                                <option value="instant" ${row.frequency === 'instant' ? 'selected' : ''}>${t('settings.notificationDefaults.instant', 'мгновенно')}</option>
+                                <option value="daily" ${row.frequency === 'daily' ? 'selected' : ''}>${t('settings.notificationDefaults.daily', 'ежедневно')}</option>
+                                <option value="weekly" ${row.frequency === 'weekly' ? 'selected' : ''}>${t('settings.notificationDefaults.weekly', 'еженедельно')}</option>
                             </select>
                         </div>
                     </div>
@@ -146,14 +151,14 @@
                         <table class="data-table settings-role-table">
                             <thead>
                                 <tr>
-                                    <th>Channel \ Event</th>
-                                    ${EVENT_KEYS.map((eventKey) => `<th>${esc(EVENT_LABELS[eventKey] || eventKey)}</th>`).join('')}
+                                    <th>${t('settings.notificationDefaults.matrixAxis', 'Канал \\ Событие')}</th>
+                                    ${EVENT_KEYS.map((eventKey) => `<th>${esc(t(EVENT_LABELS[eventKey] || eventKey, eventKey))}</th>`).join('')}
                                 </tr>
                             </thead>
                             <tbody>
                                 ${CHANNEL_KEYS.map((channelKey) => `
                                     <tr>
-                                        <td><strong>${esc(CHANNEL_LABELS[channelKey] || channelKey)}</strong></td>
+                                        <td><strong>${esc(t(CHANNEL_LABELS[channelKey] || channelKey, channelKey))}</strong></td>
                                         ${EVENT_KEYS.map((eventKey) => `
                                             <td>
                                                 <input
@@ -235,27 +240,27 @@
         if (!saveBtn) return;
         if (state.readOnly) {
             saveBtn.disabled = true;
-            saveBtn.textContent = 'Read only';
+            saveBtn.textContent = t('settings.notificationDefaults.readOnly', 'Только просмотр');
             return;
         }
 
         saveBtn.addEventListener('click', async () => {
             try {
                 saveBtn.disabled = true;
-                saveBtn.textContent = 'Saving...';
-                setStatus('Saving defaults...');
+                saveBtn.textContent = t('common.saving', 'Сохранение...');
+                setStatus(t('settings.notificationDefaults.saving', 'Сохранение настроек...'));
 
                 const payload = collectPayload();
                 const data = await apiPut(payload);
                 state.defaults = data.defaults || {};
                 renderMatrix();
-                setStatus('Defaults saved');
+                setStatus(t('settings.notificationDefaults.saved', 'Настройки сохранены'));
             } catch (error) {
                 console.error('Save notification defaults error:', error);
-                setStatus('Failed to save defaults', true);
+                setStatus(t('settings.notificationDefaults.failedSave', 'Не удалось сохранить настройки'), true);
             } finally {
                 saveBtn.disabled = false;
-                saveBtn.textContent = 'Save defaults';
+                saveBtn.textContent = t('settings.notificationDefaults.saveDefaults', 'Сохранить настройки');
             }
         });
     }
@@ -266,7 +271,7 @@
         state.role = getCurrentUserRole();
         state.readOnly = state.role !== 'superadmin';
 
-        setStatus('Loading defaults...');
+        setStatus(t('settings.notificationDefaults.loading', 'Загрузка настроек...'));
         try {
             const data = await apiGet();
             state.defaults = data.defaults || {};
@@ -275,7 +280,7 @@
             setStatus('');
         } catch (error) {
             console.error('Load notification defaults error:', error);
-            setStatus('Failed to load defaults', true);
+            setStatus(t('settings.notificationDefaults.failedLoad', 'Не удалось загрузить настройки'), true);
         }
     }
 

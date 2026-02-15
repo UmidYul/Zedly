@@ -25,6 +25,11 @@
         return localStorage.getItem('access_token') || '';
     }
 
+    function t(key, fallback, params) {
+        const tr = window.ZedlyI18n?.translate?.(key, params);
+        return tr && tr !== key ? tr : (fallback || key);
+    }
+
     async function apiGet(url) {
         const response = await fetch(url, {
             headers: { Authorization: `Bearer ${token()}` }
@@ -81,7 +86,7 @@
             const el = document.getElementById(id);
             if (!el) return;
             const current = el.value;
-            const options = [`<option value="">All</option>`].concat(
+            const options = [`<option value="">${t('common.all', 'Все')}</option>`].concat(
                 (rows || []).map((row) => `<option value="${esc(row[field])}">${esc(row[field])} (${fmtInt(row.count)})</option>`)
             );
             el.innerHTML = options.join('');
@@ -98,10 +103,10 @@
         const kpi = state.summary?.kpi || {};
         const topAction = state.summary?.top_actions?.[0]?.action || '-';
         wrap.innerHTML = `
-            <div class="report-kpi tone-blue"><span>Total Events</span><strong>${fmtInt(kpi.total_events)}</strong></div>
-            <div class="report-kpi tone-cyan"><span>Unique Actors</span><strong>${fmtInt(kpi.unique_actors)}</strong></div>
-            <div class="report-kpi tone-rose"><span>Failed Events</span><strong>${fmtInt(kpi.failed_events)}</strong></div>
-            <div class="report-kpi tone-violet"><span>Top Action</span><strong>${esc(topAction)}</strong></div>
+            <div class="report-kpi tone-blue"><span>${t('audit.totalEvents', 'Всего событий')}</span><strong>${fmtInt(kpi.total_events)}</strong></div>
+            <div class="report-kpi tone-cyan"><span>${t('audit.uniqueActors', 'Уникальные инициаторы')}</span><strong>${fmtInt(kpi.unique_actors)}</strong></div>
+            <div class="report-kpi tone-rose"><span>${t('audit.failedEvents', 'Неуспешные события')}</span><strong>${fmtInt(kpi.failed_events)}</strong></div>
+            <div class="report-kpi tone-violet"><span>${t('audit.topAction', 'Топ-действие')}</span><strong>${esc(topAction)}</strong></div>
         `;
     }
 
@@ -110,7 +115,7 @@
         if (!el) return;
         const rows = state.summary?.top_actions || [];
         if (!rows.length) {
-            el.innerHTML = '<p class="text-secondary">No data</p>';
+            el.innerHTML = `<p class="text-secondary">${t('reports.noData', 'Нет данных')}</p>`;
             return;
         }
         const max = Math.max(...rows.map((r) => Number(r.count) || 0), 1);
@@ -131,17 +136,17 @@
         if (!el) return;
         const rows = state.summary?.top_actors || [];
         if (!rows.length) {
-            el.innerHTML = '<p class="text-secondary">No data</p>';
+            el.innerHTML = `<p class="text-secondary">${t('reports.noData', 'Нет данных')}</p>`;
             return;
         }
         el.innerHTML = `
             <div class="table-responsive">
                 <table class="data-table">
-                    <thead><tr><th>Actor</th><th>Role</th><th>Events</th></tr></thead>
+                    <thead><tr><th>${t('audit.actor', 'Инициатор')}</th><th>${t('common.role', 'Роль')}</th><th>${t('audit.totalEvents', 'Всего событий')}</th></tr></thead>
                     <tbody>
                         ${rows.map((row) => `
                             <tr>
-                                <td>${esc(row.username || 'system')}</td>
+                                <td>${esc(row.username || t('audit.system', 'система'))}</td>
                                 <td>${esc(row.role || '-')}</td>
                                 <td>${fmtInt(row.count)}</td>
                             </tr>
@@ -157,7 +162,7 @@
         if (!el) return;
         const rows = state.summary?.activity_by_day || [];
         if (!rows.length) {
-            el.innerHTML = '<p class="text-secondary">No data</p>';
+            el.innerHTML = `<p class="text-secondary">${t('reports.noData', 'Нет данных')}</p>`;
             return;
         }
         const max = Math.max(...rows.map((r) => Number(r.count) || 0), 1);
@@ -178,8 +183,8 @@
 
     function statusBadge(isFailed) {
         return isFailed
-            ? '<span class="reports-notification-status failed">failed</span>'
-            : '<span class="reports-notification-status sent">ok</span>';
+            ? `<span class="reports-notification-status failed">${t('audit.failed', 'Ошибка')}</span>`
+            : `<span class="reports-notification-status sent">${t('audit.success', 'Успех')}</span>`;
     }
 
     function renderLogs() {
@@ -187,7 +192,7 @@
         if (!el) return;
         const rows = state.logs || [];
         if (!rows.length) {
-            el.innerHTML = '<p class="text-secondary">No logs found</p>';
+            el.innerHTML = `<p class="text-secondary">${t('audit.noLogsFound', 'Логи не найдены')}</p>`;
             return;
         }
         el.innerHTML = `
@@ -195,14 +200,14 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Date</th><th>Actor</th><th>Role</th><th>Action</th><th>Entity</th><th>ID</th><th>Status</th><th>School</th><th>Details</th>
+                            <th>${t('common.date', 'Дата')}</th><th>${t('audit.actor', 'Инициатор')}</th><th>${t('common.role', 'Роль')}</th><th>${t('audit.action', 'Действие')}</th><th>${t('audit.entity', 'Сущность')}</th><th>${t('audit.id', 'ID')}</th><th>${t('common.status', 'Статус')}</th><th>${t('audit.school', 'Школа')}</th><th>${t('common.details', 'Детали')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${rows.map((row) => `
                             <tr data-audit-id="${esc(row.id)}" class="audit-log-row">
                                 <td>${row.created_at ? new Date(row.created_at).toLocaleString('ru-RU') : '-'}</td>
-                                <td>${esc(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || 'system')}</td>
+                                <td>${esc(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || t('audit.system', 'система'))}</td>
                                 <td>${esc(row.actor_role || '-')}</td>
                                 <td>${esc(row.action || '-')}</td>
                                 <td>${esc(row.entity_type || '-')}</td>
@@ -216,7 +221,7 @@
                 </table>
             </div>
             <div class="reports-notification-footer">
-                <span class="text-secondary">Page ${fmtInt(state.pagination.page)} / ${fmtInt(state.pagination.pages)} · Total: ${fmtInt(state.pagination.total)}</span>
+                <span class="text-secondary">${t('common.page', 'Страница')} ${fmtInt(state.pagination.page)} / ${fmtInt(state.pagination.pages)} · ${t('common.total', 'Всего')}: ${fmtInt(state.pagination.total)}</span>
                 <div class="pagination" id="auditPagination"></div>
             </div>
         `;
@@ -231,13 +236,13 @@
         const total = Math.max(1, Number(state.pagination.pages) || 1);
         const current = Math.min(Math.max(1, Number(state.pagination.page) || 1), total);
         let html = '';
-        if (current > 1) html += `<button class="pagination-btn" data-page="${current - 1}">Previous</button>`;
+        if (current > 1) html += `<button class="pagination-btn" data-page="${current - 1}">${t('reports.previous', 'Назад')}</button>`;
         const start = Math.max(1, current - 2);
         const end = Math.min(total, current + 2);
         for (let i = start; i <= end; i++) {
             html += `<button class="pagination-btn ${i === current ? 'active' : ''}" data-page="${i}">${i}</button>`;
         }
-        if (current < total) html += `<button class="pagination-btn" data-page="${current + 1}">Next</button>`;
+        if (current < total) html += `<button class="pagination-btn" data-page="${current + 1}">${t('reports.next', 'Далее')}</button>`;
         wrap.innerHTML = html;
         wrap.querySelectorAll('button[data-page]').forEach((btn) => {
             btn.addEventListener('click', async () => {
@@ -269,15 +274,15 @@
 
         view.innerHTML = `
             <div class="audit-details-grid">
-                <div><strong>ID:</strong> ${esc(row.id)}</div>
-                <div><strong>Date:</strong> ${row.created_at ? new Date(row.created_at).toLocaleString('ru-RU') : '-'}</div>
-                <div><strong>Actor:</strong> ${esc(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || 'system')}</div>
-                <div><strong>Role:</strong> ${esc(row.actor_role || '-')}</div>
-                <div><strong>Action:</strong> ${esc(row.action || '-')}</div>
-                <div><strong>Entity:</strong> ${esc(row.entity_type || '-')}</div>
-                <div><strong>Entity ID:</strong> ${esc(row.entity_id || '-')}</div>
-                <div><strong>School:</strong> ${esc(row.school_name || '-')}</div>
-                <div><strong>Status:</strong> ${row.is_failed ? 'failed' : 'ok'}</div>
+                <div><strong>${t('audit.id', 'ID')}:</strong> ${esc(row.id)}</div>
+                <div><strong>${t('common.date', 'Дата')}:</strong> ${row.created_at ? new Date(row.created_at).toLocaleString('ru-RU') : '-'}</div>
+                <div><strong>${t('audit.actor', 'Инициатор')}:</strong> ${esc(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || t('audit.system', 'система'))}</div>
+                <div><strong>${t('common.role', 'Роль')}:</strong> ${esc(row.actor_role || '-')}</div>
+                <div><strong>${t('audit.action', 'Действие')}:</strong> ${esc(row.action || '-')}</div>
+                <div><strong>${t('audit.entity', 'Сущность')}:</strong> ${esc(row.entity_type || '-')}</div>
+                <div><strong>${t('audit.id', 'ID')}:</strong> ${esc(row.entity_id || '-')}</div>
+                <div><strong>${t('audit.school', 'Школа')}:</strong> ${esc(row.school_name || '-')}</div>
+                <div><strong>${t('common.status', 'Статус')}:</strong> ${row.is_failed ? t('audit.failed', 'Ошибка') : t('audit.success', 'Успех')}</div>
             </div>
             <pre class="audit-details-json">${esc(detailsText)}</pre>
         `;
@@ -331,7 +336,7 @@
     function toggleAutoRefresh() {
         state.autoRefresh = !state.autoRefresh;
         const btn = document.getElementById('auditAutoRefreshBtn');
-        if (btn) btn.textContent = `Auto: ${state.autoRefresh ? 'On' : 'Off'}`;
+        if (btn) btn.textContent = state.autoRefresh ? t('audit.autoOn', 'Авто: Вкл') : t('audit.autoOff', 'Авто: Выкл');
 
         if (state.autoTimer) {
             clearInterval(state.autoTimer);
@@ -383,7 +388,7 @@
                 URL.revokeObjectURL(objectUrl);
             } catch (error) {
                 console.error('Audit export error:', error);
-                alert('Failed to export audit CSV');
+                alert(t('audit.failedExportCsv', 'Не удалось экспортировать CSV аудита'));
             }
         });
     }

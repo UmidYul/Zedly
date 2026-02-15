@@ -1983,22 +1983,22 @@
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Settings</h2>
+                            <h2 class="section-title">${t('settings.pageTitle', 'Настройки')}</h2>
                         </div>
-                        <p style="color: var(--text-secondary);">This section is only available for SuperAdmin.</p>
+                        <p style="color: var(--text-secondary);">${t('settings.superadminOnly', 'Этот раздел доступен только для SuperAdmin.')}</p>
                     </div>
                 `;
             }
 
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title">Notification Defaults</h1>
-                    <p class="page-subtitle">Role-based channel and event defaults for new notification preferences</p>
+                    <h1 class="page-main-title">${t('settings.notificationDefaults.title', 'Дефолтные уведомления')}</h1>
+                    <p class="page-subtitle">${t('settings.notificationDefaults.subtitle', 'Ролевые настройки каналов и событий для новых уведомлений')}</p>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Role Matrix</h2>
-                        <button class="btn btn-primary" id="settingsSaveNotificationDefaultsBtn" type="button">Save defaults</button>
+                        <h2 class="section-title">${t('settings.notificationDefaults.roleMatrix', 'Матрица ролей')}</h2>
+                        <button class="btn btn-primary" id="settingsSaveNotificationDefaultsBtn" type="button">${t('settings.notificationDefaults.saveDefaults', 'Сохранить настройки')}</button>
                     </div>
                     <div id="settingsNotificationDefaultsStatus" class="text-secondary" style="margin-bottom:10px;"></div>
                     <div id="settingsNotificationDefaultsMatrix"></div>
@@ -2010,43 +2010,43 @@
             return `
                 <div class="reports-page">
                     <div class="page-header-section reports-header">
-                        <h1 class="page-main-title">Reports Center</h1>
-                        <p class="page-subtitle">Interactive reporting, comparisons and export-ready summaries</p>
+                        <h1 class="page-main-title">${t('reports.pageTitle', 'Центр отчетов')}</h1>
+                        <p class="page-subtitle">${t('reports.subtitle', 'Интерактивные отчеты, сравнения и экспорт готовых сводок')}</p>
                     </div>
 
                     <div class="reports-toolbar dashboard-section">
                         <div class="toolbar-filters">
                             <div class="filter-group">
-                                <label for="reportsPeriodFilter">Period</label>
+                                <label for="reportsPeriodFilter">${t('reports.period', 'Период')}</label>
                                 <select id="reportsPeriodFilter" class="filter-select">
-                                    <option value="7">Last 7 days</option>
-                                    <option value="30" selected>Last 30 days</option>
-                                    <option value="90">Last 90 days</option>
-                                    <option value="365">Last year</option>
+                                    <option value="7">${t('reports.last7Days', 'Последние 7 дней')}</option>
+                                    <option value="30" selected>${t('reports.last30Days', 'Последние 30 дней')}</option>
+                                    <option value="90">${t('reports.last90Days', 'Последние 90 дней')}</option>
+                                    <option value="365">${t('reports.lastYear', 'Последний год')}</option>
                                 </select>
                             </div>
                             <div class="filter-group" id="reportsMetricWrap" style="display:none;">
-                                <label for="reportsMetricFilter">Metric</label>
+                                <label for="reportsMetricFilter">${t('reports.metric', 'Метрика')}</label>
                                 <select id="reportsMetricFilter" class="filter-select">
-                                    <option value="avg_score">Average score</option>
-                                    <option value="test_completion">Completion rate</option>
-                                    <option value="student_count">Students</option>
-                                    <option value="teacher_count">Teachers</option>
+                                    <option value="avg_score">${t('reports.avgScore', 'Средний балл')}</option>
+                                    <option value="test_completion">${t('reports.completionRate', 'Процент завершения')}</option>
+                                    <option value="student_count">${t('reports.students', 'Ученики')}</option>
+                                    <option value="teacher_count">${t('reports.teachers', 'Учителя')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="reportsPresetSelect">Preset</label>
+                                <label for="reportsPresetSelect">${t('reports.preset', 'Пресет')}</label>
                                 <select id="reportsPresetSelect" class="filter-select">
-                                    <option value="">Default</option>
+                                    <option value="">${t('reports.defaultPreset', 'По умолчанию')}</option>
                                 </select>
                             </div>
                         </div>
                         <div class="toolbar-right">
-                            <button class="btn btn-outline" id="reportsSavePresetBtn" type="button">Save preset</button>
-                            <button class="btn btn-outline" id="reportsDeletePresetBtn" type="button">Delete preset</button>
-                            <button class="btn btn-secondary" id="reportsRefreshBtn" type="button">Refresh</button>
-                            <button class="btn btn-secondary" id="reportsPdfBtn" type="button">Export PDF</button>
-                            <button class="btn btn-primary" id="reportsExportBtn" type="button">Export data</button>
+                            <button class="btn btn-outline" id="reportsSavePresetBtn" type="button">${t('reports.savePreset', 'Сохранить пресет')}</button>
+                            <button class="btn btn-outline" id="reportsDeletePresetBtn" type="button">${t('reports.deletePreset', 'Удалить пресет')}</button>
+                            <button class="btn btn-secondary" id="reportsRefreshBtn" type="button">${t('common.refresh', 'Обновить')}</button>
+                            <button class="btn btn-secondary" id="reportsPdfBtn" type="button">${t('reports.exportPdf', 'Экспорт PDF')}</button>
+                            <button class="btn btn-primary" id="reportsExportBtn" type="button">${t('reports.exportData', 'Экспорт данных')}</button>
                         </div>
                     </div>
 
@@ -2055,14 +2055,14 @@
                     <div class="reports-grid-main">
                         <div class="dashboard-section reports-card">
                             <div class="section-header">
-                                <h2 class="section-title">Top Entities</h2>
+                                <h2 class="section-title">${t('reports.topEntities', 'Топ сущностей')}</h2>
                             </div>
                             <div id="reportsTopTable"></div>
                         </div>
 
                         <div class="dashboard-section reports-card">
                             <div class="section-header">
-                                <h2 class="section-title">Recent Activity</h2>
+                                <h2 class="section-title">${t('reports.recentActivity', 'Недавняя активность')}</h2>
                             </div>
                             <div id="reportsActivityList"></div>
                         </div>
@@ -2070,68 +2070,68 @@
 
                     <div class="dashboard-section reports-card">
                         <div class="section-header">
-                            <h2 class="section-title">Trends</h2>
+                            <h2 class="section-title">${t('reports.trends', 'Тренды')}</h2>
                         </div>
                         <div class="reports-trends-wrap">
                             <canvas id="reportsTrendsChart" height="110"></canvas>
-                            <div class="reports-trends-empty" id="reportsTrendsEmpty" style="display:none;">No trend data for selected filters</div>
+                            <div class="reports-trends-empty" id="reportsTrendsEmpty" style="display:none;">${t('reports.noTrendData', 'Нет данных тренда для выбранных фильтров')}</div>
                         </div>
                     </div>
 
                     <div class="dashboard-section reports-card">
                         <div class="section-header">
-                            <h2 class="section-title">Comparison Breakdown</h2>
+                            <h2 class="section-title">${t('reports.comparisonBreakdown', 'Сравнительная сводка')}</h2>
                         </div>
                         <div id="reportsCompareTable"></div>
                     </div>
 
                     <div class="dashboard-section reports-card">
                         <div class="section-header">
-                            <h2 class="section-title">Insights</h2>
+                            <h2 class="section-title">${t('reports.insights', 'Инсайты')}</h2>
                         </div>
                         <div id="reportsInsights"></div>
                     </div>
 
                     <div class="dashboard-section reports-card" id="reportsNotificationsCard" style="display:none;">
                         <div class="section-header">
-                            <h2 class="section-title">Notification Delivery Log</h2>
+                            <h2 class="section-title">${t('reports.notificationLog', 'Лог доставки уведомлений')}</h2>
                         </div>
                         <div class="reports-notification-filters">
                             <div class="filter-group">
-                                <label for="reportsNotificationChannel">Channel</label>
+                                <label for="reportsNotificationChannel">${t('common.channel', 'Канал')}</label>
                                 <select id="reportsNotificationChannel" class="filter-select">
-                                    <option value="">All</option>
+                                    <option value="">${t('common.all', 'Все')}</option>
                                     <option value="email">Email</option>
                                     <option value="telegram">Telegram</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationEvent">Event</label>
+                                <label for="reportsNotificationEvent">${t('common.event', 'Событие')}</label>
                                 <select id="reportsNotificationEvent" class="filter-select">
-                                    <option value="">All</option>
-                                    <option value="welcome">Welcome</option>
-                                    <option value="password_reset">Password reset</option>
-                                    <option value="new_test">New test</option>
+                                    <option value="">${t('common.all', 'Все')}</option>
+                                    <option value="welcome">${t('settings.event.welcome', 'Приветствие')}</option>
+                                    <option value="password_reset">${t('settings.event.password_reset', 'Сброс пароля')}</option>
+                                    <option value="new_test">${t('settings.event.new_test', 'Новый тест')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationStatus">Status</label>
+                                <label for="reportsNotificationStatus">${t('common.status', 'Статус')}</label>
                                 <select id="reportsNotificationStatus" class="filter-select">
-                                    <option value="">All</option>
-                                    <option value="sent">Sent</option>
-                                    <option value="failed">Failed</option>
+                                    <option value="">${t('common.all', 'Все')}</option>
+                                    <option value="sent">${t('reports.statusSent', 'Отправлено')}</option>
+                                    <option value="failed">${t('reports.statusFailed', 'Ошибка')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationFrom">From</label>
+                                <label for="reportsNotificationFrom">${t('common.from', 'От')}</label>
                                 <input id="reportsNotificationFrom" class="form-control" type="datetime-local">
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationTo">To</label>
+                                <label for="reportsNotificationTo">${t('common.to', 'До')}</label>
                                 <input id="reportsNotificationTo" class="form-control" type="datetime-local">
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationLimit">Per page</label>
+                                <label for="reportsNotificationLimit">${t('common.perPage', 'На странице')}</label>
                                 <select id="reportsNotificationLimit" class="filter-select">
                                     <option value="20">20</option>
                                     <option value="50">50</option>
@@ -2144,7 +2144,7 @@
 
                     <div class="dashboard-section reports-card">
                         <div class="section-header">
-                            <h2 class="section-title">At Risk Students</h2>
+                            <h2 class="section-title">${t('reports.atRiskStudents', 'Ученики в зоне риска')}</h2>
                         </div>
                         <div class="reports-risk-grid">
                             <div id="reportsRiskSummary"></div>
@@ -2160,9 +2160,9 @@
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Audit</h2>
+                            <h2 class="section-title">${t('dashboard.nav.audit', 'Аудит')}</h2>
                         </div>
-                        <p style="color: var(--text-secondary);">This section is only available for SuperAdmin.</p>
+                        <p style="color: var(--text-secondary);">${t('settings.superadminOnly', 'Этот раздел доступен только для SuperAdmin.')}</p>
                     </div>
                 `;
             }
@@ -2170,46 +2170,46 @@
             return `
                 <div class="audit-page">
                     <div class="page-header-section">
-                        <h1 class="page-main-title">Audit Center</h1>
-                        <p class="page-subtitle">Interactive system activity monitoring and forensic analysis</p>
+                        <h1 class="page-main-title">${t('audit.pageTitle', 'Центр аудита')}</h1>
+                        <p class="page-subtitle">${t('audit.subtitle', 'Интерактивный мониторинг активности системы и forensic-анализ')}</p>
                     </div>
 
                     <div class="dashboard-section audit-toolbar">
                         <div class="toolbar-filters">
                             <div class="filter-group">
-                                <label for="auditSearch">Search</label>
-                                <input id="auditSearch" class="form-control" placeholder="action, entity, user, details">
+                                <label for="auditSearch">${t('common.search', 'Поиск')}</label>
+                                <input id="auditSearch" class="form-control" placeholder="${t('audit.searchPlaceholder', 'действие, сущность, пользователь, детали')}">
                             </div>
                             <div class="filter-group">
-                                <label for="auditActionFilter">Action</label>
-                                <select id="auditActionFilter" class="filter-select"><option value="">All</option></select>
+                                <label for="auditActionFilter">${t('audit.action', 'Действие')}</label>
+                                <select id="auditActionFilter" class="filter-select"><option value="">${t('common.all', 'Все')}</option></select>
                             </div>
                             <div class="filter-group">
-                                <label for="auditEntityFilter">Entity</label>
-                                <select id="auditEntityFilter" class="filter-select"><option value="">All</option></select>
+                                <label for="auditEntityFilter">${t('audit.entity', 'Сущность')}</label>
+                                <select id="auditEntityFilter" class="filter-select"><option value="">${t('common.all', 'Все')}</option></select>
                             </div>
                             <div class="filter-group">
-                                <label for="auditRoleFilter">Actor Role</label>
-                                <select id="auditRoleFilter" class="filter-select"><option value="">All</option></select>
+                                <label for="auditRoleFilter">${t('audit.actorRole', 'Роль инициатора')}</label>
+                                <select id="auditRoleFilter" class="filter-select"><option value="">${t('common.all', 'Все')}</option></select>
                             </div>
                             <div class="filter-group">
-                                <label for="auditStatusFilter">Status</label>
+                                <label for="auditStatusFilter">${t('audit.status', 'Статус')}</label>
                                 <select id="auditStatusFilter" class="filter-select">
-                                    <option value="">All</option>
-                                    <option value="success">Success</option>
-                                    <option value="failed">Failed</option>
+                                    <option value="">${t('common.all', 'Все')}</option>
+                                    <option value="success">${t('audit.success', 'Успех')}</option>
+                                    <option value="failed">${t('audit.failed', 'Ошибка')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="auditFromFilter">From</label>
+                                <label for="auditFromFilter">${t('common.from', 'От')}</label>
                                 <input id="auditFromFilter" class="form-control" type="datetime-local">
                             </div>
                             <div class="filter-group">
-                                <label for="auditToFilter">To</label>
+                                <label for="auditToFilter">${t('common.to', 'До')}</label>
                                 <input id="auditToFilter" class="form-control" type="datetime-local">
                             </div>
                             <div class="filter-group">
-                                <label for="auditPageSize">Per page</label>
+                                <label for="auditPageSize">${t('common.perPage', 'На странице')}</label>
                                 <select id="auditPageSize" class="filter-select">
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -2221,10 +2221,10 @@
                             <button class="btn btn-outline" id="auditPreset24hBtn" type="button">24h</button>
                             <button class="btn btn-outline" id="auditPreset7dBtn" type="button">7d</button>
                             <button class="btn btn-outline" id="auditPreset30dBtn" type="button">30d</button>
-                            <button class="btn btn-outline" id="auditResetFiltersBtn" type="button">Reset</button>
-                            <button class="btn btn-secondary" id="auditRefreshBtn" type="button">Refresh</button>
-                            <button class="btn btn-secondary" id="auditAutoRefreshBtn" type="button">Auto: Off</button>
-                            <button class="btn btn-primary" id="auditExportBtn" type="button">Export CSV</button>
+                            <button class="btn btn-outline" id="auditResetFiltersBtn" type="button">${t('users.clear', 'Очистить')}</button>
+                            <button class="btn btn-secondary" id="auditRefreshBtn" type="button">${t('common.refresh', 'Обновить')}</button>
+                            <button class="btn btn-secondary" id="auditAutoRefreshBtn" type="button">${t('audit.autoOff', 'Авто: Выкл')}</button>
+                            <button class="btn btn-primary" id="auditExportBtn" type="button">${t('audit.exportCsv', 'Экспорт CSV')}</button>
                         </div>
                     </div>
 
@@ -2232,27 +2232,27 @@
 
                     <div class="reports-grid-main">
                         <div class="dashboard-section reports-card">
-                            <div class="section-header"><h2 class="section-title">Top Actions</h2></div>
+                            <div class="section-header"><h2 class="section-title">${t('audit.topActions', 'Топ действий')}</h2></div>
                             <div id="auditTopActions"></div>
                         </div>
                         <div class="dashboard-section reports-card">
-                            <div class="section-header"><h2 class="section-title">Top Actors</h2></div>
+                            <div class="section-header"><h2 class="section-title">${t('audit.topActors', 'Топ инициаторов')}</h2></div>
                             <div id="auditTopActors"></div>
                         </div>
                     </div>
 
                     <div class="dashboard-section reports-card">
-                        <div class="section-header"><h2 class="section-title">Daily Activity Timeline</h2></div>
+                        <div class="section-header"><h2 class="section-title">${t('audit.dailyTimeline', 'Ежедневная активность')}</h2></div>
                         <div id="auditTimeline"></div>
                     </div>
 
                     <div class="dashboard-section reports-card">
-                        <div class="section-header"><h2 class="section-title">Audit Logs</h2></div>
+                        <div class="section-header"><h2 class="section-title">${t('audit.logs', 'Логи аудита')}</h2></div>
                         <div id="auditLogsTable"></div>
                     </div>
 
                     <div class="dashboard-section reports-card" id="auditDetailsCard" style="display:none;">
-                        <div class="section-header"><h2 class="section-title">Log Details</h2></div>
+                        <div class="section-header"><h2 class="section-title">${t('audit.logDetails', 'Детали лога')}</h2></div>
                         <div id="auditDetailsView"></div>
                     </div>
                 </div>
@@ -2293,7 +2293,7 @@
                 <div class="section-header">
                     <h2 class="section-title">${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
                 </div>
-                <p style="color: var(--text-secondary);">This section is under development.</p>
+                <p style="color: var(--text-secondary);">${t('dashboard.activity.placeholder', 'Скоро появится...')}</p>
             </div>
         `;
     }

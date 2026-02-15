@@ -12,29 +12,35 @@
         pageSizeStorageKey: 'users_page_limit',
         searchDebounceTimer: null,
         activeUsersRequest: null,
-        showAlertModal: function (message, title = 'Info') {
+        t: function (key, fallback, params) {
+            const tr = window.ZedlyI18n?.translate?.(key, params);
+            return tr && tr !== key ? tr : (fallback || key);
+        },
+        showAlertModal: function (message, title) {
+            const resolvedTitle = title || this.t('common.info');
             if (window.ZedlyDialog?.alert) {
-                return window.ZedlyDialog.alert(message, { title });
+                return window.ZedlyDialog.alert(message, { title: resolvedTitle });
             }
             alert(message);
             return Promise.resolve(true);
         },
 
-        confirmAction: async function (message, title = 'Подтверждение') {
+        confirmAction: async function (message, title) {
+            const resolvedTitle = title || this.t('common.confirmation');
             if (window.ZedlyDialog?.confirm) {
-                return window.ZedlyDialog.confirm(message, { title });
+                return window.ZedlyDialog.confirm(message, { title: resolvedTitle });
             }
             return confirm(message);
         },
         showTempPasswordModal: function ({ title, subtitle, password, onClose }) {
             if (window.ZedlyDialog?.temporaryPassword) {
                 return window.ZedlyDialog.temporaryPassword({
-                    title: title || (window.ZedlyI18n?.translate('users.tempPassword') || 'Temporary password'),
+                    title: title || window.ZedlyI18n?.translate('users.tempPassword') || this.t('users.tempPassword'),
                     subtitle: subtitle || '',
                     password: password || '',
-                    passwordLabel: window.ZedlyI18n?.translate('users.tempPassword') || 'Temporary password',
-                    copyText: window.ZedlyI18n?.translate('users.copyPassword') || 'Copy',
-                    hint: window.ZedlyI18n?.translate('users.userMustChangePassword') || 'User must change password on next login.'
+                    passwordLabel: window.ZedlyI18n?.translate('users.tempPassword') || this.t('users.tempPassword'),
+                    copyText: window.ZedlyI18n?.translate('users.copyPassword') || this.t('users.copyPassword'),
+                    hint: window.ZedlyI18n?.translate('users.userMustChangePassword') || this.t('users.userMustChangePassword')
                 }).finally(() => {
                     if (typeof onClose === 'function') onClose();
                 });
@@ -140,7 +146,7 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
                     <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Loading users...</p>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${this.t('users.loadingUsers')}</p>
                 </div>
             `;
 
@@ -171,7 +177,7 @@
                 console.error('Load users error:', error);
                 container.innerHTML = `
                     <div class="error-message">
-                        <p>Failed to load users. Please try again.</p>
+                        <p>${this.t('users.failedLoadUsers')}</p>
                     </div>
                 `;
             } finally {
@@ -188,7 +194,7 @@
             if (users.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">No users found.</p>
+                        <p style="color: var(--text-secondary);">${this.t('users.noUsersFound')}</p>
                     </div>
                 `;
                 return;
@@ -197,12 +203,12 @@
             let html = `
                 <div class="bulk-toolbar" id="usersBulkToolbar">
                     <div class="bulk-toolbar-left">
-                        <span class="bulk-count-pill" id="usersBulkCount">0 selected</span>
-                        <button class="btn btn-sm btn-outline" id="usersClearSelectionBtn" onclick="UsersManager.clearSelection()">Clear</button>
+                        <span class="bulk-count-pill" id="usersBulkCount">${this.t('users.selectedCount', undefined, { count: 0 })}</span>
+                        <button class="btn btn-sm btn-outline" id="usersClearSelectionBtn" onclick="UsersManager.clearSelection()">${this.t('users.clear')}</button>
                     </div>
                     <div class="bulk-toolbar-right">
                         <button class="btn btn-sm btn-danger" id="usersBulkDeleteBtn" onclick="UsersManager.bulkDeleteUsers()" disabled>
-                            Delete selected
+                            ${this.t('users.deleteSelected')}
                         </button>
                     </div>
                 </div>
@@ -215,16 +221,16 @@
                                         type="checkbox"
                                         id="usersSelectAll"
                                         onchange="UsersManager.toggleSelectAllUsers(this.checked)"
-                                        aria-label="Select all users"
+                                        aria-label="${this.t('users.selectAllUsers')}"
                                     >
                                 </th>
-                                <th>Full Name</th>
-                                <th>Username</th>
-                                <th>Role</th>
-                                <th>Contact</th>
-                                <th>Status</th>
-                                <th>Last Login</th>
-                                <th>Actions</th>
+                                <th>${this.t('users.fullNameHeader')}</th>
+                                <th>${this.t('users.username')}</th>
+                                <th>${this.t('common.role')}</th>
+                                <th>${this.t('users.contact')}</th>
+                                <th>${this.t('common.status')}</th>
+                                <th>${this.t('users.lastLogin')}</th>
+                                <th>${this.t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -232,9 +238,9 @@
 
             users.forEach(user => {
                 const statusClass = user.is_active ? 'status-active' : 'status-inactive';
-                const statusText = user.is_active ? 'Active' : 'Inactive';
+                const statusText = user.is_active ? this.t('users.active') : this.t('users.inactive');
                 const roleLabel = this.getRoleLabel(user.role);
-                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
+                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : this.t('users.never');
                 const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
                 const safeFullName = fullName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 const isSelected = this.selectedIds.has(user.id);
@@ -248,7 +254,7 @@
                                 class="bulk-row-checkbox"
                                 ${isSelected ? 'checked' : ''}
                                 onchange="UsersManager.toggleSelectUser('${user.id}')"
-                                aria-label="Select ${fullName || 'user'}"
+                                aria-label="${this.t('users.selectUserAria', undefined, { name: fullName || this.t('reports.user') })}"
                             >
                         </td>
                         <td>
@@ -264,19 +270,19 @@
                         <td class="text-secondary">${lastLogin}</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn-icon" onclick="UsersManager.resetPassword('${user.id}', '${user.first_name} ${user.last_name}')" title="Reset Password">
+                                <button class="btn-icon" onclick="UsersManager.resetPassword('${user.id}', '${user.first_name} ${user.last_name}')" title="${this.t('users.resetPasswordTitle')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon" onclick="UsersManager.editUser('${user.id}')" title="Edit">
+                                <button class="btn-icon" onclick="UsersManager.editUser('${user.id}')" title="${this.t('users.editTitle')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon btn-danger" onclick="UsersManager.deleteUser('${user.id}', '${safeFullName}')" title="Delete">
+                                <button class="btn-icon btn-danger" onclick="UsersManager.deleteUser('${user.id}', '${safeFullName}')" title="${this.t('users.deleteTitle')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"></polyline>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -332,7 +338,7 @@
             const count = this.selectedIds.size;
             const countEl = document.getElementById('usersBulkCount');
             if (countEl) {
-                countEl.textContent = `${count} selected`;
+                countEl.textContent = this.t('users.selectedCount', undefined, { count });
             }
 
             const deleteBtn = document.getElementById('usersBulkDeleteBtn');
@@ -366,7 +372,7 @@
             const ids = Array.from(this.selectedIds);
             if (ids.length === 0) return;
 
-            const confirmed = await this.confirmAction(`Delete ${ids.length} selected users permanently?`);
+            const confirmed = await this.confirmAction(this.t('users.bulkDeleteConfirm', undefined, { count: ids.length }));
             if (!confirmed) return;
 
             const token = localStorage.getItem('access_token');
@@ -391,7 +397,7 @@
             this.clearSelection();
 
             if (failed > 0) {
-                this.showAlertModal(`Deleted: ${deleted}. Failed: ${failed}.`, 'Bulk delete result');
+                this.showAlertModal(this.t('users.bulkDeleteStats', undefined, { deleted, failed }), this.t('users.bulkDeleteResult'));
             }
 
             this.loadUsers();
@@ -400,9 +406,9 @@
         // Get role label
         getRoleLabel: function (role) {
             const labels = {
-                'school_admin': 'School Admin',
-                'teacher': 'Teacher',
-                'student': 'Student'
+                'school_admin': this.t('settings.role.school_admin'),
+                'teacher': this.t('settings.role.teacher'),
+                'student': this.t('settings.role.student')
             };
             return labels[role] || role;
         },
@@ -414,7 +420,7 @@
             const currentPage = Math.min(Math.max(1, Number(pagination.page) || 1), totalPages);
 
             if (currentPage > 1) {
-                html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${currentPage - 1})">Previous</button>`;
+                html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${currentPage - 1})">${this.t('reports.previous')}</button>`;
             }
 
             const pagesToRender = [];
@@ -443,7 +449,7 @@
             }
 
             if (currentPage < totalPages) {
-                html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${currentPage + 1})">Next</button>`;
+                html += `<button class="pagination-btn" onclick="UsersManager.goToPage(${currentPage + 1})">${this.t('reports.next')}</button>`;
             }
 
             html += '</div>';
@@ -475,12 +481,12 @@
                         const data = await response.json();
                         user = data.user;
                     } else {
-                        this.showAlertModal('Failed to load user data', 'Error');
+                        this.showAlertModal(this.t('users.failedLoadUserData'), this.t('common.error'));
                         return;
                     }
                 } catch (error) {
                     console.error('Load user error:', error);
-                    this.showAlertModal('Failed to load user data', 'Error');
+                    this.showAlertModal(this.t('users.failedLoadUserData'), this.t('common.error'));
                     return;
                 }
             }
@@ -504,7 +510,7 @@
                 <div class="modal-overlay" id="userModal">
                     <div class="modal">
                         <div class="modal-header">
-                            <h2 class="modal-title">${isEdit ? 'Edit User' : 'Add New User'}</h2>
+                            <h2 class="modal-title">${isEdit ? this.t('users.editUserTitle', 'Редактировать пользователя') : this.t('users.addUserTitle', 'Добавить пользователя')}</h2>
                             <button class="modal-close" onclick="UsersManager.closeModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -547,7 +553,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Username <span class="required">*</span>
+                                            ${this.t('users.username')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -563,13 +569,13 @@
 
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Role <span class="required">*</span>
+                                            ${this.t('common.role', 'Роль')} <span class="required">*</span>
                                         </label>
                                         <select class="form-input" name="role" id="userRoleSelect" required onchange="UsersManager.toggleRoleFields(this.value)">
-                                            <option value="">Select role</option>
-                                            <option value="school_admin" ${user?.role === 'school_admin' ? 'selected' : ''}>School Admin</option>
-                                            <option value="teacher" ${user?.role === 'teacher' ? 'selected' : ''}>Teacher</option>
-                                            <option value="student" ${user?.role === 'student' ? 'selected' : ''}>Student</option>
+                                            <option value="">${this.t('users.role')}</option>
+                                            <option value="school_admin" ${user?.role === 'school_admin' ? 'selected' : ''}>${this.t('settings.role.school_admin', 'Администратор школы')}</option>
+                                            <option value="teacher" ${user?.role === 'teacher' ? 'selected' : ''}>${this.t('settings.role.teacher', 'Учитель')}</option>
+                                            <option value="student" ${user?.role === 'student' ? 'selected' : ''}>${this.t('settings.role.student', 'Ученик')}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -577,9 +583,9 @@
                                 <!-- Student-specific fields -->
                                 <div id="studentFields" style="display: none;">
                                     <div class="form-group">
-                                        <label class="form-label">Class <span class="required">*</span></label>
+                                        <label class="form-label">${this.t('dashboard.nav.classes', 'Классы')} <span class="required">*</span></label>
                                         <select class="form-input" name="student_class_id" id="studentClassSelect" required>
-                                            <option value="">Select class</option>
+                                            <option value="">${this.t('users.selectClassForStudent', 'Выберите класс для ученика')}</option>
                                             ${classOptionsHtml}
                                         </select>
                                     </div>
@@ -597,13 +603,13 @@
                                     </div>
 
                                     <button type="button" class="btn btn-outline btn-sm assignment-add-btn" onclick="UsersManager.addTeacherAssignment()">
-                                        + Add Subject & Classes
+                                        + ${this.t('users.addSubjectClasses', 'Добавить предмет и классы')}
                                     </button>
                                 </div>
 
                                 ${!isEdit ? `
                                 <div class="form-group">
-                                    <label class="form-label">Password</label>
+                                    <label class="form-label">${this.t('login.password', 'Пароль')}</label>
                                     <input
                                         type="text"
                                         class="form-input"
@@ -616,7 +622,7 @@
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label class="form-label">Email</label>
+                                        <label class="form-label">${this.t('users.email', 'Email')}</label>
                                         <input
                                             type="email"
                                             class="form-input"
@@ -627,7 +633,7 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="form-label">Phone</label>
+                                        <label class="form-label">${this.t('users.phone', 'Телефон')}</label>
                                         <input
                                             type="tel"
                                             class="form-input"
@@ -639,7 +645,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">Telegram ID</label>
+                                    <label class="form-label">${this.t('users.telegramId', 'Telegram ID')}</label>
                                     <input
                                         type="text"
                                         class="form-input"
@@ -661,7 +667,7 @@
                                             ${user?.is_active ? 'checked' : ''}
                                         />
                                         <label class="form-check-label" for="userActive">
-                                            Active
+                                            ${this.t('users.active', 'Активный')}
                                         </label>
                                     </div>
                                 </div>
@@ -672,10 +678,10 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="UsersManager.closeModal()">
-                                Cancel
+                                ${this.t('users.cancel', 'Отмена')}
                             </button>
                             <button type="submit" form="userForm" class="btn btn-primary" id="submitBtn">
-                                ${isEdit ? 'Update User' : 'Create User'}
+                                ${isEdit ? this.t('users.updateUser', 'Обновить пользователя') : this.t('users.createUser', 'Создать пользователя')}
                             </button>
                         </div>
                     </div>
@@ -760,13 +766,13 @@
             // Validation
             if (!data.first_name || !data.last_name || !data.username || !data.role) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Please fill all required fields';
+                formAlert.textContent = this.t('users.requiredFields');
                 return;
             }
 
             if (data.role === 'student' && !data.student_class_id) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Please select class for student';
+                formAlert.textContent = this.t('users.selectClassForStudent');
                 return;
             }
 
@@ -809,12 +815,12 @@
                 } else {
                     // Show error
                     formAlert.className = 'alert alert-error';
-                    formAlert.textContent = result.message || 'An error occurred';
+                    formAlert.textContent = result.message || this.t('users.genericError');
                 }
             } catch (error) {
                 console.error('Submit user error:', error);
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Network error. Please try again.';
+                formAlert.textContent = this.t('users.networkError');
             } finally {
                 if (!formAlert.classList.contains('alert-success') || !formAlert.innerHTML.includes('Generated Password')) {
                     submitBtn.classList.remove('loading');
@@ -830,7 +836,7 @@
 
         // Delete user
         deleteUser: async function (userId, userName) {
-            const confirmed = await this.confirmAction(`Are you sure you want to delete "${userName}" permanently?`);
+            const confirmed = await this.confirmAction(this.t('users.deleteConfirm', undefined, { name: userName }));
             if (!confirmed) {
                 return;
             }
@@ -848,11 +854,11 @@
                     this.selectedIds.delete(userId);
                     this.loadUsers();
                 } else {
-                    this.showAlertModal('Failed to delete user', 'Error');
+                    this.showAlertModal(this.t('users.failedDeleteUser'), this.t('common.error'));
                 }
             } catch (error) {
                 console.error('Delete user error:', error);
-                this.showAlertModal('Failed to delete user', 'Error');
+                this.showAlertModal(this.t('users.failedDeleteUser'), this.t('common.error'));
             }
         },
 
@@ -893,11 +899,11 @@
                         });
                     }
                 } else {
-                    this.showAlertModal(window.ZedlyI18n.translate('users.resetPasswordFailed'), 'Error');
+                    this.showAlertModal(window.ZedlyI18n.translate('users.resetPasswordFailed'), this.t('common.error'));
                 }
             } catch (error) {
                 console.error('Reset password error:', error);
-                this.showAlertModal(window.ZedlyI18n.translate('users.resetPasswordFailed'), 'Error');
+                this.showAlertModal(window.ZedlyI18n.translate('users.resetPasswordFailed'), this.t('common.error'));
             }
         },
 
@@ -946,7 +952,7 @@
             if (copied) {
                 this.showAlertModal(window.ZedlyI18n.translate('users.passwordCopied'), 'Info');
             } else {
-                this.showAlertModal('Не удалось скопировать пароль автоматически. Скопируйте вручную.', 'Error');
+                this.showAlertModal(this.t('users.copyPasswordFailed', 'Не удалось скопировать пароль автоматически. Скопируйте вручную.'), this.t('common.error', 'Ошибка'));
             }
         },
 
@@ -1188,7 +1194,7 @@
             // Show OTP password modal after user creation
             showOtpModal: function (otp) {
                 this.showTempPasswordModal({
-                    title: 'User created successfully!',
+                    title: this.t('users.createdSuccess', 'Пользователь успешно создан'),
                     subtitle: "Please save this password - it won't be shown again.",
                     password: otp,
                     onClose: () => this.loadUsers()
