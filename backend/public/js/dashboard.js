@@ -1638,12 +1638,12 @@
                             type="text"
                             id="classesSearch"
                             class="search-input"
-                            placeholder="Search classes..."
+                            placeholder="${t('classes.searchPlaceholder', 'Поиск классов...')}"
                         />
                     </div>
                     <div class="toolbar-right">
                         <div class="page-size-control">
-                            <label for="classesPerPage" class="page-size-label">Rows:</label>
+                            <label for="classesPerPage" class="page-size-label">${t('classes.rows', 'Строк:')}</label>
                             <select id="classesPerPage" class="select-input page-size-select">
                                 <option value="10">10</option>
                                 <option value="20">20</option>
@@ -1652,7 +1652,7 @@
                             </select>
                         </div>
                         <select id="gradeFilter" class="select-input">
-                            <option value="all">All Grades</option>
+                            <option value="all">${t('classes.allGrades', 'Все параллели')}</option>
                             <option value="1">1 класс</option>
                             <option value="2">2 класс</option>
                             <option value="3">3 класс</option>
@@ -1670,7 +1670,7 @@
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            Add Class
+                            ${t('classes.addClass', 'Добавить класс')}
                         </button>
                     </div>
                 </div>
@@ -1759,17 +1759,17 @@
                 <div class="page-toolbar">
                     <div class="search-box">
                         <select id="classAnalyticsSelect" class="select-input" style="width: 100%;">
-                            <option value="">Select class...</option>
+                            <option value="">${t('results.selectClass', 'Выберите класс...')}</option>
                         </select>
                     </div>
                     <div class="toolbar-right">
-                        <button class="btn btn-outline" id="refreshAnalyticsBtn">Refresh</button>
+                        <button class="btn btn-outline" id="refreshAnalyticsBtn">${t('common.refresh', 'Обновить')}</button>
                     </div>
                 </div>
                 <div class="stats-grid" id="classAnalyticsStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Recent Assignments</h2>
+                        <h2 class="section-title">${t('results.recentAssignments', 'Недавние назначения')}</h2>
                     </div>
                     <div id="classAnalyticsAssignments"></div>
                 </div>
@@ -1786,17 +1786,17 @@
                             type="text"
                             id="studentResultsSearch"
                             class="search-input"
-                            placeholder="Search results..."
+                            placeholder="${t('results.searchPlaceholder', 'Поиск результатов...')}"
                         />
                     </div>
                     <div class="toolbar-right">
-                        <button class="btn btn-outline" id="studentResultsRefresh">Refresh</button>
+                        <button class="btn btn-outline" id="studentResultsRefresh">${t('common.refresh', 'Обновить')}</button>
                     </div>
                 </div>
                 <div class="stats-grid" id="studentResultsStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Test History</h2>
+                        <h2 class="section-title">${t('results.testHistory', 'История тестов')}</h2>
                     </div>
                     <div id="studentResultsTable"></div>
                 </div>
@@ -1807,19 +1807,19 @@
             return `
                 <div class="page-toolbar">
                     <div class="toolbar-right">
-                        <button class="btn btn-outline" id="studentProgressRefresh">Refresh</button>
+                        <button class="btn btn-outline" id="studentProgressRefresh">${t('common.refresh', 'Обновить')}</button>
                     </div>
                 </div>
                 <div class="stats-grid" id="studentProgressStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Progress Trend</h2>
+                        <h2 class="section-title">${t('progress.trendTitle', 'Динамика прогресса')}</h2>
                     </div>
                     <div id="studentProgressTrend"></div>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">By Subject</h2>
+                        <h2 class="section-title">${t('progress.bySubjectTitle', 'По предметам')}</h2>
                     </div>
                     <div id="studentProgressSubjects"></div>
                 </div>
@@ -1831,21 +1831,21 @@
                 <div class="page-toolbar">
                     <div class="toolbar-filters">
                         <select id="leaderboardScope" class="filter-select">
-                            <option value="class">Class</option>
-                            <option value="school">School</option>
-                            <option value="subject">Subject</option>
+                            <option value="class">${t('leaderboard.scopeClass', 'Класс')}</option>
+                            <option value="school">${t('leaderboard.scopeSchool', 'Школа')}</option>
+                            <option value="subject">${t('leaderboard.scopeSubject', 'Предмет')}</option>
                         </select>
                         <select id="leaderboardClass" class="filter-select" style="display: none;"></select>
                         <select id="leaderboardSubject" class="filter-select" style="display: none;"></select>
                     </div>
                     <div class="toolbar-right">
-                        <button class="btn btn-outline" id="leaderboardRefresh">Refresh</button>
+                        <button class="btn btn-outline" id="leaderboardRefresh">${t('common.refresh', 'Обновить')}</button>
                     </div>
                 </div>
                 <div class="stats-grid" id="leaderboardStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Leaderboard</h2>
+                        <h2 class="section-title">${t('leaderboard.title', 'Рейтинг')}</h2>
                     </div>
                     <div id="leaderboardTable"></div>
                 </div>

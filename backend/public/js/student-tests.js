@@ -2,6 +2,10 @@
 (function () {
     'use strict';
 
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
+
     window.StudentTestsManager = {
         currentTab: 'available', // available, completed
         assignments: [],
@@ -9,6 +13,7 @@
         selectedSubjectId: null,
         focusAssignmentId: null,
         focusSubjectId: null,
+        langListenerBound: false,
 
         // Safely serialize values for inline onclick handlers
         toJsArg: function (value) {
@@ -37,8 +42,24 @@
             this.focusAssignmentId = params.get('assignment_id');
             this.focusSubjectId = params.get('subject_id');
             this.selectedSubjectId = this.focusSubjectId ? String(this.focusSubjectId) : null;
+            this.applyTabTranslations();
             this.setupEventListeners();
             this.loadAssignments();
+            if (!this.langListenerBound) {
+                window.addEventListener('zedly:lang-changed', () => this.applyTabTranslations());
+                this.langListenerBound = true;
+            }
+        },
+
+        applyTabTranslations: function () {
+            const availableTab = document.querySelector('[data-tab="available"]');
+            const completedTab = document.querySelector('[data-tab="completed"]');
+            if (availableTab) {
+                availableTab.textContent = t('tests.availableTests', 'Доступные тесты');
+            }
+            if (completedTab) {
+                completedTab.textContent = t('tests.completedTests', 'Завершенные тесты');
+            }
         },
 
         // Setup event listeners

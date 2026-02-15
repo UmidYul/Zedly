@@ -2,6 +2,10 @@
 (function () {
     'use strict';
 
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
+
     function formatPercent(value) {
         const num = Number(value);
         if (!Number.isFinite(num)) {
@@ -149,7 +153,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load leaderboard');
+                    throw new Error(t('leaderboard.failedLoad', 'Не удалось загрузить рейтинг'));
                 }
 
                 const data = await response.json();
@@ -157,7 +161,7 @@
                 this.renderTable(data.leaderboard || []);
             } catch (error) {
                 console.error('Load leaderboard error:', error);
-                this.renderError(error.message || 'Unable to load leaderboard.');
+                this.renderError(error.message || t('leaderboard.unableLoad', 'Не удалось загрузить рейтинг.'));
             }
         },
 
@@ -169,7 +173,7 @@
                 stats.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">Loading...</div>
+                            <div class="stat-label">${t('common.loading', 'Загрузка...')}</div>
                             <div class="stat-value">--</div>
                         </div>
                     </div>
@@ -177,7 +181,7 @@
             }
 
             if (table) {
-                table.innerHTML = '<p style="color: var(--text-secondary);">Loading leaderboard...</p>';
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('leaderboard.loading', 'Загрузка рейтинга...')}</p>`;
             }
         },
 
@@ -204,19 +208,19 @@
             stats.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Your Rank</div>
+                        <div class="stat-label">${t('leaderboard.yourRank', 'Ваше место')}</div>
                         <div class="stat-value">${userRank || '-'}</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Top Score</div>
+                        <div class="stat-label">${t('leaderboard.topScore', 'Лучший балл')}</div>
                         <div class="stat-value">${topScore}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Participants</div>
+                        <div class="stat-label">${t('leaderboard.participants', 'Участники')}</div>
                         <div class="stat-value">${count}</div>
                     </div>
                 </div>
@@ -228,7 +232,7 @@
             if (!table) return;
 
             if (!leaderboard.length) {
-                table.innerHTML = '<p style="color: var(--text-secondary);">No leaderboard data yet.</p>';
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('leaderboard.noData', 'Пока нет данных рейтинга.')}</p>`;
                 return;
             }
 
@@ -250,10 +254,10 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Rank</th>
-                                <th>Student</th>
-                                <th>Attempts</th>
-                                <th>Avg Score</th>
+                                <th>${t('leaderboard.colRank', 'Место')}</th>
+                                <th>${t('leaderboard.colStudent', 'Ученик')}</th>
+                                <th>${t('leaderboard.colAttempts', 'Попытки')}</th>
+                                <th>${t('leaderboard.colAvgScore', 'Средний балл')}</th>
                             </tr>
                         </thead>
                         <tbody>

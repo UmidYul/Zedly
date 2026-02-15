@@ -2,6 +2,10 @@
 (function () {
     'use strict';
 
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
+
     window.TeacherAnalytics = {
         classes: [],
         selectedClassId: null,
@@ -19,7 +23,7 @@
                     if (this.selectedClassId) {
                         this.loadAnalytics();
                     } else {
-                        this.renderEmptyState('Select a class to view analytics.');
+                        this.renderEmptyState(t('results.selectClassToView', 'Выберите класс для просмотра аналитики.'));
                     }
                 });
             }
@@ -49,7 +53,7 @@
             const select = document.getElementById('classAnalyticsSelect');
             if (!select) return;
 
-            select.innerHTML = '<option value="">Loading classes...</option>';
+            select.innerHTML = `<option value="">${t('results.loadingClasses', 'Загрузка классов...')}</option>`;
 
             try {
                 const token = localStorage.getItem('access_token');
@@ -60,23 +64,23 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load classes');
+                    throw new Error(t('results.failedLoadClasses', 'Не удалось загрузить классы'));
                 }
 
                 const data = await response.json();
                 this.classes = data.classes || [];
 
                 if (this.classes.length === 0) {
-                    select.innerHTML = '<option value="">No classes available</option>';
-                    this.renderEmptyState('No classes found for analytics.');
+                    select.innerHTML = `<option value="">${t('results.noClassesAvailable', 'Нет доступных классов')}</option>`;
+                    this.renderEmptyState(t('results.noClassesForAnalytics', 'Нет классов для аналитики.'));
                     return;
                 }
 
-                select.innerHTML = '<option value="">Select class...</option>';
+                select.innerHTML = `<option value="">${t('results.selectClass', 'Выберите класс...')}</option>`;
                 this.classes.forEach(cls => {
                     const option = document.createElement('option');
                     option.value = cls.id;
-                    option.textContent = `${cls.name} (${cls.grade_level} grade)`;
+                    option.textContent = `${cls.name} (${cls.grade_level} ${t('results.grade', 'класс')})`;
                     select.appendChild(option);
                 });
 
@@ -86,8 +90,8 @@
 
             } catch (error) {
                 console.error('Load classes error:', error);
-                select.innerHTML = '<option value="">Failed to load classes</option>';
-                this.renderEmptyState('Unable to load classes. Please try again.');
+                select.innerHTML = `<option value="">${t('results.failedLoadClasses', 'Не удалось загрузить классы')}</option>`;
+                this.renderEmptyState(t('results.unableLoadClassesTryAgain', 'Не удалось загрузить классы. Попробуйте снова.'));
             }
         },
 
@@ -105,14 +109,14 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load class analytics');
+                    throw new Error(t('results.failedLoadClassAnalytics', 'Не удалось загрузить аналитику класса'));
                 }
 
                 const data = await response.json();
                 this.renderAnalytics(data);
             } catch (error) {
                 console.error('Load analytics error:', error);
-                this.renderEmptyState(error.message || 'Unable to load analytics.');
+                this.renderEmptyState(error.message || t('results.unableLoadAnalytics', 'Не удалось загрузить аналитику.'));
             }
         },
 
@@ -125,7 +129,7 @@
                 stats.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">Loading...</div>
+                            <div class="stat-label">${t('common.loading', 'Загрузка...')}</div>
                             <div class="stat-value">--</div>
                         </div>
                     </div>
@@ -133,11 +137,11 @@
             }
 
             if (assignments) {
-                assignments.innerHTML = '<p style="color: var(--text-secondary);">Loading assignments...</p>';
+                assignments.innerHTML = `<p style="color: var(--text-secondary);">${t('assignments.loading', 'Загрузка назначений...')}</p>`;
             }
 
             if (notes) {
-                notes.innerHTML = '<p style="color: var(--text-secondary);">Fetching analytics data.</p>';
+                notes.innerHTML = `<p style="color: var(--text-secondary);">${t('results.loadingAnalyticsData', 'Загрузка данных аналитики...')}</p>`;
             }
         },
 
@@ -173,25 +177,25 @@
                 stats.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">Students</div>
+                            <div class="stat-label">${t('results.students', 'Ученики')}</div>
                             <div class="stat-value">${summary.student_count || 0}</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">Active Assignments</div>
+                            <div class="stat-label">${t('results.activeAssignments', 'Активные назначения')}</div>
                             <div class="stat-value">${summary.active_assignments || 0}</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">Completed Attempts</div>
+                            <div class="stat-label">${t('results.completedAttempts', 'Завершенные попытки')}</div>
                             <div class="stat-value">${summary.completed_attempts || 0}</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">Average Score</div>
+                            <div class="stat-label">${t('results.averageScore', 'Средний балл')}</div>
                             <div class="stat-value">${avgScore}</div>
                         </div>
                     </div>
@@ -201,7 +205,7 @@
             if (assignments) {
                 const list = data.assignments || [];
                 if (list.length === 0) {
-                    assignments.innerHTML = '<p style="color: var(--text-secondary);">No assignments found for this class.</p>';
+                    assignments.innerHTML = `<p style="color: var(--text-secondary);">${t('results.noAssignmentsForClass', 'Для этого класса назначения не найдены.')}</p>`;
                 } else {
                     assignments.innerHTML = this.renderAssignmentsTable(list);
                 }
@@ -211,10 +215,10 @@
                 const classInfo = data.class || {};
                 notes.innerHTML = `
                     <div class="section-header">
-                        <h2 class="section-title">Class Notes</h2>
+                        <h2 class="section-title">${t('results.classNotes', 'Заметки класса')}</h2>
                     </div>
                     <p style="color: var(--text-secondary);">
-                        ${classInfo.name || 'Class'} · Grade ${classInfo.grade_level || '-'} · Academic year ${classInfo.academic_year || '-'}
+                        ${classInfo.name || t('results.class', 'Класс')} · ${t('results.grade', 'класс')} ${classInfo.grade_level || '-'} · ${t('results.academicYear', 'Учебный год')} ${classInfo.academic_year || '-'}
                     </p>
                 `;
             }
@@ -226,12 +230,12 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Test</th>
-                                <th>Window</th>
-                                <th>Status</th>
-                                <th>Completed</th>
-                                <th>Average</th>
-                                <th>Actions</th>
+                                <th>${t('results.colTest', 'Тест')}</th>
+                                <th>${t('results.window', 'Период')}</th>
+                                <th>${t('results.colStatus', 'Статус')}</th>
+                                <th>${t('results.completed', 'Завершено')}</th>
+                                <th>${t('results.average', 'Среднее')}</th>
+                                <th>${t('results.colActions', 'Действия')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -254,7 +258,7 @@
                         <td>${completed}</td>
                         <td>${avg}</td>
                         <td>
-                            <button class="btn-icon js-view-assignment-results" data-assignment-id="${this.escapeHtml(item.id)}" title="View Results">
+                            <button class="btn-icon js-view-assignment-results" data-assignment-id="${this.escapeHtml(item.id)}" title="${t('assignments.viewResults', 'Результаты')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
@@ -280,18 +284,18 @@
             const endDate = assignment.end_date ? new Date(assignment.end_date) : null;
 
             if (!assignment.is_active) {
-                return 'Inactive';
+                return t('assignments.statusInactive', 'Неактивно');
             }
 
             if (startDate && now < startDate) {
-                return 'Upcoming';
+                return t('assignments.statusUpcoming', 'Скоро');
             }
 
             if (endDate && now > endDate) {
-                return 'Completed';
+                return t('assignments.statusCompleted', 'Завершено');
             }
 
-            return 'Active';
+            return t('assignments.statusActive', 'Активно');
         },
 
         formatDate: function (dateString) {

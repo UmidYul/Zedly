@@ -2,6 +2,10 @@
 (function () {
     'use strict';
 
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
+
     function formatPercent(value) {
         const num = Number(value);
         if (!Number.isFinite(num)) {
@@ -42,7 +46,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load progress');
+                    throw new Error(t('progress.failedLoad', 'Не удалось загрузить прогресс'));
                 }
 
                 const data = await response.json();
@@ -51,7 +55,7 @@
                 this.renderSubjects(data.subjects || []);
             } catch (error) {
                 console.error('Load progress error:', error);
-                this.renderError(error.message || 'Unable to load progress.');
+                this.renderError(error.message || t('progress.unableLoad', 'Не удалось загрузить прогресс.'));
             }
         },
 
@@ -64,7 +68,7 @@
                 stats.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">Loading...</div>
+                            <div class="stat-label">${t('common.loading', 'Загрузка...')}</div>
                             <div class="stat-value">--</div>
                         </div>
                     </div>
@@ -72,11 +76,11 @@
             }
 
             if (trend) {
-                trend.innerHTML = '<p style="color: var(--text-secondary);">Loading trend...</p>';
+                trend.innerHTML = `<p style="color: var(--text-secondary);">${t('progress.loadingTrend', 'Загрузка динамики...')}</p>`;
             }
 
             if (subjects) {
-                subjects.innerHTML = '<p style="color: var(--text-secondary);">Loading subjects...</p>';
+                subjects.innerHTML = `<p style="color: var(--text-secondary);">${t('progress.loadingSubjects', 'Загрузка предметов...')}</p>`;
             }
         },
 
@@ -105,25 +109,25 @@
             container.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Tests Assigned</div>
+                        <div class="stat-label">${t('progress.testsAssigned', 'Назначено тестов')}</div>
                         <div class="stat-value">${stats.tests_assigned || 0}</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Tests Completed</div>
+                        <div class="stat-label">${t('progress.testsCompleted', 'Завершено тестов')}</div>
                         <div class="stat-value">${stats.tests_completed || 0}</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Completion Rate</div>
+                        <div class="stat-label">${t('progress.completionRate', 'Процент завершения')}</div>
                         <div class="stat-value">${stats.completion_rate || 0}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Average Score</div>
+                        <div class="stat-label">${t('progress.averageScore', 'Средний балл')}</div>
                         <div class="stat-value">${formatPercent(stats.avg_score)}%</div>
                     </div>
                 </div>
@@ -135,7 +139,7 @@
             if (!container) return;
 
             if (!trend.length) {
-                container.innerHTML = '<p style="color: var(--text-secondary);">No recent attempts yet.</p>';
+                container.innerHTML = `<p style="color: var(--text-secondary);">${t('progress.noRecentAttempts', 'Пока нет недавних попыток.')}</p>`;
                 return;
             }
 
@@ -152,9 +156,9 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Week</th>
-                                <th>Attempts</th>
-                                <th>Avg Score</th>
+                                <th>${t('progress.colWeek', 'Неделя')}</th>
+                                <th>${t('progress.colAttempts', 'Попытки')}</th>
+                                <th>${t('progress.colAvgScore', 'Средний балл')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -170,7 +174,7 @@
             if (!container) return;
 
             if (!subjects.length) {
-                container.innerHTML = '<p style="color: var(--text-secondary);">No subject data yet.</p>';
+                container.innerHTML = `<p style="color: var(--text-secondary);">${t('progress.noSubjectData', 'Пока нет данных по предметам.')}</p>`;
                 return;
             }
 
@@ -193,9 +197,9 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Subject</th>
-                                <th>Attempts</th>
-                                <th>Avg Score</th>
+                                <th>${t('progress.colSubject', 'Предмет')}</th>
+                                <th>${t('progress.colAttempts', 'Попытки')}</th>
+                                <th>${t('progress.colAvgScore', 'Средний балл')}</th>
                             </tr>
                         </thead>
                         <tbody>

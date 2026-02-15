@@ -2,6 +2,10 @@
 (function () {
     'use strict';
 
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
+
     window.StudentResults = {
         results: [],
         filteredResults: [],
@@ -58,7 +62,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load results');
+                    throw new Error(t('results.failedLoad', 'Не удалось загрузить результаты'));
                 }
 
                 const data = await response.json();
@@ -69,7 +73,7 @@
                 this.renderTable();
             } catch (error) {
                 console.error('Load student results error:', error);
-                this.renderError(error.message || 'Unable to load results.');
+                this.renderError(error.message || t('results.unableLoad', 'Не удалось загрузить результаты.'));
             }
         },
 
@@ -81,7 +85,7 @@
                 stats.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">Loading...</div>
+                            <div class="stat-label">${t('common.loading', 'Загрузка...')}</div>
                             <div class="stat-value">--</div>
                         </div>
                     </div>
@@ -89,7 +93,7 @@
             }
 
             if (table) {
-                table.innerHTML = '<p style="color: var(--text-secondary);">Loading results...</p>';
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.loadingResults', 'Загрузка результатов...')}</p>`;
             }
         },
 
@@ -121,25 +125,25 @@
             stats.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Tests Completed</div>
+                        <div class="stat-label">${t('results.testsCompleted', 'Тестов завершено')}</div>
                         <div class="stat-value">${completed}</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Average Score</div>
+                        <div class="stat-label">${t('results.averageScore', 'Средний балл')}</div>
                         <div class="stat-value">${avg}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Pass Rate</div>
+                        <div class="stat-label">${t('results.passRate', 'Процент сдачи')}</div>
                         <div class="stat-value">${passRate}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Total Attempts</div>
+                        <div class="stat-label">${t('results.totalAttempts', 'Всего попыток')}</div>
                         <div class="stat-value">${total}</div>
                     </div>
                 </div>
@@ -151,7 +155,7 @@
             if (!table) return;
 
             if (this.filteredResults.length === 0) {
-                table.innerHTML = '<p style="color: var(--text-secondary);">No completed tests yet.</p>';
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.noCompletedTests', 'Пока нет завершенных тестов.')}</p>`;
                 return;
             }
 
@@ -160,13 +164,13 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Test</th>
-                                <th>Subject</th>
-                                <th>Class</th>
-                                <th>Date</th>
-                                <th>Score</th>
-                                <th>Result</th>
-                                <th>Actions</th>
+                                <th>${t('results.colTest', 'Тест')}</th>
+                                <th>${t('results.colSubject', 'Предмет')}</th>
+                                <th>${t('results.colClass', 'Класс')}</th>
+                                <th>${t('results.colDate', 'Дата')}</th>
+                                <th>${t('results.colScore', 'Балл')}</th>
+                                <th>${t('results.colResult', 'Результат')}</th>
+                                <th>${t('results.colActions', 'Действия')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -176,7 +180,7 @@
                 const percentage = parseFloat(result.percentage || 0);
                 const passed = this.isPassed(result);
                 const statusClass = passed ? 'status-active' : 'status-warning';
-                const statusText = passed ? 'Passed' : 'Failed';
+                const statusText = passed ? t('results.passed', 'Сдано') : t('results.failed', 'Не сдано');
                 const attemptId = String(result.attempt_id || '');
                 const testTitle = this.escapeHtml(result.test_title || '-');
                 const className = this.escapeHtml(result.class_name || '-');
@@ -202,7 +206,7 @@
                             <span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>
                         </td>
                         <td>
-                            <button class="btn-icon js-view-attempt" data-attempt-id="${this.escapeHtml(attemptId)}" title="View Details">
+                            <button class="btn-icon js-view-attempt" data-attempt-id="${this.escapeHtml(attemptId)}" title="${t('results.viewDetails', 'Просмотр деталей')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>

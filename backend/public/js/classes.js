@@ -2,6 +2,10 @@
 (function () {
     'use strict';
 
+    function t(key, fallback) {
+        return window.ZedlyI18n?.translate(key) || fallback || key;
+    }
+
     function showAlert(message, title = 'Error') {
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title });
@@ -254,13 +258,13 @@
                                     >
                                 </th>
                                 ` : ''}
-                                <th>Class Name</th>
-                                <th>Grade Level</th>
-                                <th>Academic Year</th>
-                                <th>Homeroom Teacher</th>
-                                <th>Students</th>
-                                ${this.userRole === 'school_admin' ? '<th>Status</th>' : ''}
-                                ${this.userRole === 'school_admin' ? '<th>Actions</th>' : '<th>Teaching Subjects</th>'}
+                                <th>${t('classes.colClassName', 'Название класса')}</th>
+                                <th>${t('classes.colGradeLevel', 'Параллель')}</th>
+                                <th>${t('classes.colAcademicYear', 'Учебный год')}</th>
+                                <th>${t('classes.colHomeroomTeacher', 'Классный руководитель')}</th>
+                                <th>${t('classes.colStudents', 'Ученики')}</th>
+                                ${this.userRole === 'school_admin' ? `<th>${t('classes.colStatus', 'Статус')}</th>` : ''}
+                                ${this.userRole === 'school_admin' ? `<th>${t('classes.colActions', 'Действия')}</th>` : `<th>${t('classes.colTeachingSubjects', 'Преподаваемые предметы')}</th>`}
                             </tr>
                         </thead>
                         <tbody>
@@ -287,21 +291,21 @@
                                 >
                             </td>
                             ` : ''}
-                            <td data-label="Class Name">
+                            <td data-label="${t('classes.colClassName', 'Название класса')}">
                                 <div class="user-name">
                                     <a href="class-details.html?id=${cls.id}" class="class-link">${cls.name}</a>
                                 </div>
                             </td>
-                            <td data-label="Grade Level">${cls.grade_level} класс</td>
-                            <td data-label="Academic Year">${cls.academic_year}</td>
-                            <td data-label="Homeroom Teacher">${teacherName}</td>
-                            <td data-label="Students">${cls.student_count || 0} students</td>
+                            <td data-label="${t('classes.colGradeLevel', 'Параллель')}">${cls.grade_level} класс</td>
+                            <td data-label="${t('classes.colAcademicYear', 'Учебный год')}">${cls.academic_year}</td>
+                            <td data-label="${t('classes.colHomeroomTeacher', 'Классный руководитель')}">${teacherName}</td>
+                            <td data-label="${t('classes.colStudents', 'Ученики')}">${cls.student_count || 0} ${t('classes.studentsSuffix', 'учеников')}</td>
                     `;
 
                 if (this.userRole === 'school_admin') {
                     html += `
-                        <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td data-label="Actions">
+                        <td data-label="${t('classes.colStatus', 'Статус')}"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td data-label="${t('classes.colActions', 'Действия')}">
                             <div class="action-buttons">
                                 <button class="btn-icon" onclick="ClassesManager.editClass('${cls.id}')" title="Edit">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -321,7 +325,7 @@
                 } else {
                     // For teachers, show taught subject names in this class
                     html += `
-                        <td data-label="Teaching Subjects">${taughtSubjects}</td>
+                        <td data-label="${t('classes.colTeachingSubjects', 'Преподаваемые предметы')}">${taughtSubjects}</td>
                     `;
                 }
 
