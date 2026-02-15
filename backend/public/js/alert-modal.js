@@ -476,6 +476,196 @@
         document.head.appendChild(script);
     }
 
+    const fallbackUiTranslations = {
+        ru: {
+            'Notification': 'Уведомление',
+            'Confirmation': 'Подтверждение',
+            'Confirm': 'Подтвердить',
+            'Cancel': 'Отмена',
+            'OK': 'OK',
+            'Temporary password': 'Временный пароль',
+            'Copy': 'Копировать',
+            'Copied': 'Скопировано',
+            'Copy failed': 'Не удалось скопировать',
+            'Done': 'Готово',
+            'Back to Results': 'Назад к результатам',
+            'Student Attempt': 'Попытка ученика',
+            'Loading attempt details...': 'Загрузка деталей попытки...',
+            'Attempt Summary': 'Сводка попытки',
+            'Score': 'Балл',
+            'Percentage': 'Процент',
+            'Time Taken': 'Время',
+            'Correct Answers': 'Верных ответов',
+            'Student:': 'Ученик:',
+            'Test:': 'Тест:',
+            'Subject:': 'Предмет:',
+            'Submitted:': 'Отправлено:',
+            'Questions Review': 'Разбор вопросов',
+            'All Questions': 'Все вопросы',
+            'Correct': 'Верные',
+            'Incorrect': 'Неверные',
+            'Failed to load attempt': 'Не удалось загрузить попытку',
+            'An error occurred while loading the attempt details.': 'Произошла ошибка при загрузке деталей попытки.',
+            'Go Back': 'Назад',
+            'Assignment Results': 'Результаты назначения',
+            'Loading results...': 'Загрузка результатов...',
+            'Test Name': 'Название теста',
+            'Class': 'Класс',
+            'Date Range': 'Период',
+            'Total Students': 'Всего учеников',
+            'Completed': 'Завершено',
+            'Pending': 'Ожидают',
+            'Average Score': 'Средний балл',
+            'Student Results': 'Результаты учеников',
+            'Failed to load results': 'Не удалось загрузить результаты',
+            'An error occurred while loading results.': 'Произошла ошибка при загрузке результатов.',
+            'Take Test - Zedly': 'Прохождение теста - Zedly',
+            'Loading test...': 'Загрузка теста...',
+            'Changes saved': 'Изменения сохранены',
+            'Page removed': 'Страница удалена',
+            'This page is no longer available.': 'Эта страница больше недоступна.',
+            'Go to Dashboard': 'Перейти в дашборд',
+            'Teacher': 'Учитель',
+            'Student': 'Ученик',
+            'Role': 'Роль',
+            'User': 'Пользователь'
+        },
+        uz: {
+            'Notification': 'Bildirishnoma',
+            'Confirmation': 'Tasdiqlash',
+            'Confirm': 'Tasdiqlash',
+            'Cancel': 'Bekor qilish',
+            'OK': 'OK',
+            'Temporary password': 'Vaqtinchalik parol',
+            'Copy': 'Nusxalash',
+            'Copied': 'Nusxalandi',
+            'Copy failed': 'Nusxalab bo\'lmadi',
+            'Done': 'Tayyor',
+            'Back to Results': 'Natijalarga qaytish',
+            'Student Attempt': 'O\'quvchi urinishi',
+            'Loading attempt details...': 'Urinish tafsilotlari yuklanmoqda...',
+            'Attempt Summary': 'Urinish xulosasi',
+            'Score': 'Ball',
+            'Percentage': 'Foiz',
+            'Time Taken': 'Vaqt',
+            'Correct Answers': 'To\'g\'ri javoblar',
+            'Student:': 'O\'quvchi:',
+            'Test:': 'Test:',
+            'Subject:': 'Fan:',
+            'Submitted:': 'Yuborilgan:',
+            'Questions Review': 'Savollar tahlili',
+            'All Questions': 'Barcha savollar',
+            'Correct': 'To\'g\'ri',
+            'Incorrect': 'Noto\'g\'ri',
+            'Failed to load attempt': 'Urinishni yuklab bo\'lmadi',
+            'An error occurred while loading the attempt details.': 'Urinish tafsilotlarini yuklashda xatolik yuz berdi.',
+            'Go Back': 'Orqaga',
+            'Assignment Results': 'Topshiriq natijalari',
+            'Loading results...': 'Natijalar yuklanmoqda...',
+            'Test Name': 'Test nomi',
+            'Class': 'Sinf',
+            'Date Range': 'Sana oralig\'i',
+            'Total Students': 'Jami o\'quvchilar',
+            'Completed': 'Yakunlangan',
+            'Pending': 'Kutilmoqda',
+            'Average Score': 'O\'rtacha ball',
+            'Student Results': 'O\'quvchi natijalari',
+            'Failed to load results': 'Natijalarni yuklab bo\'lmadi',
+            'An error occurred while loading results.': 'Natijalarni yuklashda xatolik yuz berdi.',
+            'Take Test - Zedly': 'Test topshirish - Zedly',
+            'Loading test...': 'Test yuklanmoqda...',
+            'Changes saved': 'O\'zgarishlar saqlandi',
+            'Page removed': 'Sahifa o\'chirildi',
+            'This page is no longer available.': 'Bu sahifa endi mavjud emas.',
+            'Go to Dashboard': 'Dashboardga o\'tish',
+            'Teacher': 'O\'qituvchi',
+            'Student': 'O\'quvchi',
+            'Role': 'Rol',
+            'User': 'Foydalanuvchi'
+        }
+    };
+
+    function normalizeText(value) {
+        return String(value || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function translateLooseText(raw, lang) {
+        const dict = fallbackUiTranslations[lang] || fallbackUiTranslations.ru;
+        const key = normalizeText(raw);
+        return dict[key] || null;
+    }
+
+    function applyFallbackTranslations(root) {
+        const lang = (localStorage.getItem('zedly-lang') || 'ru') === 'uz' ? 'uz' : 'ru';
+        const scope = root || document.body;
+        if (!scope) return;
+
+        const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+                if (!node || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+                const parent = node.parentElement;
+                if (!parent) return NodeFilter.FILTER_REJECT;
+                if (parent.closest('[data-i18n],[data-i18n-placeholder],[data-i18n-title]')) return NodeFilter.FILTER_REJECT;
+                const tag = parent.tagName;
+                if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
+                const trimmed = normalizeText(node.nodeValue);
+                if (!trimmed) return NodeFilter.FILTER_REJECT;
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+
+        const updates = [];
+        while (walker.nextNode()) {
+            const textNode = walker.currentNode;
+            const translated = translateLooseText(textNode.nodeValue, lang);
+            if (translated && translated !== normalizeText(textNode.nodeValue)) {
+                updates.push({ node: textNode, value: translated });
+            }
+        }
+        updates.forEach((item) => {
+            item.node.nodeValue = item.value;
+        });
+
+        scope.querySelectorAll?.('input[placeholder], textarea[placeholder], [title]').forEach((el) => {
+            if (el.hasAttribute('placeholder')) {
+                const translatedPlaceholder = translateLooseText(el.getAttribute('placeholder'), lang);
+                if (translatedPlaceholder) el.setAttribute('placeholder', translatedPlaceholder);
+            }
+            if (el.hasAttribute('title')) {
+                const translatedTitle = translateLooseText(el.getAttribute('title'), lang);
+                if (translatedTitle) el.setAttribute('title', translatedTitle);
+            }
+        });
+    }
+
+    let fallbackObserver = null;
+    let fallbackTimer = null;
+    function initFallbackTranslations() {
+        if (!document.body) return;
+        applyFallbackTranslations(document.body);
+
+        if (fallbackObserver) return;
+        fallbackObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        applyFallbackTranslations(node);
+                    } else if (node.nodeType === Node.TEXT_NODE && node.parentElement) {
+                        applyFallbackTranslations(node.parentElement);
+                    }
+                });
+            }
+        });
+        fallbackObserver.observe(document.body, { childList: true, subtree: true });
+
+        const schedule = () => {
+            clearTimeout(fallbackTimer);
+            fallbackTimer = setTimeout(() => applyFallbackTranslations(document.body), 20);
+        };
+        window.addEventListener('zedly:lang-change', schedule);
+        window.addEventListener('zedly:lang-changed', schedule);
+    }
+
     function initGlobalLanguageSwitch() {
         if (!document.body) return;
         const pathname = (window.location && window.location.pathname) ? window.location.pathname : '';
@@ -531,9 +721,13 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initGlobalLanguageSwitch);
+        document.addEventListener('DOMContentLoaded', () => {
+            initGlobalLanguageSwitch();
+            initFallbackTranslations();
+        });
     } else {
         initGlobalLanguageSwitch();
+        initFallbackTranslations();
     }
 
     window.addEventListener('resize', initGlobalLanguageSwitch);

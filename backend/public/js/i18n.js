@@ -882,6 +882,9 @@
         'common.from': 'От',
         'common.to': 'До',
         'common.all': 'Все',
+        'common.unread': 'Непрочитанные',
+        'common.close': 'Закрыть',
+        'common.noUnread': 'Нет непрочитанных уведомлений',
         'common.total': 'Всего',
         'common.date': 'Дата',
         'common.role': 'Роль',
@@ -1079,6 +1082,9 @@
         'common.from': 'Dan',
         'common.to': 'Gacha',
         'common.all': 'Barchasi',
+        'common.unread': 'O\'qilmaganlar',
+        'common.close': 'Yopish',
+        'common.noUnread': 'O\'qilmagan bildirishnomalar yo\'q',
         'common.total': 'Jami',
         'common.date': 'Sana',
         'common.role': 'Rol',
@@ -1393,3 +1399,4 @@
         getCurrentLang
     };
 })();
+
