@@ -2164,20 +2164,6 @@
     }
 }
 
-@media (max-width: 430px) {
-    .header-logo span {
-        display: none;
-    }
-
-    .header-center {
-        flex: 0 1 auto;
-    }
-
-    .header-actions {
-        overflow-x: visible;
-    }
-}
-
 @media (max-width: 768px) {
     .students-hero-actions,
     .calendar-hero-actions,
@@ -2317,7 +2303,7 @@
 
     #usersContainer .data-table,
     #classesContainer .data-table {
-        min-width: 860px;
+        min-width: 760px;
         font-size: 12px;
     }
 
@@ -2374,7 +2360,7 @@
 
     .reports-toolbar .toolbar-right {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
         gap: 8px;
         width: 100%;
     }
@@ -2464,11 +2450,28 @@
     }
 
     .header-logo span {
-        font-size: 0.88rem;
+        display: block;
+        font-size: 0.82rem;
+        max-width: 90px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .header-logo {
+        gap: 8px;
+    }
+
+    .header-center {
+        flex: 1;
+        min-width: 0;
+        justify-content: flex-start;
     }
 
     .header-actions {
         gap: 4px;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
 
     .icon-btn {
