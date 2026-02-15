@@ -430,7 +430,7 @@
 
         const createdList = (data.created || []).map((user) => `
             <li>
-                <strong>${user.username}</strong> (${user.role}) - OTP: <code>${user.otp_password}</code>
+                <strong>${user.username}</strong> (${user.role}${user.class_name ? ` · ${user.class_name}` : ''}) - OTP: <code>${user.otp_password}</code>
             </li>
         `).join('' );
 
@@ -527,7 +527,8 @@
                     users: users.map(user => ({
                         username: user.username || '',
                         role: user.role || '',
-                        otp_password: user.otp_password || ''
+                        otp_password: user.otp_password || '',
+                        class_name: user.class_name || ''
                     }))
                 })
             );

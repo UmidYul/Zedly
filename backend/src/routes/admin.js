@@ -1175,6 +1175,7 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                 );
 
                 const userId = userResult.rows[0].id;
+                let importedClassName = '';
 
                 if (role === 'student' && mapped.class_name) {
                     const classResult = await ensureActiveClassForImport(
@@ -1204,11 +1205,13 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                              ON CONFLICT (class_id, student_id) DO NOTHING`,
                             [classResult.id, userId, mapped.roll_number || null]
                         );
+                        importedClassName = classResult.name || mapped.class_name || '';
                     }
                 }
 
                 if (role === 'teacher' && mapped.class_names) {
                     const classesList = parseTeacherClassList(mapped.class_names);
+                    importedClassName = classesList.join(', ');
                     for (const className of classesList) {
                         await ensureHomeroomTeacherForClass(
                             schoolId,
@@ -1230,7 +1233,8 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
                     id: userId,
                     username,
                     role,
-                    otp_password: otpPassword
+                    otp_password: otpPassword,
+                    class_name: importedClassName
                 });
             } catch (rowError) {
                 console.error('Import row error:', rowError);
@@ -1332,12 +1336,13 @@ router.post('/import/credentials/export', async (req, res) => {
         }
 
         const rows = [
-            ['№', 'Логин', 'OTP пароль', 'Роль'],
+            ['?', '?????', 'OTP ??????', '????', '?????'],
             ...users.map((user, index) => ([
                 index + 1,
                 String(user.username || '').trim(),
                 String(user.otp_password || '').trim(),
-                String(user.role || '').trim()
+                String(user.role || '').trim(),
+                String(user.class_name || '').trim()
             ]))
         ];
 
