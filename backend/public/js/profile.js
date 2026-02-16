@@ -251,6 +251,10 @@
     async function renderStatsByRole(user) {
         const stats = document.getElementById('statsContent');
         if (!stats) return;
+        const careerCard = document.getElementById('careerTestCard');
+        if (careerCard) {
+            careerCard.style.display = 'none';
+        }
 
         const statsResponse = await loadProfileStats(user.role);
         const apiStats = statsResponse?.stats || {};
@@ -270,12 +274,6 @@
                 }))
                 : [];
             renderPerformanceChart(subjectSeries);
-            if (isOwnProfile) {
-                document.getElementById('careerTestCard').style.display = 'block';
-                loadCareerResults().catch((error) => {
-                    console.error('Career load error:', error);
-                });
-            }
         } else if (user.role === 'teacher') {
             cards = [
                 { value: String(apiStats.tests_created ?? '-'), label: i18n.translate('profile.testsCreated') },
@@ -345,7 +343,6 @@
 
         const labels = values.map((v) => v.label);
         const data = values.map((v) => v.value);
-        const isMobile = window.matchMedia('(max-width: 768px)').matches;
         const chartWrap = canvas.parentElement;
         if (chartWrap) {
             chartWrap.style.overflowX = '';
@@ -353,21 +350,16 @@
         }
         canvas.style.minWidth = '';
         canvas.style.height = '';
-
-        if (isMobile) {
-            // Show all subjects on small screens in a readable order.
-            canvas.style.height = `${Math.max(280, labels.length * 34)}px`;
-            if (chartWrap) {
-                chartWrap.style.maxHeight = '420px';
-                chartWrap.style.overflowY = 'auto';
-                chartWrap.style.webkitOverflowScrolling = 'touch';
-            }
-        } else if (chartWrap) {
-            chartWrap.style.maxHeight = '';
+        // Always render subjects as vertical list (Y axis).
+        canvas.style.height = `${Math.max(300, labels.length * 34)}px`;
+        if (chartWrap) {
+            chartWrap.style.maxHeight = '520px';
+            chartWrap.style.overflowY = 'auto';
+            chartWrap.style.webkitOverflowScrolling = 'touch';
         }
 
         performanceChart = new Chart(canvas, {
-            type: isMobile ? 'bar' : 'line',
+            type: 'bar',
             data: {
                 labels,
                 datasets: [{
@@ -375,37 +367,28 @@
                     data,
                     borderColor: 'rgb(74, 144, 226)',
                     backgroundColor: 'rgba(74, 144, 226, 0.15)',
-                    tension: 0.35,
-                    fill: true,
-                    pointRadius: 4,
-                    ...(isMobile
-                        ? {
-                            barPercentage: 0.62,
-                            categoryPercentage: 0.72,
-                            borderRadius: 8
-                        }
-                        : {})
+                    borderRadius: 8,
+                    barPercentage: 0.62,
+                    categoryPercentage: 0.72
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: !isMobile,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                indexAxis: isMobile ? 'y' : 'x',
+                indexAxis: 'y',
                 scales: {
                     x: {
-                        ...(isMobile ? { beginAtZero: true, max: 100 } : {}),
+                        beginAtZero: true,
+                        max: 100,
                         ticks: {
-                            autoSkip: false,
-                            maxRotation: isMobile ? 0 : 0,
-                            minRotation: isMobile ? 0 : 0
+                            autoSkip: false
                         }
                     },
                     y: {
-                        ...(!isMobile ? { beginAtZero: true, max: 100 } : {}),
                         ticks: {
                             autoSkip: false,
-                            padding: isMobile ? 10 : 4
+                            padding: 10
                         }
                     }
                 }

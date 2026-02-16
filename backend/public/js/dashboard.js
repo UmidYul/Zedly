@@ -720,12 +720,6 @@
                                 <canvas id="performanceChart"></canvas>
                             </article>
 
-                            <article class="profile-card card-surface" id="careerTestCard" style="display:none;">
-                                <h2 data-i18n="career.title">Профориентация</h2>
-                                <div id="careerTestContent"><p class="no-data" data-i18n="profile.noCareerTest">Тест не пройден</p></div>
-                                <canvas id="careerRadarChart" style="display:none;"></canvas>
-                            </article>
-
                             <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
                                 <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'Последние действия')}</h2>
                                 <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
