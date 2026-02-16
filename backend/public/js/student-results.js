@@ -2,8 +2,18 @@
 (function () {
     'use strict';
 
+    function looksLikeMojibake(value) {
+        if (typeof value !== 'string' || value.length < 4) return false;
+        const chunks = value.match(/(?:Р.|С.)/g) || [];
+        return chunks.length >= 3 && chunks.length / value.length > 0.2;
+    }
+
     function t(key, fallback) {
-        return window.ZedlyI18n?.translate(key) || fallback || key;
+        const translated = window.ZedlyI18n?.translate(key);
+        if (!translated || translated === key || looksLikeMojibake(translated)) {
+            return fallback || key;
+        }
+        return translated;
     }
 
     window.StudentResults = {
@@ -159,18 +169,26 @@
                 return;
             }
 
+            const colTest = t('results.colTest', 'Test');
+            const colSubject = t('results.colSubject', 'Subject');
+            const colClass = t('results.colClass', 'Class');
+            const colDate = t('results.colDate', 'Date');
+            const colScore = t('results.colScore', 'Score');
+            const colResult = t('results.colResult', 'Result');
+            const colActions = t('results.colActions', 'Actions');
+
             let html = `
                 <div class="table-responsive mobile-stack-table">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>${t('results.colTest', 'РўРµСЃС‚')}</th>
-                                <th>${t('results.colSubject', 'РџСЂРµРґРјРµС‚')}</th>
-                                <th>${t('results.colClass', 'РљР»Р°СЃСЃ')}</th>
-                                <th>${t('results.colDate', 'Р”Р°С‚Р°')}</th>
-                                <th>${t('results.colScore', 'Р‘Р°Р»Р»')}</th>
-                                <th>${t('results.colResult', 'Р РµР·СѓР»СЊС‚Р°С‚')}</th>
-                                <th>${t('results.colActions', 'Р”РµР№СЃС‚РІРёСЏ')}</th>
+                                <th>${colTest}</th>
+                                <th>${colSubject}</th>
+                                <th>${colClass}</th>
+                                <th>${colDate}</th>
+                                <th>${colScore}</th>
+                                <th>${colResult}</th>
+                                <th>${colActions}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -186,26 +204,40 @@
                 const className = this.escapeHtml(result.class_name || '-');
                 const subjectName = this.escapeHtml(result.subject_name || '-');
                 const subjectColor = this.escapeHtml(result.subject_color || '#4A90E2');
+                const statusBadgeHtml = `<span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>`;
 
                 html += `
                     <tr>
-                        <td data-label="${this.escapeHtml(t('results.colTest', 'Test'))}">
+                        <td data-label="${this.escapeHtml(colTest)}" class="sr-a">
                             <div class="user-name">${testTitle}</div>
+                            ${result.subject_name ? `
+                                <div class="sr-mobile-subject">
+                                    <span class="subject-badge" style="background-color: ${subjectColor}20; color: ${subjectColor};">
+                                        ${subjectName}
+                                    </span>
+                                </div>
+                            ` : ''}
                         </td>
-                        <td data-label="${this.escapeHtml(t('results.colSubject', 'Subject'))}">
+                        <td data-label="${this.escapeHtml(colSubject)}" class="sr-hide-mobile">
                             ${result.subject_name ? `
                                 <span class="subject-badge" style="background-color: ${subjectColor}20; color: ${subjectColor};">
                                     ${subjectName}
                                 </span>
                             ` : '-'}
                         </td>
-                        <td data-label="${this.escapeHtml(t('results.colClass', 'Class'))}">${className}</td>
-                        <td data-label="${this.escapeHtml(t('results.colDate', 'Date'))}">${this.formatDate(result.submitted_at)}</td>
-                        <td data-label="${this.escapeHtml(t('results.colScore', 'Score'))}">${result.score} / ${result.max_score}</td>
-                        <td data-label="${this.escapeHtml(t('results.colResult', 'Result'))}">
-                            <span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>
+                        <td data-label="${this.escapeHtml(colClass)}" class="sr-b">
+                            <div>${className}</div>
+                            <div class="sr-mobile-date">${this.formatDate(result.submitted_at)}</div>
                         </td>
-                        <td data-label="${this.escapeHtml(t('results.colActions', 'Actions'))}">
+                        <td data-label="${this.escapeHtml(colDate)}" class="sr-hide-mobile">${this.formatDate(result.submitted_at)}</td>
+                        <td data-label="${this.escapeHtml(colScore)}" class="sr-c">
+                            <div>${result.score} / ${result.max_score}</div>
+                            <div class="sr-mobile-result">${statusBadgeHtml}</div>
+                        </td>
+                        <td data-label="${this.escapeHtml(colResult)}" class="sr-hide-mobile">
+                            ${statusBadgeHtml}
+                        </td>
+                        <td data-label="${this.escapeHtml(colActions)}" class="sr-d">
                             <button class="btn-icon js-view-attempt" data-attempt-id="${this.escapeHtml(attemptId)}" title="${t('results.viewDetails', 'РџСЂРѕСЃРјРѕС‚СЂ РґРµС‚Р°Р»РµР№')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>

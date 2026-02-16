@@ -3632,6 +3632,10 @@
     justify-content: flex-end;
 }
 
+#studentMyClassPage .classmate-inline-number {
+    display: none;
+}
+
 @media (max-width: 960px) {
     .my-class-hero {
         flex-direction: column;

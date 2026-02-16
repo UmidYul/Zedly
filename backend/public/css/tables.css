@@ -536,6 +536,48 @@
         gap: 6px;
     }
 
+    /* Student Results mobile layout:
+       A - test + subject
+       B - class + date
+       C - score + result
+       D - actions centered
+    */
+    #studentResultsTable .mobile-stack-table .data-table tr {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    #studentResultsTable .mobile-stack-table .data-table td {
+        width: auto;
+        border-bottom: 0;
+        padding: 0;
+        min-width: 0;
+    }
+
+    #studentResultsTable .mobile-stack-table .data-table td::before {
+        margin-bottom: 6px;
+    }
+
+    #studentResultsTable .mobile-stack-table .data-table td.sr-hide-mobile {
+        display: none;
+    }
+
+    #studentResultsTable .sr-mobile-subject,
+    #studentResultsTable .sr-mobile-date,
+    #studentResultsTable .sr-mobile-result {
+        margin-top: 6px;
+    }
+
+    #studentResultsTable .mobile-stack-table .data-table td.sr-d {
+        text-align: center;
+    }
+
+    #studentResultsTable .mobile-stack-table .data-table td.sr-d .btn-icon {
+        margin: 0 auto;
+    }
+
     .data-table {
         font-size: 0.8125rem;
     }
