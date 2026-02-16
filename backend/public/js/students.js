@@ -105,7 +105,7 @@
     }
 
     function statusLabel(status) {
-        return status === 'active' ? 'Активен' : 'Неактивен';
+        return status === 'active' ? 'РђРєС‚РёРІРµРЅ' : 'РќРµР°РєС‚РёРІРµРЅ';
     }
 
     function canResetPasswords() {
@@ -118,12 +118,12 @@
         const subtitle = byId('studentsPageSubtitle');
         if (!subtitle) return;
         if (!state.selectedClassId) {
-            subtitle.textContent = 'Выберите класс для просмотра учеников';
+            subtitle.textContent = 'Р’С‹Р±РµСЂРёС‚Рµ РєР»Р°СЃСЃ РґР»СЏ РїСЂРѕСЃРјРѕС‚СЂР° СѓС‡РµРЅРёРєРѕРІ';
             return;
         }
         const selectedClass = state.classes.find((item) => String(item.id) === String(state.selectedClassId));
-        const className = selectedClass?.name || 'Класс';
-        subtitle.textContent = `${className}: ${state.students.length} учеников`;
+        const className = selectedClass?.name || 'РљР»Р°СЃСЃ';
+        subtitle.textContent = `${className}: ${state.students.length} СѓС‡РµРЅРёРєРѕРІ`;
     }
 
     async function loadFilters() {
@@ -138,7 +138,7 @@
         const classSelect = byId('studentsClassFilter');
         if (!classSelect) return;
 
-        classSelect.innerHTML = '<option value="">Выберите класс</option>' + state.classes
+        classSelect.innerHTML = '<option value="">Р’С‹Р±РµСЂРёС‚Рµ РєР»Р°СЃСЃ</option>' + state.classes
             .map((cls) => `<option value="${cls.id}">${escapeHtml(cls.name)}</option>`)
             .join('');
     }
@@ -223,7 +223,7 @@
 
         const rows = pagedRows();
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="empty-row">Нет данных по выбранным фильтрам</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-row">РќРµС‚ РґР°РЅРЅС‹С… РїРѕ РІС‹Р±СЂР°РЅРЅС‹Рј С„РёР»СЊС‚СЂР°Рј</td></tr>';
             renderPagination();
             syncSelectAllCheckbox();
             return;
@@ -237,26 +237,26 @@
 
             return `
                 <tr>
-                    <td class="bulk-checkbox-cell" data-label="Выбор">
+                    <td class="bulk-checkbox-cell" data-label="Р’С‹Р±РѕСЂ">
                         <input type="checkbox" class="students-row-check" data-id="${id}" ${checked}>
                     </td>
-                    <td data-label="№ в журнале">${escapeHtml(student.journal_no || '-')}</td>
-                    <td data-label="ФИО">${escapeHtml(safeName(student))}</td>
-                    <td data-label="Логин">${escapeHtml(student.username || '-')}</td>
-                    <td data-label="Тестов пройдено">${toNumber(student.tests_completed)}</td>
-                    <td data-label="Средний балл"><strong>${formatPercent(student.avg_score)}</strong></td>
-                    <td data-label="Последняя активность">${formatDateTime(student.last_attempt_at)}</td>
-                    <td data-label="Статус"><span class="students-band ${status === 'active' ? 'high' : 'risk'}">${statusLabel(status)}</span></td>
-                    <td data-label="Действия">
+                    <td data-label="в„– РІ Р¶СѓСЂРЅР°Р»Рµ">${escapeHtml(student.journal_no || '-')}</td>
+                    <td data-label="Р¤РРћ">${escapeHtml(safeName(student))}</td>
+                    <td data-label="Р›РѕРіРёРЅ">${escapeHtml(student.username || '-')}</td>
+                    <td data-label="РўРµСЃС‚РѕРІ РїСЂРѕР№РґРµРЅРѕ">${toNumber(student.tests_completed)}</td>
+                    <td data-label="РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»"><strong>${formatPercent(student.avg_score)}</strong></td>
+                    <td data-label="РџРѕСЃР»РµРґРЅСЏСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ">${formatDateTime(student.last_attempt_at)}</td>
+                    <td data-label="РЎС‚Р°С‚СѓСЃ"><span class="students-band ${status === 'active' ? 'high' : 'risk'}">${statusLabel(status)}</span></td>
+                    <td data-label="Р”РµР№СЃС‚РІРёСЏ">
                         <div class="table-actions">
-                            <a class="btn-icon" href="${profileHref}" title="Профиль" aria-label="Профиль">
+                            <a class="btn-icon" href="${profileHref}" title="РџСЂРѕС„РёР»СЊ" aria-label="РџСЂРѕС„РёР»СЊ">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                     <circle cx="12" cy="7" r="4"></circle>
                                 </svg>
                             </a>
                             ${canResetPasswords() ? `
-                            <button class="btn-icon btn-danger students-action-btn" data-action="reset" data-id="${id}" type="button" title="Сбросить пароль" aria-label="Сбросить пароль">
+                            <button class="btn-icon btn-danger students-action-btn" data-action="reset" data-id="${id}" type="button" title="РЎР±СЂРѕСЃРёС‚СЊ РїР°СЂРѕР»СЊ" aria-label="РЎР±СЂРѕСЃРёС‚СЊ РїР°СЂРѕР»СЊ">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -283,9 +283,9 @@
         }
 
         container.innerHTML = `
-            <button class="btn btn-outline" type="button" ${state.page === 1 ? 'disabled' : ''} data-page="${state.page - 1}">Назад</button>
-            <span>Страница ${state.page} из ${totalPages}</span>
-            <button class="btn btn-outline" type="button" ${state.page >= totalPages ? 'disabled' : ''} data-page="${state.page + 1}">Вперед</button>
+            <button class="btn btn-outline" type="button" ${state.page === 1 ? 'disabled' : ''} data-page="${state.page - 1}">РќР°Р·Р°Рґ</button>
+            <span>РЎС‚СЂР°РЅРёС†Р° ${state.page} РёР· ${totalPages}</span>
+            <button class="btn btn-outline" type="button" ${state.page >= totalPages ? 'disabled' : ''} data-page="${state.page + 1}">Р’РїРµСЂРµРґ</button>
         `;
     }
 
@@ -317,18 +317,18 @@
         bulkBtn.disabled = !allowed || !hasSelected;
         bulkBtn.title = allowed
             ? ''
-            : 'Массовый сброс доступен только для вашего классного класса';
+            : 'РњР°СЃСЃРѕРІС‹Р№ СЃР±СЂРѕСЃ РґРѕСЃС‚СѓРїРµРЅ С‚РѕР»СЊРєРѕ РґР»СЏ РІР°С€РµРіРѕ РєР»Р°СЃСЃРЅРѕРіРѕ РєР»Р°СЃСЃР°';
     }
 
     async function resetStudentPassword(studentId) {
         const confirmed = window.ZedlyDialog?.confirm
-            ? await window.ZedlyDialog.confirm('Сбросить пароль этому ученику?', { title: 'Подтверждение' })
-            : confirm('Сбросить пароль этому ученику?');
+            ? await window.ZedlyDialog.confirm('РЎР±СЂРѕСЃРёС‚СЊ РїР°СЂРѕР»СЊ СЌС‚РѕРјСѓ СѓС‡РµРЅРёРєСѓ?', { title: 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ' })
+            : confirm('РЎР±СЂРѕСЃРёС‚СЊ РїР°СЂРѕР»СЊ СЌС‚РѕРјСѓ СѓС‡РµРЅРёРєСѓ?');
         if (!confirmed) return;
 
         const classId = state.selectedClassId ? String(state.selectedClassId) : '';
         if (!classId) {
-            throw new Error('Выберите класс');
+            throw new Error('Р’С‹Р±РµСЂРёС‚Рµ РєР»Р°СЃСЃ');
         }
 
         return apiPost(
@@ -343,8 +343,8 @@
         if (!ids.length) return;
 
         const confirmed = window.ZedlyDialog?.confirm
-            ? await window.ZedlyDialog.confirm(`Сбросить пароли для выбранных учеников (${ids.length})?`, { title: 'Подтверждение' })
-            : confirm(`Сбросить пароли для выбранных учеников (${ids.length})?`);
+            ? await window.ZedlyDialog.confirm(`РЎР±СЂРѕСЃРёС‚СЊ РїР°СЂРѕР»Рё РґР»СЏ РІС‹Р±СЂР°РЅРЅС‹С… СѓС‡РµРЅРёРєРѕРІ (${ids.length})?`, { title: 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ' })
+            : confirm(`РЎР±СЂРѕСЃРёС‚СЊ РїР°СЂРѕР»Рё РґР»СЏ РІС‹Р±СЂР°РЅРЅС‹С… СѓС‡РµРЅРёРєРѕРІ (${ids.length})?`);
         if (!confirmed) return;
 
         let success = 0;
@@ -364,9 +364,9 @@
         renderTable();
         updateBulkControls();
 
-        const message = `Сброшено паролей: ${success} из ${ids.length}`;
+        const message = `РЎР±СЂРѕС€РµРЅРѕ РїР°СЂРѕР»РµР№: ${success} РёР· ${ids.length}`;
         if (window.ZedlyDialog?.alert) {
-            await window.ZedlyDialog.alert(message, { title: 'Готово' });
+            await window.ZedlyDialog.alert(message, { title: 'Р“РѕС‚РѕРІРѕ' });
         } else {
             alert(message);
         }
@@ -374,7 +374,7 @@
 
     function exportCsv() {
         if (!state.filtered.length) {
-            alert('Нет данных для экспорта');
+            alert('РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ СЌРєСЃРїРѕСЂС‚Р°');
             return;
         }
 
@@ -476,27 +476,27 @@
                 if (action === 'reset') {
                     try {
                         const payload = await resetStudentPassword(id);
-                        const userName = payload.user?.name || payload.user?.username || 'Ученик';
+                        const userName = payload.user?.name || payload.user?.username || 'РЈС‡РµРЅРёРє';
                         const tempPassword = payload.tempPassword || '-';
 
                         if (window.ZedlyDialog?.temporaryPassword) {
                             await window.ZedlyDialog.temporaryPassword({
-                                title: 'Временный пароль',
-                                subtitle: `Пароль для ${userName}:`,
+                                title: 'Р’СЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ',
+                                subtitle: `РџР°СЂРѕР»СЊ РґР»СЏ ${userName}:`,
                                 password: tempPassword,
-                                passwordLabel: 'Временный пароль',
-                                copyText: 'Скопировать',
-                                hint: 'Передайте пароль ученику и попросите сменить после входа.',
-                                okText: 'Готово'
+                                passwordLabel: 'Р’СЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ',
+                                copyText: 'РЎРєРѕРїРёСЂРѕРІР°С‚СЊ',
+                                hint: 'РџРµСЂРµРґР°Р№С‚Рµ РїР°СЂРѕР»СЊ СѓС‡РµРЅРёРєСѓ Рё РїРѕРїСЂРѕСЃРёС‚Рµ СЃРјРµРЅРёС‚СЊ РїРѕСЃР»Рµ РІС…РѕРґР°.',
+                                okText: 'Р“РѕС‚РѕРІРѕ'
                             });
                         } else {
-                            alert(`Временный пароль: ${tempPassword}`);
+                            alert(`Р’СЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ: ${tempPassword}`);
                         }
                     } catch (error) {
                         if (window.ZedlyDialog?.alert) {
-                            await window.ZedlyDialog.alert(error.message || 'Не удалось сбросить пароль', { title: 'Ошибка' });
+                            await window.ZedlyDialog.alert(error.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃР±СЂРѕСЃРёС‚СЊ РїР°СЂРѕР»СЊ', { title: 'РћС€РёР±РєР°' });
                         } else {
-                            alert(error.message || 'Не удалось сбросить пароль');
+                            alert(error.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃР±СЂРѕСЃРёС‚СЊ РїР°СЂРѕР»СЊ');
                         }
                     }
                 }
@@ -564,7 +564,7 @@
             updateBulkControls();
         } catch (error) {
             console.error('Students page init error:', error);
-            alert('Не удалось инициализировать страницу "Ученики"');
+            alert('РќРµ СѓРґР°Р»РѕСЃСЊ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°С‚СЊ СЃС‚СЂР°РЅРёС†Сѓ "РЈС‡РµРЅРёРєРё"');
         }
     }
 

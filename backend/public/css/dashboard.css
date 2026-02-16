@@ -1387,7 +1387,8 @@
 
 /* Students page */
 .students-page {
-    width: min(1260px, 100%);
+    width: 100%;
+    max-width: 100%;
     margin: 0 auto;
     display: grid;
     gap: var(--spacing-md);
@@ -1455,7 +1456,7 @@
 
 .students-grid-bottom {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--spacing-md);
 }
 
