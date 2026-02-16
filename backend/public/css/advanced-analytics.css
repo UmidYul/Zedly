@@ -1,5 +1,10 @@
 /* Advanced Analytics (Dashboard Tab) */
 
+.advanced-analytics {
+    width: 100%;
+    max-width: 100%;
+}
+
 .advanced-analytics .analytics-container {
     max-width: 1400px;
     margin: 0 auto;
@@ -7,6 +12,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xl);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .advanced-analytics .filters {
@@ -58,6 +65,8 @@
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: var(--spacing-lg);
     margin-bottom: 0;
+    width: 100%;
+    min-width: 0;
 }
 
 .advanced-analytics .stat-card {
@@ -84,6 +93,8 @@
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
     box-shadow: var(--shadow-sm);
+    min-width: 0;
+    overflow: hidden;
 }
 
 .advanced-analytics .chart-card h2 {
@@ -131,6 +142,7 @@
 .advanced-analytics .heatmap-container {
     overflow-x: auto;
     margin-top: var(--spacing-md);
+    max-width: 100%;
 }
 
 .advanced-analytics .heatmap {
@@ -312,9 +324,37 @@
     padding: var(--spacing-lg);
 }
 
+.advanced-analytics .tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.advanced-analytics .tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.advanced-analytics .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.advanced-analytics .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 @media (max-width: 1024px) {
     .advanced-analytics .analytics-container {
         padding: var(--spacing-lg);
+    }
+
+    .advanced-analytics .analytics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .advanced-analytics .chart-container {
@@ -327,9 +367,27 @@
         align-items: stretch;
     }
 
+    .advanced-analytics .filter-group {
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+
+    .advanced-analytics .filters .btn {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .advanced-analytics .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+
     .advanced-analytics .chart-card h2 {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .advanced-analytics .chart-card h2 select {
+        width: 100%;
     }
 
     .advanced-analytics .chart-container {

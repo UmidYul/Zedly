@@ -2415,20 +2415,24 @@
         gap: 6px;
         align-items: center;
         flex-wrap: nowrap;
-        max-width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        max-width: none;
+        overflow: visible;
     }
 
-    .header-actions::-webkit-scrollbar {
-        display: none;
+    .header-right {
+        min-width: max-content;
     }
 
     .icon-btn {
         width: 36px;
         height: 36px;
+        flex-shrink: 0;
+    }
+
+    .icon-btn .badge {
+        top: -6px;
+        right: -6px;
+        z-index: 2;
     }
 
     .lang-switch {
@@ -2981,8 +2985,7 @@
 
     .header-actions {
         gap: 4px;
-        overflow-x: auto;
-        overflow-y: hidden;
+        overflow: visible;
     }
 
     .icon-btn {

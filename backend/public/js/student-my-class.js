@@ -106,11 +106,11 @@
 
         tbody.innerHTML = items.map((item) => `
             <tr>
-                <td>${escapeHtml(item.test_title || '-')}</td>
-                <td>${escapeHtml(item.subject_name || '-')}</td>
-                <td>${formatDate(item.end_date)}</td>
-                <td><span class="students-band ${statusClass(item.my_status)}">${statusLabel(item.my_status)}</span></td>
-                <td>
+                <td data-label="Тест">${escapeHtml(item.test_title || '-')}</td>
+                <td data-label="Предмет">${escapeHtml(item.subject_name || '-')}</td>
+                <td data-label="Дедлайн">${formatDate(item.end_date)}</td>
+                <td data-label="Мой статус"><span class="students-band ${statusClass(item.my_status)}">${statusLabel(item.my_status)}</span></td>
+                <td data-label="Действие">
                     <button class="btn btn-outline btn-sm" type="button" data-action="open-tests">Открыть</button>
                 </td>
             </tr>
@@ -157,10 +157,10 @@
 
         tbody.innerHTML = items.map((item, index) => `
             <tr>
-                <td>${escapeHtml(item.roll_number || String(index + 1))}</td>
-                <td>${escapeHtml(item.full_name || '-')}</td>
-                <td>${formatPercent(item.avg_score)}</td>
-                <td>${toNumber(item.tests_completed)}</td>
+                <td data-label="№">${escapeHtml(item.roll_number || String(index + 1))}</td>
+                <td data-label="ФИО">${escapeHtml(item.full_name || '-')}</td>
+                <td data-label="Средний балл">${formatPercent(item.avg_score)}</td>
+                <td data-label="Тестов пройдено">${toNumber(item.tests_completed)}</td>
             </tr>
         `).join('');
     }

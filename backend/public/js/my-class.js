@@ -200,11 +200,11 @@
             const profileHref = `student-details.html?id=${encodeURIComponent(student.id)}&class_id=${encodeURIComponent(state.activeClassId || '')}`;
             return `
                 <tr>
-                    <td>${escapeHtml(name)}</td>
-                    <td>${escapeHtml(student.username || '-')}</td>
-                    <td>${student.tests_completed || 0}</td>
-                    <td>${Number.isFinite(avg) ? formatPercent(avg) : '—'}</td>
-                    <td>
+                    <td data-label="ФИО">${escapeHtml(name)}</td>
+                    <td data-label="Логин">${escapeHtml(student.username || '-')}</td>
+                    <td data-label="Тестов пройдено">${student.tests_completed || 0}</td>
+                    <td data-label="Средний балл">${Number.isFinite(avg) ? formatPercent(avg) : '—'}</td>
+                    <td data-label="Действия">
                         <div class="student-actions">
                             <button class="icon-action-btn" type="button" data-action="profile" data-profile-href="${profileHref}" title="Профиль ученика" aria-label="Профиль ученика">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

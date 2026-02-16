@@ -803,7 +803,7 @@
                                 <input class="search-input" id="studentSearch" type="text" placeholder="Поиск по имени или логину">
                             </div>
                         </div>
-                        <div class="table-wrap">
+                        <div class="table-wrap mobile-stack-table">
                             <table class="data-table">
                                 <thead>
                                     <tr>
@@ -883,7 +883,7 @@
                     <section class="students-grid-top">
                         <div class="dashboard-section students-card">
                             <div class="section-header"><h2 class="section-title">Активные назначения класса</h2></div>
-                            <div class="table-responsive">
+                            <div class="table-responsive mobile-stack-table">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
@@ -912,7 +912,7 @@
                         <div class="section-header">
                             <h2 class="section-title">Одноклассники</h2>
                         </div>
-                        <div class="table-responsive">
+                        <div class="table-responsive mobile-stack-table">
                             <table class="data-table">
                                 <thead>
                                     <tr>

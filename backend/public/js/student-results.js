@@ -1,4 +1,4 @@
-// Student Results Dashboard
+﻿// Student Results Dashboard
 (function () {
     'use strict';
 
@@ -62,7 +62,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(t('results.failedLoad', 'Не удалось загрузить результаты'));
+                    throw new Error(t('results.failedLoad', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹'));
                 }
 
                 const data = await response.json();
@@ -73,7 +73,7 @@
                 this.renderTable();
             } catch (error) {
                 console.error('Load student results error:', error);
-                this.renderError(error.message || t('results.unableLoad', 'Не удалось загрузить результаты.'));
+                this.renderError(error.message || t('results.unableLoad', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹.'));
             }
         },
 
@@ -85,7 +85,7 @@
                 stats.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">${t('common.loading', 'Загрузка...')}</div>
+                            <div class="stat-label">${t('common.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</div>
                             <div class="stat-value">--</div>
                         </div>
                     </div>
@@ -93,7 +93,7 @@
             }
 
             if (table) {
-                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.loadingResults', 'Загрузка результатов...')}</p>`;
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.loadingResults', 'Р—Р°РіСЂСѓР·РєР° СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ...')}</p>`;
             }
         },
 
@@ -125,25 +125,25 @@
             stats.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('results.testsCompleted', 'Тестов завершено')}</div>
+                        <div class="stat-label">${t('results.testsCompleted', 'РўРµСЃС‚РѕРІ Р·Р°РІРµСЂС€РµРЅРѕ')}</div>
                         <div class="stat-value">${completed}</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('results.averageScore', 'Средний балл')}</div>
+                        <div class="stat-label">${t('results.averageScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»')}</div>
                         <div class="stat-value">${avg}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('results.passRate', 'Процент сдачи')}</div>
+                        <div class="stat-label">${t('results.passRate', 'РџСЂРѕС†РµРЅС‚ СЃРґР°С‡Рё')}</div>
                         <div class="stat-value">${passRate}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('results.totalAttempts', 'Всего попыток')}</div>
+                        <div class="stat-label">${t('results.totalAttempts', 'Р’СЃРµРіРѕ РїРѕРїС‹С‚РѕРє')}</div>
                         <div class="stat-value">${total}</div>
                     </div>
                 </div>
@@ -155,22 +155,22 @@
             if (!table) return;
 
             if (this.filteredResults.length === 0) {
-                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.noCompletedTests', 'Пока нет завершенных тестов.')}</p>`;
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.noCompletedTests', 'РџРѕРєР° РЅРµС‚ Р·Р°РІРµСЂС€РµРЅРЅС‹С… С‚РµСЃС‚РѕРІ.')}</p>`;
                 return;
             }
 
             let html = `
-                <div class="table-responsive">
+                <div class="table-responsive mobile-stack-table">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>${t('results.colTest', 'Тест')}</th>
-                                <th>${t('results.colSubject', 'Предмет')}</th>
-                                <th>${t('results.colClass', 'Класс')}</th>
-                                <th>${t('results.colDate', 'Дата')}</th>
-                                <th>${t('results.colScore', 'Балл')}</th>
-                                <th>${t('results.colResult', 'Результат')}</th>
-                                <th>${t('results.colActions', 'Действия')}</th>
+                                <th>${t('results.colTest', 'РўРµСЃС‚')}</th>
+                                <th>${t('results.colSubject', 'РџСЂРµРґРјРµС‚')}</th>
+                                <th>${t('results.colClass', 'РљР»Р°СЃСЃ')}</th>
+                                <th>${t('results.colDate', 'Р”Р°С‚Р°')}</th>
+                                <th>${t('results.colScore', 'Р‘Р°Р»Р»')}</th>
+                                <th>${t('results.colResult', 'Р РµР·СѓР»СЊС‚Р°С‚')}</th>
+                                <th>${t('results.colActions', 'Р”РµР№СЃС‚РІРёСЏ')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -180,7 +180,7 @@
                 const percentage = parseFloat(result.percentage || 0);
                 const passed = this.isPassed(result);
                 const statusClass = passed ? 'status-active' : 'status-warning';
-                const statusText = passed ? t('results.passed', 'Сдано') : t('results.failed', 'Не сдано');
+                const statusText = passed ? t('results.passed', 'РЎРґР°РЅРѕ') : t('results.failed', 'РќРµ СЃРґР°РЅРѕ');
                 const attemptId = String(result.attempt_id || '');
                 const testTitle = this.escapeHtml(result.test_title || '-');
                 const className = this.escapeHtml(result.class_name || '-');
@@ -189,24 +189,24 @@
 
                 html += `
                     <tr>
-                        <td>
+                        <td data-label="${this.escapeHtml(t('results.colTest', 'Test'))}">
                             <div class="user-name">${testTitle}</div>
                         </td>
-                        <td>
+                        <td data-label="${this.escapeHtml(t('results.colSubject', 'Subject'))}">
                             ${result.subject_name ? `
                                 <span class="subject-badge" style="background-color: ${subjectColor}20; color: ${subjectColor};">
                                     ${subjectName}
                                 </span>
                             ` : '-'}
                         </td>
-                        <td>${className}</td>
-                        <td>${this.formatDate(result.submitted_at)}</td>
-                        <td>${result.score} / ${result.max_score}</td>
-                        <td>
+                        <td data-label="${this.escapeHtml(t('results.colClass', 'Class'))}">${className}</td>
+                        <td data-label="${this.escapeHtml(t('results.colDate', 'Date'))}">${this.formatDate(result.submitted_at)}</td>
+                        <td data-label="${this.escapeHtml(t('results.colScore', 'Score'))}">${result.score} / ${result.max_score}</td>
+                        <td data-label="${this.escapeHtml(t('results.colResult', 'Result'))}">
                             <span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>
                         </td>
-                        <td>
-                            <button class="btn-icon js-view-attempt" data-attempt-id="${this.escapeHtml(attemptId)}" title="${t('results.viewDetails', 'Просмотр деталей')}">
+                        <td data-label="${this.escapeHtml(t('results.colActions', 'Actions'))}">
+                            <button class="btn-icon js-view-attempt" data-attempt-id="${this.escapeHtml(attemptId)}" title="${t('results.viewDetails', 'РџСЂРѕСЃРјРѕС‚СЂ РґРµС‚Р°Р»РµР№')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
@@ -259,3 +259,5 @@
         }
     };
 })();
+
+
