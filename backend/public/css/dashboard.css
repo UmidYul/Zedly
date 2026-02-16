@@ -1124,33 +1124,69 @@
     color: var(--text-secondary);
 }
 
-#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"] {
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"],
+#reportsNotificationsCard .reports-notification-filters input[type="date"] {
     width: 100%;
-    min-height: 40px;
-    padding: 9px 12px;
-    border: 1px solid var(--border);
-    border-radius: 11px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)), var(--bg-secondary);
+    min-height: 44px;
+    padding: 10px 40px 10px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 12px;
+    background-color: rgba(10, 19, 42, 0.82);
+    background-image:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2398a2b3' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    background-repeat: no-repeat, no-repeat;
+    background-size: auto, 16px 16px;
+    background-position: 0 0, right 12px center;
     color: var(--text-primary);
-    font-size: 0.84rem;
+    font-size: 0.86rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
     line-height: 1.2;
+    appearance: none;
+    -webkit-appearance: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]:hover {
-    border-color: var(--border-strong);
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]:hover,
+#reportsNotificationsCard .reports-notification-filters input[type="date"]:hover {
+    border-color: rgba(148, 163, 184, 0.44);
+    background-color: rgba(13, 24, 52, 0.92);
 }
 
-#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]:focus {
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]:focus,
+#reportsNotificationsCard .reports-notification-filters input[type="date"]:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
-    background: var(--bg-card);
+    border-color: rgba(96, 165, 250, 0.92);
+    box-shadow:
+        0 0 0 3px rgba(59, 130, 246, 0.2),
+        0 8px 18px rgba(0, 0, 0, 0.18);
+    background-color: rgba(15, 27, 58, 0.96);
 }
 
-#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+#reportsNotificationsCard .reports-notification-filters input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    width: 18px;
+    height: 18px;
     cursor: pointer;
-    opacity: 0.85;
+}
+
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]::-webkit-datetime-edit,
+#reportsNotificationsCard .reports-notification-filters input[type="date"]::-webkit-datetime-edit {
+    color: var(--text-primary);
+}
+
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper,
+#reportsNotificationsCard .reports-notification-filters input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+}
+
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]::-webkit-clear-button,
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]::-webkit-inner-spin-button,
+#reportsNotificationsCard .reports-notification-filters input[type="date"]::-webkit-clear-button,
+#reportsNotificationsCard .reports-notification-filters input[type="date"]::-webkit-inner-spin-button {
+    display: none;
 }
 
 .reports-notification-footer {
@@ -1179,6 +1215,26 @@
 .reports-notification-status.failed {
     background: rgba(239, 68, 68, 0.2);
     color: #ef4444;
+}
+
+@media (min-width: 601px) {
+    #reportsNotificationsTable .table-responsive {
+        overflow-x: visible;
+    }
+
+    #reportsNotificationsTable .data-table {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    #reportsNotificationsTable .data-table th,
+    #reportsNotificationsTable .data-table td {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        padding: 10px 12px;
+    }
 }
 
 .settings-role-grid {

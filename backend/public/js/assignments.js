@@ -488,7 +488,7 @@
                                     <label class="form-label">
                                         ${t('assignments.classes', 'Классы')} <span class="required">*</span>
                                     </label>
-                                    <select class="form-input" name="class_ids" multiple size="8" required ${isEdit ? 'disabled' : ''}>
+                                    <select class="form-input" name="class_ids" required ${isEdit ? 'disabled' : ''}>
                                     </select>
                                     <span class="form-hint">${t('assignments.allClassesHint', 'Опция "Все классы" выбирает сразу все доступные классы.')}</span>
                                 </div>
@@ -654,9 +654,18 @@
                     }
                     if (classSelect) {
                         const wanted = new Set((Array.isArray(template.class_ids) ? template.class_ids : []).map(String));
-                        Array.from(classSelect.options).forEach((opt) => {
-                            opt.selected = wanted.has(String(opt.value));
-                        });
+                        const classOptions = Array.from(classSelect.options).filter((opt) => opt.value !== '__all__');
+                        const hasMultiple = wanted.size > 1;
+                        const hasSingleMatch = classOptions.some((opt) => wanted.has(String(opt.value)));
+
+                        if (hasMultiple) {
+                            classSelect.value = '__all__';
+                        } else if (hasSingleMatch) {
+                            const match = classOptions.find((opt) => wanted.has(String(opt.value)));
+                            classSelect.value = match ? match.value : '__all__';
+                        } else {
+                            classSelect.value = '__all__';
+                        }
                     }
                     const now = new Date();
                     const [h, m] = String(template.start_hour || '08:00').split(':').map((v) => parseInt(v, 10));
@@ -679,19 +688,6 @@
                     testSelect.addEventListener('change', () => {
                         const subjectId = testSelect.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
                         loadClassesForSubject(subjectId);
-                    });
-                }
-
-                if (classSelect) {
-                    classSelect.addEventListener('change', () => {
-                        const allOption = Array.from(classSelect.options).find((opt) => opt.value === '__all__');
-                        if (!allOption || !allOption.selected) return;
-                        Array.from(classSelect.options).forEach((opt) => {
-                            if (opt.value !== '__all__') {
-                                opt.selected = true;
-                            }
-                        });
-                        allOption.selected = false;
                     });
                 }
 
@@ -804,15 +800,13 @@
                 data.test_id = formData.get('test_id');
                 const classSelect = form.querySelector('select[name="class_ids"]');
                 if (classSelect) {
-                    const selectedValues = Array.from(classSelect.selectedOptions)
-                        .map((opt) => String(opt.value))
-                        .filter(Boolean);
-                    const hasAllOption = selectedValues.includes('__all__');
+                    const selectedValue = String(classSelect.value || '').trim();
+                    const hasAllOption = selectedValue === '__all__';
                     data.class_ids = hasAllOption
                         ? Array.from(classSelect.options)
                             .map((opt) => String(opt.value))
                             .filter((value) => value && value !== '__all__')
-                        : selectedValues.filter((value) => value !== '__all__');
+                        : (selectedValue ? [selectedValue] : []);
                 } else {
                     data.class_ids = [];
                 }
