@@ -122,6 +122,15 @@ let landingStatsCache = {
 };
 const landingFeedbackRateLimit = new Map();
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 app.get('/api/public/landing-stats', async (req, res) => {
     try {
         const now = Date.now();
@@ -233,6 +242,13 @@ app.post('/api/public/feedback', async (req, res) => {
         const feedbackTo = process.env.LANDING_FEEDBACK_TO || process.env.SUPPORT_EMAIL || 'support@zedly.uz';
         const userAgent = String(req.get('user-agent') || '-');
         const subject = `ZEDLY Landing Feedback [${lang.toUpperCase()}] ${name}`;
+        const safeName = escapeHtml(name);
+        const safeEmail = escapeHtml(email);
+        const safeLang = escapeHtml(lang.toUpperCase());
+        const safeIp = escapeHtml(ipKey);
+        const safeUa = escapeHtml(userAgent);
+        const safeTime = escapeHtml(new Date().toISOString());
+        const safeMessageHtml = escapeHtml(message).replace(/\n/g, '<br>');
         const text = [
             'New feedback from landing page',
             '',
@@ -246,12 +262,41 @@ app.post('/api/public/feedback', async (req, res) => {
             'Message:',
             message
         ].join('\n');
+        const html = `
+            <div style="margin:0;padding:24px;background:#f1f5f9;font-family:Arial,sans-serif;color:#0f172a;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:760px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
+                <tr>
+                  <td style="padding:20px 24px;background:#1d4ed8;color:#ffffff;">
+                    <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.9;">ZEDLY</div>
+                    <h1 style="margin:8px 0 0;font-size:20px;line-height:1.3;">New feedback from landing page</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;">Name</td><td style="padding:6px 0;font-size:14px;font-weight:600;">${safeName}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;">Email</td><td style="padding:6px 0;font-size:14px;font-weight:600;">${safeEmail}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;">Language</td><td style="padding:6px 0;font-size:14px;font-weight:600;">${safeLang}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;">IP</td><td style="padding:6px 0;font-size:14px;font-weight:600;">${safeIp}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;">Time</td><td style="padding:6px 0;font-size:14px;font-weight:600;">${safeTime}</td></tr>
+                    </table>
+                    <div style="margin-top:16px;padding:14px;border:1px solid #dbeafe;background:#eff6ff;border-radius:10px;">
+                      <div style="font-size:12px;color:#1e3a8a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Message</div>
+                      <div style="font-size:14px;line-height:1.65;color:#0f172a;">${safeMessageHtml}</div>
+                    </div>
+                    <div style="margin-top:14px;font-size:12px;color:#94a3b8;">User-Agent: ${safeUa}</div>
+                  </td>
+                </tr>
+              </table>
+            </div>
+        `;
 
         const sent = await sendEmail({
             to: feedbackTo,
             replyTo: email,
             subject,
-            text
+            text,
+            html
         });
 
         if (!sent) {

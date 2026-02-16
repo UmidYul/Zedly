@@ -2592,7 +2592,13 @@
         'users.selectedCount': '\u0412\u044b\u0431\u0440\u0430\u043d\u043e: {count}',
         'users.clear': '\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c',
         'assignments.allStatuses': '\u0412\u0441\u0435 \u0441\u0442\u0430\u0442\u0443\u0441\u044b',
-        'assignments.colTest': '\u0422\u0435\u0441\u0442'
+        'assignments.colTest': '\u0422\u0435\u0441\u0442',
+        'reports.students': '\u0423\u0447\u0435\u043d\u0438\u043a\u0438',
+        'reports.teachers': '\u0423\u0447\u0438\u0442\u0435\u043b\u044f',
+        'reports.classes': '\u041a\u043b\u0430\u0441\u0441\u044b',
+        'reports.tests': '\u0422\u0435\u0441\u0442\u044b',
+        'reports.avgScore': '\u0421\u0440\u0435\u0434\u043d\u0438\u0439 \u0431\u0430\u043b\u043b',
+        'reports.careerTests': '\u041f\u0440\u043e\u0444\u043e\u0440\u0438\u0435\u043d\u0442\u0430\u0446\u0438\u043e\u043d\u043d\u044b\u0435 \u0442\u0435\u0441\u0442\u044b'
     });
 
     Object.assign(translations.uz, {

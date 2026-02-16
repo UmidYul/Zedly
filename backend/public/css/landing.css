@@ -318,6 +318,11 @@ body {
     display: block;
 }
 
+.landing-contact h2,
+.landing-contact .landing-section-subtitle {
+    text-align: center;
+}
+
 .landing-contact-form {
     background: var(--bg-card);
     border-radius: 18px;
