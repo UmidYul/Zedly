@@ -1,4 +1,4 @@
-// Notifications System
+﻿// Notifications System
 (function () {
     'use strict';
 
@@ -122,7 +122,7 @@
         if (details.action_type) parts.push(`type: ${details.action_type}`);
         if (details.entityName) parts.push(`entity: ${details.entityName}`);
         if (details.id) parts.push(`id: ${details.id}`);
-        if (parts.length > 0) return parts.join(' · ');
+        if (parts.length > 0) return parts.join(' В· ');
 
         const entity = item.entity_type ? String(item.entity_type) : 'system';
         return `Action on ${entity}`;
@@ -323,9 +323,14 @@
         }
 
         const translate = window.ZedlyI18n?.translate || ((key) => key);
+        const looksLikeMojibake = (value) => {
+            if (typeof value !== 'string' || value.length < 4) return false;
+            const chunks = value.match(/(?:\u0420.|\u0421.)/g) || [];
+            return chunks.length >= 3 && chunks.length / value.length > 0.2;
+        };
         const t = (key, fallback) => {
             const value = translate(key);
-            if (typeof value === 'string' && value !== key) return value;
+            if (typeof value === 'string' && value !== key && !looksLikeMojibake(value)) return value;
             return fallback || key;
         };
         const visibleNotifications = getVisibleNotifications();
@@ -623,3 +628,4 @@
         initNotifications();
     }
 })();
+

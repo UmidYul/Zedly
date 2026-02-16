@@ -12,9 +12,16 @@
         value: 0
     };
 
+    function looksLikeMojibake(value) {
+        if (typeof value !== 'string' || value.length < 4) return false;
+        const chunks = value.match(/(?:\u0420.|\u0421.)/g) || [];
+        return chunks.length >= 3 && chunks.length / value.length > 0.2;
+    }
+
     function t(key, fallback, params) {
         const tr = window.ZedlyI18n?.translate?.(key, params);
-        return tr && tr !== key ? tr : (fallback || key);
+        if (tr && tr !== key && !looksLikeMojibake(tr)) return tr;
+        return fallback || key;
     }
 
     function currentLocale() {

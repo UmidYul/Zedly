@@ -2,8 +2,18 @@
 (function () {
     'use strict';
 
+    function looksLikeMojibake(value) {
+        if (typeof value !== 'string' || value.length < 4) return false;
+        const chunks = value.match(/(?:Р.|С.)/g) || [];
+        return chunks.length >= 3 && chunks.length / value.length > 0.2;
+    }
+
     function t(key, fallback) {
-        return window.ZedlyI18n?.translate(key) || fallback || key;
+        const translated = window.ZedlyI18n?.translate?.(key);
+        if (!translated || translated === key || looksLikeMojibake(translated)) {
+            return fallback || key;
+        }
+        return translated;
     }
 
     function showAlert(message, title = null) {

@@ -446,7 +446,7 @@
                     </div>
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">${t('dashboard.activity.recentTitle', 'Recent Activity')}</h2>
+                            <h2 class="section-title">${t('dashboard.activity.recentTitle', 'Недавняя активность')}</h2>
                         </div>
                         ${buildRecentActivity(currentUser.role, statsData)}
                     </div>
@@ -467,9 +467,9 @@
                     <p class="page-subtitle">${roleTitle.subtitle}</p>
                 </div>
                 <div class="dashboard-section">
-                    <p style="color: var(--text-secondary);">${t('dashboard.activity.none', 'No recent activity yet.')}</p>
+                    <p style="color: var(--text-secondary);">${t('dashboard.activity.none', 'Пока нет недавней активности.')}</p>
                     <p style="color: var(--danger, #ef4444); margin-top: 8px;">
-                        ${t('dashboard.stats.loadError', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р°РєС‚СѓР°Р»СЊРЅСѓСЋ СЃС‚Р°С‚РёСЃС‚РёРєСѓ. РћР±РЅРѕРІРёС‚Рµ СЃС‚СЂР°РЅРёС†Сѓ.')}
+                        ${t('dashboard.stats.loadError', 'Не удалось загрузить актуальную статистику. Обновите страницу.')}
                     </p>
                 </div>
             `;
@@ -1959,9 +1959,9 @@
                                 <option value="all">${t('tests.allSubjects', 'Р’СЃРµ РїСЂРµРґРјРµС‚С‹')}</option>
                             </select>
                             <select id="statusFilter" class="filter-select">
-                                <option value="all">${t('tests.allStatus', 'Р’СЃРµ СЃС‚Р°С‚СѓСЃС‹')}</option>
-                                <option value="active">${t('tests.statusActive', 'РђРєС‚РёРІРЅС‹Р№')}</option>
-                                <option value="draft">${t('tests.statusDraft', 'Р§РµСЂРЅРѕРІРёРє')}</option>
+                                <option value="all">${t('tests.allStatus', 'Все статусы')}</option>
+                                <option value="active">${t('tests.statusActive', 'Активный')}</option>
+                                <option value="draft">${t('tests.statusDraft', 'Черновик')}</option>
                             </select>
                         </div>
                         <div class="toolbar-right">
@@ -2488,9 +2488,9 @@
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('dashboard.activity.recentTitle', 'Recent Activity')}</h2>
+                        <h2 class="section-title">${t('dashboard.activity.recentTitle', 'Недавняя активность')}</h2>
                     </div>
-                    <p style="color: var(--text-secondary);">${t('dashboard.activity.placeholder', 'Content coming soon...')}</p>
+                    <p style="color: var(--text-secondary);">${t('dashboard.activity.placeholder', 'Содержимое скоро появится...')}</p>
                 </div>
             `;
         }
@@ -2501,7 +2501,7 @@
                 <div class="section-header">
                     <h2 class="section-title">${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
                 </div>
-                <p style="color: var(--text-secondary);">${t('dashboard.activity.placeholder', 'РЎРєРѕСЂРѕ РїРѕСЏРІРёС‚СЃСЏ...')}</p>
+                <p style="color: var(--text-secondary);">${t('dashboard.activity.placeholder', 'Содержимое скоро появится...')}</p>
             </div>
         `;
     }
@@ -2538,8 +2538,18 @@
         }
     }
 
+    function looksLikeMojibake(value) {
+        if (typeof value !== 'string' || value.length < 4) return false;
+        const chunks = value.match(/(?:Р.|С.)/g) || [];
+        return chunks.length >= 3 && chunks.length / value.length > 0.2;
+    }
+
     function t(key, fallback) {
-        return window.ZedlyI18n?.translate(key) || fallback || key;
+        const translated = window.ZedlyI18n?.translate?.(key);
+        if (!translated || translated === key || looksLikeMojibake(translated)) {
+            return fallback || key;
+        }
+        return translated;
     }
 
     function formatPercent(value) {
@@ -2570,23 +2580,26 @@
     function buildRecentActivity(role, data) {
         const items = data?.recent_activity || [];
         if (!items.length) {
-            return `<p style="color: var(--text-secondary);">${t('dashboard.activity.none', 'No recent activity yet.')}</p>`;
+            return `<p style="color: var(--text-secondary);">${t('dashboard.activity.none', 'Пока нет недавней активности.')}</p>`;
         }
 
         const typeLabels = {
-            attempt: t('dashboard.activity.typeAttempt', 'Attempt'),
-            assignment: t('dashboard.activity.typeAssignment', 'Assignment'),
-            test: t('dashboard.activity.typeTest', 'Test'),
-            user: t('dashboard.activity.typeUser', 'User')
+            attempt: t('dashboard.activity.typeAttempt', 'Попытка'),
+            assignment: t('dashboard.activity.typeAssignment', 'Назначение'),
+            test: t('dashboard.activity.typeTest', 'Тест'),
+            user: t('dashboard.activity.typeUser', 'Пользователь')
         };
-        const colType = t('dashboard.activity.type', 'Type');
-        const colTitle = t('dashboard.activity.title', 'Title');
-        const colDetails = t('dashboard.activity.details', 'Details');
-        const colScore = t('dashboard.activity.score', 'Score');
-        const colDate = t('dashboard.activity.date', 'Date');
+        const colType = t('dashboard.activity.type', 'Тип');
+        const colTitle = t('dashboard.activity.title', 'Название');
+        const colDetails = t('dashboard.activity.details', 'Детали');
+        const colScore = t('dashboard.activity.score', 'Балл');
+        const colDate = t('dashboard.activity.date', 'Дата');
 
         const rows = items.map((item) => {
-            const type = typeLabels[item.type] || item.type || 'Activity';
+            const typeKey = String(item.type || '').toLowerCase();
+            const fallbackType = t('dashboard.activity.typeActivity', 'Активность');
+            const type = typeLabels[typeKey]
+                || (looksLikeMojibake(item.type) ? fallbackType : (item.type || fallbackType));
             const score = item.percentage !== undefined && item.percentage !== null
                 ? `${formatPercent(item.percentage)}%`
                 : '-';
@@ -2632,31 +2645,31 @@
 
         if (role === 'superadmin') {
             cards.push(
-                { icon: 'building', label: t('dashboard.stats.schools', 'Schools'), value: stats.schools },
-                { icon: 'users', label: t('dashboard.stats.students', 'Students'), value: stats.students },
-                { icon: 'clipboard', label: t('dashboard.stats.tests', 'Tests'), value: stats.tests },
-                { icon: 'star', label: t('dashboard.stats.avgScore', 'Avg Score'), value: `${formatPercent(stats.avg_score)}%` }
+                { icon: 'building', label: t('dashboard.stats.schools', 'Школы'), value: stats.schools },
+                { icon: 'users', label: t('dashboard.stats.students', 'Ученики'), value: stats.students },
+                { icon: 'clipboard', label: t('dashboard.stats.tests', 'Тесты'), value: stats.tests },
+                { icon: 'star', label: t('dashboard.stats.avgScore', 'Средний балл'), value: `${formatPercent(stats.avg_score)}%` }
             );
         } else if (role === 'school_admin') {
             cards.push(
-                { icon: 'users', label: t('dashboard.stats.students', 'Students'), value: stats.students },
-                { icon: 'class', label: t('dashboard.stats.classes', 'Classes'), value: stats.classes },
-                { icon: 'clipboard', label: t('dashboard.stats.tests', 'Tests'), value: stats.tests },
-                { icon: 'star', label: t('dashboard.stats.avgScore', 'Avg Score'), value: `${formatPercent(stats.avg_score)}%` }
+                { icon: 'users', label: t('dashboard.stats.students', 'Ученики'), value: stats.students },
+                { icon: 'class', label: t('dashboard.stats.classes', 'Классы'), value: stats.classes },
+                { icon: 'clipboard', label: t('dashboard.stats.tests', 'Тесты'), value: stats.tests },
+                { icon: 'star', label: t('dashboard.stats.avgScore', 'Средний балл'), value: `${formatPercent(stats.avg_score)}%` }
             );
         } else if (role === 'teacher') {
             cards.push(
-                { icon: 'clipboard', label: t('dashboard.stats.testsCreated', 'Tests Created'), value: stats.tests_created },
-                { icon: 'users', label: t('dashboard.stats.students', 'Students'), value: stats.student_count },
-                { icon: 'clipboard', label: t('dashboard.stats.assignments', 'Assignments'), value: stats.assignments_total },
-                { icon: 'star', label: t('dashboard.stats.avgScore', 'Avg Score'), value: `${formatPercent(stats.avg_percentage)}%` }
+                { icon: 'clipboard', label: t('dashboard.stats.testsCreated', 'Создано тестов'), value: stats.tests_created },
+                { icon: 'users', label: t('dashboard.stats.students', 'Ученики'), value: stats.student_count },
+                { icon: 'clipboard', label: t('dashboard.stats.assignments', 'Назначения'), value: stats.assignments_total },
+                { icon: 'star', label: t('dashboard.stats.avgScore', 'Средний балл'), value: `${formatPercent(stats.avg_percentage)}%` }
             );
         } else if (role === 'student') {
             cards.push(
-                { icon: 'clipboard', label: t('dashboard.stats.testsAssigned', 'Tests Assigned'), value: stats.tests_assigned },
-                { icon: 'star', label: t('dashboard.stats.testsCompleted', 'Tests Completed'), value: stats.tests_completed },
-                { icon: 'trophy', label: t('dashboard.stats.avgScore', 'Avg Score'), value: `${formatPercent(stats.avg_score)}%` },
-                { icon: 'target', label: t('dashboard.stats.careerTest', 'Career Test'), value: stats.career_test_completed ? t('dashboard.stats.careerDone', 'Done') : t('dashboard.stats.careerPending', 'Pending') }
+                { icon: 'clipboard', label: t('dashboard.stats.testsAssigned', 'Назначено тестов'), value: stats.tests_assigned },
+                { icon: 'star', label: t('dashboard.stats.testsCompleted', 'Завершено тестов'), value: stats.tests_completed },
+                { icon: 'trophy', label: t('dashboard.stats.avgScore', 'Средний балл'), value: `${formatPercent(stats.avg_score)}%` },
+                { icon: 'target', label: t('dashboard.stats.careerTest', 'Профориентация'), value: stats.career_test_completed ? t('dashboard.stats.careerDone', 'Пройдено') : t('dashboard.stats.careerPending', 'Не пройдено') }
             );
         }
 

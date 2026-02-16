@@ -304,7 +304,7 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="TestEditor.close()">${t('common.close', 'Р—Р°РєСЂС‹С‚СЊ')}</button>
+                            <button class="btn btn-outline" onclick="TestEditor.close()">${t('common.close', 'Закрыть')}</button>
                             <button class="btn btn-outline" onclick="TestEditor.saveAsDraft()">${t('testEditor.saveAsDraft', 'РЎРѕС…СЂР°РЅРёС‚СЊ РєР°Рє С‡РµСЂРЅРѕРІРёРє')}</button>
                             <button class="btn btn-primary" onclick="TestEditor.publish()">${t('testEditor.publishTest', 'РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ С‚РµСЃС‚')}</button>
                         </div>
@@ -526,7 +526,7 @@
                             }
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="TestEditor.closeQuestionEditor()">${t('common.close', 'Р—Р°РєСЂС‹С‚СЊ')}</button>
+                            <button class="btn btn-outline" onclick="TestEditor.closeQuestionEditor()">${t('common.close', 'Закрыть')}</button>
                             <button class="btn btn-primary" onclick="TestEditor.saveQuestion('${question.question_type}')">
                                 ${isEdit ? t('testEditor.update', 'РћР±РЅРѕРІРёС‚СЊ') : t('testEditor.add', 'Р”РѕР±Р°РІРёС‚СЊ')} ${t('testEditor.question', 'РІРѕРїСЂРѕСЃ')}
                             </button>
@@ -547,13 +547,13 @@
             const options = question.options || ['', '', '', ''];
             return `
                 <div class="form-group">
-                    <label class="form-label">Answer Options <span class="required">*</span></label>
+                    <label class="form-label">${t('testEditor.answerOptions', 'Варианты ответа')} <span class="required">*</span></label>
                     <div id="optionsList" class="options-list" data-correct-input-type="radio">
                         ${options.map((opt, i) => `
                             <div class="option-item">
                                 <input type="radio" name="correctAnswer" value="${i}" ${question.correct_answer == i ? 'checked' : ''}>
-                                <input type="text" class="form-input option-input" data-index="${i}" value="${opt}" placeholder="Option ${i + 1}">
-                                <button class="btn-icon btn-danger" onclick="TestEditor.removeOption(${i})" title="Remove">
+                                <input type="text" class="form-input option-input" data-index="${i}" value="${opt}" placeholder="${t('testEditor.optionPlaceholder', 'Вариант {number}').replace('{number}', String(i + 1))}">
+                                <button class="btn-icon btn-danger" onclick="TestEditor.removeOption(${i})" title="${t('tests.delete', 'Удалить')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
                                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -567,7 +567,7 @@
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        Add Option
+                        ${t('testEditor.addOption', 'Добавить вариант')}
                     </button>
                 </div>
             `;
@@ -579,14 +579,14 @@
             const correctAnswers = Array.isArray(question.correct_answer) ? question.correct_answer : [];
             return `
                 <div class="form-group">
-                    <label class="form-label">Answer Options <span class="required">*</span></label>
-                    <p class="form-hint">Select all correct answers</p>
+                    <label class="form-label">${t('testEditor.answerOptions', 'Варианты ответа')} <span class="required">*</span></label>
+                    <p class="form-hint">${t('testEditor.selectAllCorrectAnswers', 'Выберите все правильные ответы')}</p>
                     <div id="optionsList" class="options-list" data-correct-input-type="checkbox">
                         ${options.map((opt, i) => `
                             <div class="option-item">
                                 <input type="checkbox" name="correctAnswer" value="${i}" ${correctAnswers.includes(i) || correctAnswers.includes(String(i)) ? 'checked' : ''}>
-                                <input type="text" class="form-input option-input" data-index="${i}" value="${opt}" placeholder="Option ${i + 1}">
-                                <button class="btn-icon btn-danger" onclick="TestEditor.removeOption(${i})" title="Remove">
+                                <input type="text" class="form-input option-input" data-index="${i}" value="${opt}" placeholder="${t('testEditor.optionPlaceholder', 'Вариант {number}').replace('{number}', String(i + 1))}">
+                                <button class="btn-icon btn-danger" onclick="TestEditor.removeOption(${i})" title="${t('tests.delete', 'Удалить')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
                                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -600,7 +600,7 @@
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        Add Option
+                        ${t('testEditor.addOption', 'Добавить вариант')}
                     </button>
                 </div>
             `;
@@ -610,15 +610,15 @@
         renderTrueFalseEditor: function (question) {
             return `
                 <div class="form-group">
-                    <label class="form-label">Correct Answer <span class="required">*</span></label>
+                    <label class="form-label">${t('testEditor.correctAnswer', 'Правильный ответ')} <span class="required">*</span></label>
                     <div class="radio-group">
                         <label class="radio-label">
                             <input type="radio" name="correctAnswer" value="true" ${question.correct_answer === 'true' || question.correct_answer === true ? 'checked' : ''}>
-                            <span>True</span>
+                            <span>${t('testEditor.true', 'Верно')}</span>
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="correctAnswer" value="false" ${question.correct_answer === 'false' || question.correct_answer === false ? 'checked' : ''}>
-                            <span>False</span>
+                            <span>${t('testEditor.false', 'Неверно')}</span>
                         </label>
                     </div>
                 </div>
@@ -630,14 +630,14 @@
             const answers = Array.isArray(question.correct_answer) ? question.correct_answer : [question.correct_answer || ''];
             return `
                 <div class="form-group">
-                    <label class="form-label">Acceptable Answers <span class="required">*</span></label>
-                    <p class="form-hint">Add multiple acceptable answers (case-insensitive matching)</p>
+                    <label class="form-label">${t('testEditor.acceptableAnswers', 'Допустимые ответы')} <span class="required">*</span></label>
+                    <p class="form-hint">${t('testEditor.acceptableAnswersHint', 'Добавьте несколько допустимых ответов (без учета регистра)')}</p>
                     <div id="answersList" class="answers-list">
                         ${answers.map((ans, i) => `
                             <div class="answer-item">
-                                <input type="text" class="form-input answer-input" data-index="${i}" value="${ans}" placeholder="Answer ${i + 1}">
+                                <input type="text" class="form-input answer-input" data-index="${i}" value="${ans}" placeholder="${t('testEditor.answerPlaceholder', 'Ответ {number}').replace('{number}', String(i + 1))}">
                                 ${i > 0 ? `
-                                    <button class="btn-icon btn-danger" onclick="TestEditor.removeAnswer(${i})" title="Remove">
+                                    <button class="btn-icon btn-danger" onclick="TestEditor.removeAnswer(${i})" title="${t('tests.delete', 'Удалить')}">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <line x1="18" y1="6" x2="6" y2="18"></line>
                                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -652,7 +652,7 @@
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        Add Alternative Answer
+                        ${t('testEditor.addAlternativeAnswer', 'Добавить альтернативный ответ')}
                     </button>
                 </div>
             `;
@@ -664,15 +664,15 @@
             const pairs = question.options || [{ left: '', right: '' }, { left: '', right: '' }];
             return `
                 <div class="form-group">
-                    <label class="form-label">Matching Pairs <span class="required">*</span></label>
+                    <label class="form-label">${t('testEditor.matchingPairs', 'Пары для сопоставления')} <span class="required">*</span></label>
                     <div id="pairsList" class="pairs-list">
                         ${pairs.map((pair, i) => `
                             <div class="pair-item">
-                                <input type="text" class="form-input pair-left" data-index="${i}" value="${pair.left || ''}" placeholder="Left item ${i + 1}">
+                                <input type="text" class="form-input pair-left" data-index="${i}" value="${pair.left || ''}" placeholder="${t('testEditor.leftItemPlaceholder', 'Левый элемент {number}').replace('{number}', String(i + 1))}">
                                 <span class="pair-separator">↔</span>
-                                <input type="text" class="form-input pair-right" data-index="${i}" value="${pair.right || ''}" placeholder="Right item ${i + 1}">
+                                <input type="text" class="form-input pair-right" data-index="${i}" value="${pair.right || ''}" placeholder="${t('testEditor.rightItemPlaceholder', 'Правый элемент {number}').replace('{number}', String(i + 1))}">
                                 ${i > 1 ? `
-                                    <button class="btn-icon btn-danger" onclick="TestEditor.removePair(${i})" title="Remove">
+                                    <button class="btn-icon btn-danger" onclick="TestEditor.removePair(${i})" title="${t('tests.delete', 'Удалить')}">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <line x1="18" y1="6" x2="6" y2="18"></line>
                                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -687,7 +687,7 @@
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        Add Pair
+                        ${t('testEditor.addPair', 'Добавить пару')}
                     </button>
                 </div>
             `;
@@ -698,15 +698,15 @@
             const items = question.options || ['', '', ''];
             return `
                 <div class="form-group">
-                    <label class="form-label">Items in Correct Order <span class="required">*</span></label>
-                    <p class="form-hint">Items will be shuffled for students</p>
+                    <label class="form-label">${t('testEditor.itemsInCorrectOrder', 'Элементы в правильном порядке')} <span class="required">*</span></label>
+                    <p class="form-hint">${t('testEditor.itemsShuffledHint', 'Для учеников элементы будут перемешаны')}</p>
                     <div id="itemsList" class="items-list">
                         ${items.map((item, i) => `
                             <div class="item-row">
                                 <span class="item-number">${i + 1}.</span>
-                                <input type="text" class="form-input item-input" data-index="${i}" value="${item}" placeholder="Item ${i + 1}">
+                                <input type="text" class="form-input item-input" data-index="${i}" value="${item}" placeholder="${t('testEditor.itemPlaceholder', 'Элемент {number}').replace('{number}', String(i + 1))}">
                                 ${i > 2 ? `
-                                    <button class="btn-icon btn-danger" onclick="TestEditor.removeItem(${i})" title="Remove">
+                                    <button class="btn-icon btn-danger" onclick="TestEditor.removeItem(${i})" title="${t('tests.delete', 'Удалить')}">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <line x1="18" y1="6" x2="6" y2="18"></line>
                                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -721,7 +721,7 @@
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        Add Item
+                        ${t('testEditor.addItem', 'Добавить элемент')}
                     </button>
                 </div>
             `;
@@ -731,18 +731,18 @@
         renderFillBlanksEditor: function (question) {
             return `
                 <div class="form-group">
-                    <label class="form-label">Text with Blanks <span class="required">*</span></label>
-                    <p class="form-hint">РСЃРїРѕР»СЊР·СѓР№С‚Рµ С‚СЂРѕР№РЅРѕРµ РїРѕРґС‡РµСЂРєРёРІР°РЅРёРµ ___ РґР»СЏ РїСЂРѕРїСѓСЃРєРѕРІ. РџСЂРёРјРµСЂ: "___ вЂ” СЃР°РјР°СЏ Р±РѕР»СЊС€Р°СЏ РїР»Р°РЅРµС‚Р°"</p>
-                    <textarea id="blanksText" class="form-textarea" rows="4" placeholder="Р’РІРµРґРёС‚Рµ С‚РµРєСЃС‚ СЃ ___ РґР»СЏ РїСЂРѕРїСѓСЃРєРѕРІ">${question.question_text || ''}</textarea>
+                    <label class="form-label">${t('testEditor.textWithBlanks', 'Текст с пропусками')} <span class="required">*</span></label>
+                    <p class="form-hint">${t('testEditor.blanksHint', 'Используйте тройное подчеркивание ___ для пропусков. Пример: "___ — самая большая планета"')}</p>
+                    <textarea id="blanksText" class="form-textarea" rows="4" placeholder="${t('testEditor.blanksTextPlaceholder', 'Введите текст с ___ для пропусков')}">${question.question_text || ''}</textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Correct Answers for Blanks <span class="required">*</span></label>
-                    <p class="form-hint">Provide answers in order for each blank</p>
+                    <label class="form-label">${t('testEditor.correctAnswersForBlanks', 'Правильные ответы для пропусков')} <span class="required">*</span></label>
+                    <p class="form-hint">${t('testEditor.answersInBlankOrder', 'Укажите ответы по порядку для каждого пропуска')}</p>
                     <div id="blanksAnswers">
                         ${(question.correct_answer || ['']).map((ans, i) => `
                             <div class="blank-answer-item">
-                                <span class="blank-label">Blank ${i + 1}:</span>
-                                <input type="text" class="form-input blank-answer" data-index="${i}" value="${ans}" placeholder="Answer for blank ${i + 1}">
+                                <span class="blank-label">${t('testEditor.blankLabel', 'Пропуск {number}:').replace('{number}', String(i + 1))}</span>
+                                <input type="text" class="form-input blank-answer" data-index="${i}" value="${ans}" placeholder="${t('testEditor.answerForBlankPlaceholder', 'Ответ для пропуска {number}').replace('{number}', String(i + 1))}">
                             </div>
                         `).join('')}
                     </div>
@@ -750,7 +750,7 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
-                        Detect Blanks
+                        ${t('testEditor.detectBlanks', 'Найти пропуски')}
                     </button>
                 </div>
             `;
@@ -762,7 +762,7 @@
             const answerType = Array.isArray(question.correct_answer) ? 'multiple' : 'single';
             return `
                 <div class="form-group">
-                    <label class="form-label">Question Image URL <span class="required">*</span></label>
+                    <label class="form-label">${t('testEditor.questionImageUrl', 'URL изображения вопроса')} <span class="required">*</span></label>
                     <input type="url" id="imageUrl" class="form-input" value="${question.media_url || ''}" placeholder="https://..." required>
                     <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
                         <input type="file" id="imageFileInput" accept="image/*" class="form-input" style="max-width: 320px;">
@@ -772,7 +772,7 @@
                         <span id="imageUploadStatus" style="font-size: 12px; color: var(--text-secondary);"></span>
                     </div>
                     <div id="imagePreviewWrap" style="margin-top: 10px;">
-                        ${question.media_url ? `<img id="imagePreview" src="${question.media_url}" alt="Preview" style="max-width: 100%; max-height: 300px; border-radius: 8px;">` : '<img id="imagePreview" src="" alt="Preview" style="display:none; max-width: 100%; max-height: 300px; border-radius: 8px;">'}
+                        ${question.media_url ? `<img id="imagePreview" src="${question.media_url}" alt="${t('testEditor.previewAlt', 'Предпросмотр')}" style="max-width: 100%; max-height: 300px; border-radius: 8px;">` : `<img id="imagePreview" src="" alt="${t('testEditor.previewAlt', 'Предпросмотр')}" style="display:none; max-width: 100%; max-height: 300px; border-radius: 8px;">`}
                     </div>
                 </div>
                 <div class="form-group">
@@ -842,7 +842,7 @@
             const preview = document.getElementById('imagePreview');
 
             if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-                alert('Please choose an image file first');
+                alert(t('testEditor.chooseImageFirst', 'Сначала выберите файл изображения'));
                 return;
             }
 
@@ -851,7 +851,7 @@
             formData.append('image', file);
 
             try {
-                if (status) status.textContent = 'Uploading...';
+                if (status) status.textContent = t('testEditor.uploading', 'Загрузка...');
                 const token = localStorage.getItem('access_token');
                 const response = await fetch('/api/teacher/upload/question-image', {
                     method: 'POST',
@@ -887,8 +887,8 @@
             const itemHtml = `
                 <div class="option-item">
                     <input type="${correctInputType}" name="correctAnswer" value="${index}">
-                    <input type="text" class="form-input option-input" data-index="${index}" value="" placeholder="Option ${index + 1}">
-                    <button class="btn-icon btn-danger" onclick="TestEditor.removeOption(${index})" title="Remove">
+                    <input type="text" class="form-input option-input" data-index="${index}" value="" placeholder="${t('testEditor.optionPlaceholder', 'Вариант {number}').replace('{number}', String(index + 1))}">
+                    <button class="btn-icon btn-danger" onclick="TestEditor.removeOption(${index})" title="${t('tests.delete', 'Удалить')}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -906,7 +906,7 @@
                 // Reindex remaining items
                 document.querySelectorAll('.option-item').forEach((item, i) => {
                     item.querySelector('.option-input').setAttribute('data-index', i);
-                    item.querySelector('.option-input').placeholder = `Option ${i + 1}`;
+                    item.querySelector('.option-input').placeholder = t('testEditor.optionPlaceholder', 'Вариант {number}').replace('{number}', String(i + 1));
                     item.querySelector('input[type="radio"], input[type="checkbox"]').value = i;
                 });
             }
@@ -917,8 +917,8 @@
             const index = list.querySelectorAll('.answer-item').length;
             const itemHtml = `
                 <div class="answer-item">
-                    <input type="text" class="form-input answer-input" data-index="${index}" value="" placeholder="Answer ${index + 1}">
-                    <button class="btn-icon btn-danger" onclick="TestEditor.removeAnswer(${index})" title="Remove">
+                    <input type="text" class="form-input answer-input" data-index="${index}" value="" placeholder="${t('testEditor.answerPlaceholder', 'Ответ {number}').replace('{number}', String(index + 1))}">
+                    <button class="btn-icon btn-danger" onclick="TestEditor.removeAnswer(${index})" title="${t('tests.delete', 'Удалить')}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -941,10 +941,10 @@
             const index = list.querySelectorAll('.pair-item').length;
             const itemHtml = `
                 <div class="pair-item">
-                    <input type="text" class="form-input pair-left" data-index="${index}" value="" placeholder="Left item ${index + 1}">
+                    <input type="text" class="form-input pair-left" data-index="${index}" value="" placeholder="${t('testEditor.leftItemPlaceholder', 'Левый элемент {number}').replace('{number}', String(index + 1))}">
                     <span class="pair-separator">↔</span>
-                    <input type="text" class="form-input pair-right" data-index="${index}" value="" placeholder="Right item ${index + 1}">
-                    <button class="btn-icon btn-danger" onclick="TestEditor.removePair(${index})" title="Remove">
+                    <input type="text" class="form-input pair-right" data-index="${index}" value="" placeholder="${t('testEditor.rightItemPlaceholder', 'Правый элемент {number}').replace('{number}', String(index + 1))}">
+                    <button class="btn-icon btn-danger" onclick="TestEditor.removePair(${index})" title="${t('tests.delete', 'Удалить')}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -968,8 +968,8 @@
             const itemHtml = `
                 <div class="item-row">
                     <span class="item-number">${index + 1}.</span>
-                    <input type="text" class="form-input item-input" data-index="${index}" value="" placeholder="Item ${index + 1}">
-                    <button class="btn-icon btn-danger" onclick="TestEditor.removeItem(${index})" title="Remove">
+                    <input type="text" class="form-input item-input" data-index="${index}" value="" placeholder="${t('testEditor.itemPlaceholder', 'Элемент {number}').replace('{number}', String(index + 1))}">
+                    <button class="btn-icon btn-danger" onclick="TestEditor.removeItem(${index})" title="${t('tests.delete', 'Удалить')}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -988,7 +988,7 @@
                 document.querySelectorAll('.item-row').forEach((item, i) => {
                     item.querySelector('.item-number').textContent = `${i + 1}.`;
                     item.querySelector('.item-input').setAttribute('data-index', i);
-                    item.querySelector('.item-input').placeholder = `Item ${i + 1}`;
+                    item.querySelector('.item-input').placeholder = t('testEditor.itemPlaceholder', 'Элемент {number}').replace('{number}', String(i + 1));
                 });
             }
         },
@@ -1003,8 +1003,8 @@
                 const existingValue = container.querySelector(`[data-index="${i}"]`)?.value || '';
                 html += `
                     <div class="blank-answer-item">
-                        <span class="blank-label">Blank ${i + 1}:</span>
-                        <input type="text" class="form-input blank-answer" data-index="${i}" value="${existingValue}" placeholder="Answer for blank ${i + 1}">
+                        <span class="blank-label">${t('testEditor.blankLabel', 'Пропуск {number}:').replace('{number}', String(i + 1))}</span>
+                        <input type="text" class="form-input blank-answer" data-index="${i}" value="${existingValue}" placeholder="${t('testEditor.answerForBlankPlaceholder', 'Ответ для пропуска {number}').replace('{number}', String(i + 1))}">
                     </div>
                 `;
             }
@@ -1038,12 +1038,12 @@
                     options = Array.from(document.querySelectorAll('.option-input')).map(el => el.value.trim());
                     const selectedRadio = document.querySelector('input[name="correctAnswer"]:checked');
                     if (!selectedRadio) {
-                        alert('Please select the correct answer');
+                        alert(t('testEditor.selectCorrectAnswer', 'Выберите правильный ответ'));
                         return;
                     }
                     correctAnswer = parseInt(selectedRadio.value);
                     if (options.some(opt => !opt)) {
-                        alert('Please fill in all options');
+                        alert(t('testEditor.fillAllOptions', 'Заполните все варианты ответа'));
                         return;
                     }
                     break;
@@ -1052,12 +1052,12 @@
                     options = Array.from(document.querySelectorAll('.option-input')).map(el => el.value.trim());
                     const selectedCheckboxes = Array.from(document.querySelectorAll('input[name="correctAnswer"]:checked'));
                     if (selectedCheckboxes.length === 0) {
-                        alert('Please select at least one correct answer');
+                        alert(t('testEditor.selectAtLeastOneCorrect', 'Выберите хотя бы один правильный ответ'));
                         return;
                     }
                     correctAnswer = selectedCheckboxes.map(cb => parseInt(cb.value));
                     if (options.some(opt => !opt)) {
-                        alert('Please fill in all options');
+                        alert(t('testEditor.fillAllOptions', 'Заполните все варианты ответа'));
                         return;
                     }
                     break;
@@ -1065,7 +1065,7 @@
                 case 'truefalse':
                     const tfRadio = document.querySelector('input[name="correctAnswer"]:checked');
                     if (!tfRadio) {
-                        alert('Please select the correct answer');
+                        alert(t('testEditor.selectCorrectAnswer', 'Выберите правильный ответ'));
                         return;
                     }
                     correctAnswer = tfRadio.value;
@@ -1074,7 +1074,7 @@
                 case 'shortanswer':
                     const answers = Array.from(document.querySelectorAll('.answer-input')).map(el => el.value.trim()).filter(a => a);
                     if (answers.length === 0) {
-                        alert('Please provide at least one acceptable answer');
+                        alert(t('testEditor.provideAtLeastOneAcceptable', 'Добавьте хотя бы один допустимый ответ'));
                         return;
                     }
                     correctAnswer = answers.length === 1 ? answers[0] : answers;
@@ -1085,12 +1085,12 @@
                     const leftItems = Array.from(document.querySelectorAll('.pair-left')).map(el => el.value.trim());
                     const rightItems = Array.from(document.querySelectorAll('.pair-right')).map(el => el.value.trim());
                     if (leftItems.some(item => !item) || rightItems.some(item => !item)) {
-                        alert('Please fill in all matching pairs');
+                        alert(t('testEditor.fillAllMatchingPairs', 'Заполните все пары сопоставления'));
                         return;
                     }
                     const hasDuplicateSides = leftItems.some((left, i) => left.toLowerCase() === String(rightItems[i] || '').toLowerCase());
                     if (hasDuplicateSides) {
-                        alert('Left and right values in a pair should be different');
+                        alert(t('testEditor.matchingValuesDifferent', 'Левое и правое значения в паре должны отличаться'));
                         return;
                     }
                     options = leftItems.map((left, i) => ({ left, right: rightItems[i] }));
@@ -1100,7 +1100,7 @@
                 case 'ordering':
                     const items = Array.from(document.querySelectorAll('.item-input')).map(el => el.value.trim());
                     if (items.some(item => !item)) {
-                        alert('Please fill in all items');
+                        alert(t('testEditor.fillAllItems', 'Заполните все элементы'));
                         return;
                     }
                     options = items;
@@ -1111,7 +1111,7 @@
                     const blanksText = document.getElementById('blanksText')?.value.trim();
                     const blankAnswers = Array.from(document.querySelectorAll('.blank-answer')).map(el => el.value.trim());
                     if (!blanksText || blankAnswers.some(ans => !ans)) {
-                        alert('Please fill in all blanks and their answers');
+                        alert(t('testEditor.fillBlanksAndAnswers', 'Заполните все пропуски и ответы к ним'));
                         return;
                     }
                     correctAnswer = blankAnswers;
@@ -1120,26 +1120,26 @@
                 case 'imagebased':
                     const imageUrl = document.getElementById('imageUrl')?.value.trim();
                     if (!imageUrl) {
-                        alert('Please provide an image URL');
+                        alert(t('testEditor.provideImageUrl', 'Укажите URL изображения'));
                         return;
                     }
                     const imageAnswerType = document.getElementById('imageAnswerType')?.value || 'single';
                     options = Array.from(document.querySelectorAll('.option-input')).map(el => el.value.trim());
                     if (options.some(opt => !opt)) {
-                        alert('Please fill in all options');
+                        alert(t('testEditor.fillAllOptions', 'Заполните все варианты ответа'));
                         return;
                     }
                     if (imageAnswerType === 'multiple') {
                         const imgChecks = Array.from(document.querySelectorAll('input[name="correctAnswer"]:checked'));
                         if (imgChecks.length === 0) {
-                            alert('Please select at least one correct answer');
+                            alert(t('testEditor.selectAtLeastOneCorrect', 'Выберите хотя бы один правильный ответ'));
                             return;
                         }
                         correctAnswer = imgChecks.map(cb => parseInt(cb.value, 10));
                     } else {
                         const imgRadio = document.querySelector('input[name="correctAnswer"]:checked');
                         if (!imgRadio) {
-                            alert('Please select the correct answer');
+                            alert(t('testEditor.selectCorrectAnswer', 'Выберите правильный ответ'));
                             return;
                         }
                         correctAnswer = parseInt(imgRadio.value, 10);
