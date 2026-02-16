@@ -1372,7 +1372,14 @@
         'testEditor.fillRequiredFields': 'Заполните все обязательные поля.',
         'testEditor.publishSuccess': 'Тест успешно опубликован!',
         'testEditor.draftSavedSuccess': 'Тест успешно сохранен как черновик!',
-        'testEditor.failedSaveTest': 'Не удалось сохранить тест'
+        'testEditor.failedSaveTest': 'Не удалось сохранить тест',
+        'testEditor.downloadImportTemplate': 'Скачать шаблон',
+        'testEditor.importFromExcel': 'Импорт Excel',
+        'testEditor.downloadTemplateFailed': 'Не удалось скачать шаблон импорта',
+        'testEditor.importExcelInvalidType': 'Выберите Excel файл (.xlsx или .xls)',
+        'testEditor.importExcelFailed': 'Не удалось импортировать вопросы',
+        'testEditor.importExcelNoQuestions': 'В файле не найдено валидных вопросов',
+        'testEditor.importExcelSuccess': 'Вопросов импортировано: {imported}. Пропущено: {skipped}.'
     });
 
     Object.assign(translations.uz, {
@@ -1482,7 +1489,14 @@
         'testEditor.fillRequiredFields': 'Barcha majburiy maydonlarni to\'ldiring.',
         'testEditor.publishSuccess': 'Test muvaffaqiyatli e\'lon qilindi!',
         'testEditor.draftSavedSuccess': 'Test qoralama sifatida saqlandi!',
-        'testEditor.failedSaveTest': 'Testni saqlab bo\'lmadi'
+        'testEditor.failedSaveTest': 'Testni saqlab bo\'lmadi',
+        'testEditor.downloadImportTemplate': 'Shablonni yuklab olish',
+        'testEditor.importFromExcel': 'Excel import',
+        'testEditor.downloadTemplateFailed': 'Import shablonini yuklab bo\'lmadi',
+        'testEditor.importExcelInvalidType': 'Excel faylni tanlang (.xlsx yoki .xls)',
+        'testEditor.importExcelFailed': 'Savollarni import qilib bo\'lmadi',
+        'testEditor.importExcelNoQuestions': 'Faylda yaroqli savollar topilmadi',
+        'testEditor.importExcelSuccess': 'Import qilingan savollar: {imported}. O\'tkazib yuborilgan: {skipped}.'
     });
 
     Object.assign(translations.ru, {
@@ -2085,6 +2099,72 @@
         'tools.later': 'Keyinroq',
         'tools.homeroomSaved': 'Sinf rahbarlari tayinlandi',
         'tools.failedSaveAssignments': 'Tayinlovlarni saqlab bo\'lmadi'
+    });
+
+    Object.assign(translations.ru, {
+        'heatmap': 'Тепловая карта',
+        'comparison': 'Сравнение',
+        'trends': 'Тренды',
+        'subjects': 'По предметам',
+        'performance_heatmap': 'Тепловая карта успеваемости',
+        'heatmap_description': 'Визуализация средних баллов по предметам и неделям',
+        'class_comparison': 'Сравнение классов',
+        'detailed_comparison': 'Детальное сравнение',
+        'activity_trends': 'Тренды активности',
+        'top_classes': 'Лучшие классы',
+        'needs_attention': 'Требуют внимания',
+        'subject_performance': 'Успеваемость по предметам',
+        'subject_stats': 'Статистика по предметам',
+        'advanced.byClasses': 'По классам',
+        'advanced.bySubjects': 'По предметам',
+        'advanced.byStudents': 'По ученикам',
+        'advanced.table.name': 'Название',
+        'advanced.table.attempts': 'Попыток',
+        'advanced.table.avgScore': 'Средний балл',
+        'advanced.table.minScore': 'Мин балл',
+        'advanced.table.maxScore': 'Макс балл',
+        'advanced.table.progress': 'Прогресс',
+        'advanced.subjectTable.subject': 'Предмет',
+        'advanced.subjectTable.tests': 'Тестов',
+        'advanced.subjectTable.attempts': 'Попыток',
+        'advanced.subjectTable.avgScore': 'Средний балл',
+        'advanced.subjectTable.avgTime': 'Среднее время (мин)',
+        'advanced.loadingData': 'Загрузка данных...',
+        'advanced.chart.avgScorePercent': 'Средний балл (%)',
+        'advanced.chart.attempts': 'Попытки'
+    });
+
+    Object.assign(translations.uz, {
+        'heatmap': 'Issiqlik xaritasi',
+        'comparison': 'Taqqoslash',
+        'trends': 'Trendlar',
+        'subjects': 'Fanlar bo\'yicha',
+        'performance_heatmap': 'O\'zlashtirish issiqlik xaritasi',
+        'heatmap_description': 'Fanlar va haftalar kesimidagi o\'rtacha ballar vizualizatsiyasi',
+        'class_comparison': 'Sinflarni taqqoslash',
+        'detailed_comparison': 'Batafsil taqqoslash',
+        'activity_trends': 'Faollik trendi',
+        'top_classes': 'Eng yaxshi sinflar',
+        'needs_attention': 'E\'tibor talab qiladi',
+        'subject_performance': 'Fanlar bo\'yicha o\'zlashtirish',
+        'subject_stats': 'Fanlar statistikasi',
+        'advanced.byClasses': 'Sinflar bo\'yicha',
+        'advanced.bySubjects': 'Fanlar bo\'yicha',
+        'advanced.byStudents': 'O\'quvchilar bo\'yicha',
+        'advanced.table.name': 'Nomi',
+        'advanced.table.attempts': 'Urinishlar',
+        'advanced.table.avgScore': 'O\'rtacha ball',
+        'advanced.table.minScore': 'Min ball',
+        'advanced.table.maxScore': 'Maks ball',
+        'advanced.table.progress': 'Progress',
+        'advanced.subjectTable.subject': 'Fan',
+        'advanced.subjectTable.tests': 'Testlar',
+        'advanced.subjectTable.attempts': 'Urinishlar',
+        'advanced.subjectTable.avgScore': 'O\'rtacha ball',
+        'advanced.subjectTable.avgTime': 'O\'rtacha vaqt (daq)',
+        'advanced.loadingData': 'Ma\'lumotlar yuklanmoqda...',
+        'advanced.chart.avgScorePercent': 'O\'rtacha ball (%)',
+        'advanced.chart.attempts': 'Urinishlar'
     });
 
     function normalizeRuMojibake() {

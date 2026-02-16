@@ -164,9 +164,9 @@
                                 <h2>
                                     <span data-i18n="class_comparison">Сравнение классов</span>
                                     <select id="comparisonType">
-                                        <option value="classes">По классам</option>
-                                        <option value="subjects">По предметам</option>
-                                        <option value="students">По ученикам</option>
+                                        <option value="classes" data-i18n="advanced.byClasses">По классам</option>
+                                        <option value="subjects" data-i18n="advanced.bySubjects">По предметам</option>
+                                        <option value="students" data-i18n="advanced.byStudents">По ученикам</option>
                                     </select>
                                 </h2>
                                 <div class="chart-container">
@@ -180,19 +180,19 @@
                                     <table class="comparison-table" id="comparisonTable">
                                         <thead>
                                             <tr>
-                                                <th>Название</th>
-                                                <th>Попыток</th>
-                                                <th>Средний балл</th>
-                                                <th>Мин балл</th>
-                                                <th>Макс балл</th>
-                                                <th>Прогресс</th>
+                                                <th data-i18n="advanced.table.name">Название</th>
+                                                <th data-i18n="advanced.table.attempts">Попыток</th>
+                                                <th data-i18n="advanced.table.avgScore">Средний балл</th>
+                                                <th data-i18n="advanced.table.minScore">Мин балл</th>
+                                                <th data-i18n="advanced.table.maxScore">Макс балл</th>
+                                                <th data-i18n="advanced.table.progress">Прогресс</th>
                                             </tr>
                                         </thead>
                                         <tbody id="comparisonTableBody">
                                             <tr>
                                                 <td colspan="6" class="loading">
                                                     <div class="spinner"></div>
-                                                    <span>Загрузка данных...</span>
+                                                    <span data-i18n="advanced.loadingData">Загрузка данных...</span>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -235,18 +235,18 @@
                                     <table class="comparison-table">
                                         <thead>
                                             <tr>
-                                                <th>Предмет</th>
-                                                <th>Тестов</th>
-                                                <th>Попыток</th>
-                                                <th>Средний балл</th>
-                                                <th>Среднее время (мин)</th>
+                                                <th data-i18n="advanced.subjectTable.subject">Предмет</th>
+                                                <th data-i18n="advanced.subjectTable.tests">Тестов</th>
+                                                <th data-i18n="advanced.subjectTable.attempts">Попыток</th>
+                                                <th data-i18n="advanced.subjectTable.avgScore">Средний балл</th>
+                                                <th data-i18n="advanced.subjectTable.avgTime">Среднее время (мин)</th>
                                             </tr>
                                         </thead>
                                         <tbody id="subjectsTableBody">
                                             <tr>
                                                 <td colspan="5" class="loading">
                                                     <div class="spinner"></div>
-                                                    <span>Загрузка данных...</span>
+                                                    <span data-i18n="advanced.loadingData">Загрузка данных...</span>
                                                 </td>
                                             </tr>
                                         </tbody>

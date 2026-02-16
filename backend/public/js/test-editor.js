@@ -148,7 +148,12 @@
 
                 const imported = Number(data?.stats?.imported || importedQuestions.length);
                 const skipped = Number(data?.stats?.skipped || 0);
-                alert(t('testEditor.importExcelSuccess', `Questions imported: ${imported}. Skipped: ${skipped}.`));
+                const successTemplate = t('testEditor.importExcelSuccess', 'Questions imported: {imported}. Skipped: {skipped}.');
+                alert(
+                    successTemplate
+                        .replace('{imported}', String(imported))
+                        .replace('{skipped}', String(skipped))
+                );
             } catch (error) {
                 console.error('Import questions from excel error:', error);
                 alert(error.message || t('testEditor.importExcelFailed', 'Failed to import questions'));

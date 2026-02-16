@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const bcrypt = require('bcrypt');
@@ -752,7 +753,9 @@ function normalizeImportKey(value) {
         .trim()
         .toLowerCase()
         .replace(/[.\s\-]+/g, '_')
-        .replace(/[^a-z0-9_]/g, '');
+        .replace(/[^a-z0-9_]/g, '')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
 }
 
 function buildRowMap(row) {
@@ -1001,50 +1004,187 @@ function parseQuestionsFromWorkbook(workbook) {
     return { questions, stats };
 }
 
-function buildQuestionImportTemplateWorkbook() {
-    const wb = XLSX.utils.book_new();
+function autosizeWorksheetColumns(worksheet, minWidth = 10, maxWidth = 56) {
+    worksheet.columns.forEach((column) => {
+        let maxLength = minWidth;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+            const value = cell.value;
+            const text = value === null || value === undefined ? '' : String(value);
+            maxLength = Math.max(maxLength, text.length + 2);
+        });
+        column.width = Math.min(maxLength, maxWidth);
+    });
+}
+
+function styleTemplateWorksheet(worksheet, rowCount, colCount) {
+    const border = {
+        top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        right: { style: 'thin', color: { argb: 'FFD1D5DB' } }
+    };
+
+    for (let rowIndex = 1; rowIndex <= rowCount; rowIndex++) {
+        for (let colIndex = 1; colIndex <= colCount; colIndex++) {
+            const cell = worksheet.getCell(rowIndex, colIndex);
+            cell.border = border;
+            cell.alignment = {
+                vertical: 'middle',
+                horizontal: rowIndex === 1 ? 'center' : 'left',
+                wrapText: true
+            };
+
+            if (rowIndex === 1) {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4A90E2' } };
+            } else if (rowIndex === 2) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+            }
+        }
+    }
+
+    worksheet.getRow(1).height = 28;
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+    worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: colCount }
+    };
+}
+
+function buildTemplateColumns(keys) {
+    const headerMap = {
+        question_text: 'Текст вопроса',
+        marks: 'Баллы',
+        option1: 'Вариант 1',
+        option2: 'Вариант 2',
+        option3: 'Вариант 3',
+        option4: 'Вариант 4',
+        correct: 'Правильный ответ',
+        correct_answers: 'Правильные ответы',
+        left1: 'Левая часть 1',
+        right1: 'Правая часть 1',
+        left2: 'Левая часть 2',
+        right2: 'Правая часть 2',
+        item1: 'Элемент 1',
+        item2: 'Элемент 2',
+        item3: 'Элемент 3',
+        blank1: 'Ответ для пропуска 1',
+        media_url: 'Ссылка на изображение'
+    };
+
+    return keys.map((key) => `${headerMap[key] || key} (${key})`);
+}
+
+async function buildQuestionImportTemplateBuffer() {
+    const workbook = new ExcelJS.Workbook();
 
     const sheets = [
         {
             name: 'singlechoice',
-            rows: [{ question_text: 'Capital of France?', marks: 1, option1: 'Paris', option2: 'London', option3: 'Berlin', option4: 'Rome', correct: '1' }]
+            keys: ['question_text', 'marks', 'option1', 'option2', 'option3', 'option4', 'correct'],
+            row: {
+                question_text: 'Столица Франции?',
+                marks: 1,
+                option1: 'Париж',
+                option2: 'Лондон',
+                option3: 'Берлин',
+                option4: 'Рим',
+                correct: '1'
+            }
         },
         {
             name: 'multiplechoice',
-            rows: [{ question_text: 'Select prime numbers', marks: 1, option1: '2', option2: '3', option3: '4', option4: '5', correct: '1,2,4' }]
+            keys: ['question_text', 'marks', 'option1', 'option2', 'option3', 'option4', 'correct'],
+            row: {
+                question_text: 'Выберите простые числа',
+                marks: 1,
+                option1: '2',
+                option2: '3',
+                option3: '4',
+                option4: '5',
+                correct: '1,2,4'
+            }
         },
         {
             name: 'truefalse',
-            rows: [{ question_text: 'The Sun is a star', marks: 1, correct: 'true' }]
+            keys: ['question_text', 'marks', 'correct'],
+            row: {
+                question_text: 'Солнце — это звезда',
+                marks: 1,
+                correct: 'true'
+            }
         },
         {
             name: 'shortanswer',
-            rows: [{ question_text: 'Chemical symbol for water', marks: 1, correct_answers: 'H2O|h2o' }]
+            keys: ['question_text', 'marks', 'correct_answers'],
+            row: {
+                question_text: 'Химическая формула воды',
+                marks: 1,
+                correct_answers: 'H2O|h2o'
+            }
         },
         {
             name: 'matching',
-            rows: [{ question_text: 'Match country and capital', marks: 2, left1: 'France', right1: 'Paris', left2: 'Germany', right2: 'Berlin' }]
+            keys: ['question_text', 'marks', 'left1', 'right1', 'left2', 'right2'],
+            row: {
+                question_text: 'Соотнесите страну и столицу',
+                marks: 2,
+                left1: 'Франция',
+                right1: 'Париж',
+                left2: 'Германия',
+                right2: 'Берлин'
+            }
         },
         {
             name: 'ordering',
-            rows: [{ question_text: 'Order planets from Sun', marks: 2, item1: 'Mercury', item2: 'Venus', item3: 'Earth' }]
+            keys: ['question_text', 'marks', 'item1', 'item2', 'item3'],
+            row: {
+                question_text: 'Расположите планеты от Солнца',
+                marks: 2,
+                item1: 'Меркурий',
+                item2: 'Венера',
+                item3: 'Земля'
+            }
         },
         {
             name: 'fillblanks',
-            rows: [{ question_text: '___ is the largest planet in the Solar System', marks: 1, blank1: 'Jupiter' }]
+            keys: ['question_text', 'marks', 'blank1'],
+            row: {
+                question_text: '___ — самая большая планета Солнечной системы',
+                marks: 1,
+                blank1: 'Юпитер'
+            }
         },
         {
             name: 'imagebased',
-            rows: [{ question_text: 'What is shown in the image?', marks: 1, media_url: 'https://example.com/image.jpg', option1: 'Cat', option2: 'Dog', option3: 'Bird', option4: 'Fish', correct: '2' }]
+            keys: ['question_text', 'marks', 'media_url', 'option1', 'option2', 'option3', 'option4', 'correct'],
+            row: {
+                question_text: 'Что изображено на картинке?',
+                marks: 1,
+                media_url: 'https://example.com/image.jpg',
+                option1: 'Кот',
+                option2: 'Собака',
+                option3: 'Птица',
+                option4: 'Рыба',
+                correct: '2'
+            }
         }
     ];
 
-    sheets.forEach((sheet) => {
-        const ws = XLSX.utils.json_to_sheet(sheet.rows, { skipHeader: false });
-        XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+    sheets.forEach((sheetDef) => {
+        const worksheet = workbook.addWorksheet(sheetDef.name);
+        const headers = buildTemplateColumns(sheetDef.keys);
+        const dataRow = sheetDef.keys.map((key) => sheetDef.row[key] ?? '');
+
+        worksheet.addRow(headers);
+        worksheet.addRow(dataRow);
+
+        styleTemplateWorksheet(worksheet, 2, headers.length);
+        autosizeWorksheetColumns(worksheet);
     });
 
-    return wb;
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(arrayBuffer);
 }
 
 /**
@@ -1634,8 +1774,7 @@ router.post('/students/:id/reset-password', async (req, res) => {
  */
 router.get('/tests/questions/import-template', async (req, res) => {
     try {
-        const workbook = buildQuestionImportTemplateWorkbook();
-        const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+        const buffer = await buildQuestionImportTemplateBuffer();
 
         res.setHeader('Content-Disposition', 'attachment; filename=\"test_questions_import_template.xlsx\"');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

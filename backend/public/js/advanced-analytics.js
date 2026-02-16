@@ -1,4 +1,4 @@
-// Advanced Analytics (Dashboard Tab)
+п»ї// Advanced Analytics (Dashboard Tab)
 (function () {
     'use strict';
 
@@ -16,7 +16,7 @@
     let activeTab = 'heatmap';
     let chartLoadPromise = null;
 
-    function showAlert(message, title = 'Ошибка') {
+    function showAlert(message, title = 'РћС€РёР±РєР°') {
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title });
         }
@@ -27,9 +27,9 @@
     function getLocalizedName(item) {
         const lang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
         if (lang === 'uz') {
-            return item?.name_uz || item?.name_ru || item?.name || '—';
+            return item?.name_uz || item?.name_ru || item?.name || 'вЂ”';
         }
-        return item?.name_ru || item?.name_uz || item?.name || '—';
+        return item?.name_ru || item?.name_uz || item?.name || 'вЂ”';
     }
 
     function getRoot() {
@@ -231,7 +231,7 @@
             }
 
             if (response.status === 403) {
-                container.innerHTML = '<p style="color: var(--error);">У вас нет доступа к этой аналитике</p>';
+                container.innerHTML = '<p style="color: var(--error);">РЈ РІР°СЃ РЅРµС‚ РґРѕСЃС‚СѓРїР° Рє СЌС‚РѕР№ Р°РЅР°Р»РёС‚РёРєРµ</p>';
                 return;
             }
 
@@ -244,7 +244,7 @@
             renderHeatmap(data.heatmap);
         } catch (error) {
             console.error('Heatmap error:', error);
-            container.innerHTML = `<p style="color: var(--error);">Ошибка загрузки данных: ${error.message}</p>`;
+            container.innerHTML = `<p style="color: var(--error);">РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С…: ${error.message}</p>`;
         }
     }
 
@@ -253,7 +253,7 @@
         if (!container) return;
 
         if (!data || data.length === 0) {
-            container.innerHTML = '<p style="color: var(--text-secondary);">Нет данных для отображения</p>';
+            container.innerHTML = '<p style="color: var(--text-secondary);">РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ</p>';
             return;
         }
 
@@ -262,9 +262,9 @@
 
         let html = `<div class="heatmap" style="grid-template-columns: 150px repeat(${weeks.length}, 1fr);">`;
 
-        html += '<div class="heatmap-header">Предмет</div>';
+        html += '<div class="heatmap-header">РџСЂРµРґРјРµС‚</div>';
         weeks.forEach(week => {
-            html += `<div class="heatmap-header">Неделя ${week}</div>`;
+            html += `<div class="heatmap-header">РќРµРґРµР»СЏ ${week}</div>`;
         });
 
         subjects.forEach(subject => {
@@ -276,7 +276,7 @@
                     const color = getHeatmapColor(score);
                     html += `
                         <div class="heatmap-cell" style="background: ${color}; color: white;" 
-                            title="${subject}, Неделя ${week}: ${score.toFixed(1)}% (${item.attempt_count} попыток)">
+                            title="${subject}, РќРµРґРµР»СЏ ${week}: ${score.toFixed(1)}% (${item.attempt_count} РїРѕРїС‹С‚РѕРє)">
                             ${score.toFixed(0)}%
                         </div>
                     `;
@@ -348,7 +348,7 @@
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="6" style="color: var(--error); text-align: center; padding: 20px;">
-                            Ошибка: ${error.message}
+                            РћС€РёР±РєР°: ${error.message}
                         </td>
                     </tr>
                 `;
@@ -378,7 +378,7 @@
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Средний балл (%)',
+                    label: (window.ZedlyI18n?.translate('advanced.chart.avgScorePercent') || 'Avg score (%)'),
                     data: scores,
                     backgroundColor: 'rgba(74, 144, 226, 0.8)',
                     borderColor: 'rgba(74, 144, 226, 1)',
@@ -470,14 +470,14 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Попытки',
+                            label: (window.ZedlyI18n?.translate('advanced.chart.attempts') || 'Attempts'),
                             data: attempts,
                             borderColor: 'rgba(74, 144, 226, 1)',
                             backgroundColor: 'rgba(74, 144, 226, 0.1)',
                             yAxisID: 'y'
                         },
                         {
-                            label: 'Средний балл (%)',
+                            label: (window.ZedlyI18n?.translate('advanced.chart.avgScorePercent') || 'Avg score (%)'),
                             data: scores,
                             borderColor: 'rgba(80, 227, 194, 1)',
                             backgroundColor: 'rgba(80, 227, 194, 0.1)',
@@ -522,7 +522,7 @@
                             <span class="list-item-score success">${parseFloat(item.avg_score).toFixed(1)}%</span>
                         </div>
                         <div class="list-item-meta">
-                            ${item.student_count} студентов • ${item.total_attempts} попыток
+                            ${item.student_count} СЃС‚СѓРґРµРЅС‚РѕРІ вЂў ${item.total_attempts} РїРѕРїС‹С‚РѕРє
                         </div>
                     </div>
                 `).join('');
@@ -538,7 +538,7 @@
                             <span class="list-item-score error">${parseFloat(item.avg_score).toFixed(1)}%</span>
                         </div>
                         <div class="list-item-meta">
-                            Проходной балл: ${parseFloat(item.pass_rate || 0).toFixed(1)}%
+                            РџСЂРѕС…РѕРґРЅРѕР№ Р±Р°Р»Р»: ${parseFloat(item.pass_rate || 0).toFixed(1)}%
                         </div>
                     </div>
                 `).join('');
@@ -588,7 +588,7 @@
             if (!tbody) return;
 
             if (subjects.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">Нет данных по предметам</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">РќРµС‚ РґР°РЅРЅС‹С… РїРѕ РїСЂРµРґРјРµС‚Р°Рј</td></tr>';
                 return;
             }
 
@@ -600,7 +600,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Средний балл (%)',
+                        label: (window.ZedlyI18n?.translate('advanced.chart.avgScorePercent') || 'Avg score (%)'),
                         data: scores,
                         backgroundColor: 'rgba(80, 227, 194, 0.8)',
                         borderColor: 'rgba(80, 227, 194, 1)',
@@ -656,7 +656,7 @@
             document.body.removeChild(link);
         } catch (error) {
             console.error('Export error:', error);
-            showAlert('Ошибка при экспорте данных');
+            showAlert('РћС€РёР±РєР° РїСЂРё СЌРєСЃРїРѕСЂС‚Рµ РґР°РЅРЅС‹С…');
         }
     }
 
@@ -685,7 +685,7 @@
                 data.subjects.forEach(subject => {
                     const option = document.createElement('option');
                     option.value = subject.id;
-                    option.textContent = subject.name_ru || subject.name || 'Без названия';
+                    option.textContent = subject.name_ru || subject.name || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ';
                     select.appendChild(option);
                 });
             }
@@ -733,7 +733,7 @@
             grades.forEach((grade) => {
                 const option = document.createElement('option');
                 option.value = String(grade);
-                option.textContent = `${grade} класс`;
+                option.textContent = `${grade} РєР»Р°СЃСЃ`;
                 select.appendChild(option);
             });
         } catch (error) {
@@ -776,10 +776,10 @@
         if (!gradeSelect || !classSelect) return;
 
         if (gradeSelect.options.length > 0) {
-            gradeSelect.options[0].textContent = localize('Все параллели', 'Barcha parallellar');
+            gradeSelect.options[0].textContent = localize('Р’СЃРµ РїР°СЂР°Р»Р»РµР»Рё', 'Barcha parallellar');
         }
         if (classSelect.options.length > 0) {
-            classSelect.options[0].textContent = localize('Все классы', 'Barcha sinflar');
+            classSelect.options[0].textContent = localize('Р’СЃРµ РєР»Р°СЃСЃС‹', 'Barcha sinflar');
         }
 
         while (gradeSelect.options.length > 1) {
@@ -810,7 +810,7 @@
         grades.forEach((grade) => {
             const option = document.createElement('option');
             option.value = String(grade);
-            option.textContent = localize(`${grade} класс`, `${grade}-sinf`);
+            option.textContent = localize(`${grade} РєР»Р°СЃСЃ`, `${grade}-sinf`);
             gradeSelect.appendChild(option);
         });
     }
@@ -852,3 +852,4 @@
         init
     };
 })();
+
