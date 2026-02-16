@@ -1521,6 +1521,41 @@
     padding: 6px 10px;
 }
 
+#studentsPage .table-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+#studentsPage .table-actions .btn-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    transition: all 0.18s ease;
+}
+
+#studentsPage .table-actions .btn-icon:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(74, 144, 226, 0.14);
+}
+
+#studentsPage .table-actions .btn-icon.btn-danger:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.14);
+}
+
+#studentsPage .table-actions .btn-icon:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.28);
+}
+
 .students-modal {
     width: min(760px, 96vw);
 }
@@ -3140,12 +3175,8 @@
     }
 
     #studentsPage .mobile-stack-table .data-table .table-actions {
-        flex-direction: column;
-    }
-
-    #studentsPage .mobile-stack-table .data-table .students-action-btn {
-        width: 100%;
-        justify-content: center;
+        flex-direction: row;
+        justify-content: flex-start;
     }
 
     #studentsPage .students-pagination {
