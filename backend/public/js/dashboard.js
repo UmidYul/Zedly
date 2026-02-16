@@ -5,6 +5,7 @@
     let currentUser = null;
     let teacherHasHomeroom = false;
     let currentPageId = 'overview';
+    const hiddenPages = new Set(['career', 'career-admin', 'career-results']);
 
     // Navigation items for each role
     const navigationConfig = {
@@ -15,8 +16,7 @@
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
                     { icon: 'building', label: 'dashboard.nav.schools', id: 'schools', href: '#schools' },
-                    { icon: 'users', label: 'School Admins', id: 'school-admins', href: '#school-admins' },
-                    { icon: 'target', label: 'dashboard.nav.careerResults', id: 'career-results', href: '#career-results' }
+                    { icon: 'users', label: 'School Admins', id: 'school-admins', href: '#school-admins' }
                 ]
             },
             {
@@ -105,7 +105,6 @@
                 section: 'dashboard.nav.learning',
                 items: [
                     { icon: 'chart', label: 'dashboard.nav.progress', id: 'progress', href: '#progress' },
-                    { icon: 'target', label: 'dashboard.nav.career', id: 'career', href: '#career' },
                     { icon: 'trophy', label: 'dashboard.nav.leaderboard', id: 'leaderboard', href: '#leaderboard' }
                 ]
             }
@@ -319,6 +318,10 @@
     }
 
     function isPageAvailableForCurrentUser(pageId) {
+        if (hiddenPages.has(pageId)) {
+            return false;
+        }
+
         if (!currentUser || !navigationConfig[currentUser.role]) {
             return pageId === 'overview';
         }
