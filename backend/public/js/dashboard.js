@@ -1390,6 +1390,22 @@
                             </div>
                             <button class="btn btn-primary start-import-btn" type="button" data-import-type="teacher" data-i18n="import.start">Start import</button>
                         </div>
+
+                        <div class="dashboard-section import-lane" data-import-lane="teaching-assignments">
+                            <div class="section-header">
+                                <h2 class="section-title">${t('tools.teachingAssignmentsImport', 'Назначения преподавания')}</h2>
+                                <button class="btn btn-secondary download-template-btn" data-import-type="teaching_assignments">${t('import.downloadTemplate', 'Скачать шаблон')}</button>
+                            </div>
+                            <input type="file" id="importFileTeachingAssignments" class="import-file-input" data-import-type="teaching_assignments" accept=".xlsx,.xls,.csv" />
+                            <div class="import-file-row">
+                                <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileTeachingAssignments">${t('tools.chooseFile', 'Выбрать файл')}</button>
+                                <span class="import-file-name" id="importFileTeachingAssignmentsName">${t('tools.noFileSelected', 'Файл не выбран')}</span>
+                            </div>
+                            <button class="btn btn-primary start-import-btn" type="button" data-import-type="teaching_assignments">${t('import.start', 'Начать импорт')}</button>
+                            <p class="text-secondary" style="margin-top: 8px;">
+                                ${t('tools.teachingAssignmentsImportHint', 'Значение больше 0 означает, что учитель ведет предмет в выбранном классе.')}
+                            </p>
+                        </div>
                     </div>
 
                     <div class="dashboard-section import-results" id="importResults"></div>

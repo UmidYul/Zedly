@@ -177,13 +177,15 @@
 
         const formData = new FormData();
         formData.append('file', resolvedInput.files[0]);
-        formData.append('import_type', resolvedType);
+        if (resolvedType === 'student' || resolvedType === 'teacher') {
+            formData.append('import_type', resolvedType);
+        }
 
         setImportControlsBusy(true);
         startImportProgress(resultsContainer, 'Import in progress...');
 
         try {
-            const response = await fetch(`${API_URL}/import/users`, {
+            const response = await fetch(resolveImportEndpoint(resolvedType), {
                 method: 'POST',
                 body: formData
             });
@@ -277,13 +279,16 @@
     async function downloadTemplate(importType = null) {
         const resolvedType = importType || (document.getElementById('importType')?.value || 'student');
         try {
-            const response = await fetch(`${API_URL}/import/template/users?type=${encodeURIComponent(resolvedType)}`);
+            const response = await fetch(resolveImportTemplateEndpoint(resolvedType));
             if (!response.ok) {
                 throw new Error('Failed to download template');
             }
 
             const blob = await response.blob();
-            downloadBlob(blob, 'users_import_template.xlsx');
+            const filename = resolvedType === 'teaching_assignments'
+                ? 'teaching_assignments_import_template.xlsx'
+                : 'users_import_template.xlsx';
+            downloadBlob(blob, filename);
         } catch (error) {
             console.error('Template download error:', error);
             showAlert('Не удалось скачать шаблон');
@@ -297,6 +302,9 @@
     }
 
     function getImportInputForType(importType) {
+        if (importType === 'teaching_assignments') {
+            return document.getElementById('importFileTeachingAssignments');
+        }
         if (importType === 'teacher') {
             return document.getElementById('importFileTeacher');
         }
@@ -310,9 +318,12 @@
         const importType = input?.dataset?.importType;
         if (!importType) return;
 
-        const nameId = importType === 'teacher'
-            ? 'importFileTeacherName'
-            : 'importFileStudentName';
+        const nameIdMap = {
+            student: 'importFileStudentName',
+            teacher: 'importFileTeacherName',
+            teaching_assignments: 'importFileTeachingAssignmentsName'
+        };
+        const nameId = nameIdMap[importType];
         const nameEl = document.getElementById(nameId);
         if (!nameEl) return;
 
@@ -321,6 +332,20 @@
             : t('tools.noFileSelected', 'Файл не выбран');
         nameEl.textContent = fileName;
         nameEl.classList.toggle('has-file', Boolean(input.files && input.files[0]));
+    }
+
+    function resolveImportEndpoint(importType) {
+        if (importType === 'teaching_assignments') {
+            return `${API_URL}/import/teaching-assignments`;
+        }
+        return `${API_URL}/import/users`;
+    }
+
+    function resolveImportTemplateEndpoint(importType) {
+        if (importType === 'teaching_assignments') {
+            return `${API_URL}/import/template/teaching-assignments`;
+        }
+        return `${API_URL}/import/template/users?type=${encodeURIComponent(importType || 'student')}`;
     }
 
     async function exportUsers() {

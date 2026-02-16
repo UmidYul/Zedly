@@ -1149,6 +1149,52 @@ router.get('/import/template/users', async (req, res) => {
 });
 
 /**
+ * GET /api/admin/import/template/teaching-assignments
+ * Download Excel template for teacher->subject->class matrix import
+ */
+router.get('/import/template/teaching-assignments', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const classesResult = await query(
+            `SELECT name
+             FROM classes
+             WHERE school_id = $1 AND is_active = true
+             ORDER BY grade_level ASC, name ASC`,
+            [schoolId]
+        );
+
+        const classNames = classesResult.rows.map((row) => String(row.name || '').trim()).filter(Boolean);
+        const effectiveClassNames = classNames.length > 0
+            ? classNames
+            : ['5-\u0410', '5-\u0411', '6-\u0410'];
+
+        const rows = [
+            ['#', '\u0423\u0447\u0438\u0442\u0435\u043b\u044c', '\u041f\u0440\u0435\u0434\u043c\u0435\u0442', ...effectiveClassNames],
+            [1, '\u0410\u0431\u0434\u0443\u043b\u043b\u0430\u0435\u0432 \u0421. \u0410.', '\u041c\u0430\u0442\u0435\u043c\u0430\u0442\u0438\u043a\u0430', ...effectiveClassNames.map((_, idx) => (idx === 0 ? 12 : 0))],
+            [2, '\u0410\u0431\u0434\u0443\u043b\u043b\u0430\u0435\u0432\u0430 \u0410. \u0420.', '\u0420\u0443\u0441\u0441\u043a\u0438\u0439 \u044f\u0437\u044b\u043a', ...effectiveClassNames.map(() => 0)]
+        ];
+
+        const buffer = await buildStyledWorkbookBuffer({
+            sheetName: 'teaching_assignments',
+            rows,
+            headerRows: 1,
+            autoFilter: true,
+            freezeHeader: true
+        });
+
+        res.setHeader('Content-Disposition', 'attachment; filename="teaching_assignments_import_template.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Download teaching assignments template error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to generate teaching assignments template'
+        });
+    }
+});
+
+/**
  * POST /api/admin/import/users
  * Import users from Excel
  */
@@ -1400,6 +1446,196 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
             error: 'server_error',
             message: 'Failed to import users'
         });
+    }
+});
+
+/**
+ * POST /api/admin/import/teaching-assignments
+ * Import teacher -> subject -> class assignments from matrix Excel
+ */
+router.post('/import/teaching-assignments', upload.single('file'), async (req, res) => {
+    let client = null;
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No file uploaded'
+            });
+        }
+
+        const schoolId = req.user.school_id;
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const parsed = parseTeachingAssignmentsMatrix(sheet);
+
+        const results = {
+            total_rows: parsed.totalRows,
+            processed_rows: 0,
+            imported: 0,
+            skipped: 0,
+            skipped_rows: [],
+            errors: [],
+            failed: 0,
+            stats: {
+                positive_cells: 0,
+                inserted: 0,
+                already_exists: 0,
+                teacher_not_found: 0,
+                subject_not_found: 0,
+                class_not_found: 0,
+                ignored_zero: 0
+            }
+        };
+
+        const teachersResult = await query(
+            `SELECT id, first_name, last_name
+             FROM users
+             WHERE school_id = $1 AND role = 'teacher'`,
+            [schoolId]
+        );
+        const teacherLookup = buildTeacherLookup(teachersResult.rows || []);
+
+        const subjectsResult = await query(
+            `SELECT id, name, name_ru, name_uz, code
+             FROM subjects
+             WHERE school_id = $1`,
+            [schoolId]
+        );
+        const subjectLookup = buildSubjectLookup(subjectsResult.rows || []);
+
+        const classesResult = await query(
+            `SELECT id, name, academic_year, is_active, created_at
+             FROM classes
+             WHERE school_id = $1
+             ORDER BY is_active DESC, created_at DESC`,
+            [schoolId]
+        );
+        const classLookup = buildClassLookup(classesResult.rows || []);
+
+        client = await getClient();
+        await client.query('BEGIN');
+
+        for (const rowData of parsed.rows) {
+            const rowNumber = rowData.rowNumber;
+            const teacherLabel = rowData.teacher;
+            const subjectLabel = rowData.subject;
+
+            const teacher = resolveTeacherForImport(teacherLookup, teacherLabel);
+            if (!teacher) {
+                results.skipped += 1;
+                results.stats.teacher_not_found += 1;
+                results.skipped_rows.push({
+                    row: rowNumber,
+                    reason: `Teacher not found: ${teacherLabel || '-'}`,
+                    teacher: teacherLabel || '',
+                    subject: subjectLabel || ''
+                });
+                continue;
+            }
+
+            const subject = resolveSubjectForImport(subjectLookup, subjectLabel);
+            if (!subject) {
+                results.skipped += 1;
+                results.stats.subject_not_found += 1;
+                results.skipped_rows.push({
+                    row: rowNumber,
+                    reason: `Subject not found: ${subjectLabel || '-'}`,
+                    teacher: teacherLabel || '',
+                    subject: subjectLabel || ''
+                });
+                continue;
+            }
+
+            results.processed_rows += 1;
+
+            for (const valueCell of rowData.values) {
+                const numericValue = parseTeachingCellValue(valueCell.value);
+                if (!(numericValue > 0)) {
+                    results.stats.ignored_zero += 1;
+                    continue;
+                }
+
+                results.stats.positive_cells += 1;
+                const classMatch = classLookup.get(valueCell.classKey);
+
+                if (!classMatch) {
+                    results.skipped += 1;
+                    results.stats.class_not_found += 1;
+                    results.skipped_rows.push({
+                        row: rowNumber,
+                        reason: `Class not found: ${valueCell.className}`,
+                        teacher: teacherLabel || '',
+                        subject: subjectLabel || '',
+                        class_name: valueCell.className || ''
+                    });
+                    continue;
+                }
+
+                const insertResult = await client.query(
+                    `INSERT INTO teacher_class_subjects (teacher_id, class_id, subject_id, academic_year)
+                     VALUES ($1, $2, $3, $4)
+                     ON CONFLICT (teacher_id, class_id, subject_id, academic_year) DO NOTHING
+                     RETURNING id`,
+                    [teacher.id, classMatch.id, subject.id, classMatch.academic_year]
+                );
+
+                if (insertResult.rowCount > 0) {
+                    results.imported += 1;
+                    results.stats.inserted += 1;
+                } else {
+                    results.stats.already_exists += 1;
+                }
+            }
+        }
+
+        if (results.errors.length > 300) {
+            results.errors = results.errors.slice(0, 300);
+            results.errors_truncated = true;
+        }
+        if (results.skipped_rows.length > 300) {
+            results.skipped_rows = results.skipped_rows.slice(0, 300);
+            results.skipped_truncated = true;
+        }
+        results.failed = results.errors.length;
+
+        await client.query(
+            `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+                req.user.id,
+                'import',
+                'teaching_assignment_import_batch',
+                req.user.id,
+                {
+                    school_id: schoolId,
+                    total_rows: results.total_rows,
+                    processed_rows: results.processed_rows,
+                    imported: results.imported,
+                    skipped: results.skipped,
+                    failed: results.failed,
+                    stats: results.stats
+                }
+            ]
+        );
+
+        await client.query('COMMIT');
+
+        res.json({
+            message: 'Teaching assignments import completed',
+            ...results
+        });
+    } catch (error) {
+        if (client) {
+            try { await client.query('ROLLBACK'); } catch (_) { /* noop */ }
+        }
+        console.error('Import teaching assignments error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to import teaching assignments'
+        });
+    } finally {
+        if (client) client.release();
     }
 });
 
@@ -3425,6 +3661,214 @@ async function ensureHomeroomTeacherForClass(schoolId, className, teacherId, aca
         [schoolId, normalizedName, deriveGradeLevelFromClassName(normalizedName), normalizedYear, teacherId]
     );
     return createdClass.rows[0].id;
+}
+
+function parseTeachingCellValue(rawValue) {
+    if (rawValue === null || rawValue === undefined) return 0;
+    if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : 0;
+    const normalized = String(rawValue)
+        .trim()
+        .replace(/\s+/g, '')
+        .replace(',', '.');
+    if (!normalized) return 0;
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseTeachingAssignmentsMatrix(sheet) {
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
+    const normalizedMatrix = matrix.map((row) => row.map((cell) => normalizeHeader(cell)));
+
+    const isTeacherHeader = (cell) => {
+        const value = String(cell || '');
+        return value.includes('учитель') || value.includes('teacher');
+    };
+    const isSubjectHeader = (cell) => {
+        const value = String(cell || '');
+        return value.includes('предмет') || value.includes('subject');
+    };
+
+    let headerRowIndex = -1;
+    let teacherColIndex = -1;
+    let subjectColIndex = -1;
+
+    for (let r = 0; r < normalizedMatrix.length; r++) {
+        const row = normalizedMatrix[r] || [];
+        const teacherIdx = row.findIndex((cell) => isTeacherHeader(cell));
+        const subjectIdx = row.findIndex((cell) => isSubjectHeader(cell));
+        if (teacherIdx >= 0 && subjectIdx >= 0) {
+            headerRowIndex = r;
+            teacherColIndex = teacherIdx;
+            subjectColIndex = subjectIdx;
+            break;
+        }
+    }
+
+    if (headerRowIndex < 0) {
+        headerRowIndex = 0;
+        teacherColIndex = 1;
+        subjectColIndex = 2;
+    }
+
+    const headerRow = matrix[headerRowIndex] || [];
+    const classColumns = [];
+    for (let c = subjectColIndex + 1; c < headerRow.length; c++) {
+        const className = normalizeClassName(headerRow[c]);
+        if (!className) continue;
+        classColumns.push({
+            colIndex: c,
+            className,
+            classKey: normalizeHeader(className)
+        });
+    }
+
+    const rows = [];
+    let currentTeacher = '';
+    for (let r = headerRowIndex + 1; r < matrix.length; r++) {
+        const row = matrix[r] || [];
+        const teacherCellRaw = row[teacherColIndex];
+        const subjectCellRaw = row[subjectColIndex];
+
+        const teacherCell = String(teacherCellRaw ?? '').trim();
+        const subjectCell = String(subjectCellRaw ?? '').trim();
+
+        if (teacherCell) {
+            currentTeacher = teacherCell;
+        }
+
+        if (!currentTeacher || !subjectCell) {
+            continue;
+        }
+
+        const values = classColumns.map((column) => ({
+            className: column.className,
+            classKey: column.classKey,
+            value: row[column.colIndex]
+        }));
+
+        rows.push({
+            rowNumber: r + 1,
+            teacher: currentTeacher,
+            subject: subjectCell,
+            values
+        });
+    }
+
+    return {
+        totalRows: rows.length,
+        rows
+    };
+}
+
+function splitNameTokens(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[.,;:()[\]{}]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .filter(Boolean);
+}
+
+function buildTeacherLookup(teachers) {
+    const exact = new Map();
+    const byLastAndInitial = new Map();
+
+    const pushKey = (map, key, teacher) => {
+        if (!key) return;
+        const bucket = map.get(key) || [];
+        bucket.push(teacher);
+        map.set(key, bucket);
+    };
+
+    teachers.forEach((teacher) => {
+        const firstName = String(teacher.first_name || '').trim();
+        const lastName = String(teacher.last_name || '').trim();
+        const firstTokens = splitNameTokens(firstName);
+        const lastTokens = splitNameTokens(lastName);
+        const first = firstTokens[0] || '';
+        const last = lastTokens[0] || '';
+        const firstInitial = first ? first[0] : '';
+
+        const keysExact = [
+            splitNameTokens(`${lastName} ${firstName}`).join(' '),
+            splitNameTokens(`${firstName} ${lastName}`).join(' ')
+        ];
+        keysExact.forEach((key) => pushKey(exact, key, teacher));
+
+        if (last && firstInitial) {
+            pushKey(byLastAndInitial, `${last} ${firstInitial}`, teacher);
+        }
+    });
+
+    return { exact, byLastAndInitial };
+}
+
+function resolveUniqueFromMap(map, key) {
+    const list = map.get(key) || [];
+    if (list.length !== 1) return null;
+    return list[0];
+}
+
+function resolveTeacherForImport(lookup, rawTeacherName) {
+    const tokens = splitNameTokens(rawTeacherName);
+    if (!tokens.length) return null;
+
+    const exactKey = tokens.join(' ');
+    let resolved = resolveUniqueFromMap(lookup.exact, exactKey);
+    if (resolved) return resolved;
+
+    if (tokens.length >= 2) {
+        const last = tokens[0];
+        const firstToken = tokens[1];
+        const firstInitial = firstToken ? firstToken[0] : '';
+        if (last && firstInitial) {
+            resolved = resolveUniqueFromMap(lookup.byLastAndInitial, `${last} ${firstInitial}`);
+            if (resolved) return resolved;
+        }
+    }
+
+    return null;
+}
+
+function buildSubjectLookup(subjects) {
+    const lookup = new Map();
+    subjects.forEach((subject) => {
+        const keys = [
+            subject.name,
+            subject.name_ru,
+            subject.name_uz,
+            subject.code
+        ]
+            .map((value) => normalizeHeader(value))
+            .filter(Boolean);
+
+        keys.forEach((key) => {
+            if (!lookup.has(key)) {
+                lookup.set(key, subject);
+            }
+        });
+    });
+    return lookup;
+}
+
+function resolveSubjectForImport(lookup, rawSubjectName) {
+    const key = normalizeHeader(rawSubjectName);
+    if (!key) return null;
+    return lookup.get(key) || null;
+}
+
+function buildClassLookup(classes) {
+    const lookup = new Map();
+    classes.forEach((cls) => {
+        const normalizedName = normalizeClassName(cls.name);
+        const key = normalizeHeader(normalizedName);
+        if (!key) return;
+        if (!lookup.has(key)) {
+            lookup.set(key, cls);
+        }
+    });
+    return lookup;
 }
 
 const IMPORT_HEADER_MAP = {
