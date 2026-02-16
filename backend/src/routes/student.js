@@ -652,16 +652,49 @@ router.get('/attempts/:id', async (req, res) => {
 
         const attempt = attemptResult.rows[0];
 
-        // Get questions (hide correct answers if not completed)
-        const questionsQuery = attempt.is_completed
-            ? `SELECT * FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`
-            : `SELECT id, question_type, question_text, options, marks, order_number, media_url
-               FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`;
+        const rawAnswers = attempt.answers;
+        let answersMap = {};
+        if (rawAnswers && typeof rawAnswers === 'object' && !Array.isArray(rawAnswers)) {
+            answersMap = rawAnswers;
+        } else if (typeof rawAnswers === 'string') {
+            try {
+                const parsed = JSON.parse(rawAnswers);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    answersMap = parsed;
+                }
+            } catch (error) {
+                answersMap = {};
+            }
+        }
 
-        const questionsResult = await query(questionsQuery, [attempt.test_id]);
-        const questions = attempt.shuffle_questions && !attempt.is_completed
-            ? shuffleQuestions(questionsResult.rows, attempt.id)
-            : questionsResult.rows;
+        const answeredQuestionIds = Object.keys(answersMap);
+        let questions = [];
+
+        // For completed attempts, return questions matching saved answers first.
+        if (attempt.is_completed && answeredQuestionIds.length > 0) {
+            const answeredQuestionsResult = await query(
+                `SELECT * FROM test_questions WHERE id::text = ANY($1::text[])`,
+                [answeredQuestionIds]
+            );
+
+            const byId = new Map(answeredQuestionsResult.rows.map((q) => [String(q.id), q]));
+            questions = answeredQuestionIds
+                .map((qid) => byId.get(String(qid)))
+                .filter(Boolean);
+        }
+
+        // Fallback for ongoing attempts or when matched questions were not found.
+        if (questions.length === 0) {
+            const questionsQuery = attempt.is_completed
+                ? `SELECT * FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`
+                : `SELECT id, question_type, question_text, options, marks, order_number, media_url
+                   FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`;
+
+            const questionsResult = await query(questionsQuery, [attempt.test_id]);
+            questions = attempt.shuffle_questions && !attempt.is_completed
+                ? shuffleQuestions(questionsResult.rows, attempt.id)
+                : questionsResult.rows;
+        }
 
         res.json({
             attempt: attempt,

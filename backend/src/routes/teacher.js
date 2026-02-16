@@ -2586,15 +2586,48 @@ router.get('/attempts/:id', async (req, res) => {
 
         const attempt = attemptResult.rows[0];
 
-        // Get questions with answers
-        const questionsResult = await query(
-            `SELECT * FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`,
-            [attempt.test_id]
-        );
+        const rawAnswers = attempt.answers;
+        let answersMap = {};
+        if (rawAnswers && typeof rawAnswers === 'object' && !Array.isArray(rawAnswers)) {
+            answersMap = rawAnswers;
+        } else if (typeof rawAnswers === 'string') {
+            try {
+                const parsed = JSON.parse(rawAnswers);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    answersMap = parsed;
+                }
+            } catch (error) {
+                answersMap = {};
+            }
+        }
+
+        const answeredQuestionIds = Object.keys(answersMap);
+        let questions = [];
+
+        // Return questions in the same order as saved answer keys for this attempt.
+        if (answeredQuestionIds.length > 0) {
+            const answeredQuestionsResult = await query(
+                `SELECT * FROM test_questions WHERE id::text = ANY($1::text[])`,
+                [answeredQuestionIds]
+            );
+
+            const byId = new Map(answeredQuestionsResult.rows.map((q) => [String(q.id), q]));
+            questions = answeredQuestionIds
+                .map((qid) => byId.get(String(qid)))
+                .filter(Boolean);
+        }
+
+        if (questions.length === 0) {
+            const questionsResult = await query(
+                `SELECT * FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`,
+                [attempt.test_id]
+            );
+            questions = questionsResult.rows;
+        }
 
         res.json({
             attempt: attempt,
-            questions: questionsResult.rows
+            questions: questions
         });
 
     } catch (error) {
