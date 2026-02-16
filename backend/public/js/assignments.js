@@ -451,7 +451,7 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <form id="assignmentForm" onsubmit="AssignmentsManager.submitAssignment(event, ${assignmentId})">
+                            <form id="assignmentForm" data-assignment-id="${isEdit ? String(assignmentId) : ''}" onsubmit="AssignmentsManager.submitAssignment(event)">
                                 ${!isEdit ? `
                                 <div class="form-group">
                                     <label class="form-label">${t('assignments.assignmentTemplate', 'Шаблон назначения')}</label>
@@ -819,10 +819,11 @@
         },
 
         // Submit assignment form
-        submitAssignment: async function (event, assignmentId) {
+        submitAssignment: async function (event, assignmentId = null) {
             event.preventDefault();
 
             const form = event.target;
+            const resolvedAssignmentId = assignmentId || form?.dataset?.assignmentId || null;
             const submitBtn = document.getElementById('submitBtn');
             const formAlert = document.getElementById('formAlert');
             const toIso = (value) => {
@@ -835,7 +836,7 @@
             const formData = new FormData(form);
             const data = {};
 
-            if (!assignmentId) {
+            if (!resolvedAssignmentId) {
                 data.test_id = formData.get('test_id');
                 const classChecks = form.querySelectorAll('input[name="class_ids"]:checked');
                 data.class_ids = Array.from(classChecks)
@@ -846,12 +847,12 @@
             data.start_date = toIso(formData.get('start_date'));
             data.end_date = toIso(formData.get('end_date'));
 
-            if (assignmentId) {
+            if (resolvedAssignmentId) {
                 data.is_active = formData.get('is_active') === 'on';
             }
 
             // Validation
-            if (!assignmentId && (!data.test_id || !Array.isArray(data.class_ids) || data.class_ids.length === 0)) {
+            if (!resolvedAssignmentId && (!data.test_id || !Array.isArray(data.class_ids) || data.class_ids.length === 0)) {
                 formAlert.className = 'alert alert-error';
                 formAlert.textContent = t('assignments.validationTestAndClass', 'Выберите тест и хотя бы один класс');
                 return;
@@ -869,7 +870,7 @@
                 return;
             }
 
-            if (!assignmentId && formData.get('save_as_template') === 'on' && !String(formData.get('template_name') || '').trim()) {
+            if (!resolvedAssignmentId && formData.get('save_as_template') === 'on' && !String(formData.get('template_name') || '').trim()) {
                 formAlert.className = 'alert alert-error';
                 formAlert.textContent = t('assignments.validationTemplateName', 'Введите название шаблона');
                 return;
@@ -882,10 +883,10 @@
 
             try {
                 const token = localStorage.getItem('access_token');
-                const url = assignmentId
-                    ? `/api/teacher/assignments/${assignmentId}`
+                const url = resolvedAssignmentId
+                    ? `/api/teacher/assignments/${resolvedAssignmentId}`
                     : '/api/teacher/assignments';
-                const method = assignmentId ? 'PUT' : 'POST';
+                const method = resolvedAssignmentId ? 'PUT' : 'POST';
 
                 const response = await fetch(url, {
                     method,
@@ -899,7 +900,7 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    if (!assignmentId && formData.get('save_as_template') === 'on') {
+                    if (!resolvedAssignmentId && formData.get('save_as_template') === 'on') {
                         const templateName = String(formData.get('template_name') || '').trim();
                         if (templateName) {
                             const selectedTemplateId = String(formData.get('template_id') || '').trim();

@@ -2392,7 +2392,7 @@ router.put('/assignments/:id', async (req, res) => {
 
 /**
  * DELETE /api/teacher/assignments/:id
- * Delete test assignment (soft delete by setting is_active to false)
+ * Delete test assignment (hard delete with related attempts)
  */
 router.delete('/assignments/:id', async (req, res) => {
     let teacherId = null;
@@ -2421,22 +2421,9 @@ router.delete('/assignments/:id', async (req, res) => {
             });
         }
 
-        // Check if there are attempts
-        const attemptsCheck = await query(
-            'SELECT COUNT(*) FROM test_attempts WHERE assignment_id = $1',
-            [id]
-        );
-
-        if (parseInt(attemptsCheck.rows[0].count) > 0) {
-            // Soft delete if has attempts
-            await query(
-                'UPDATE test_assignments SET is_active = false WHERE id = $1',
-                [id]
-            );
-        } else {
-            // Hard delete if no attempts
-            await query('DELETE FROM test_assignments WHERE id = $1', [id]);
-        }
+        // Hard delete assignment and all related attempts.
+        await query('DELETE FROM test_attempts WHERE assignment_id = $1', [id]);
+        await query('DELETE FROM test_assignments WHERE id = $1', [id]);
 
         // Log action
         await query(
