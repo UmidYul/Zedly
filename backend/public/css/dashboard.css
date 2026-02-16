@@ -3009,6 +3009,20 @@
 }
 
 @media (max-width: 600px) {
+    .page-toolbar {
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .page-toolbar .page-size-control {
+        padding: 8px 10px;
+        gap: 10px;
+    }
+
+    .page-toolbar .page-size-control .page-size-label {
+        min-width: 56px;
+    }
+
     .reports-page {
         gap: 10px;
     }
@@ -3242,7 +3256,7 @@
     }
 
     #classesContainer {
-        margin-top: 14px;
+        margin-top: 16px;
     }
 
     #classesSearch,
@@ -3254,14 +3268,14 @@
 
     #classesContainer .table-responsive {
         overflow: visible;
-        margin: 14px 0;
+        margin: 16px 0 10px;
     }
 
     #classesContainer .data-table {
         min-width: 0;
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 14px;
+        border-spacing: 0 12px;
         background: transparent;
     }
 
@@ -3280,13 +3294,13 @@
         border: 1px solid var(--border);
         border-radius: 12px;
         background: var(--bg-card);
-        padding: 10px 12px;
+        padding: 12px 14px;
     }
 
     #classesContainer .data-table td {
         border: 0;
         border-bottom: 1px dashed var(--border);
-        padding: 10px 0;
+        padding: 11px 0;
         white-space: normal;
     }
 
@@ -3297,7 +3311,7 @@
     #classesContainer .data-table td::before {
         content: attr(data-label);
         display: block;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
         color: var(--text-secondary);
         font-size: 0.72rem;
         font-weight: 700;
@@ -3668,6 +3682,54 @@
 }
 
 @media (max-width: 480px) {
+    #myClassPage .dashboard-section {
+        padding: 14px 12px;
+    }
+
+    #myClassPage .section-header {
+        margin-bottom: 10px;
+    }
+
+    #myClassPage .table-controls {
+        margin-bottom: 10px;
+    }
+
+    #myClassPage .search-input {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #myClassPage .table-wrap {
+        margin-top: 8px;
+        border-radius: 14px;
+    }
+
+    #myClassPage .mobile-stack-table .data-table {
+        border-spacing: 0 12px;
+    }
+
+    #myClassPage .mobile-stack-table .data-table tr {
+        padding: 10px 12px;
+        border-radius: 14px;
+    }
+
+    #myClassPage .mobile-stack-table .data-table td {
+        padding: 10px 0;
+    }
+
+    #myClassPage .mobile-stack-table .data-table td::before {
+        margin-bottom: 6px;
+    }
+
+    #myClassPage .mobile-stack-table .data-table td:last-child {
+        padding-top: 12px;
+    }
+
+    #myClassPage .student-actions {
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
     #studentMyClassPage .mobile-stack-table .data-table {
         border-spacing: 0 14px;
     }

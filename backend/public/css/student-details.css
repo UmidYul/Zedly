@@ -360,18 +360,123 @@
         padding: 1rem;
     }
 
+    .student-top-actions {
+        margin-bottom: 0;
+    }
+
+    .student-back-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
     .student-hero__side {
         min-width: 0;
         flex-direction: row;
         align-items: center;
+        justify-content: flex-start;
+        gap: 0.75rem;
+    }
+
+    .hero-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
     }
 
     .kpi-grid {
         grid-template-columns: repeat(2, minmax(120px, 1fr));
+        gap: 0.6rem;
+    }
+
+    .kpi-card {
+        padding: 0.75rem;
+    }
+
+    .tabs-bar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.25rem;
+    }
+
+    .tab-btn {
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+
+    .panel-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .segmented {
+        width: 100%;
+    }
+
+    .segment-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .progress-visual {
+        min-height: 220px;
+        padding: 0.75rem;
+    }
+
+    .progress-svg {
+        height: 220px;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    .table-wrap .data-table {
+        min-width: 560px;
     }
 
     .filter-input {
         min-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .student-main-content {
+        padding: calc(60px + env(safe-area-inset-top)) 0.55rem 1.5rem;
+    }
+
+    .student-content-wrapper {
+        gap: 0.75rem;
+    }
+
+    .student-hero__main h2 {
+        font-size: 1.95rem;
+        line-height: 1.15;
+    }
+
+    .student-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        font-size: 1.35rem;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .kpi-label {
+        font-size: 0.7rem;
+    }
+
+    .kpi-value {
+        font-size: 1.6rem;
     }
 }
 
