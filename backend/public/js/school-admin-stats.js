@@ -152,44 +152,36 @@
                                 <tr>
                                     <th>${t('dashboard.statistics.metric', 'Metric')}</th>
                                     <th>${t('dashboard.statistics.total', 'Total')}</th>
-                                    <th>${t('dashboard.statistics.details', 'Details')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td>${t('dashboard.stats.students', 'Students')}</td>
                                     <td>${studentsTotal}</td>
-                                    <td>-</td>
                                 </tr>
                                 <tr>
                                     <td>${t('dashboard.stats.teachers', 'Teachers')}</td>
                                     <td>${teachersTotal}</td>
-                                    <td>-</td>
                                 </tr>
                                 <tr>
                                     <td>${t('dashboard.stats.classes', 'Classes')}</td>
                                     <td>${classesTotal}</td>
-                                    <td>-</td>
                                 </tr>
                                 <tr>
                                     <td>${t('dashboard.stats.subjects', 'Subjects')}</td>
                                     <td>${subjectsTotal}</td>
-                                    <td>-</td>
                                 </tr>
                                 <tr>
                                     <td>${t('dashboard.stats.tests', 'Tests')}</td>
                                     <td>${testsTotal}</td>
-                                    <td>-</td>
                                 </tr>
                                 <tr>
                                     <td>${t('dashboard.stats.attempts', 'Attempts')}</td>
                                     <td>${attemptsTotal}</td>
-                                    <td>${t('dashboard.stats.completedAttempts', 'Completed Attempts')}</td>
                                 </tr>
                                 <tr>
                                     <td>${t('dashboard.stats.avgScore', 'Avg Score')}</td>
                                     <td>${formatPercent(avgScore)}%</td>
-                                    <td>-</td>
                                 </tr>
                             </tbody>
                         </table>

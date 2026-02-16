@@ -1042,6 +1042,15 @@
     align-items: start;
 }
 
+#reportsRiskSummary,
+#reportsRiskTable {
+    align-self: start;
+}
+
+#reportsRiskTable .table-responsive {
+    margin-top: 0;
+}
+
 .reports-risk-kpi-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1102,6 +1111,46 @@
     grid-template-columns: repeat(6, minmax(140px, 1fr));
     gap: var(--spacing-sm);
     margin-bottom: var(--spacing-sm);
+}
+
+#reportsNotificationsCard .reports-notification-filters .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#reportsNotificationsCard .reports-notification-filters .filter-group label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"] {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)), var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.84rem;
+    line-height: 1.2;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]:hover {
+    border-color: var(--border-strong);
+}
+
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+    background: var(--bg-card);
+}
+
+#reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.85;
 }
 
 .reports-notification-footer {
@@ -1656,6 +1705,130 @@
     margin-top: var(--spacing-md);
     display: flex;
     justify-content: flex-end;
+}
+
+#calendarEventModal {
+    background: rgba(8, 15, 32, 0.72);
+    backdrop-filter: blur(8px);
+}
+
+#calendarEventModal .calendar-event-modal {
+    width: min(980px, 96vw);
+    max-height: min(90vh, 920px);
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background:
+        radial-gradient(120% 140% at 100% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 55%),
+        radial-gradient(90% 140% at 0% 100%, rgba(16, 185, 129, 0.1) 0%, transparent 45%),
+        var(--bg-card);
+    box-shadow: 0 28px 90px rgba(0, 8, 20, 0.42);
+}
+
+#calendarEventModal .modal-header {
+    padding: 22px 26px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+#calendarEventModal .modal-header h3 {
+    margin: 0;
+    font-size: 1.8rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+#calendarEventModal .modal-close {
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+#calendarEventModal .modal-close:hover {
+    color: var(--text-primary);
+    border-color: rgba(74, 144, 226, 0.5);
+    background: rgba(74, 144, 226, 0.18);
+}
+
+#calendarEventModal .modal-body {
+    padding: 20px 26px 16px;
+}
+
+#calendarEventModal .calendar-event-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+#calendarEventModal .calendar-event-details-grid .report-kpi {
+    min-height: 88px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: var(--bg-secondary);
+    padding: 14px;
+}
+
+#calendarEventModal .calendar-event-details-grid .report-kpi span {
+    font-size: 0.84rem;
+}
+
+#calendarEventModal .calendar-event-details-grid .report-kpi strong {
+    margin-top: 4px;
+    font-size: 2rem;
+    line-height: 1.05;
+    word-break: break-word;
+}
+
+#calendarEventModal .table-responsive {
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+#calendarEventModal .data-table {
+    margin: 0;
+}
+
+#calendarEventModal .data-table thead th {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+#calendarEventModal .data-table tbody td {
+    padding: 14px 16px;
+}
+
+#calendarEventModal .data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+#calendarEventModal .calendar-event-modal-actions {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    display: flex;
+    justify-content: flex-end;
+}
+
+#calendarEventModal .modal-actions {
+    padding: 14px 26px 22px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+#calendarEventModal .modal-actions .btn,
+#calendarEventModal .calendar-event-modal-actions .btn {
+    min-width: 210px;
+    justify-content: center;
+    border-radius: 12px;
 }
 
 @media (max-width: 1200px) {
@@ -3385,5 +3558,40 @@ body.page-leave-active {
 
     .mobile-shell-enabled .content-wrapper {
         padding: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    #calendarEventModal .modal-header {
+        padding: 16px;
+    }
+
+    #calendarEventModal .modal-header h3 {
+        font-size: 1.4rem;
+    }
+
+    #calendarEventModal .modal-body {
+        padding: 14px 16px;
+    }
+
+    #calendarEventModal .calendar-event-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #calendarEventModal .calendar-event-details-grid .report-kpi strong {
+        font-size: 1.6rem;
+    }
+
+    #calendarEventModal .modal-actions,
+    #calendarEventModal .calendar-event-modal-actions {
+        padding: 12px 16px 16px;
+        display: grid;
+        gap: 8px;
+    }
+
+    #calendarEventModal .modal-actions .btn,
+    #calendarEventModal .calendar-event-modal-actions .btn {
+        width: 100%;
+        min-width: 0;
     }
 }

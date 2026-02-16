@@ -59,6 +59,7 @@
         searchTerm: '',
         selectedIds: new Set(),
         lastRenderedSubjects: [],
+        pageSizeStorageKey: 'subjects_page_limit',
         searchDebounceTimer: null,
         activeSubjectsRequest: null,
 
@@ -72,9 +73,15 @@
                 this.activeSubjectsRequest.abort();
                 this.activeSubjectsRequest = null;
             }
+            this.limit = this.getSavedLimit();
             this.clearSelection();
             this.loadSubjects();
             this.setupEventListeners();
+        },
+
+        getSavedLimit: function () {
+            const saved = parseInt(localStorage.getItem(this.pageSizeStorageKey), 10);
+            return [10, 20, 50, 100].includes(saved) ? saved : 10;
         },
 
         // Setup event listeners
@@ -89,6 +96,19 @@
                     this.searchDebounceTimer = setTimeout(() => {
                         this.loadSubjects();
                     }, 300);
+                });
+            }
+
+            const pageSizeSelect = document.getElementById('subjectsPerPage');
+            if (pageSizeSelect) {
+                pageSizeSelect.value = String(this.limit);
+                pageSizeSelect.addEventListener('change', (e) => {
+                    const nextLimit = parseInt(e.target.value, 10);
+                    if (![10, 20, 50, 100].includes(nextLimit)) return;
+                    this.limit = nextLimit;
+                    localStorage.setItem(this.pageSizeStorageKey, String(nextLimit));
+                    this.currentPage = 1;
+                    this.loadSubjects();
                 });
             }
 

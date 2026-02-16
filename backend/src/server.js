@@ -8,6 +8,7 @@ const morgan = require('morgan');
 const fs = require('fs');
 const crypto = require('crypto');
 const { initErrorTracking, captureException, captureMessage } = require('./utils/errorTracking');
+const { query } = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -112,6 +113,79 @@ app.get('/api/health', (req, res) => {
         message: 'ZEDLY API is running',
         timestamp: new Date().toISOString()
     });
+});
+
+let landingStatsCache = {
+    expiresAt: 0,
+    payload: null
+};
+
+app.get('/api/public/landing-stats', async (req, res) => {
+    try {
+        const now = Date.now();
+        if (landingStatsCache.payload && now < landingStatsCache.expiresAt) {
+            return res.json(landingStatsCache.payload);
+        }
+
+        const [classColumnsResult, attemptColumnsResult] = await Promise.all([
+            query(
+                `SELECT column_name
+                 FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = 'classes'`
+            ),
+            query(
+                `SELECT column_name
+                 FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = 'test_attempts'`
+            )
+        ]);
+
+        const classColumns = new Set(classColumnsResult.rows.map((row) => row.column_name));
+        const attemptColumns = new Set(attemptColumnsResult.rows.map((row) => row.column_name));
+
+        const classesFilter = classColumns.has('is_active') ? 'WHERE is_active = true' : '';
+        const scoreColumn = attemptColumns.has('percentage')
+            ? 'percentage'
+            : (attemptColumns.has('score_percentage') ? 'score_percentage' : null);
+        const completedFilter = attemptColumns.has('is_completed') ? 'WHERE is_completed = true' : '';
+
+        const classesQuery = query(`SELECT COUNT(*)::int AS total FROM classes ${classesFilter}`);
+        const testsQuery = query(`SELECT COUNT(*)::int AS total FROM tests`);
+        const averageScoreQuery = scoreColumn
+            ? query(
+                `SELECT ROUND(COALESCE(AVG(${scoreColumn}), 0)::numeric, 1) AS avg_score
+                 FROM test_attempts
+                 ${completedFilter}`
+            )
+            : Promise.resolve({ rows: [{ avg_score: null }] });
+
+        const [classesCount, testsCount, averageScore] = await Promise.all([
+            classesQuery,
+            testsQuery,
+            averageScoreQuery
+        ]);
+
+        const payload = {
+            stats: {
+                active_classes: Number(classesCount.rows[0]?.total || 0),
+                tests_total: Number(testsCount.rows[0]?.total || 0),
+                average_score: Number(averageScore.rows[0]?.avg_score || 0)
+            },
+            updated_at: new Date().toISOString()
+        };
+
+        landingStatsCache = {
+            payload,
+            expiresAt: now + (5 * 60 * 1000)
+        };
+
+        return res.json(payload);
+    } catch (error) {
+        console.error('Landing stats error:', error);
+        return res.status(500).json({
+            message: 'Failed to load landing stats'
+        });
+    }
 });
 
 // Auth routes

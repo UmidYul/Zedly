@@ -119,6 +119,11 @@
         }
     }
 
+    function setImportResultsVisible(container, visible) {
+        if (!container) return;
+        container.hidden = !visible;
+    }
+
     async function handleImport(importType = null, fileInput = null) {
         if (importProgressState.running) return;
 
@@ -212,6 +217,7 @@
 
     function renderProgressCard(container, percent, label) {
         if (!container) return;
+        setImportResultsVisible(container, true);
         const safe = Math.max(0, Math.min(100, Number(percent) || 0));
         container.innerHTML = `
             <div class="progress-card">
@@ -416,6 +422,7 @@
 
     function renderImportResults(container, data) {
         if (!container) return;
+        setImportResultsVisible(container, true);
         if (Array.isArray(data.created) && data.created.length > 0) {
             storeCredentials(data.created);
         }
@@ -472,6 +479,7 @@
 
     function renderMessage(container, message, type) {
         if (!container) return;
+        setImportResultsVisible(container, true);
         container.innerHTML = `<div class="import-message ${type}">${message}</div>`;
     }
 
@@ -508,8 +516,13 @@
     function renderSavedCredentialsHint(container) {
         const payload = getStoredCredentials();
         if (!payload || !Array.isArray(payload.users) || payload.users.length === 0) {
+            if (container) {
+                container.innerHTML = '';
+                setImportResultsVisible(container, false);
+            }
             return;
         }
+        setImportResultsVisible(container, true);
         const dateLabel = new Date(payload.createdAt).toLocaleString('ru-RU');
         container.innerHTML =             '<div class="import-message info">' +
                 'Last import: ' + dateLabel + '. Login/OTP file is available.' +

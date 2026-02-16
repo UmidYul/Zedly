@@ -588,8 +588,6 @@
         setVal('phoneInput', user.phone);
         setVal('dobInput', toDateInputValue(user.date_of_birth));
         setVal('genderInput', user.gender || '');
-        setVal('notificationFrequency', prefs.frequency || 'instant');
-
         setChecked('channelInApp', channels.in_app, true);
         setChecked('channelEmail', channels.email, true);
         setChecked('channelTelegram', channels.telegram, true);
@@ -905,7 +903,7 @@
                 profile_updates: !!document.getElementById('eventProfileUpdates')?.checked,
                 system_updates: !!document.getElementById('eventSystemUpdates')?.checked
             },
-            frequency: document.getElementById('notificationFrequency')?.value || 'instant'
+            frequency: 'instant'
         };
 
         try {

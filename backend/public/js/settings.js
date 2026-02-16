@@ -113,10 +113,7 @@
                 }
             }
         }
-        const frequency = ['instant', 'daily', 'weekly'].includes(String(roleData?.frequency || 'instant'))
-            ? String(roleData.frequency)
-            : 'instant';
-        return { channels, events, matrix, frequency };
+        return { channels, events, matrix };
     }
 
     function setStatus(text, isError = false) {
@@ -138,14 +135,6 @@
                 <div class="dashboard-section settings-role-card">
                     <div class="section-header">
                         <h3 class="section-title">${esc(t(ROLE_LABELS[role] || role, role))}</h3>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <label class="text-secondary" for="settingsFrequency_${esc(role)}">${t('settings.notificationDefaults.frequency', 'Частота')}</label>
-                            <select id="settingsFrequency_${esc(role)}" data-role="${esc(role)}" data-scope="frequency" ${state.readOnly ? 'disabled' : ''}>
-                                <option value="instant" ${row.frequency === 'instant' ? 'selected' : ''}>${t('settings.notificationDefaults.instant', 'мгновенно')}</option>
-                                <option value="daily" ${row.frequency === 'daily' ? 'selected' : ''}>${t('settings.notificationDefaults.daily', 'ежедневно')}</option>
-                                <option value="weekly" ${row.frequency === 'weekly' ? 'selected' : ''}>${t('settings.notificationDefaults.weekly', 'еженедельно')}</option>
-                            </select>
-                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="data-table settings-role-table">
@@ -217,13 +206,6 @@
             const eventKey = String(el.getAttribute('data-event') || '');
             if (!defaults[role] || !defaults[role].matrix[channel] || !eventKey) return;
             defaults[role].matrix[channel][eventKey] = !!el.checked;
-        });
-
-        document.querySelectorAll('#settingsNotificationDefaultsMatrix select[data-scope="frequency"]').forEach((el) => {
-            const role = String(el.getAttribute('data-role') || '');
-            const value = String(el.value || 'instant');
-            if (!defaults[role]) return;
-            defaults[role].frequency = ['instant', 'daily', 'weekly'].includes(value) ? value : 'instant';
         });
 
         for (const role of ROLES) {

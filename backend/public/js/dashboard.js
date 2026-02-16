@@ -690,14 +690,6 @@
                                         <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
                                         <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> Системные</label>
                                     </div>
-                                    <div class="field-block">
-                                        <h3 data-i18n="profile.notificationFrequency">Частота</h3>
-                                        <select id="notificationFrequency" class="field-input">
-                                            <option value="instant" data-i18n="profile.freqInstant">Мгновенно</option>
-                                            <option value="daily" data-i18n="profile.freqDaily">Ежедневно</option>
-                                            <option value="weekly" data-i18n="profile.freqWeekly">Еженедельно</option>
-                                        </select>
-                                    </div>
                                 </div>
                                 <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
                             </article>
@@ -1691,6 +1683,15 @@
                         />
                     </div>
                     <div class="toolbar-right">
+                        <div class="page-size-control">
+                            <label for="subjectsPerPage" class="page-size-label">Rows:</label>
+                            <select id="subjectsPerPage" class="select-input page-size-select">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
                         <button class="btn btn-primary" id="addSubjectBtn">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
