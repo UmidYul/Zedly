@@ -2618,6 +2618,19 @@ router.get('/attempts/:id', async (req, res) => {
                     if (found) return found;
 
                     const answerMeta = answersMap[String(qid)] || {};
+                    const snapshot = answerMeta.question_snapshot;
+                    if (snapshot && typeof snapshot === 'object') {
+                        return {
+                            id: snapshot.id || qid,
+                            question_type: snapshot.question_type || 'unknown',
+                            question_text: snapshot.question_text || 'Question snapshot unavailable.',
+                            marks: Number(snapshot.marks) || 0,
+                            options: Array.isArray(snapshot.options) ? snapshot.options : [],
+                            correct_answer: snapshot.correct_answer ?? null,
+                            media_url: snapshot.media_url || null
+                        };
+                    }
+
                     return {
                         id: qid,
                         question_type: 'unknown',

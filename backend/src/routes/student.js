@@ -684,6 +684,19 @@ router.get('/attempts/:id', async (req, res) => {
                     if (found) return found;
 
                     const answerMeta = answersMap[String(qid)] || {};
+                    const snapshot = answerMeta.question_snapshot;
+                    if (snapshot && typeof snapshot === 'object') {
+                        return {
+                            id: snapshot.id || qid,
+                            question_type: snapshot.question_type || 'unknown',
+                            question_text: snapshot.question_text || 'Question snapshot unavailable.',
+                            marks: Number(snapshot.marks) || 0,
+                            options: Array.isArray(snapshot.options) ? snapshot.options : [],
+                            correct_answer: snapshot.correct_answer ?? null,
+                            media_url: snapshot.media_url || null
+                        };
+                    }
+
                     return {
                         id: qid,
                         question_type: 'unknown',
@@ -778,9 +791,9 @@ router.put('/attempts/:id/submit', async (req, res) => {
 
         const attempt = attemptResult.rows[0];
 
-        // Get questions with correct answers
+        // Get questions with full data to store immutable snapshot in attempt answers
         const questionsResult = await query(
-            `SELECT id, question_type, correct_answer, marks
+            `SELECT id, question_type, question_text, options, correct_answer, marks, media_url
              FROM test_questions
              WHERE test_id = $1
              ORDER BY order_number ASC`,
@@ -869,7 +882,16 @@ router.put('/attempts/:id/submit', async (req, res) => {
             gradedAnswers[question.id] = {
                 student_answer: studentAnswer,
                 is_correct: isCorrect,
-                earned_marks: earnedMarks
+                earned_marks: earnedMarks,
+                question_snapshot: {
+                    id: question.id,
+                    question_type: question.question_type,
+                    question_text: question.question_text,
+                    options: Array.isArray(question.options) ? question.options : [],
+                    correct_answer: question.correct_answer,
+                    marks: Number(question.marks) || 0,
+                    media_url: question.media_url || null
+                }
             };
         });
 
