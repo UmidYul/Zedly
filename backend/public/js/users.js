@@ -1038,6 +1038,9 @@
             const subjectOptions = this.subjects.map(s =>
                 `<option value="${s.id}">${s.name}</option>`
             ).join('');
+            const parallelOptions = this.getParallelOptions().map((parallel) =>
+                `<option value="${parallel}">${parallel}</option>`
+            ).join('');
 
             const div = document.createElement('div');
             div.className = 'teacher-assignment';
@@ -1052,6 +1055,13 @@
                         </select>
                     </div>
                     <div class="assignment-col">
+                        <label class="form-label">${this.t('users.parallel', 'Параллель')}</label>
+                        <select class="form-input" name="parallel_${id}">
+                            <option value="">${this.t('users.allParallels', 'Все параллели')}</option>
+                            ${parallelOptions}
+                        </select>
+                    </div>
+                    <div class="assignment-col">
                         <label class="form-label">Classes</label>
                         <div class="multi-choice-list" data-empty="Select one or more classes"></div>
                     </div>
@@ -1063,19 +1073,31 @@
             container.appendChild(div);
 
             const subjectSelect = div.querySelector(`select[name="subject_${id}"]`);
+            const parallelSelect = div.querySelector(`select[name="parallel_${id}"]`);
             if (subjectSelect) {
                 if (subjectId) subjectSelect.value = subjectId;
                 subjectSelect.onchange = async () => {
-                    await this.updateAssignmentClasses(div, subjectSelect.value);
+                    const selectedClassIds = Array.from(div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`)).map(cb => String(cb.value));
+                    await this.updateAssignmentClasses(div, subjectSelect.value, selectedClassIds, parallelSelect?.value || '');
+                };
+            }
+            if (parallelSelect) {
+                const initialParallel = this.detectSingleParallelFromClassIds(classIds);
+                if (initialParallel) {
+                    parallelSelect.value = initialParallel;
+                }
+                parallelSelect.onchange = async () => {
+                    const selectedClassIds = Array.from(div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`)).map(cb => String(cb.value));
+                    await this.updateAssignmentClasses(div, subjectSelect?.value || '', selectedClassIds, parallelSelect.value);
                 };
             }
 
             if (subjectId) {
-                this.updateAssignmentClasses(div, subjectId, classIds);
+                this.updateAssignmentClasses(div, subjectId, classIds, parallelSelect?.value || '');
             }
         },
 
-        updateAssignmentClasses: function (assignmentDiv, subjectId, preselected = []) {
+        updateAssignmentClasses: function (assignmentDiv, subjectId, preselected = [], parallel = '') {
             const classList = assignmentDiv.querySelector('.multi-choice-list');
             if (!classList) return;
 
@@ -1092,7 +1114,16 @@
             }
 
             const id = assignmentDiv.dataset.id;
-            classList.innerHTML = this.classes.map(cls => {
+            const filteredClasses = parallel
+                ? this.classes.filter(cls => String(cls.grade_level) === String(parallel))
+                : this.classes;
+
+            if (!filteredClasses.length) {
+                classList.innerHTML = `<div class="multi-choice-empty">${this.t('users.noClassesForParallel', 'Для выбранной параллели классы не найдены')}</div>`;
+                return;
+            }
+
+            classList.innerHTML = filteredClasses.map(cls => {
                 const label = `${cls.name} (Grade ${cls.grade_level})`;
                 const checked = preselected.includes(String(cls.id)) ? 'checked' : '';
                 return `
@@ -1102,6 +1133,34 @@
                     </label>
                 `;
             }).join('');
+        },
+
+        getParallelOptions: function () {
+            const values = Array.from(new Set((this.classes || [])
+                .map(cls => String(cls.grade_level || '').trim())
+                .filter(Boolean)));
+            return values.sort((a, b) => {
+                const aNum = Number(a);
+                const bNum = Number(b);
+                const aIsNum = Number.isFinite(aNum);
+                const bIsNum = Number.isFinite(bNum);
+                if (aIsNum && bIsNum) return aNum - bNum;
+                if (aIsNum) return -1;
+                if (bIsNum) return 1;
+                return a.localeCompare(b, 'ru');
+            });
+        },
+
+        detectSingleParallelFromClassIds: function (classIds = []) {
+            if (!Array.isArray(classIds) || !classIds.length) return '';
+            const matchedParallels = new Set(
+                classIds
+                    .map((id) => this.classes.find((cls) => String(cls.id) === String(id)))
+                    .filter(Boolean)
+                    .map((cls) => String(cls.grade_level || '').trim())
+                    .filter(Boolean)
+            );
+            return matchedParallels.size === 1 ? Array.from(matchedParallels)[0] : '';
         },
 
         getCurrentRole: function () {
@@ -1201,11 +1260,28 @@
 
             assignmentDivs.forEach(async div => {
                 const subjectSelect = div.querySelector('select[name^="subject_"]');
-                const classList = div.querySelector('.multi-choice-list');
+                const parallelSelect = div.querySelector('select[name^="parallel_"]');
+                const assignmentId = div.dataset.id;
+
+                if (parallelSelect) {
+                    const currentParallel = parallelSelect.value || '';
+                    parallelSelect.innerHTML = `
+                        <option value="">${this.t('users.allParallels', 'Все параллели')}</option>
+                        ${this.getParallelOptions().map((parallel) => `<option value="${parallel}">${parallel}</option>`).join('')}
+                    `;
+                    if (currentParallel) parallelSelect.value = currentParallel;
+                }
 
                 if (subjectSelect) {
                     subjectSelect.onchange = async () => {
-                        await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value);
+                        const selectedClassIds = Array.from(div.querySelectorAll(`input[type="checkbox"][name="classes_${assignmentId}"]:checked`)).map(cb => String(cb.value));
+                        await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value, selectedClassIds, parallelSelect?.value || '');
+                    };
+                }
+                if (parallelSelect) {
+                    parallelSelect.onchange = async () => {
+                        const selectedClassIds = Array.from(div.querySelectorAll(`input[type="checkbox"][name="classes_${assignmentId}"]:checked`)).map(cb => String(cb.value));
+                        await window.UsersManager.updateAssignmentClasses(div, subjectSelect?.value || '', selectedClassIds, parallelSelect.value);
                     };
                 }
             });
