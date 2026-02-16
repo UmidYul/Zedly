@@ -231,6 +231,7 @@
         if (!tbody) return;
 
         const rows = pagedRows();
+        const pageStartIndex = (state.page - 1) * PAGE_SIZE;
         if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="9" class="empty-row">Нет данных по выбранным фильтрам</td></tr>';
             renderPagination();
@@ -238,8 +239,9 @@
             return;
         }
 
-        tbody.innerHTML = rows.map((student) => {
+        tbody.innerHTML = rows.map((student, index) => {
             const id = String(student.id);
+            const rowNumber = pageStartIndex + index + 1;
             const status = studentStatus(student);
             const checked = state.selectedIds.has(id) ? 'checked' : '';
             const profileHref = `student-details.html?id=${encodeURIComponent(id)}&class_id=${encodeURIComponent(state.selectedClassId || '')}`;
@@ -249,7 +251,7 @@
                     <td class="bulk-checkbox-cell" data-label="Выбор">
                         <input type="checkbox" class="students-row-check" data-id="${id}" ${checked}>
                     </td>
-                    <td data-label="№">${escapeHtml(student.journal_no || '-')}</td>
+                    <td data-label="№">${rowNumber}</td>
                     <td data-label="ФИО">${escapeHtml(safeName(student))}</td>
                     <td data-label="Логин">${escapeHtml(student.username || '-')}</td>
                     <td data-label="Тестов пройдено">${toNumber(student.tests_completed)}</td>

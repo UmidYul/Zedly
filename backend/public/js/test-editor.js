@@ -16,14 +16,54 @@
 
     // Question types configuration
     const QUESTION_TYPES = {
-        SINGLE_CHOICE: { id: 'singlechoice', name: t('testEditor.typeSingleChoice', 'РћРґРёРЅ РІС‹Р±РѕСЂ'), icon: 'в¦ї', description: t('testEditor.typeSingleChoiceDesc', 'РћРґРёРЅ РїСЂР°РІРёР»СЊРЅС‹Р№ РѕС‚РІРµС‚') },
-        MULTIPLE_CHOICE: { id: 'multiplechoice', name: t('testEditor.typeMultipleChoice', 'РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№ РІС‹Р±РѕСЂ'), icon: 'в‘', description: t('testEditor.typeMultipleChoiceDesc', 'РќРµСЃРєРѕР»СЊРєРѕ РїСЂР°РІРёР»СЊРЅС‹С… РѕС‚РІРµС‚РѕРІ') },
-        TRUE_FALSE: { id: 'truefalse', name: t('testEditor.typeTrueFalse', 'Р’РµСЂРЅРѕ/РќРµРІРµСЂРЅРѕ'), icon: 'вњ“вњ—', description: t('testEditor.typeTrueFalseDesc', 'Р’С‹Р±РµСЂРёС‚Рµ РІРµСЂРЅРѕРµ СѓС‚РІРµСЂР¶РґРµРЅРёРµ') },
-        SHORT_ANSWER: { id: 'shortanswer', name: t('testEditor.typeShortAnswer', 'РљСЂР°С‚РєРёР№ РѕС‚РІРµС‚'), icon: 'вњЋ', description: t('testEditor.typeShortAnswerDesc', 'РљРѕСЂРѕС‚РєРёР№ С‚РµРєСЃС‚РѕРІС‹Р№ РѕС‚РІРµС‚') },
-        MATCHING: { id: 'matching', name: t('testEditor.typeMatching', 'РЎРѕРїРѕСЃС‚Р°РІР»РµРЅРёРµ'), icon: '↔', description: t('testEditor.typeMatchingDesc', 'РЎРѕРµРґРёРЅРёС‚Рµ РїР°СЂС‹') },
-        ORDERING: { id: 'ordering', name: t('testEditor.typeOrdering', 'РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ'), icon: 'в†•', description: t('testEditor.typeOrderingDesc', 'Р Р°СЃРїРѕР»РѕР¶РёС‚Рµ РІ РїСЂР°РІРёР»СЊРЅРѕРј РїРѕСЂСЏРґРєРµ') },
-        FILL_BLANKS: { id: 'fillblanks', name: t('testEditor.typeFillBlanks', 'Р—Р°РїРѕР»РЅРёС‚СЊ РїСЂРѕРїСѓСЃРєРё'), icon: '___', description: t('testEditor.typeFillBlanksDesc', 'Р—Р°РїРѕР»РЅРёС‚Рµ РїСЂРѕРїСѓС‰РµРЅРЅС‹Рµ СЃР»РѕРІР°') },
-        IMAGE_BASED: { id: 'imagebased', name: t('testEditor.typeImageBased', 'РџРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЋ'), icon: 'рџ–ј', description: t('testEditor.typeImageBasedDesc', 'Р’РѕРїСЂРѕСЃ СЃ РёР·РѕР±СЂР°Р¶РµРЅРёРµРј') }
+        SINGLE_CHOICE: {
+            id: 'singlechoice',
+            name: t('testEditor.typeSingleChoice', 'Один выбор'),
+            icon: '◉',
+            description: t('testEditor.typeSingleChoiceDesc', 'Один правильный ответ')
+        },
+        MULTIPLE_CHOICE: {
+            id: 'multiplechoice',
+            name: t('testEditor.typeMultipleChoice', 'Множественный выбор'),
+            icon: '☑',
+            description: t('testEditor.typeMultipleChoiceDesc', 'Несколько правильных ответов')
+        },
+        TRUE_FALSE: {
+            id: 'truefalse',
+            name: t('testEditor.typeTrueFalse', 'Верно/Неверно'),
+            icon: '✓✗',
+            description: t('testEditor.typeTrueFalseDesc', 'Выберите верное утверждение')
+        },
+        SHORT_ANSWER: {
+            id: 'shortanswer',
+            name: t('testEditor.typeShortAnswer', 'Краткий ответ'),
+            icon: '✎',
+            description: t('testEditor.typeShortAnswerDesc', 'Короткий текстовый ответ')
+        },
+        MATCHING: {
+            id: 'matching',
+            name: t('testEditor.typeMatching', 'Сопоставление'),
+            icon: '↔',
+            description: t('testEditor.typeMatchingDesc', 'Соедините пары')
+        },
+        ORDERING: {
+            id: 'ordering',
+            name: t('testEditor.typeOrdering', 'Последовательность'),
+            icon: '↕',
+            description: t('testEditor.typeOrderingDesc', 'Расположите в правильном порядке')
+        },
+        FILL_BLANKS: {
+            id: 'fillblanks',
+            name: t('testEditor.typeFillBlanks', 'Заполнить пропуски'),
+            icon: '___',
+            description: t('testEditor.typeFillBlanksDesc', 'Заполните пропущенные слова')
+        },
+        IMAGE_BASED: {
+            id: 'imagebased',
+            name: t('testEditor.typeImageBased', 'По изображению'),
+            icon: '🖼',
+            description: t('testEditor.typeImageBasedDesc', 'Вопрос с изображением')
+        }
     };
 
     window.TestEditor = {

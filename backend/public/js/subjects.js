@@ -519,24 +519,23 @@
                                     </div>
                                 </div>
 
+                                ${isEdit ? `
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            ${t('subjects.subjectCode', 'Код предмета')} <span class="required">*</span>
+                                            ${t('subjects.subjectCode', 'Код предмета')}
                                         </label>
                                         <input
                                             type="text"
                                             class="form-input"
-                                            name="code"
                                             value="${subject?.code || ''}"
-                                            required
-                                            placeholder="MATH"
-                                            maxlength="10"
-                                            style="text-transform: uppercase;"
+                                            readonly
+                                            disabled
                                         />
-                                        <span class="form-hint">${t('subjects.subjectCodeHint', 'Короткий код (например, MATH, PHYS, CHEM)')}</span>
+                                        <span class="form-hint">${t('subjects.subjectCodeHint', 'Генерируется автоматически')}</span>
                                     </div>
                                 </div>
+                                ` : ''}
 
                                 ${isEdit ? `
                                 <div class="form-group">
@@ -621,8 +620,7 @@
             const data = {
                 name_ru: nameRu,
                 name_uz: nameUz,
-                name: nameRu || nameUz,
-                code: formData.get('code').trim().toUpperCase()
+                name: nameRu || nameUz
             };
 
             if (subjectId) {
@@ -630,7 +628,7 @@
             }
 
             // Validation
-            if (!data.name_ru || !data.name_uz || !data.code) {
+            if (!data.name_ru || !data.name_uz) {
                 formAlert.className = 'alert alert-error';
                 formAlert.textContent = t('subjects.fillRequiredFields', 'Заполните все обязательные поля');
                 return;

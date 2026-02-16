@@ -4,6 +4,9 @@
     max-width: 1400px;
     margin: 0 auto;
     padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
 }
 
 .advanced-analytics .filters {
@@ -11,7 +14,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 0;
     display: flex;
     flex-wrap: wrap;
     gap: var(--spacing-md);
@@ -54,7 +57,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: 0;
 }
 
 .advanced-analytics .stat-card {
@@ -117,11 +120,12 @@
 
 .advanced-analytics .tab-content {
     display: none;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 0;
 }
 
 .advanced-analytics .tab-content.active {
-    display: block;
+    display: grid;
+    gap: var(--spacing-lg);
 }
 
 .advanced-analytics .heatmap-container {

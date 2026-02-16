@@ -35,7 +35,7 @@
 
 .test-bulk-select {
     position: absolute;
-    top: 12px;
+    top: 14px;
     right: 12px;
     z-index: 2;
     width: 24px;
@@ -46,6 +46,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+.test-bulk-select input[type="checkbox"] {
+    margin: 0;
+    width: 14px;
+    height: 14px;
+    display: block;
 }
 
 [data-theme="dark"] .test-bulk-select {
@@ -76,6 +83,7 @@
 
 .test-card-header {
     padding: var(--spacing-md) var(--spacing-lg);
+    padding-right: calc(var(--spacing-lg) + 36px);
     display: flex;
     align-items: center;
     justify-content: space-between;

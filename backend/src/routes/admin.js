@@ -46,6 +46,41 @@ function pickSubjectColor(usedColors) {
     return SUBJECT_COLOR_PALETTE[Math.floor(Math.random() * SUBJECT_COLOR_PALETTE.length)];
 }
 
+function buildSubjectCodeBase(nameRu, nameUz, name) {
+    const source = String(nameRu || nameUz || name || '').trim();
+    const transliterated = transliterateToLatin(source)
+        .toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (!transliterated) return 'SUBJ';
+
+    const words = transliterated.split(' ').filter(Boolean);
+    if (words.length >= 2) {
+        return words.map(word => word[0]).join('').slice(0, 6) || 'SUBJ';
+    }
+
+    const compact = words[0] || '';
+    if (!compact) return 'SUBJ';
+    return compact.slice(0, 6) || 'SUBJ';
+}
+
+async function generateUniqueSubjectCode(schoolId, nameRu, nameUz, name) {
+    const base = buildSubjectCodeBase(nameRu, nameUz, name);
+    let suffix = 0;
+
+    while (true) {
+        const code = suffix === 0 ? base : `${base}${suffix}`;
+        const exists = await query(
+            'SELECT id FROM subjects WHERE school_id = $1 AND code = $2 LIMIT 1',
+            [schoolId, code]
+        );
+        if (exists.rows.length === 0) return code;
+        suffix += 1;
+    }
+}
+
 // Configure multer for file uploads
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -2187,33 +2222,26 @@ router.get('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
  */
 router.post('/subjects', async (req, res) => {
     try {
-        const { name, name_ru, name_uz, code, color } = req.body;
+        const { name, name_ru, name_uz, color } = req.body;
         const schoolId = req.user.school_id;
         const normalizedNameRu = String(name_ru || '').trim();
         const normalizedNameUz = String(name_uz || '').trim();
         const normalizedName = String(name || '').trim() || normalizedNameRu || normalizedNameUz;
-        const normalizedCode = String(code || '').trim().toUpperCase();
 
         // Validation
-        if (!normalizedNameRu || !normalizedNameUz || !normalizedCode) {
+        if (!normalizedNameRu || !normalizedNameUz) {
             return res.status(400).json({
                 error: 'validation_error',
-                message: 'name_ru, name_uz and code are required'
+                message: 'name_ru and name_uz are required'
             });
         }
 
-        // Check duplicate subject code in same school
-        const duplicateCheck = await query(
-            'SELECT id FROM subjects WHERE school_id = $1 AND code = $2',
-            [schoolId, normalizedCode]
+        const normalizedCode = await generateUniqueSubjectCode(
+            schoolId,
+            normalizedNameRu,
+            normalizedNameUz,
+            normalizedName
         );
-
-        if (duplicateCheck.rows.length > 0) {
-            return res.status(400).json({
-                error: 'duplicate_error',
-                message: 'Subject with this code already exists'
-            });
-        }
 
         const existingColorsResult = await query(
             'SELECT color FROM subjects WHERE school_id = $1 AND color IS NOT NULL',
@@ -2284,7 +2312,7 @@ router.post('/subjects', async (req, res) => {
 router.put('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, name_ru, name_uz, code, color, is_active } = req.body;
+        const { name, name_ru, name_uz, color, is_active } = req.body;
         const schoolId = req.user.school_id;
 
         // Check if subject exists in same school
@@ -2300,21 +2328,6 @@ router.put('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
             });
         }
 
-        // Check duplicate code
-        if (code) {
-            const duplicateCheck = await query(
-                'SELECT id FROM subjects WHERE school_id = $1 AND code = $2 AND id != $3',
-                [schoolId, code.trim().toUpperCase(), id]
-            );
-
-            if (duplicateCheck.rows.length > 0) {
-                return res.status(400).json({
-                    error: 'duplicate_error',
-                    message: 'Subject with this code already exists'
-                });
-            }
-        }
-
         // Build update query
         const updates = [];
         const params = [];
@@ -2323,11 +2336,6 @@ router.put('/subjects/:id', enforceSchoolIsolation, async (req, res) => {
         if (name !== undefined) {
             params.push(name.trim());
             updates.push(`name = $${paramCount++}`);
-        }
-
-        if (code !== undefined) {
-            params.push(code.trim().toUpperCase());
-            updates.push(`code = $${paramCount++}`);
         }
 
         if (name_ru !== undefined) {

@@ -553,7 +553,7 @@
                 <div class="modal-overlay" id="classModal">
                     <div class="modal">
                         <div class="modal-header">
-                            <h2 class="modal-title">${isEdit ? 'Edit Class' : 'Add New Class'}</h2>
+                            <h2 class="modal-title">${isEdit ? t('classes.editClass', 'Редактировать класс') : t('classes.addNewClass', 'Добавить класс')}</h2>
                             <button class="modal-close" onclick="ClassesManager.closeModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -566,7 +566,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Class Name <span class="required">*</span>
+                                            ${t('classes.className', 'Название класса')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -576,17 +576,17 @@
                                             required
                                             placeholder="9-A"
                                         />
-                                        <span class="form-hint">Example: 9-A, 10-B, 11-В</span>
+                                        <span class="form-hint">${t('classes.classNameHint', 'Например: 9-A, 10-B, 11-В')}</span>
                                     </div>
 
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Grade Level <span class="required">*</span>
+                                            ${t('classes.gradeLevel', 'Параллель')} <span class="required">*</span>
                                         </label>
                                         <select class="form-input" name="grade_level" required>
-                                            <option value="">Select grade</option>
+                                            <option value="">${t('classes.selectGrade', 'Выберите параллель')}</option>
                                             ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(grade =>
-                `<option value="${grade}" ${classData?.grade_level === grade ? 'selected' : ''}>${grade} класс</option>`
+                `<option value="${grade}" ${classData?.grade_level === grade ? 'selected' : ''}>${grade} ${t('classes.gradeSuffix', 'класс')}</option>`
             ).join('')}
                                         </select>
                                     </div>
@@ -595,7 +595,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Academic Year <span class="required">*</span>
+                                            ${t('classes.academicYear', 'Учебный год')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -605,13 +605,13 @@
                                             required
                                             placeholder="2024-2025"
                                         />
-                                        <span class="form-hint">Format: YYYY-YYYY</span>
+                                        <span class="form-hint">${t('classes.academicYearHint', 'Формат: YYYY-YYYY')}</span>
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="form-label">Homeroom Teacher</label>
+                                        <label class="form-label">${t('classes.homeroomTeacher', 'Классный руководитель')}</label>
                                         <select class="form-input" name="homeroom_teacher_id">
-                                            <option value="">No teacher assigned</option>
+                                            <option value="">${t('classes.noTeacherAssigned', 'Учитель не назначен')}</option>
                                             ${teachersList.map(teacher =>
                 `<option value="${teacher.id}" ${classData?.homeroom_teacher_id === teacher.id ? 'selected' : ''}>${teacher.name}</option>`
             ).join('')}
@@ -630,7 +630,7 @@
                                             ${classData?.is_active ? 'checked' : ''}
                                         />
                                         <label class="form-check-label" for="classActive">
-                                            Active
+                                            ${t('users.active', 'Активный')}
                                         </label>
                                     </div>
                                 </div>
@@ -641,10 +641,10 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="ClassesManager.closeModal()">
-                                Cancel
+                                ${t('users.cancel', 'Отмена')}
                             </button>
                             <button type="submit" form="classForm" class="btn btn-primary" id="submitBtn">
-                                ${isEdit ? 'Update Class' : 'Create Class'}
+                                ${isEdit ? t('classes.updateClass', 'Обновить класс') : t('classes.createClass', 'Создать класс')}
                             </button>
                         </div>
                     </div>
@@ -705,7 +705,7 @@
             // Validation
             if (!data.name || !data.grade_level || !data.academic_year) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Please fill all required fields';
+                formAlert.textContent = t('classes.fillRequiredFields', 'Заполните все обязательные поля');
                 return false;
             }
 
@@ -744,12 +744,12 @@
                 } else {
                     // Show error
                     formAlert.className = 'alert alert-error';
-                    formAlert.textContent = result.message || 'An error occurred';
+                    formAlert.textContent = result.message || t('common.error', 'Произошла ошибка');
                 }
             } catch (error) {
                 console.error('Submit class error:', error);
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Network error. Please try again.';
+                formAlert.textContent = t('classes.networkError', 'Ошибка сети. Попробуйте снова.');
             } finally {
                 submitBtn.classList.remove('loading');
                 submitBtn.disabled = false;

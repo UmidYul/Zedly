@@ -1692,7 +1692,22 @@
         'classes.colStatus': 'РЎС‚Р°С‚СѓСЃ',
         'classes.colActions': 'Р”РµР№СЃС‚РІРёСЏ',
         'classes.colTeachingSubjects': 'РџСЂРµРїРѕРґР°РІР°РµРјС‹Рµ РїСЂРµРґРјРµС‚С‹',
-        'classes.studentsSuffix': 'СѓС‡РµРЅРёРєРѕРІ'
+        'classes.studentsSuffix': 'СѓС‡РµРЅРёРєРѕРІ',
+        'classes.addNewClass': '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043a\u043b\u0430\u0441\u0441',
+        'classes.editClass': '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043a\u043b\u0430\u0441\u0441',
+        'classes.className': '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043b\u0430\u0441\u0441\u0430',
+        'classes.classNameHint': '\u041d\u0430\u043f\u0440\u0438\u043c\u0435\u0440: 9-A, 10-B, 11-\u0412',
+        'classes.gradeLevel': '\u041f\u0430\u0440\u0430\u043b\u043b\u0435\u043b\u044c',
+        'classes.selectGrade': '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043f\u0430\u0440\u0430\u043b\u043b\u0435\u043b\u044c',
+        'classes.gradeSuffix': '\u043a\u043b\u0430\u0441\u0441',
+        'classes.academicYear': '\u0423\u0447\u0435\u0431\u043d\u044b\u0439 \u0433\u043e\u0434',
+        'classes.academicYearHint': '\u0424\u043e\u0440\u043c\u0430\u0442: YYYY-YYYY',
+        'classes.homeroomTeacher': '\u041a\u043b\u0430\u0441\u0441\u043d\u044b\u0439 \u0440\u0443\u043a\u043e\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u044c',
+        'classes.noTeacherAssigned': '\u0423\u0447\u0438\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d',
+        'classes.updateClass': '\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043a\u043b\u0430\u0441\u0441',
+        'classes.createClass': '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043a\u043b\u0430\u0441\u0441',
+        'classes.fillRequiredFields': '\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0432\u0441\u0435 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u043f\u043e\u043b\u044f',
+        'classes.networkError': '\u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u0435\u0442\u0438. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0441\u043d\u043e\u0432\u0430.'
     });
 
     Object.assign(translations.uz, {
@@ -1708,7 +1723,22 @@
         'classes.colStatus': 'Holat',
         'classes.colActions': 'Amallar',
         'classes.colTeachingSubjects': 'O\'qitiladigan fanlar',
-        'classes.studentsSuffix': 'o\'quvchi'
+        'classes.studentsSuffix': 'o\'quvchi',
+        'classes.addNewClass': 'Sinf qo\'shish',
+        'classes.editClass': 'Sinfni tahrirlash',
+        'classes.className': 'Sinf nomi',
+        'classes.classNameHint': 'Masalan: 9-A, 10-B, 11-V',
+        'classes.gradeLevel': 'Paralel',
+        'classes.selectGrade': 'Paralelni tanlang',
+        'classes.gradeSuffix': 'sinf',
+        'classes.academicYear': 'O\'quv yili',
+        'classes.academicYearHint': 'Format: YYYY-YYYY',
+        'classes.homeroomTeacher': 'Sinf rahbari',
+        'classes.noTeacherAssigned': 'O\'qituvchi biriktirilmagan',
+        'classes.updateClass': 'Sinfni yangilash',
+        'classes.createClass': 'Sinf yaratish',
+        'classes.fillRequiredFields': 'Barcha majburiy maydonlarni to\'ldiring',
+        'classes.networkError': 'Tarmoq xatosi. Qayta urinib ko\'ring.'
     });
 
     Object.assign(translations.ru, {
@@ -1987,7 +2017,7 @@
         'subjects.nameRu': 'РќР°Р·РІР°РЅРёРµ (RU)',
         'subjects.nameUz': 'РќР°Р·РІР°РЅРёРµ (UZ)',
         'subjects.subjectCode': 'РљРѕРґ РїСЂРµРґРјРµС‚Р°',
-        'subjects.subjectCodeHint': 'РљРѕСЂРѕС‚РєРёР№ РєРѕРґ (РЅР°РїСЂРёРјРµСЂ, MATH, PHYS, CHEM)',
+        'subjects.subjectCodeHint': 'Р“РµРЅРµСЂРёСЂСѓРµС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё',
         'subjects.updateSubject': 'РћР±РЅРѕРІРёС‚СЊ РїСЂРµРґРјРµС‚',
         'subjects.createSubject': 'РЎРѕР·РґР°С‚СЊ РїСЂРµРґРјРµС‚',
         'subjects.fillRequiredFields': 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ',
@@ -2016,7 +2046,7 @@
         'subjects.nameRu': 'Nomi (RU)',
         'subjects.nameUz': 'Nomi (UZ)',
         'subjects.subjectCode': 'Fan kodi',
-        'subjects.subjectCodeHint': 'Qisqa kod (masalan, MATH, PHYS, CHEM)',
+        'subjects.subjectCodeHint': 'Avtomatik yaratiladi',
         'subjects.updateSubject': 'Fanni yangilash',
         'subjects.createSubject': 'Fan yaratish',
         'subjects.fillRequiredFields': 'Barcha majburiy maydonlarni to\'ldiring',
@@ -2469,6 +2499,37 @@
         'studentDetails.tempPasswordHint': 'O\'quvchi keyingi kirishda ushbu parolni almashtirishi kerak.',
         'studentDetails.tempPasswordValue': 'Vaqtinchalik parol: {password}',
         'studentDetails.passwordResetTitle': 'Parol tiklandi'
+    });
+
+    // Explicit overrides for critical sidebar labels to avoid any mojibake leaks.
+    Object.assign(translations.ru, {
+        'dashboard.profile': '\u041f\u0440\u043e\u0444\u0438\u043b\u044c',
+        'dashboard.nav.resources': '\u0420\u0435\u0441\u0443\u0440\u0441\u044b',
+        'dashboard.nav.analytics': '\u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430',
+        'dashboard.nav.advanced': '\u0420\u0430\u0441\u0448\u0438\u0440\u0435\u043d\u043d\u0430\u044f \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430',
+        'dashboard.nav.tests': '\u0422\u0435\u0441\u0442\u044b',
+        'dashboard.nav.myTests': '\u041c\u043e\u0438 \u0442\u0435\u0441\u0442\u044b',
+        'dashboard.nav.assignments': '\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f',
+        'dashboard.nav.students': '\u0423\u0447\u0435\u043d\u0438\u043a\u0438',
+        'tests.availableTests': '\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0435 \u0442\u0435\u0441\u0442\u044b',
+        'tests.completedTests': '\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043d\u044b\u0435 \u0442\u0435\u0441\u0442\u044b',
+        'assignments.allStatuses': '\u0412\u0441\u0435 \u0441\u0442\u0430\u0442\u0443\u0441\u044b',
+        'assignments.colTest': '\u0422\u0435\u0441\u0442'
+    });
+
+    Object.assign(translations.uz, {
+        'dashboard.profile': 'Profil',
+        'dashboard.nav.resources': 'Resurslar',
+        'dashboard.nav.analytics': 'Analitika',
+        'dashboard.nav.advanced': 'Kengaytirilgan tahlil',
+        'dashboard.nav.tests': 'Testlar',
+        'dashboard.nav.myTests': 'Mening testlarim',
+        'dashboard.nav.assignments': 'Topshiriqlar',
+        'dashboard.nav.students': 'O\'quvchilar',
+        'tests.availableTests': 'Mavjud testlar',
+        'tests.completedTests': 'Tugallangan testlar',
+        'assignments.allStatuses': 'Barcha holatlar',
+        'assignments.colTest': 'Test'
     });
 
     normalizeRuMojibake();

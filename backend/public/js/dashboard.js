@@ -1413,16 +1413,16 @@
             return `
                 <div class="export-page">
                     <div class="page-header-section export-header">
-                        <h1 class="page-main-title" data-i18n="export.title">Export data</h1>
-                        <p class="page-subtitle" data-i18n="export.subtitle">Download Excel reports for analysis and backup</p>
+                        <h1 class="page-main-title" data-i18n="export.title">${t('export.title', 'Экспорт данных')}</h1>
+                        <p class="page-subtitle" data-i18n="export.subtitle">${t('export.subtitle', 'Скачайте Excel-отчеты для анализа и архивации')}</p>
                     </div>
                     <div class="export-layout">
                         <div class="dashboard-section export-card export-card-main">
                             <div class="section-header">
-                                <h2 class="section-title" data-i18n="export.usersTitle">User export</h2>
+                                <h2 class="section-title" data-i18n="export.usersTitle">${t('export.usersTitle', 'Экспорт пользователей')}</h2>
                                 <span class="export-chip" id="exportStatusChip" data-i18n="tools.readyToExport">${t('tools.readyToExport', 'Готово к экспорту')}</span>
                             </div>
-                            <p class="export-hint" data-i18n="export.usersHint">The file includes users, classes and journal numbers.</p>
+                            <p class="export-hint" data-i18n="export.usersHint">${t('export.usersHint', 'Файл содержит пользователей школы, классы и номера в журнале.')}</p>
                             <div class="export-filters-grid">
                                 <div class="filter-group">
                                     <label for="exportRoleFilter" data-i18n="export.filter.roleLabel">${t('export.filter.roleLabel', 'Роль')}</label>
@@ -1453,7 +1453,7 @@
                                 <button class="btn btn-outline" id="resetExportFiltersBtn" type="button" data-i18n="export.filter.reset">${t('export.filter.reset', 'Сбросить')}</button>
                             </div>
                             <div class="export-actions-row">
-                                <button class="btn btn-primary" id="exportUsersBtn" data-i18n="export.downloadUsers">Download users</button>
+                                <button class="btn btn-primary" id="exportUsersBtn" data-i18n="export.downloadUsers">${t('export.downloadUsers', 'Скачать пользователей')}</button>
                                 <button class="btn btn-secondary" id="refreshExportPreviewBtn" type="button" data-i18n="tools.refreshPreview">${t('tools.refreshPreview', 'Обновить превью')}</button>
                             </div>
                             <div class="export-last-meta" id="exportLastMeta" data-i18n="tools.exportHistoryEmpty">
@@ -1921,11 +1921,10 @@
                 return `
                     <div class="page-tabs">
                         <div class="tabs">
-                            <button class="tab active" data-tab="available">${t('tests.availableTests', 'Р”РѕСЃС‚СѓРїРЅС‹Рµ С‚РµСЃС‚С‹')}</button>
-                            <button class="tab" data-tab="completed">${t('tests.completedTests', 'Р—Р°РІРµСЂС€РµРЅРЅС‹Рµ С‚РµСЃС‚С‹')}</button>
+                            <button class="tab active" data-tab="available">${t('tests.availableTests', 'Доступные тесты')}</button>
+                            <button class="tab" data-tab="completed">${t('tests.completedTests', 'Завершенные тесты')}</button>
                         </div>
                     </div>
-                    <div id="studentSubjectFilter"></div>
                     <div id="testsContainer"></div>
                 `;
             } else {
