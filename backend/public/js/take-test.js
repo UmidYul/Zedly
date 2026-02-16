@@ -848,7 +848,21 @@
         },
 
         normalizeMatchingPairs: function (rawOptions) {
-            if (!Array.isArray(rawOptions)) return [];
+            let source = rawOptions;
+            if (typeof source === 'string') {
+                const trimmed = source.trim();
+                if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+                    try {
+                        source = JSON.parse(trimmed);
+                    } catch (error) {
+                        source = [];
+                    }
+                } else {
+                    source = [];
+                }
+            }
+
+            if (!Array.isArray(source)) return [];
 
             const pickFirst = (obj, keys) => {
                 for (const key of keys) {
@@ -860,7 +874,7 @@
                 return '';
             };
 
-            return rawOptions
+            return source
                 .map((item) => {
                     if (Array.isArray(item) && item.length >= 2) {
                         return {
