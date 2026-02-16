@@ -1807,12 +1807,12 @@
                             type="text"
                             id="usersSearch"
                             class="search-input"
-                            placeholder="Search users..."
+                            placeholder="${t('users.searchPlaceholder', 'Поиск пользователей...')}"
                         />
                     </div>
                     <div class="toolbar-right">
                         <div class="page-size-control">
-                            <label for="usersPerPage" class="page-size-label">Rows:</label>
+                            <label for="usersPerPage" class="page-size-label">${t('users.rows', 'Строк:')}</label>
                             <select id="usersPerPage" class="select-input page-size-select">
                                 <option value="10">10</option>
                                 <option value="20">20</option>
@@ -1821,17 +1821,17 @@
                             </select>
                         </div>
                         <select id="roleFilter" class="select-input">
-                            <option value="all">All Roles</option>
-                            <option value="school_admin">School Admin</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="student">Student</option>
+                            <option value="all">${t('users.allRoles', 'Все роли')}</option>
+                            <option value="school_admin">${t('settings.role.school_admin', 'Администратор школы')}</option>
+                            <option value="teacher">${t('settings.role.teacher', 'Учитель')}</option>
+                            <option value="student">${t('settings.role.student', 'Ученик')}</option>
                         </select>
                         <button class="btn btn-primary" id="addUserBtn">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            Add User
+                            ${t('users.addUser', 'Добавить пользователя')}
                         </button>
                     </div>
                 </div>

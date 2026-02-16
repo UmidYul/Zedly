@@ -557,7 +557,7 @@
                 const selectedStudentClassId = String(user?.student_class_id || '');
                 classOptionsHtml = this.classes.map(c => `
                     <option value="${c.id}" ${selectedStudentClassId === String(c.id) ? 'selected' : ''}>
-                        ${c.name} (Grade ${c.grade_level})
+                        ${c.name} (${this.t('results.grade', 'класс')}: ${c.grade_level})
                     </option>
                 `).join('');
             }
@@ -580,7 +580,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            First Name <span class="required">*</span>
+                                            ${this.t('users.firstName', 'Имя')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -594,7 +594,7 @@
 
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Last Name <span class="required">*</span>
+                                            ${this.t('users.lastName', 'Фамилия')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -651,8 +651,8 @@
                                 <!-- Teacher-specific fields -->
                                 <div id="teacherFields" style="display: none;">
                                     <div class="form-section-header">
-                                        <h3>Teaching Assignments</h3>
-                                        <p>Select subjects and classes this teacher will teach</p>
+                                        <h3>${this.t('users.teachingAssignments', 'Назначения учителя')}</h3>
+                                        <p>${this.t('users.teachingAssignmentsHint', 'Выберите предметы и классы, которые будет вести учитель')}</p>
                                     </div>
 
                                     <div id="teacherAssignments">
@@ -671,9 +671,9 @@
                                         type="text"
                                         class="form-input"
                                         name="password"
-                                        placeholder="Leave empty to auto-generate OTP"
+                                        placeholder="${this.t('users.passwordAutoPlaceholder', 'Оставьте пустым для авто-генерации OTP')}"
                                     />
-                                    <span class="form-hint">Auto-generated 8-character password will be shown after creation</span>
+                                    <span class="form-hint">${this.t('users.passwordAutoHint', 'Сгенерированный 8-символьный пароль будет показан после создания')}</span>
                                 </div>
                                 ` : ''}
 
@@ -703,7 +703,7 @@
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label class="form-label">Date of Birth</label>
+                                        <label class="form-label">${this.t('users.dateOfBirth', 'Дата рождения')}</label>
                                         <input
                                             type="date"
                                             class="form-input"
@@ -713,11 +713,11 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="form-label">Gender</label>
+                                        <label class="form-label">${this.t('users.gender', 'Пол')}</label>
                                         <select class="form-input" name="gender">
-                                            <option value="">Select gender</option>
-                                            <option value="male" ${user?.gender === 'male' ? 'selected' : ''}>Male</option>
-                                            <option value="female" ${user?.gender === 'female' ? 'selected' : ''}>Female</option>
+                                            <option value="">${this.t('users.selectGender', 'Выберите пол')}</option>
+                                            <option value="male" ${user?.gender === 'male' ? 'selected' : ''}>${this.t('common.male', 'Мужской')}</option>
+                                            <option value="female" ${user?.gender === 'female' ? 'selected' : ''}>${this.t('common.female', 'Женский')}</option>
                                         </select>
                                     </div>
                                 </div>
