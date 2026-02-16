@@ -679,11 +679,24 @@ router.get('/attempts/:id', async (req, res) => {
 
             const byId = new Map(answeredQuestionsResult.rows.map((q) => [String(q.id), q]));
             questions = answeredQuestionIds
-                .map((qid) => byId.get(String(qid)))
-                .filter(Boolean);
+                .map((qid) => {
+                    const found = byId.get(String(qid));
+                    if (found) return found;
+
+                    const answerMeta = answersMap[String(qid)] || {};
+                    return {
+                        id: qid,
+                        question_type: 'unknown',
+                        question_text: 'Question was removed from test after this attempt.',
+                        marks: Number(answerMeta.earned_marks) > 0 ? Number(answerMeta.earned_marks) : 0,
+                        options: [],
+                        correct_answer: null,
+                        media_url: null
+                    };
+                });
         }
 
-        // Fallback for ongoing attempts or when matched questions were not found.
+        // Fallback for ongoing attempts or when there are no saved answers.
         if (questions.length === 0) {
             const questionsQuery = attempt.is_completed
                 ? `SELECT * FROM test_questions WHERE test_id = $1 ORDER BY order_number ASC`
