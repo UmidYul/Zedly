@@ -663,7 +663,14 @@
     async function loadSubjectOptions() {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`${API_URL}/admin/subjects?limit=100`, {
+            if (!token) return;
+
+            const role = getCurrentUserRole();
+            const endpoint = role === 'teacher'
+                ? `${API_URL}/teacher/subjects`
+                : `${API_URL}/admin/subjects?limit=100`;
+
+            const response = await fetch(endpoint, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

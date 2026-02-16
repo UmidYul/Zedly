@@ -86,7 +86,6 @@
             {
                 section: 'dashboard.nav.resources',
                 items: [
-                    { icon: 'book', label: 'dashboard.nav.library', id: 'library', href: '#library' },
                     { icon: 'calendar', label: 'dashboard.nav.calendar', id: 'calendar', href: '#calendar' }
                 ]
             }
@@ -666,7 +665,6 @@
                                             <option value="" data-i18n="profile.genderNotSpecified">Не указан</option>
                                             <option value="male" data-i18n="profile.genderMale">Мужской</option>
                                             <option value="female" data-i18n="profile.genderFemale">Женский</option>
-                                            <option value="other" data-i18n="profile.genderOther">Другой</option>
                                         </select>
                                     </div>
                                 </div>

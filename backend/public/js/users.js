@@ -718,7 +718,6 @@
                                             <option value="">Select gender</option>
                                             <option value="male" ${user?.gender === 'male' ? 'selected' : ''}>Male</option>
                                             <option value="female" ${user?.gender === 'female' ? 'selected' : ''}>Female</option>
-                                            <option value="other" ${user?.gender === 'other' ? 'selected' : ''}>Other</option>
                                         </select>
                                     </div>
                                 </div>
