@@ -603,6 +603,35 @@
         margin: 0 auto;
     }
 
+    /* Student tests (completed tab) mobile layout */
+    #testsContainer .mobile-stack-table .data-table tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+        padding: 12px;
+    }
+
+    #testsContainer .mobile-stack-table .data-table tr + tr {
+        margin-top: 10px;
+    }
+
+    #testsContainer .mobile-stack-table .data-table td {
+        width: auto;
+        border-bottom: 0;
+        padding: 0;
+        min-width: 0;
+    }
+
+    #testsContainer .mobile-stack-table .data-table td::before {
+        margin-bottom: 6px;
+    }
+
+    #testsContainer .mobile-stack-table .data-table td:last-child {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: center;
+    }
+
     .data-table {
         font-size: 0.8125rem;
     }

@@ -799,6 +799,7 @@
 
 .import-file-name {
     flex: 1;
+    min-width: 0;
     min-height: 40px;
     display: inline-flex;
     align-items: center;
@@ -2641,6 +2642,19 @@
         -webkit-overflow-scrolling: touch;
     }
 
+    .import-file-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xs);
+        min-width: 0;
+    }
+
+    .import-file-row .import-file-trigger,
+    .import-file-row .import-file-name {
+        width: 100%;
+        max-width: 100%;
+    }
+
     /* Calendar stays readable on narrow phones by enabling horizontal scroll */
     .calendar-layout > .dashboard-section:first-child {
         overflow-x: auto;
@@ -3141,6 +3155,10 @@
         padding: 12px;
     }
 
+    .recent-activity-table .data-table tr + tr {
+        margin-top: 12px;
+    }
+
     .recent-activity-table .data-table td {
         border: 0;
         border-bottom: 1px dashed var(--border);
@@ -3194,8 +3212,7 @@
     }
 
     #studentsPage .mobile-stack-table .data-table tbody,
-    #studentsPage .mobile-stack-table .data-table tr,
-    #studentsPage .mobile-stack-table .data-table td {
+    #studentsPage .mobile-stack-table .data-table tr {
         display: block;
         width: 100%;
     }
@@ -3204,24 +3221,39 @@
         border: 1px solid var(--border);
         border-radius: 12px;
         background: var(--bg-card);
-        padding: 6px 10px;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+    }
+
+    #studentsPage .mobile-stack-table .data-table tr + tr {
+        margin-top: 12px;
     }
 
     #studentsPage .mobile-stack-table .data-table td {
         border: 0;
-        border-bottom: 1px dashed var(--border);
-        padding: 7px 0;
+        padding: 0;
         white-space: normal;
+        width: auto;
+        min-width: 0;
+    }
+
+    #studentsPage .mobile-stack-table .data-table td.bulk-checkbox-cell {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: center;
+        padding-bottom: 2px;
     }
 
     #studentsPage .mobile-stack-table .data-table td:last-child {
-        border-bottom: 0;
+        grid-column: 1 / -1;
     }
 
     #studentsPage .mobile-stack-table .data-table td::before {
         content: attr(data-label);
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
         color: var(--text-secondary);
         font-size: 0.72rem;
         font-weight: 700;

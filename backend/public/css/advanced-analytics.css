@@ -447,25 +447,115 @@
 @media (max-width: 480px) {
     .advanced-analytics .analytics-container {
         padding: 10px;
+        gap: 10px;
     }
 
     .advanced-analytics .filters {
         padding: 10px;
+        gap: 8px;
     }
 
     .advanced-analytics .analytics-grid {
         gap: 10px;
     }
 
+    .advanced-analytics .filter-group {
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+
+    .advanced-analytics .filters .btn {
+        width: 100%;
+        justify-content: center;
+        flex: 1 1 100%;
+    }
+
     .advanced-analytics .chart-card h2 {
         font-size: 1rem;
+        gap: 8px;
+    }
+
+    .advanced-analytics .chart-container,
+    .advanced-analytics .chart-container.small {
+        height: 220px;
+    }
+
+    .advanced-analytics .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        overflow: visible;
+    }
+
+    .advanced-analytics .tab {
+        width: 100%;
+        text-align: center;
+    }
+
+    .advanced-analytics .heatmap-legend {
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .advanced-analytics .legend-item {
+        font-size: 0.76rem;
+        gap: 6px;
+    }
+
+    .advanced-analytics .legend-color {
+        width: 28px;
+        height: 16px;
+        border-radius: 5px;
     }
 
     .advanced-analytics .heatmap {
-        min-width: 520px;
+        min-width: 480px;
     }
 
     .advanced-analytics .comparison-table {
-        min-width: 620px;
+        min-width: 0;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        background: transparent;
+    }
+
+    .advanced-analytics .comparison-table thead {
+        display: none;
+    }
+
+    .advanced-analytics .comparison-table tbody,
+    .advanced-analytics .comparison-table tr,
+    .advanced-analytics .comparison-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .advanced-analytics .comparison-table tr {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg-tertiary);
+        padding: 10px;
+    }
+
+    .advanced-analytics .comparison-table td {
+        border: 0;
+        border-bottom: 1px dashed var(--border);
+        padding: 8px 0;
+        white-space: normal;
+    }
+
+    .advanced-analytics .comparison-table td:last-child {
+        border-bottom: 0;
+    }
+
+    .advanced-analytics .comparison-table td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
 }

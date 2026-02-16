@@ -566,7 +566,7 @@
             }
 
             let html = `
-                <div class="table-responsive">
+                <div class="table-responsive mobile-stack-table">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -589,23 +589,23 @@
 
                 html += `
                     <tr>
-                        <td>
+                        <td data-label="TEST">
                             <div class="user-name">${result.test_title}</div>
                         </td>
-                        <td>
+                        <td data-label="SUBJECT">
                             ${result.subject_name ? `
                                 <span class="subject-badge" style="background-color: ${result.subject_color}20; color: ${result.subject_color};">
                                     ${result.subject_name}
                                 </span>
                             ` : '-'}
                         </td>
-                        <td>${result.class_name}</td>
-                        <td>${this.formatDate(result.submitted_at)}</td>
-                        <td>${result.score} / ${result.max_score}</td>
-                        <td>
+                        <td data-label="CLASS">${result.class_name}</td>
+                        <td data-label="DATE">${this.formatDate(result.submitted_at)}</td>
+                        <td data-label="SCORE">${result.score} / ${result.max_score}</td>
+                        <td data-label="RESULT">
                             <span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>
                         </td>
-                        <td>
+                        <td data-label="ACTIONS">
                             <button class="btn-icon" onclick="StudentTestsManager.viewAttemptDetails(${this.toJsArg(result.attempt_id)})" title="Подробнее">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>

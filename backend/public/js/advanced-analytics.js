@@ -435,12 +435,12 @@
 
             return `
                 <tr>
-                    <td>${name}</td>
-                    <td>${item.attempt_count || item.total_attempts || 0}</td>
-                    <td>${score.toFixed(1)}%</td>
-                    <td>${parseFloat(item.min_score || 0).toFixed(1)}%</td>
-                    <td>${parseFloat(item.max_score || 0).toFixed(1)}%</td>
-                    <td>
+                    <td data-label="NAME">${name}</td>
+                    <td data-label="ATTEMPTS">${item.attempt_count || item.total_attempts || 0}</td>
+                    <td data-label="AVG SCORE">${score.toFixed(1)}%</td>
+                    <td data-label="MIN SCORE">${parseFloat(item.min_score || 0).toFixed(1)}%</td>
+                    <td data-label="MAX SCORE">${parseFloat(item.max_score || 0).toFixed(1)}%</td>
+                    <td data-label="PROGRESS">
                         <div class="score-bar">
                             <div class="score-bar-fill">
                                 <div class="score-bar-value" style="width: ${score}%"></div>
@@ -649,11 +649,11 @@
 
             tbody.innerHTML = subjects.map(item => `
                 <tr>
-                    <td>${getLocalizedName(item)}</td>
-                    <td>${item.test_count || 0}</td>
-                    <td>${item.attempt_count || 0}</td>
-                    <td>${parseFloat(item.avg_score || 0).toFixed(1)}%</td>
-                    <td>${parseFloat(item.avg_time_minutes || 0).toFixed(1)}</td>
+                    <td data-label="SUBJECT">${getLocalizedName(item)}</td>
+                    <td data-label="TESTS">${item.test_count || 0}</td>
+                    <td data-label="ATTEMPTS">${item.attempt_count || 0}</td>
+                    <td data-label="AVG SCORE">${parseFloat(item.avg_score || 0).toFixed(1)}%</td>
+                    <td data-label="AVG TIME">${parseFloat(item.avg_time_minutes || 0).toFixed(1)}</td>
                 </tr>
             `).join('');
         } catch (error) {
