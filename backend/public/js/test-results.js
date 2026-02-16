@@ -129,6 +129,41 @@
             return null;
         },
 
+        normalizeAnswersMap: function (rawAnswers) {
+            let source = rawAnswers;
+
+            if (typeof source === 'string') {
+                try {
+                    source = JSON.parse(source);
+                } catch (error) {
+                    source = {};
+                }
+            }
+
+            if (Array.isArray(source)) {
+                const map = {};
+                source.forEach((item) => {
+                    if (!item || typeof item !== 'object') return;
+                    const key = item.question_id ?? item.questionId ?? item.id;
+                    if (key !== null && key !== undefined) {
+                        map[String(key)] = item;
+                    }
+                });
+                return map;
+            }
+
+            if (source && typeof source === 'object') {
+                return source;
+            }
+
+            return {};
+        },
+
+        getAnswerByQuestionId: function (answersMap, questionId) {
+            const key = String(questionId);
+            return answersMap[questionId] ?? answersMap[key] ?? null;
+        },
+
         applyLangButtons: function () {
             document.querySelectorAll('.lang-btn').forEach((btn) => {
                 btn.classList.toggle('active', btn.dataset.lang === this.currentLang);
@@ -259,7 +294,7 @@
 
         renderSummary: function () {
             const percentage = parseFloat(this.attempt.percentage || 0);
-            const answers = this.attempt.answers || {};
+            const answers = this.normalizeAnswersMap(this.attempt.answers);
             const hasUngradedQuestions = Object.values(answers).some(a => this.normalizeCorrectness(a?.is_correct) === null);
             const passed = percentage >= parseFloat(this.attempt.passing_score || 0);
 
@@ -294,11 +329,11 @@
 
         renderQuestions: function () {
             const container = document.getElementById('questionsContainer');
-            const answers = this.attempt.answers || {};
+            const answers = this.normalizeAnswersMap(this.attempt.answers);
 
             let html = '';
             this.questions.forEach((question, index) => {
-                const answer = answers[question.id];
+                const answer = this.getAnswerByQuestionId(answers, question.id);
                 const correctness = this.normalizeCorrectness(answer?.is_correct);
                 const isCorrect = correctness === true;
                 const isWrong = correctness === false;
