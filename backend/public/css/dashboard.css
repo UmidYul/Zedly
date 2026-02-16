@@ -2585,9 +2585,22 @@
         padding: 1px 5px;
     }
 
-    /* Keep language switch visible on phones by reducing less critical actions */
+    .header-actions {
+        gap: 4px;
+    }
+
+    .icon-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .icon-btn svg {
+        width: 17px;
+        height: 17px;
+    }
+
     #telegramConnectBtn {
-        display: none;
+        display: inline-flex !important;
     }
 }
 
