@@ -1,6 +1,8 @@
-const CACHE_NAME = 'zedly-shell-v4';
+const CACHE_NAME = 'zedly-shell-v5';
 const APP_SHELL = [
   '/',
+  '/css/landing.css',
+  '/js/landing.js',
   '/dashboard',
   '/css/main.css',
   '/css/dashboard.css',
