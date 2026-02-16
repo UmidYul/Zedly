@@ -138,9 +138,18 @@
         const classSelect = byId('studentsClassFilter');
         if (!classSelect) return;
 
-        classSelect.innerHTML = '<option value="">Выберите класс</option>' + state.classes
+        classSelect.innerHTML = state.classes
             .map((cls) => `<option value="${cls.id}">${escapeHtml(cls.name)}</option>`)
             .join('');
+
+        if (state.classes.length > 0) {
+            const homeroomId = state.homeroomClassId ? String(state.homeroomClassId) : '';
+            const hasHomeroom = homeroomId && state.classes.some((cls) => String(cls.id) === homeroomId);
+            state.selectedClassId = hasHomeroom ? homeroomId : String(state.classes[0].id);
+            classSelect.value = state.selectedClassId;
+        } else {
+            state.selectedClassId = '';
+        }
     }
 
     async function loadClassAnalytics() {
@@ -240,7 +249,7 @@
                     <td class="bulk-checkbox-cell" data-label="Выбор">
                         <input type="checkbox" class="students-row-check" data-id="${id}" ${checked}>
                     </td>
-                    <td data-label="№ в журнале">${escapeHtml(student.journal_no || '-')}</td>
+                    <td data-label="№">${escapeHtml(student.journal_no || '-')}</td>
                     <td data-label="ФИО">${escapeHtml(safeName(student))}</td>
                     <td data-label="Логин">${escapeHtml(student.username || '-')}</td>
                     <td data-label="Тестов пройдено">${toNumber(student.tests_completed)}</td>
@@ -558,10 +567,7 @@
         try {
             await loadFilters();
             bindEvents();
-            updateSubtitle();
-            renderKpi();
-            renderTable();
-            updateBulkControls();
+            await loadClassAnalytics();
         } catch (error) {
             console.error('Students page init error:', error);
             alert('Не удалось инициализировать страницу "Ученики"');

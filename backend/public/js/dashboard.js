@@ -921,7 +921,7 @@
                                     <thead>
                                         <tr>
                                             <th class="bulk-checkbox-cell"><input type="checkbox" id="studentsSelectAll"></th>
-                                            <th>№ в журнале</th>
+                                            <th>№</th>
                                             <th>ФИО</th>
                                             <th>Логин</th>
                                             <th>Тестов пройдено</th>
