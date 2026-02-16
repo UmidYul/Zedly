@@ -1,25 +1,47 @@
-const landingTranslations = {
+﻿const landingTranslations = {
   ru: {
-    title: 'ZEDLY — Платформа обучения',
+    title: 'ZEDLY - Платформа обучения',
     pill: 'Новая образовательная платформа',
-    heroTitle: 'Обучение, которое растёт вместе с вами',
-    heroBodyLine1: 'ZEDLY — это единая среда для учеников, учителей и администраторов.',
+    heroTitle: 'Обучение, которое растет вместе с вами',
+    heroBodyLine1: 'ZEDLY - это единая среда для учеников, учителей и администраторов.',
     heroBodyLine2: 'Тесты, аналитика и управление учебным процессом в одном месте.',
     ctaPrimary: 'Начать сейчас',
     ctaSecondary: 'Подробнее',
     metric1Title: 'Средний балл',
-    metric1Note: 'по завершённым попыткам',
+    metric1Note: 'по завершенным попыткам',
     metric2Title: 'Активные классы',
     metric2Note: 'в системе',
     metric3Title: 'Тесты',
     metric3Note: 'всего в платформе',
     featuresTitle: 'Почему ZEDLY',
     feature1Title: 'Аналитика в реальном времени',
-    feature1Body: 'Отслеживайте прогресс, вовлечённость и результаты по каждому классу.',
+    feature1Body: 'Отслеживайте прогресс, вовлеченность и результаты по каждому классу.',
     feature2Title: 'Модули и контрольные',
     feature2Body: 'Готовые и настраиваемые модули для предметов и контрольных работ.',
     feature3Title: 'Единая экосистема',
     feature3Body: 'Ученики, учителя и администраторы работают в одном пространстве.',
+    faqTitle: 'База знаний / FAQ',
+    faqSubtitle: 'Ответы на частые вопросы по ролям.',
+    faqQ1: 'Как быстро начать работу администратору школы?',
+    faqA1: 'Загрузите пользователей через импорт, создайте классы и назначьте учителей по предметам.',
+    faqQ2: 'Что может делать учитель в системе?',
+    faqA2: 'Создавать тесты, назначать их классам, отслеживать результаты и прогресс учеников.',
+    faqQ3: 'Что видит ученик?',
+    faqA3: 'Доступные тесты, историю попыток, рейтинг и персональную аналитику успеваемости.',
+    faqQ4: 'Как работает импорт из Excel?',
+    faqA4: 'Скачайте шаблон, заполните поля и загрузите файл. Неизвестные классы и учителя автоматически пропускаются.',
+    faqQ5: 'Есть ли поддержка двух языков?',
+    faqA5: 'Да, интерфейс доступен на русском и узбекском языках.',
+    faqQ6: 'Куда обращаться при вопросах?',
+    faqA6: 'Напишите в Telegram-канал или на почту поддержки из блока обратной связи ниже.',
+    feedbackTitle: 'Обратная связь',
+    feedbackSubtitle: 'Оставьте сообщение или свяжитесь с нами напрямую.',
+    contactTitle: 'Контакты',
+    feedbackNameLabel: 'Имя',
+    feedbackEmailLabel: 'Email',
+    feedbackMessageLabel: 'Сообщение',
+    feedbackSubmit: 'Отправить',
+    feedbackSuccess: 'Почтовый клиент открыт. Если не открылся, напишите на support@zedly.uz',
     highlightTitle: 'Готовы начать?',
     highlightBody: 'Войдите в систему и начните использовать ZEDLY прямо сейчас.',
     highlightCta: 'Войти в систему',
@@ -28,31 +50,53 @@ const landingTranslations = {
     loginLink: 'Вход'
   },
   uz: {
-    title: "ZEDLY — Ta'lim platformasi",
-    pill: "Yangi ta'lim platformasi",
-    heroTitle: "Ta'lim siz bilan birga o'sadi",
-    heroBodyLine1: "ZEDLY — o'quvchilar, o'qituvchilar va administratorlar uchun yagona muhit.",
-    heroBodyLine2: "Testlar, analitika va ta'lim jarayonini boshqarish bir joyda.",
+    title: 'ZEDLY - Talim platformasi',
+    pill: 'Yangi talim platformasi',
+    heroTitle: 'Talim siz bilan birga osadi',
+    heroBodyLine1: 'ZEDLY - oquvchilar, oqituvchilar va administratorlar uchun yagona muhit.',
+    heroBodyLine2: 'Testlar, analitika va talim jarayonini boshqarish bir joyda.',
     ctaPrimary: 'Boshlash',
     ctaSecondary: 'Batafsil',
-    metric1Title: "O'rtacha ball",
-    metric1Note: "yakunlangan urinishlar bo'yicha",
+    metric1Title: 'Ortacha ball',
+    metric1Note: 'yakunlangan urinishlar boyicha',
     metric2Title: 'Faol sinflar',
     metric2Note: 'tizimda',
     metric3Title: 'Testlar',
     metric3Note: 'platformadagi jami',
     featuresTitle: 'Nega ZEDLY',
     feature1Title: 'Real vaqt analitikasi',
-    feature1Body: "Har bir sinf bo'yicha progress va natijalarni kuzating.",
+    feature1Body: 'Har bir sinf boyicha progress va natijalarni kuzating.',
     feature2Title: 'Modullar va nazoratlar',
     feature2Body: 'Fanlar va nazoratlar uchun tayyor va moslanuvchi modullar.',
     feature3Title: 'Yagona ekotizim',
-    feature3Body: "O'quvchi, o'qituvchi va administrator bir makonda ishlaydi.",
+    feature3Body: 'Oquvchi, oqituvchi va administrator bir makonda ishlaydi.',
+    faqTitle: 'Bilim bazasi / FAQ',
+    faqSubtitle: 'Rollar boyicha kop soraladigan savollarga javoblar.',
+    faqQ1: 'Maktab administratori ishni qanday tez boshlaydi?',
+    faqA1: 'Foydalanuvchilarni import qiling, sinflarni yarating va oqituvchilarni fanlarga biriktiring.',
+    faqQ2: 'Oqituvchi tizimda nima qila oladi?',
+    faqA2: 'Test yaratadi, sinflarga tayinlaydi, natija va progressni kuzatadi.',
+    faqQ3: 'Oquvchi nimalarni koradi?',
+    faqA3: 'Mavjud testlar, urinishlar tarixi, reyting va shaxsiy analitika.',
+    faqQ4: 'Excel import qanday ishlaydi?',
+    faqA4: 'Shablonni yuklab oling, ustunlarni toldiring va faylni yuklang. Nomalum sinf yoki oqituvchi satrlari otkazib yuboriladi.',
+    faqQ5: 'Ikki tilda ishlash bormi?',
+    faqA5: 'Ha, interfeys rus va ozbek tillarida mavjud.',
+    faqQ6: 'Savol bolsa qayerga murojaat qilaman?',
+    faqA6: 'Quyidagi aloqa blokidagi Telegram kanal yoki support pochta orqali yozing.',
+    feedbackTitle: 'Qayta aloqa',
+    feedbackSubtitle: 'Xabar qoldiring yoki biz bilan togri boglaning.',
+    contactTitle: 'Kontaktlar',
+    feedbackNameLabel: 'Ism',
+    feedbackEmailLabel: 'Email',
+    feedbackMessageLabel: 'Xabar',
+    feedbackSubmit: 'Yuborish',
+    feedbackSuccess: 'Pochta mijozi ochildi. Ochilmasa support@zedly.uz manziliga yozing.',
     highlightTitle: 'Boshlashga tayyormisiz?',
-    highlightBody: 'Tizimga kiring va ZEDLY dan foydalanishni boshlang.',
+    highlightBody: 'Tizimga kiring va ZEDLYdan foydalanishni boshlang.',
     highlightCta: 'Tizimga kirish',
     footer: '© 2026 ZEDLY. Barcha huquqlar himoyalangan.',
-    footerLink: "Kirish sahifasiga o'tish",
+    footerLink: 'Kirish sahifasiga otish',
     loginLink: 'Kirish'
   }
 };
@@ -60,6 +104,9 @@ const landingTranslations = {
 const landingLangBtn = document.getElementById('landingLangBtn');
 const landingLoginLink = document.querySelector('.landing-actions .landing-link');
 const landingMetricValues = document.querySelectorAll('.landing-metric strong');
+const landingFeedbackForm = document.getElementById('landingFeedbackForm');
+const landingFeedbackStatus = document.getElementById('landingFeedbackStatus');
+
 let landingStats = null;
 let currentLandingLang = 'ru';
 let landingMetricDisplay = {
@@ -133,9 +180,11 @@ function animateLandingMetrics(nextValues, durationMs = 900) {
 
 function renderLandingMetrics() {
   if (!landingStats) return;
-  if (landingMetricDisplay.average_score === 0 &&
-      landingMetricDisplay.active_classes === 0 &&
-      landingMetricDisplay.tests_total === 0) {
+  if (
+    landingMetricDisplay.average_score === 0 &&
+    landingMetricDisplay.active_classes === 0 &&
+    landingMetricDisplay.tests_total === 0
+  ) {
     setLandingMetricTexts(landingStats);
     return;
   }
@@ -151,7 +200,7 @@ const applyLandingLang = (lang) => {
     if (dict[key]) el.textContent = dict[key];
   });
   if (landingLoginLink) landingLoginLink.textContent = dict.loginLink;
-  landingLangBtn.textContent = lang.toUpperCase();
+  if (landingLangBtn) landingLangBtn.textContent = lang.toUpperCase();
   currentLandingLang = lang;
   renderLandingMetrics();
   localStorage.setItem('landing-lang', lang);
@@ -160,10 +209,29 @@ const applyLandingLang = (lang) => {
 const savedLandingLang = localStorage.getItem('landing-lang') || 'ru';
 applyLandingLang(savedLandingLang);
 
-landingLangBtn.addEventListener('click', () => {
-  const nextLang = landingLangBtn.textContent.toLowerCase() === 'ru' ? 'uz' : 'ru';
-  applyLandingLang(nextLang);
-});
+if (landingLangBtn) {
+  landingLangBtn.addEventListener('click', () => {
+    const nextLang = landingLangBtn.textContent.toLowerCase() === 'ru' ? 'uz' : 'ru';
+    applyLandingLang(nextLang);
+  });
+}
+
+if (landingFeedbackForm) {
+  landingFeedbackForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = String(document.getElementById('feedbackName')?.value || '').trim();
+    const email = String(document.getElementById('feedbackEmail')?.value || '').trim();
+    const message = String(document.getElementById('feedbackMessage')?.value || '').trim();
+
+    const subject = encodeURIComponent(`ZEDLY Feedback from ${name}`);
+    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`);
+    window.location.href = `mailto:support@zedly.uz?subject=${subject}&body=${body}`;
+
+    const dict = landingTranslations[currentLandingLang] || landingTranslations.ru;
+    if (landingFeedbackStatus) landingFeedbackStatus.textContent = dict.feedbackSuccess;
+    landingFeedbackForm.reset();
+  });
+}
 
 async function loadLandingStats() {
   try {

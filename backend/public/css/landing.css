@@ -217,6 +217,12 @@ body {
     margin-bottom: 24px;
 }
 
+.landing-section-subtitle {
+    color: var(--text-secondary);
+    margin-top: -10px;
+    margin-bottom: 20px;
+}
+
 .landing-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -243,6 +249,108 @@ body {
 
 .landing-card p {
     color: var(--text-secondary);
+}
+
+.landing-faq-list {
+    display: grid;
+    gap: 12px;
+}
+
+.landing-faq-item {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+}
+
+.landing-faq-item summary {
+    cursor: pointer;
+    font-weight: 700;
+    list-style: none;
+}
+
+.landing-faq-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.landing-faq-item p {
+    color: var(--text-secondary);
+    margin-top: 10px;
+    line-height: 1.5;
+}
+
+.landing-contact-grid {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.9fr) minmax(320px, 1.1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.landing-contact-card,
+.landing-contact-form {
+    background: var(--bg-card);
+    border-radius: 18px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow);
+}
+
+.landing-contact-card {
+    display: grid;
+    gap: 12px;
+}
+
+.landing-contact-card h3 {
+    margin: 0;
+}
+
+.landing-contact-card a {
+    color: #8bb5ff;
+    text-decoration: none;
+    word-break: break-word;
+}
+
+.landing-contact-card a:hover {
+    color: #b3ccff;
+}
+
+.landing-contact-form {
+    display: grid;
+    gap: 10px;
+}
+
+.landing-contact-form label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.landing-contact-form input,
+.landing-contact-form textarea {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(6, 10, 24, 0.6);
+    color: var(--text-primary);
+    border-radius: 10px;
+    padding: 12px;
+    font: inherit;
+}
+
+.landing-contact-form textarea {
+    resize: vertical;
+    min-height: 110px;
+}
+
+.landing-contact-form input:focus,
+.landing-contact-form textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.landing-feedback-status {
+    min-height: 20px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
 .landing-highlight {
@@ -299,6 +407,10 @@ body {
     .landing-highlight {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .landing-contact-grid {
+        grid-template-columns: 1fr;
     }
 }
 

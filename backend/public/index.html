@@ -131,6 +131,59 @@
       </div>
     </section>
 
+    <section id="faq" class="landing-section">
+      <h2 data-i18n="faqTitle">База знаний / FAQ</h2>
+      <p class="landing-section-subtitle" data-i18n="faqSubtitle">Ответы на частые вопросы по ролям.</p>
+      <div class="landing-faq-list">
+        <details class="landing-faq-item">
+          <summary data-i18n="faqQ1">Как быстро начать работу администратору школы?</summary>
+          <p data-i18n="faqA1">Загрузите пользователей через импорт, создайте классы и назначьте учителей по предметам.</p>
+        </details>
+        <details class="landing-faq-item">
+          <summary data-i18n="faqQ2">Что может делать учитель в системе?</summary>
+          <p data-i18n="faqA2">Создавать тесты, назначать их классам, отслеживать результаты и прогресс учеников.</p>
+        </details>
+        <details class="landing-faq-item">
+          <summary data-i18n="faqQ3">Что видит ученик?</summary>
+          <p data-i18n="faqA3">Доступные тесты, историю попыток, рейтинг и персональную аналитику успеваемости.</p>
+        </details>
+        <details class="landing-faq-item">
+          <summary data-i18n="faqQ4">Как работает импорт из Excel?</summary>
+          <p data-i18n="faqA4">Скачайте шаблон, заполните поля и загрузите файл. Неизвестные классы и учителя автоматически пропускаются.</p>
+        </details>
+        <details class="landing-faq-item">
+          <summary data-i18n="faqQ5">Есть ли поддержка двух языков?</summary>
+          <p data-i18n="faqA5">Да, интерфейс доступен на русском и узбекском языках.</p>
+        </details>
+        <details class="landing-faq-item">
+          <summary data-i18n="faqQ6">Куда обращаться при вопросах?</summary>
+          <p data-i18n="faqA6">Напишите в Telegram-канал или на почту поддержки из блока обратной связи ниже.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="contact" class="landing-section landing-contact">
+      <h2 data-i18n="feedbackTitle">Обратная связь</h2>
+      <p class="landing-section-subtitle" data-i18n="feedbackSubtitle">Оставьте сообщение или свяжитесь с нами напрямую.</p>
+      <div class="landing-contact-grid">
+        <article class="landing-contact-card">
+          <h3 data-i18n="contactTitle">Контакты</h3>
+          <a href="https://t.me/zedly_channel" target="_blank" rel="noopener noreferrer">https://t.me/zedly_channel</a>
+          <a href="mailto:support@zedly.uz">support@zedly.uz</a>
+        </article>
+        <form class="landing-contact-form" id="landingFeedbackForm">
+          <label for="feedbackName" data-i18n="feedbackNameLabel">Имя</label>
+          <input id="feedbackName" name="name" type="text" required />
+          <label for="feedbackEmail" data-i18n="feedbackEmailLabel">Email</label>
+          <input id="feedbackEmail" name="email" type="email" required />
+          <label for="feedbackMessage" data-i18n="feedbackMessageLabel">Сообщение</label>
+          <textarea id="feedbackMessage" name="message" rows="4" required></textarea>
+          <button class="landing-btn landing-btn-primary" type="submit" data-i18n="feedbackSubmit">Отправить</button>
+          <p id="landingFeedbackStatus" class="landing-feedback-status"></p>
+        </form>
+      </div>
+    </section>
+
     <section class="landing-section landing-highlight">
       <div>
         <h2 data-i18n="highlightTitle">Готовы начать?</h2>
