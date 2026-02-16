@@ -15,6 +15,7 @@
     let subjectsChart = null;
     let activeTab = 'heatmap';
     let chartLoadPromise = null;
+    let analyticsClasses = [];
 
     function showAlert(message, title = 'Ошибка') {
         if (window.ZedlyDialog?.alert) {
@@ -781,6 +782,7 @@
         const gradeSelect = document.getElementById('gradeLevelFilter');
         const classSelect = document.getElementById('advancedClassFilter');
         if (!gradeSelect || !classSelect) return;
+        analyticsClasses = classes;
 
         if (gradeSelect.options.length > 0) {
             gradeSelect.options[0].textContent = localize('Все параллели', 'Barcha parallellar');
@@ -796,18 +798,6 @@
             classSelect.remove(1);
         }
 
-        const uniqueClassIds = new Set();
-        classes.forEach((item) => {
-            const classId = item?.id;
-            if (!classId || uniqueClassIds.has(classId)) return;
-            uniqueClassIds.add(classId);
-
-            const option = document.createElement('option');
-            option.value = String(classId);
-            option.textContent = item?.name || `#${classId}`;
-            classSelect.appendChild(option);
-        });
-
         const grades = [...new Set(
             classes
                 .map(item => Number(item?.grade_level))
@@ -820,6 +810,53 @@
             option.textContent = localize(`${grade} класс`, `${grade}-sinf`);
             gradeSelect.appendChild(option);
         });
+
+        if (!currentFilters.grade_level) {
+            const hasFirstGrade = grades.includes(1);
+            const defaultGrade = hasFirstGrade ? '1' : (grades.length ? String(grades[0]) : '');
+            if (defaultGrade) {
+                gradeSelect.value = defaultGrade;
+                currentFilters.grade_level = defaultGrade;
+            }
+        }
+
+        syncClassOptionsWithSelectedGrade();
+    }
+
+    function syncClassOptionsWithSelectedGrade() {
+        const gradeSelect = document.getElementById('gradeLevelFilter');
+        const classSelect = document.getElementById('advancedClassFilter');
+        if (!gradeSelect || !classSelect) return;
+
+        const selectedGrade = String(gradeSelect.value || '');
+        const previousClassId = String(classSelect.value || '');
+
+        while (classSelect.options.length > 1) {
+            classSelect.remove(1);
+        }
+
+        const filteredClasses = analyticsClasses.filter((item) => {
+            if (!selectedGrade) return true;
+            return String(item?.grade_level || '') === selectedGrade;
+        });
+
+        const uniqueClassIds = new Set();
+        filteredClasses.forEach((item) => {
+            const classId = item?.id;
+            if (!classId || uniqueClassIds.has(classId)) return;
+            uniqueClassIds.add(classId);
+
+            const option = document.createElement('option');
+            option.value = String(classId);
+            option.textContent = item?.name || `#${classId}`;
+            classSelect.appendChild(option);
+        });
+
+        const hasPrevious = previousClassId && filteredClasses.some((item) => String(item?.id || '') === previousClassId);
+        classSelect.value = hasPrevious ? previousClassId : '';
+        if (!hasPrevious) {
+            currentFilters.class_id = '';
+        }
     }
 
     async function init() {
@@ -836,9 +873,15 @@
         const gradeLevelFilter = document.getElementById('gradeLevelFilter');
         const classFilter = document.getElementById('advancedClassFilter');
         const subjectFilter = document.getElementById('subjectFilter');
-        [periodFilter, gradeLevelFilter, classFilter, subjectFilter].forEach((el) => {
+        [periodFilter, classFilter, subjectFilter].forEach((el) => {
             if (el) el.addEventListener('change', applyFilters);
         });
+        if (gradeLevelFilter) {
+            gradeLevelFilter.addEventListener('change', () => {
+                syncClassOptionsWithSelectedGrade();
+                applyFilters();
+            });
+        }
 
         const exportBtn = document.getElementById('exportAdvancedAnalytics');
         if (exportBtn) {
