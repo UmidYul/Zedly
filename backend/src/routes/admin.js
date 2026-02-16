@@ -284,7 +284,7 @@ router.get('/dashboard/overview', async (req, res) => {
  */
 router.get('/users', async (req, res) => {
     try {
-        const { search = '', role = 'all' } = req.query;
+        const { search = '', role = 'all', status = 'all', class_id: classId = 'all' } = req.query;
         const { page, limit, offset } = normalizePagination(req.query.page, req.query.limit, 100);
         const schoolId = req.user.school_id;
 
@@ -302,6 +302,24 @@ router.get('/users', async (req, res) => {
         if (role !== 'all') {
             params.push(role);
             whereClause += ` AND role = $${paramCount}`;
+            paramCount++;
+        }
+
+        if (status === 'active' || status === 'inactive') {
+            params.push(status === 'active');
+            whereClause += ` AND is_active = $${paramCount}`;
+            paramCount++;
+        }
+
+        if (classId && classId !== 'all') {
+            params.push(String(classId));
+            whereClause += ` AND EXISTS (
+                SELECT 1
+                FROM class_students cs_filter
+                WHERE cs_filter.student_id = users.id
+                  AND cs_filter.is_active = true
+                  AND cs_filter.class_id::text = $${paramCount}
+            )`;
             paramCount++;
         }
 
@@ -1404,6 +1422,50 @@ router.post('/import/credentials/export', async (req, res) => {
 router.get('/export/users', async (req, res) => {
     try {
         const schoolId = req.user.school_id;
+        const search = String(req.query.search || '').trim();
+        const role = String(req.query.role || 'all').trim();
+        const status = String(req.query.status || 'all').trim();
+        const classId = String(req.query.class_id || 'all').trim();
+
+        const whereParts = ['u.school_id = $1'];
+        const params = [schoolId];
+        let paramIndex = 2;
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereParts.push(`(
+                u.first_name ILIKE $${paramIndex}
+                OR u.last_name ILIKE $${paramIndex}
+                OR u.username ILIKE $${paramIndex}
+                OR COALESCE(u.email, '') ILIKE $${paramIndex}
+                OR COALESCE(u.phone, '') ILIKE $${paramIndex}
+            )`);
+            paramIndex += 1;
+        }
+
+        if (role && role !== 'all') {
+            params.push(role);
+            whereParts.push(`u.role = $${paramIndex}`);
+            paramIndex += 1;
+        }
+
+        if (status === 'active' || status === 'inactive') {
+            params.push(status === 'active');
+            whereParts.push(`u.is_active = $${paramIndex}`);
+            paramIndex += 1;
+        }
+
+        if (classId && classId !== 'all') {
+            params.push(classId);
+            whereParts.push(`EXISTS (
+                SELECT 1
+                FROM class_students cs_filter
+                WHERE cs_filter.student_id = u.id
+                  AND cs_filter.is_active = true
+                  AND cs_filter.class_id::text = $${paramIndex}
+            )`);
+            paramIndex += 1;
+        }
 
         const result = await query(
             `SELECT
@@ -1420,10 +1482,10 @@ router.get('/export/users', async (req, res) => {
              FROM users u
              LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
              LEFT JOIN classes c ON c.id = cs.class_id
-             WHERE u.school_id = $1
+             WHERE ${whereParts.join(' AND ')}
              GROUP BY u.id
              ORDER BY u.last_name ASC, u.first_name ASC`,
-            [schoolId]
+            params
         );
 
         const exportRows = result.rows.map(row => ({

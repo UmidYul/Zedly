@@ -44,6 +44,12 @@
         const importTypeSelect = document.getElementById('importType');
         const resultsContainer = document.getElementById('importResults');
         const refreshExportPreviewBtn = document.getElementById('refreshExportPreviewBtn');
+        const applyExportFiltersBtn = document.getElementById('applyExportFiltersBtn');
+        const resetExportFiltersBtn = document.getElementById('resetExportFiltersBtn');
+        const exportSearchInput = document.getElementById('exportSearchInput');
+        const exportRoleFilter = document.getElementById('exportRoleFilter');
+        const exportStatusFilter = document.getElementById('exportStatusFilter');
+        const exportClassFilter = document.getElementById('exportClassFilter');
 
         if (importBtn) {
             importBtn.addEventListener('click', handleImport);
@@ -91,11 +97,35 @@
         if (exportBtn) {
             exportBtn.addEventListener('click', exportUsers);
             renderLastExportMeta();
+            loadExportClassOptions();
             loadExportPreview();
         }
 
         if (refreshExportPreviewBtn) {
             refreshExportPreviewBtn.addEventListener('click', loadExportPreview);
+        }
+
+        if (applyExportFiltersBtn) {
+            applyExportFiltersBtn.addEventListener('click', loadExportPreview);
+        }
+
+        if (resetExportFiltersBtn) {
+            resetExportFiltersBtn.addEventListener('click', () => {
+                if (exportSearchInput) exportSearchInput.value = '';
+                if (exportRoleFilter) exportRoleFilter.value = 'all';
+                if (exportStatusFilter) exportStatusFilter.value = 'all';
+                if (exportClassFilter) exportClassFilter.value = 'all';
+                loadExportPreview();
+            });
+        }
+
+        if (exportSearchInput) {
+            exportSearchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    loadExportPreview();
+                }
+            });
         }
 
         if (importTypeSelect) {
@@ -302,7 +332,8 @@
             }
             setExportStatus(t('tools.exportInProgress', 'Экспорт выполняется...'), 'loading');
 
-            const response = await fetch(`${API_URL}/export/users`);
+            const query = buildExportUsersQuery();
+            const response = await fetch(`${API_URL}/export/users${query ? `?${query}` : ''}`);
             if (!response.ok) {
                 throw new Error('Failed to export users');
             }
@@ -371,13 +402,62 @@
     }
 
     async function fetchUsersTotal(role) {
-        const roleQuery = role && role !== 'all' ? `&role=${encodeURIComponent(role)}` : '';
-        const response = await fetch(`${API_URL}/users?page=1&limit=1${roleQuery}`);
+        const query = buildExportUsersQuery(role);
+        const response = await fetch(`${API_URL}/users?page=1&limit=1${query ? `&${query}` : ''}`);
         if (!response.ok) {
             throw new Error('Failed to fetch users total');
         }
         const data = await response.json();
         return Number(data?.pagination?.total || 0);
+    }
+
+    function getExportFilters() {
+        const search = String(document.getElementById('exportSearchInput')?.value || '').trim();
+        const role = String(document.getElementById('exportRoleFilter')?.value || 'all');
+        const status = String(document.getElementById('exportStatusFilter')?.value || 'all');
+        const classId = String(document.getElementById('exportClassFilter')?.value || 'all');
+        return { search, role, status, class_id: classId };
+    }
+
+    function buildExportUsersQuery(roleOverride = null) {
+        const filters = getExportFilters();
+        if (roleOverride && roleOverride !== 'all') {
+            filters.role = roleOverride;
+        } else if (roleOverride === 'all') {
+            filters.role = 'all';
+        }
+
+        const params = new URLSearchParams();
+        if (filters.search) params.set('search', filters.search);
+        if (filters.role && filters.role !== 'all') params.set('role', filters.role);
+        if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+        if (filters.class_id && filters.class_id !== 'all') params.set('class_id', filters.class_id);
+        return params.toString();
+    }
+
+    async function loadExportClassOptions() {
+        const select = document.getElementById('exportClassFilter');
+        if (!select) return;
+
+        try {
+            const response = await fetch(`${API_URL}/classes?page=1&limit=1000&search=&grade=all`);
+            if (!response.ok) return;
+            const data = await response.json();
+            const classes = Array.isArray(data?.classes) ? data.classes : [];
+
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
+            classes.forEach((cls) => {
+                const option = document.createElement('option');
+                option.value = String(cls.id);
+                option.textContent = cls.name || `#${cls.id}`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.warn('Failed to load export class options:', error);
+        }
     }
 
     function persistLastExportMeta(meta) {

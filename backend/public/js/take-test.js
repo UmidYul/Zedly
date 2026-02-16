@@ -1,6 +1,17 @@
-// Test Taking Interface
+﻿// Test Taking Interface
 (function () {
     'use strict';
+
+    function t(key, fallback, params) {
+        const translated = window.ZedlyI18n?.translate?.(key, params);
+        if (translated && translated !== key) return translated;
+        if (!fallback) return key;
+        if (!params) return fallback;
+        return Object.keys(params).reduce(
+            (acc, paramKey) => acc.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(params[paramKey])),
+            fallback
+        );
+    }
 
     const TestTaker = {
         attemptId: null,
@@ -26,6 +37,8 @@
         shuffledOptionOrder: {},
         fullscreenChangeHandler: null,
         fullscreenGateBound: false,
+        timerStarted: false,
+        timerAnchorStorageKey: null,
 
         notify: function (message, options) {
             if (window.ZedlyDialog?.alert) {
@@ -62,6 +75,7 @@
             // Get attempt ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             this.attemptId = urlParams.get('attempt_id');
+            this.timerAnchorStorageKey = this.attemptId ? `zedly_test_timer_anchor_${this.attemptId}` : null;
 
             if (!this.attemptId) {
                 await this.notify('Invalid test attempt');
@@ -78,8 +92,8 @@
             // Setup proctoring listeners
             this.initProctoring();
 
-            // Start timer
-            this.startTimer();
+            // Start timer only when allowed by fullscreen policy.
+            this.ensureTimerStarted();
 
             // Start auto-save
             this.startAutoSave();
@@ -116,6 +130,7 @@
                 this.questions = data.questions;
 
                 if (this.attempt.is_completed) {
+                    this.clearTimerAnchor();
                     this.leavePage(`/test-results.html?attempt_id=${this.attemptId}`);
                     return;
                 }
@@ -146,12 +161,20 @@
                 // Build deterministic shuffled option order per attempt/question
                 this.initOptionShuffle();
 
-                // Calculate end time
-                const startedAt = new Date(this.attempt.started_at);
-                this.endTime = new Date(startedAt.getTime() + this.attempt.duration_minutes * 60000);
+                // Calculate end time.
+                // If fullscreen is required, timer anchor is stored after entering fullscreen.
+                if (this.proctoring.fullscreenRequired) {
+                    const anchor = this.readTimerAnchor();
+                    this.endTime = anchor
+                        ? new Date(anchor.getTime() + this.attempt.duration_minutes * 60000)
+                        : null;
+                } else {
+                    const startedAt = new Date(this.attempt.started_at);
+                    this.endTime = new Date(startedAt.getTime() + this.attempt.duration_minutes * 60000);
+                }
 
                 // Check if time expired
-                if (new Date() >= this.endTime) {
+                if (this.endTime && new Date() >= this.endTime) {
                     await this.notify('Time has expired for this test. Submitting automatically.');
                     await this.submitTest();
                     return;
@@ -161,7 +184,7 @@
                 document.getElementById('testTitle').textContent = this.attempt.test_title;
                 document.getElementById('testMeta').innerHTML = `
                     <span>${this.questions.length} Questions</span>
-                    <span>•</span>
+                    <span>вЂў</span>
                     <span>${this.attempt.duration_minutes} Minutes</span>
                 `;
 
@@ -271,7 +294,7 @@
             try {
                 await request.call(root);
             } catch (error) {
-                this.showProctoringNotice('Please enable fullscreen to continue this test.');
+                this.showProctoringNotice(t('takeTest.enableFullscreenNotice', 'Please enable fullscreen to continue this test.'));
             }
         },
 
@@ -283,9 +306,9 @@
                 gate.className = 'fullscreen-gate';
                 gate.innerHTML = `
                     <div class="fullscreen-gate-card">
-                        <h3>Fullscreen Required</h3>
-                        <p>This test requires fullscreen mode.</p>
-                        <button type="button" class="btn btn-primary" id="fullscreenGateBtn">Enter Fullscreen</button>
+                        <h3>${t('takeTest.fullscreenRequiredTitle', 'Fullscreen Required')}</h3>
+                        <p>${t('takeTest.fullscreenRequiredBody', 'This test requires fullscreen mode.')}</p>
+                        <button type="button" class="btn btn-primary" id="fullscreenGateBtn">${t('takeTest.enterFullscreen', 'Enter Fullscreen')}</button>
                     </div>
                 `;
                 document.body.appendChild(gate);
@@ -297,6 +320,7 @@
                     button.addEventListener('click', async () => {
                         await this.requestFullscreen();
                         this.updateFullscreenGate();
+                        this.ensureTimerStarted();
                     });
                 }
                 this.fullscreenGateBound = true;
@@ -319,9 +343,10 @@
                 this.fullscreenChangeHandler = () => {
                     if (!this.isFullscreenActive() && this.attempt && !this.attempt.is_completed) {
                         this.recordSuspiciousActivity('fullscreen_exit', {});
-                        this.showProctoringNotice('Fullscreen is required. Please return to fullscreen.');
+                        this.showProctoringNotice(t('takeTest.returnToFullscreenNotice', 'Fullscreen is required. Please return to fullscreen.'));
                     }
                     this.updateFullscreenGate();
+                    this.ensureTimerStarted();
                 };
             }
 
@@ -353,6 +378,8 @@
 
         // Start countdown timer
         startTimer: function () {
+            if (this.timerStarted) return;
+            this.timerStarted = true;
             const updateTimer = () => {
                 const now = new Date();
                 const remaining = this.endTime - now;
@@ -378,6 +405,50 @@
 
             updateTimer();
             this.timer = setInterval(updateTimer, 1000);
+        },
+
+        ensureTimerStarted: function () {
+            if (this.timerStarted || !this.attempt || this.attempt.is_completed) return;
+            if (this.proctoring.fullscreenRequired && !this.isFullscreenActive()) return;
+
+            if (!this.endTime) {
+                const anchor = new Date();
+                this.persistTimerAnchor(anchor);
+                this.endTime = new Date(anchor.getTime() + this.attempt.duration_minutes * 60000);
+            }
+
+            this.startTimer();
+        },
+
+        persistTimerAnchor: function (date) {
+            if (!this.timerAnchorStorageKey || !(date instanceof Date)) return;
+            try {
+                localStorage.setItem(this.timerAnchorStorageKey, date.toISOString());
+            } catch (error) {
+                console.warn('Failed to persist test timer anchor:', error);
+            }
+        },
+
+        readTimerAnchor: function () {
+            if (!this.timerAnchorStorageKey) return null;
+            try {
+                const raw = localStorage.getItem(this.timerAnchorStorageKey);
+                if (!raw) return null;
+                const parsed = new Date(raw);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            } catch (error) {
+                console.warn('Failed to read test timer anchor:', error);
+                return null;
+            }
+        },
+
+        clearTimerAnchor: function () {
+            if (!this.timerAnchorStorageKey) return;
+            try {
+                localStorage.removeItem(this.timerAnchorStorageKey);
+            } catch (error) {
+                console.warn('Failed to clear test timer anchor:', error);
+            }
         },
 
         // Start auto-save
@@ -506,7 +577,7 @@
             // Update navigation buttons
             document.getElementById('prevBtn').style.visibility = this.currentQuestionIndex === 0 ? 'hidden' : 'visible';
             const nextBtn = document.getElementById('nextBtn');
-            nextBtn.textContent = this.currentQuestionIndex === this.questions.length - 1 ? 'Завершить' : 'Вперед';
+            nextBtn.textContent = this.currentQuestionIndex === this.questions.length - 1 ? 'Р—Р°РІРµСЂС€РёС‚СЊ' : 'Р’РїРµСЂРµРґ';
 
             // Update question navigation
             this.renderQuestionNav();
@@ -726,7 +797,7 @@
             orderedItems.forEach((itemIndex, position) => {
                 html += `
                     <div class="ordering-item" data-item-index="${itemIndex}" draggable="true">
-                        <span class="drag-handle">⋮⋮</span>
+                        <span class="drag-handle">в‹®в‹®</span>
                         <span class="item-number">${position + 1}.</span>
                         <span class="item-text">${items[itemIndex]}</span>
                     </div>
@@ -741,25 +812,24 @@
 
             return html;
         },
-
         // Render matching
         renderMatching: function (question, existingAnswer) {
-            const pairs = question.options || [];
-            const leftItems = pairs.map(p => p.left);
-            const rightItems = pairs.map(p => p.right);
+            const pairs = Array.isArray(question.options) ? question.options : [];
+            const rightItems = pairs.map((p) => p?.right ?? '');
             const matches = Array.isArray(existingAnswer) ? existingAnswer : new Array(pairs.length).fill(null);
 
             let html = '<div class="matching-container">';
 
             pairs.forEach((pair, index) => {
+                const left = pair?.left ?? '';
                 html += `
                     <div class="matching-pair">
-                        <div class="matching-left">${pair.left}</div>
+                        <div class="matching-left">${this.escapeHtml(left)}</div>
                         <div class="matching-arrow">→</div>
                         <select class="matching-select" data-pair-index="${index}">
                             <option value="">Select match...</option>
                             ${rightItems.map((item, i) => `
-                                <option value="${i}" ${matches[index] === i ? 'selected' : ''}>${item}</option>
+                                <option value="${i}" ${matches[index] === i ? 'selected' : ''}>${this.escapeHtml(item)}</option>
                             `).join('')}
                         </select>
                     </div>
@@ -981,7 +1051,7 @@
                 if (prevBtn) prevBtn.disabled = true;
                 if (nextBtn) {
                     nextBtn.disabled = true;
-                    nextBtn.innerHTML = '<span class="spinner"></span> Отправка...';
+                    nextBtn.innerHTML = '<span class="spinner"></span> РћС‚РїСЂР°РІРєР°...';
                 }
 
                 const token = localStorage.getItem('access_token');
@@ -1002,6 +1072,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
+                    this.clearTimerAnchor();
                     // Show success and redirect
                     await this.notify(
                         `Test submitted successfully!\n\nYour score: ${data.score}/${data.max_score} (${data.percentage}%)\nStatus: ${data.passed ? 'Passed' : 'Not Passed'}`,
@@ -1031,3 +1102,4 @@
         TestTaker.init();
     });
 })();
+

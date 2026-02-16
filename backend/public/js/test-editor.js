@@ -20,7 +20,7 @@
         MULTIPLE_CHOICE: { id: 'multiplechoice', name: t('testEditor.typeMultipleChoice', 'РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№ РІС‹Р±РѕСЂ'), icon: 'в‘', description: t('testEditor.typeMultipleChoiceDesc', 'РќРµСЃРєРѕР»СЊРєРѕ РїСЂР°РІРёР»СЊРЅС‹С… РѕС‚РІРµС‚РѕРІ') },
         TRUE_FALSE: { id: 'truefalse', name: t('testEditor.typeTrueFalse', 'Р’РµСЂРЅРѕ/РќРµРІРµСЂРЅРѕ'), icon: 'вњ“вњ—', description: t('testEditor.typeTrueFalseDesc', 'Р’С‹Р±РµСЂРёС‚Рµ РІРµСЂРЅРѕРµ СѓС‚РІРµСЂР¶РґРµРЅРёРµ') },
         SHORT_ANSWER: { id: 'shortanswer', name: t('testEditor.typeShortAnswer', 'РљСЂР°С‚РєРёР№ РѕС‚РІРµС‚'), icon: 'вњЋ', description: t('testEditor.typeShortAnswerDesc', 'РљРѕСЂРѕС‚РєРёР№ С‚РµРєСЃС‚РѕРІС‹Р№ РѕС‚РІРµС‚') },
-        MATCHING: { id: 'matching', name: t('testEditor.typeMatching', 'РЎРѕРїРѕСЃС‚Р°РІР»РµРЅРёРµ'), icon: 'в‡„', description: t('testEditor.typeMatchingDesc', 'РЎРѕРµРґРёРЅРёС‚Рµ РїР°СЂС‹') },
+        MATCHING: { id: 'matching', name: t('testEditor.typeMatching', 'РЎРѕРїРѕСЃС‚Р°РІР»РµРЅРёРµ'), icon: '↔', description: t('testEditor.typeMatchingDesc', 'РЎРѕРµРґРёРЅРёС‚Рµ РїР°СЂС‹') },
         ORDERING: { id: 'ordering', name: t('testEditor.typeOrdering', 'РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ'), icon: 'в†•', description: t('testEditor.typeOrderingDesc', 'Р Р°СЃРїРѕР»РѕР¶РёС‚Рµ РІ РїСЂР°РІРёР»СЊРЅРѕРј РїРѕСЂСЏРґРєРµ') },
         FILL_BLANKS: { id: 'fillblanks', name: t('testEditor.typeFillBlanks', 'Р—Р°РїРѕР»РЅРёС‚СЊ РїСЂРѕРїСѓСЃРєРё'), icon: '___', description: t('testEditor.typeFillBlanksDesc', 'Р—Р°РїРѕР»РЅРёС‚Рµ РїСЂРѕРїСѓС‰РµРЅРЅС‹Рµ СЃР»РѕРІР°') },
         IMAGE_BASED: { id: 'imagebased', name: t('testEditor.typeImageBased', 'РџРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЋ'), icon: 'рџ–ј', description: t('testEditor.typeImageBasedDesc', 'Р’РѕРїСЂРѕСЃ СЃ РёР·РѕР±СЂР°Р¶РµРЅРёРµРј') }
@@ -629,7 +629,7 @@
                         ${pairs.map((pair, i) => `
                             <div class="pair-item">
                                 <input type="text" class="form-input pair-left" data-index="${i}" value="${pair.left || ''}" placeholder="Left item ${i + 1}">
-                                <span class="pair-separator">в‡„</span>
+                                <span class="pair-separator">↔</span>
                                 <input type="text" class="form-input pair-right" data-index="${i}" value="${pair.right || ''}" placeholder="Right item ${i + 1}">
                                 ${i > 1 ? `
                                     <button class="btn-icon btn-danger" onclick="TestEditor.removePair(${i})" title="Remove">
@@ -902,7 +902,7 @@
             const itemHtml = `
                 <div class="pair-item">
                     <input type="text" class="form-input pair-left" data-index="${index}" value="" placeholder="Left item ${index + 1}">
-                    <span class="pair-separator">в‡„</span>
+                    <span class="pair-separator">↔</span>
                     <input type="text" class="form-input pair-right" data-index="${index}" value="" placeholder="Right item ${index + 1}">
                     <button class="btn-icon btn-danger" onclick="TestEditor.removePair(${index})" title="Remove">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1046,6 +1046,11 @@
                     const rightItems = Array.from(document.querySelectorAll('.pair-right')).map(el => el.value.trim());
                     if (leftItems.some(item => !item) || rightItems.some(item => !item)) {
                         alert('Please fill in all matching pairs');
+                        return;
+                    }
+                    const hasDuplicateSides = leftItems.some((left, i) => left.toLowerCase() === String(rightItems[i] || '').toLowerCase());
+                    if (hasDuplicateSides) {
+                        alert('Left and right values in a pair should be different');
                         return;
                     }
                     options = leftItems.map((left, i) => ({ left, right: rightItems[i] }));

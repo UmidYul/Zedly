@@ -850,12 +850,15 @@ function parseTrueFalse(raw) {
 }
 
 function parseMatchingPairs(rowMap) {
+    const normalizePairValue = (value) => String(value || '').trim().toLowerCase();
+
     const packed = readAliases(rowMap, ['pairs', 'matching_pairs']);
     if (packed) {
         const pairs = parseDelimited(packed)
             .map((chunk) => chunk.split('=>'))
             .map(([left, right]) => ({ left: String(left || '').trim(), right: String(right || '').trim() }))
-            .filter((pair) => pair.left && pair.right);
+            .filter((pair) => pair.left && pair.right)
+            .filter((pair) => normalizePairValue(pair.left) !== normalizePairValue(pair.right));
         if (pairs.length) return pairs;
     }
 
@@ -864,7 +867,13 @@ function parseMatchingPairs(rowMap) {
         const left = readAliases(rowMap, [`left_${i}`, `left${i}`]);
         const right = readAliases(rowMap, [`right_${i}`, `right${i}`]);
         if (!left && !right) break;
-        if (left && right) pairs.push({ left: String(left).trim(), right: String(right).trim() });
+        if (left && right) {
+            const leftValue = String(left).trim();
+            const rightValue = String(right).trim();
+            if (normalizePairValue(leftValue) !== normalizePairValue(rightValue)) {
+                pairs.push({ left: leftValue, right: rightValue });
+            }
+        }
     }
     return pairs;
 }

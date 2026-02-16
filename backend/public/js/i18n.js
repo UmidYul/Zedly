@@ -2165,6 +2165,58 @@
         'advanced.chart.attempts': 'Urinishlar'
     });
 
+    Object.assign(translations.ru, {
+        'export.filter.searchLabel': 'Поиск',
+        'export.filter.searchPlaceholder': 'Имя, логин, email, телефон',
+        'export.filter.roleLabel': 'Роль',
+        'export.filter.roleAll': 'Все роли',
+        'export.filter.roleStudent': 'Ученики',
+        'export.filter.roleTeacher': 'Учителя',
+        'export.filter.roleAdmin': 'Администраторы',
+        'export.filter.statusLabel': 'Статус',
+        'export.filter.statusAll': 'Все',
+        'export.filter.statusActive': 'Активные',
+        'export.filter.statusInactive': 'Неактивные',
+        'export.filter.classLabel': 'Класс',
+        'export.filter.classAll': 'Все классы',
+        'export.filter.apply': 'Применить фильтры',
+        'export.filter.reset': 'Сбросить'
+    });
+
+    Object.assign(translations.uz, {
+        'export.filter.searchLabel': 'Qidiruv',
+        'export.filter.searchPlaceholder': 'Ism, login, email, telefon',
+        'export.filter.roleLabel': 'Rol',
+        'export.filter.roleAll': 'Barcha rollar',
+        'export.filter.roleStudent': 'O\'quvchilar',
+        'export.filter.roleTeacher': 'O\'qituvchilar',
+        'export.filter.roleAdmin': 'Administratorlar',
+        'export.filter.statusLabel': 'Holat',
+        'export.filter.statusAll': 'Barchasi',
+        'export.filter.statusActive': 'Faol',
+        'export.filter.statusInactive': 'Nofaol',
+        'export.filter.classLabel': 'Sinf',
+        'export.filter.classAll': 'Barcha sinflar',
+        'export.filter.apply': 'Filtrlarni qo\'llash',
+        'export.filter.reset': 'Tozalash'
+    });
+
+    Object.assign(translations.ru, {
+        'takeTest.fullscreenRequiredTitle': 'Требуется полноэкранный режим',
+        'takeTest.fullscreenRequiredBody': 'Для этого теста необходим полноэкранный режим.',
+        'takeTest.enterFullscreen': 'Войти в полноэкранный режим',
+        'takeTest.enableFullscreenNotice': 'Пожалуйста, включите полноэкранный режим, чтобы продолжить тест.',
+        'takeTest.returnToFullscreenNotice': 'Полноэкранный режим обязателен. Вернитесь в полноэкранный режим.'
+    });
+
+    Object.assign(translations.uz, {
+        'takeTest.fullscreenRequiredTitle': 'To\'liq ekran rejimi talab qilinadi',
+        'takeTest.fullscreenRequiredBody': 'Bu test uchun to\'liq ekran rejimi kerak.',
+        'takeTest.enterFullscreen': 'To\'liq ekran rejimiga o\'tish',
+        'takeTest.enableFullscreenNotice': 'Testni davom ettirish uchun to\'liq ekran rejimini yoqing.',
+        'takeTest.returnToFullscreenNotice': 'To\'liq ekran rejimi majburiy. Iltimos, to\'liq ekran rejimiga qayting.'
+    });
+
     function normalizeRuMojibake() {
         const decoder = typeof TextDecoder !== 'undefined'
             ? new TextDecoder('utf-8', { fatal: false })

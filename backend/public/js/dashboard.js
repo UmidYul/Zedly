@@ -1233,6 +1233,39 @@
                                 <span class="export-chip" id="exportStatusChip" data-i18n="tools.readyToExport">${t('tools.readyToExport', 'Готово к экспорту')}</span>
                             </div>
                             <p class="export-hint" data-i18n="export.usersHint">The file includes users, classes and journal numbers.</p>
+                            <div class="export-filters-grid">
+                                <div class="filter-group">
+                                    <label for="exportSearchInput" data-i18n="export.filter.searchLabel">${t('export.filter.searchLabel', 'Поиск')}</label>
+                                    <input id="exportSearchInput" class="form-input" type="text" data-i18n-placeholder="export.filter.searchPlaceholder" placeholder="${t('export.filter.searchPlaceholder', 'Имя, логин, email, телефон')}">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="exportRoleFilter" data-i18n="export.filter.roleLabel">${t('export.filter.roleLabel', 'Роль')}</label>
+                                    <select id="exportRoleFilter" class="form-input">
+                                        <option value="all" data-i18n="export.filter.roleAll">${t('export.filter.roleAll', 'Все роли')}</option>
+                                        <option value="student" data-i18n="export.filter.roleStudent">${t('export.filter.roleStudent', 'Ученики')}</option>
+                                        <option value="teacher" data-i18n="export.filter.roleTeacher">${t('export.filter.roleTeacher', 'Учителя')}</option>
+                                        <option value="school_admin" data-i18n="export.filter.roleAdmin">${t('export.filter.roleAdmin', 'Администраторы')}</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="exportStatusFilter" data-i18n="export.filter.statusLabel">${t('export.filter.statusLabel', 'Статус')}</label>
+                                    <select id="exportStatusFilter" class="form-input">
+                                        <option value="all" data-i18n="export.filter.statusAll">${t('export.filter.statusAll', 'Все')}</option>
+                                        <option value="active" data-i18n="export.filter.statusActive">${t('export.filter.statusActive', 'Активные')}</option>
+                                        <option value="inactive" data-i18n="export.filter.statusInactive">${t('export.filter.statusInactive', 'Неактивные')}</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="exportClassFilter" data-i18n="export.filter.classLabel">${t('export.filter.classLabel', 'Класс')}</label>
+                                    <select id="exportClassFilter" class="form-input">
+                                        <option value="all" data-i18n="export.filter.classAll">${t('export.filter.classAll', 'Все классы')}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="export-actions-row export-filter-actions">
+                                <button class="btn btn-outline" id="applyExportFiltersBtn" type="button" data-i18n="export.filter.apply">${t('export.filter.apply', 'Применить фильтры')}</button>
+                                <button class="btn btn-outline" id="resetExportFiltersBtn" type="button" data-i18n="export.filter.reset">${t('export.filter.reset', 'Сбросить')}</button>
+                            </div>
                             <div class="export-actions-row">
                                 <button class="btn btn-primary" id="exportUsersBtn" data-i18n="export.downloadUsers">Download users</button>
                                 <button class="btn btn-secondary" id="refreshExportPreviewBtn" type="button" data-i18n="tools.refreshPreview">${t('tools.refreshPreview', 'Обновить превью')}</button>

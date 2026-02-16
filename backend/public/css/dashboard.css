@@ -885,6 +885,24 @@
     margin-top: var(--spacing-md);
 }
 
+.export-filters-grid {
+    margin-top: var(--spacing-md);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.export-filters-grid .filter-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.export-filter-actions {
+    margin-top: var(--spacing-sm);
+}
+
 .export-last-meta {
     margin-top: var(--spacing-md);
     padding: 10px 12px;
@@ -2233,6 +2251,10 @@
     .export-layout {
         grid-template-columns: 1fr;
         gap: var(--spacing-md);
+    }
+
+    .export-filters-grid {
+        grid-template-columns: 1fr;
     }
 
     .import-layout {
