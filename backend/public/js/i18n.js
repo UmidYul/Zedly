@@ -2217,6 +2217,20 @@
         'takeTest.returnToFullscreenNotice': 'To\'liq ekran rejimi majburiy. Iltimos, to\'liq ekran rejimiga qayting.'
     });
 
+    Object.assign(translations.ru, {
+        'takeTest.metaQuestions': 'вопросов',
+        'takeTest.metaMinutes': 'минут',
+        'takeTest.next': 'Вперед',
+        'takeTest.finish': 'Завершить'
+    });
+
+    Object.assign(translations.uz, {
+        'takeTest.metaQuestions': 'savol',
+        'takeTest.metaMinutes': 'daqiqa',
+        'takeTest.next': 'Keyingi',
+        'takeTest.finish': 'Yakunlash'
+    });
+
     function normalizeRuMojibake() {
         const decoder = typeof TextDecoder !== 'undefined'
             ? new TextDecoder('utf-8', { fatal: false })

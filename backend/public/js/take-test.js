@@ -183,9 +183,9 @@
                 // Update header
                 document.getElementById('testTitle').textContent = this.attempt.test_title;
                 document.getElementById('testMeta').innerHTML = `
-                    <span>${this.questions.length} Questions</span>
-                    <span>вЂў</span>
-                    <span>${this.attempt.duration_minutes} Minutes</span>
+                    <span>${this.questions.length} ${t('takeTest.metaQuestions', 'Questions')}</span>
+                    <span>•</span>
+                    <span>${this.attempt.duration_minutes} ${t('takeTest.metaMinutes', 'Minutes')}</span>
                 `;
 
                 // Render question navigation
@@ -577,7 +577,9 @@
             // Update navigation buttons
             document.getElementById('prevBtn').style.visibility = this.currentQuestionIndex === 0 ? 'hidden' : 'visible';
             const nextBtn = document.getElementById('nextBtn');
-            nextBtn.textContent = this.currentQuestionIndex === this.questions.length - 1 ? 'Р—Р°РІРµСЂС€РёС‚СЊ' : 'Р’РїРµСЂРµРґ';
+            nextBtn.textContent = this.currentQuestionIndex === this.questions.length - 1
+                ? t('takeTest.finish', 'Finish')
+                : t('takeTest.next', 'Next');
 
             // Update question navigation
             this.renderQuestionNav();
@@ -814,14 +816,19 @@
         },
         // Render matching
         renderMatching: function (question, existingAnswer) {
-            const pairs = Array.isArray(question.options) ? question.options : [];
-            const rightItems = pairs.map((p) => p?.right ?? '');
-            const matches = Array.isArray(existingAnswer) ? existingAnswer : new Array(pairs.length).fill(null);
+            const pairs = this.normalizeMatchingPairs(question.options);
+            const rightItems = pairs.map((p) => p.right);
+            const matches = Array.isArray(existingAnswer)
+                ? existingAnswer.map((value) => {
+                    const num = Number(value);
+                    return Number.isFinite(num) ? num : null;
+                })
+                : new Array(pairs.length).fill(null);
 
             let html = '<div class="matching-container">';
 
             pairs.forEach((pair, index) => {
-                const left = pair?.left ?? '';
+                const left = pair.left;
                 html += `
                     <div class="matching-pair">
                         <div class="matching-left">${this.escapeHtml(left)}</div>
@@ -838,6 +845,56 @@
 
             html += '</div>';
             return html;
+        },
+
+        normalizeMatchingPairs: function (rawOptions) {
+            if (!Array.isArray(rawOptions)) return [];
+
+            const pickFirst = (obj, keys) => {
+                for (const key of keys) {
+                    const value = obj?.[key];
+                    if (value !== undefined && value !== null && String(value).trim() !== '') {
+                        return String(value).trim();
+                    }
+                }
+                return '';
+            };
+
+            return rawOptions
+                .map((item) => {
+                    if (Array.isArray(item) && item.length >= 2) {
+                        return {
+                            left: String(item[0] ?? '').trim(),
+                            right: String(item[1] ?? '').trim()
+                        };
+                    }
+
+                    if (typeof item === 'string') {
+                        const text = item.trim();
+                        if (!text) return null;
+                        if (text.includes('=>')) {
+                            const [left, right] = text.split('=>');
+                            return {
+                                left: String(left ?? '').trim(),
+                                right: String(right ?? '').trim()
+                            };
+                        }
+                        return { left: text, right: '' };
+                    }
+
+                    if (item && typeof item === 'object') {
+                        const left = pickFirst(item, [
+                            'left', 'left_text', 'prompt', 'term', 'source', 'question', 'a'
+                        ]);
+                        const right = pickFirst(item, [
+                            'right', 'right_text', 'answer', 'match', 'translation', 'target', 'value', 'b'
+                        ]);
+                        return { left, right };
+                    }
+
+                    return null;
+                })
+                .filter((pair) => pair && (pair.left || pair.right));
         },
 
         // Render image-based
