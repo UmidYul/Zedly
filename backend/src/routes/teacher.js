@@ -761,7 +761,30 @@ function normalizeImportKey(value) {
 function buildRowMap(row) {
     const map = {};
     Object.keys(row || {}).forEach((key) => {
-        map[normalizeImportKey(key)] = row[key];
+        const value = row[key];
+        const normalized = normalizeImportKey(key);
+        if (normalized) {
+            map[normalized] = value;
+
+            // Support headers like "Вариант 1 (option1)" -> "option1"
+            const noLeadingIndex = normalized.replace(/^\d+_/, '');
+            if (noLeadingIndex && noLeadingIndex !== normalized) {
+                map[noLeadingIndex] = value;
+            }
+        }
+
+        const keyText = String(key || '');
+        const bracketMatch = keyText.match(/\(([^)]+)\)/);
+        if (bracketMatch?.[1]) {
+            const alias = normalizeImportKey(bracketMatch[1]);
+            if (alias) map[alias] = value;
+        }
+
+        const squareMatch = keyText.match(/\[([^\]]+)\]/);
+        if (squareMatch?.[1]) {
+            const alias = normalizeImportKey(squareMatch[1]);
+            if (alias) map[alias] = value;
+        }
     });
     return map;
 }
