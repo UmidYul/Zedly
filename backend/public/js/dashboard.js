@@ -1503,7 +1503,6 @@
                             <div class="filter-group">
                                 <label data-i18n="grade_level">Параллель</label>
                                 <select id="gradeLevelFilter">
-                                    <option value="">Все параллели</option>
                                 </select>
                             </div>
                             <div class="filter-group">

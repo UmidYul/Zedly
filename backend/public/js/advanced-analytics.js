@@ -134,6 +134,32 @@
         switchTab(activeTab);
     }
 
+    function updateStudentsComparisonOptionVisibility() {
+        const classFilter = document.getElementById('advancedClassFilter');
+        const comparisonType = document.getElementById('comparisonType');
+        if (!classFilter || !comparisonType) return;
+
+        const hasConcreteClass = Boolean(String(classFilter.value || '').trim());
+        const studentsOption = comparisonType.querySelector('option[value="students"]');
+
+        if (hasConcreteClass) {
+            if (!studentsOption) {
+                const option = document.createElement('option');
+                option.value = 'students';
+                option.textContent = localize('По ученикам', "O'quvchilar bo'yicha");
+                comparisonType.appendChild(option);
+            }
+            return;
+        }
+
+        if (studentsOption) {
+            if (comparisonType.value === 'students') {
+                comparisonType.value = 'classes';
+            }
+            studentsOption.remove();
+        }
+    }
+
     function buildOverviewUrl() {
         const params = new URLSearchParams({
             period: String(currentFilters.period || 30)
@@ -784,15 +810,12 @@
         if (!gradeSelect || !classSelect) return;
         analyticsClasses = classes;
 
-        if (gradeSelect.options.length > 0) {
-            gradeSelect.options[0].textContent = localize('Все параллели', 'Barcha parallellar');
-        }
         if (classSelect.options.length > 0) {
             classSelect.options[0].textContent = localize('Все классы', 'Barcha sinflar');
         }
 
-        while (gradeSelect.options.length > 1) {
-            gradeSelect.remove(1);
+        while (gradeSelect.options.length > 0) {
+            gradeSelect.remove(0);
         }
         while (classSelect.options.length > 1) {
             classSelect.remove(1);
@@ -857,6 +880,8 @@
         if (!hasPrevious) {
             currentFilters.class_id = '';
         }
+
+        updateStudentsComparisonOptionVisibility();
     }
 
     async function init() {
@@ -873,9 +898,15 @@
         const gradeLevelFilter = document.getElementById('gradeLevelFilter');
         const classFilter = document.getElementById('advancedClassFilter');
         const subjectFilter = document.getElementById('subjectFilter');
-        [periodFilter, classFilter, subjectFilter].forEach((el) => {
+        [periodFilter, subjectFilter].forEach((el) => {
             if (el) el.addEventListener('change', applyFilters);
         });
+        if (classFilter) {
+            classFilter.addEventListener('change', () => {
+                updateStudentsComparisonOptionVisibility();
+                applyFilters();
+            });
+        }
         if (gradeLevelFilter) {
             gradeLevelFilter.addEventListener('change', () => {
                 syncClassOptionsWithSelectedGrade();
@@ -897,6 +928,7 @@
 
         await loadSubjectOptions();
         await loadClassAndGradeOptions();
+        updateStudentsComparisonOptionVisibility();
         await loadOverview();
         await loadHeatmap();
     }
