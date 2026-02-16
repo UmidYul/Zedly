@@ -2061,11 +2061,10 @@ router.get('/assignments', async (req, res) => {
                 t.title as test_title, t.duration_minutes, t.passing_score,
                 c.name as class_name, c.grade_level,
                 s.name as subject_name, s.color as subject_color,
-                (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = ta.id) as attempt_count,
                 (SELECT COUNT(DISTINCT att.student_id)
                  FROM test_attempts att
                  WHERE att.assignment_id = ta.id
-                   AND ${attempt.completedFilter}) as completed_student_count,
+                   AND ${attempt.completedFilter}) as attempt_count,
                 (SELECT COUNT(*) FROM class_students WHERE class_id = ta.class_id AND is_active = true) as student_count
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
@@ -2133,7 +2132,7 @@ router.get('/assignments/:id', async (req, res) => {
             `SELECT
                 u.id as student_id,
                 CONCAT(u.first_name, ' ', u.last_name) as student_name,
-                cs.roll_number,
+                COALESCE(cs.roll_number::text, ROW_NUMBER() OVER (ORDER BY u.last_name ASC, u.first_name ASC, u.id ASC)::text) as roll_number,
                 (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = $1 AND student_id = u.id) as attempts_made,
                 (SELECT MAX(percentage) FROM test_attempts WHERE assignment_id = $1 AND student_id = u.id AND is_completed = true) as best_score,
                 (SELECT submitted_at FROM test_attempts WHERE assignment_id = $1 AND student_id = u.id AND is_completed = true ORDER BY submitted_at DESC LIMIT 1) as last_attempt_date

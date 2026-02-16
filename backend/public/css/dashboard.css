@@ -3426,31 +3426,42 @@
     color: var(--text-tertiary);
 }
 
-.my-class-page .student-name-link {
-    color: var(--text-primary);
-    font-weight: 600;
-    text-decoration: none;
+.my-class-page .student-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
-.my-class-page .student-name-link:hover {
-    color: var(--primary);
-    text-decoration: underline;
-}
-
-.my-class-page .action-btn {
-    padding: 0.35rem 0.8rem;
-    border-radius: 999px;
-    border: 1px solid rgba(239, 83, 80, 0.4);
-    background: rgba(239, 83, 80, 0.12);
-    color: #fca5a5;
-    font-weight: 600;
+.my-class-page .icon-action-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
     transition: var(--transition-fast);
 }
 
-.my-class-page .action-btn:hover {
-    border-color: var(--danger);
+.my-class-page .icon-action-btn:hover {
+    color: var(--text-primary);
+    border-color: rgba(74, 144, 226, 0.55);
+    background: rgba(74, 144, 226, 0.12);
+}
+
+.my-class-page .icon-action-btn.danger {
+    border-color: rgba(239, 83, 80, 0.4);
+    color: #fca5a5;
+    background: rgba(239, 83, 80, 0.12);
+}
+
+.my-class-page .icon-action-btn.danger:hover {
     color: #fff;
-    background: rgba(239, 83, 80, 0.24);
+    border-color: rgba(239, 83, 80, 0.8);
+    background: rgba(239, 83, 80, 0.28);
 }
 
 .my-class-page .empty-state {

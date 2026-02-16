@@ -64,6 +64,22 @@
         return Promise.resolve(confirm(message));
     }
 
+    function getQuestionTypeLabel(type) {
+        const normalized = String(type || '').toLowerCase();
+        const labels = {
+            singlechoice: t('testEditor.typeSingleChoice', 'Один выбор'),
+            multiplechoice: t('testEditor.typeMultipleChoice', 'Множественный выбор'),
+            truefalse: t('testEditor.typeTrueFalse', 'Верно/Неверно'),
+            shortanswer: t('testEditor.typeShortAnswer', 'Краткий ответ'),
+            matching: t('testEditor.typeMatching', 'Сопоставление'),
+            ordering: t('testEditor.typeOrdering', 'Последовательность'),
+            fillblanks: t('testEditor.typeFillBlanks', 'Заполнить пропуски'),
+            imagebased: t('testEditor.typeImageBased', 'По изображению')
+        };
+
+        return labels[normalized] || normalized;
+    }
+
     function showBulkProgress(total) {
         const existing = document.getElementById('testsBulkDeleteOverlay');
         if (existing) existing.remove();
@@ -582,7 +598,7 @@
                                                 ${questions.map((q, index) => `
                                                     <tr>
                                                         <td>${index + 1}</td>
-                                                        <td>${q.question_type}</td>
+                                                        <td>${getQuestionTypeLabel(q.question_type)}</td>
                                                         <td>${q.question_text}</td>
                                                         <td>${q.marks}</td>
                                                     </tr>

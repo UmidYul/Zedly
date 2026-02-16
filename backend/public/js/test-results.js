@@ -114,6 +114,21 @@
             return dict[key] || fallback || key;
         },
 
+        normalizeCorrectness: function (value) {
+            if (value === true || value === false) return value;
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'number') {
+                if (value === 1) return true;
+                if (value === 0) return false;
+            }
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (['true', '1', 'yes'].includes(normalized)) return true;
+                if (['false', '0', 'no'].includes(normalized)) return false;
+            }
+            return null;
+        },
+
         applyLangButtons: function () {
             document.querySelectorAll('.lang-btn').forEach((btn) => {
                 btn.classList.toggle('active', btn.dataset.lang === this.currentLang);
@@ -245,7 +260,7 @@
         renderSummary: function () {
             const percentage = parseFloat(this.attempt.percentage || 0);
             const answers = this.attempt.answers || {};
-            const hasUngradedQuestions = Object.values(answers).some(a => a.is_correct === null);
+            const hasUngradedQuestions = Object.values(answers).some(a => this.normalizeCorrectness(a?.is_correct) === null);
             const passed = percentage >= parseFloat(this.attempt.passing_score || 0);
 
             const badge = document.getElementById('testBadge');
@@ -269,7 +284,7 @@
 
             document.getElementById('timeValue').textContent = this.formatTime(this.attempt.time_spent_seconds || 0);
 
-            const correctCount = Object.values(answers).filter(a => a.is_correct === true).length;
+            const correctCount = Object.values(answers).filter(a => this.normalizeCorrectness(a?.is_correct) === true).length;
             document.getElementById('correctValue').textContent = `${correctCount} / ${this.questions.length}`;
 
             document.getElementById('testName').textContent = this.attempt.test_title || '-';
@@ -284,8 +299,9 @@
             let html = '';
             this.questions.forEach((question, index) => {
                 const answer = answers[question.id];
-                const isCorrect = answer?.is_correct === true;
-                const isWrong = answer?.is_correct === false;
+                const correctness = this.normalizeCorrectness(answer?.is_correct);
+                const isCorrect = correctness === true;
+                const isWrong = correctness === false;
 
                 if (this.currentFilter === 'correct' && !isCorrect) return;
                 if (this.currentFilter === 'incorrect' && !isWrong) return;
@@ -330,7 +346,7 @@
 
         renderQuestionAnswer: function (question, answer) {
             const studentAnswer = answer?.student_answer;
-            const isCorrect = answer?.is_correct ?? null;
+            const isCorrect = this.normalizeCorrectness(answer?.is_correct);
 
             switch (question.question_type) {
                 case 'singlechoice':

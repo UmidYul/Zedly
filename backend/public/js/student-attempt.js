@@ -34,6 +34,21 @@
             return ICONS[name] || '';
         },
 
+        normalizeCorrectness: function (value) {
+            if (value === true || value === false) return value;
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'number') {
+                if (value === 1) return true;
+                if (value === 0) return false;
+            }
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (['true', '1', 'yes'].includes(normalized)) return true;
+                if (['false', '0', 'no'].includes(normalized)) return false;
+            }
+            return null;
+        },
+
         optionMarker: function (isStudentChoice, isCorrectChoice) {
             if (isStudentChoice && isCorrectChoice) {
                 return { className: 'option-marker is-correct', icon: this.icon('pass') };
@@ -106,7 +121,7 @@
             document.getElementById('timeValue').textContent = this.formatTime(this.attempt.time_spent_seconds || 0);
 
             const answers = this.attempt.answers || {};
-            const correctCount = Object.values(answers).filter((a) => a && a.is_correct === true).length;
+            const correctCount = Object.values(answers).filter((a) => this.normalizeCorrectness(a?.is_correct) === true).length;
             document.getElementById('correctValue').textContent = `${correctCount} / ${this.questions.length}`;
 
             document.getElementById('studentName').textContent = this.attempt.student_name || '-';
@@ -122,8 +137,9 @@
             let html = '';
             this.questions.forEach((question, index) => {
                 const answer = answers[question.id] || {};
-                const isCorrect = answer.is_correct === true;
-                const isWrong = answer.is_correct === false;
+                const correctness = this.normalizeCorrectness(answer.is_correct);
+                const isCorrect = correctness === true;
+                const isWrong = correctness === false;
 
                 if (this.currentFilter === 'correct' && !isCorrect) return;
                 if (this.currentFilter === 'incorrect' && !isWrong) return;

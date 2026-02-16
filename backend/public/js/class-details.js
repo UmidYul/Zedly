@@ -27,11 +27,7 @@
         const backBtn = document.getElementById('backBtn');
         if (!backBtn) return;
         backBtn.addEventListener('click', () => {
-            if (document.referrer) {
-                history.back();
-            } else {
-                window.location.href = 'dashboard.html';
-            }
+            history.back();
         });
     }
 

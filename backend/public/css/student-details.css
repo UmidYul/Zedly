@@ -374,3 +374,63 @@
         min-width: 100%;
     }
 }
+
+/* Light theme tuning for student details page */
+[data-theme="light"] .student-page-header {
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .tab-btn {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] .tab-btn.is-active {
+    color: #0f172a;
+    background: rgba(74, 144, 226, 0.2);
+    border-color: rgba(74, 144, 226, 0.45);
+}
+
+[data-theme="light"] .filter-input,
+[data-theme="light"] .filter-select {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.14);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .filter-select {
+    color-scheme: light;
+}
+
+[data-theme="light"] .filter-select option {
+    background: #ffffff;
+    color: #0f172a;
+}
+
+[data-theme="light"] .segmented {
+    background: var(--bg-secondary);
+}
+
+[data-theme="light"] .segment-btn {
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] .segment-btn.is-active {
+    color: #0f172a;
+    background: rgba(74, 144, 226, 0.2);
+}
+
+[data-theme="light"] .table-wrap,
+[data-theme="light"] .progress-visual,
+[data-theme="light"] .insight-card {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .chart-grid {
+    stroke: rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .chart-dot {
+    stroke: #ffffff;
+}

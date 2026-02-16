@@ -200,12 +200,27 @@
             const profileHref = `student-details.html?id=${encodeURIComponent(student.id)}&class_id=${encodeURIComponent(state.activeClassId || '')}`;
             return `
                 <tr>
-                    <td><a class="student-name-link" href="${profileHref}">${escapeHtml(name)}</a></td>
+                    <td>${escapeHtml(name)}</td>
                     <td>${escapeHtml(student.username || '-')}</td>
                     <td>${student.tests_completed || 0}</td>
                     <td>${Number.isFinite(avg) ? formatPercent(avg) : '—'}</td>
                     <td>
-                        <button class="action-btn" data-student-id="${student.id}">Сбросить пароль</button>
+                        <div class="student-actions">
+                            <button class="icon-action-btn" type="button" data-action="profile" data-profile-href="${profileHref}" title="Профиль ученика" aria-label="Профиль ученика">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                            <button class="icon-action-btn danger" type="button" data-action="reset-password" data-student-id="${student.id}" title="Сбросить пароль" aria-label="Сбросить пароль">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10 13a5 5 0 0 1 9 3v1a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <line x1="3" y1="17" x2="9" y2="17"></line>
+                                    <line x1="6" y1="14" x2="6" y2="20"></line>
+                                </svg>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -325,9 +340,18 @@
             const tableBody = document.getElementById('studentsTableBody');
             if (tableBody) {
                 tableBody.addEventListener('click', (event) => {
-                    const target = event.target;
-                    if (target && target.matches('.action-btn')) {
-                        const studentId = target.getAttribute('data-student-id');
+                    const button = event.target.closest('.icon-action-btn');
+                    if (!button) return;
+
+                    const action = button.getAttribute('data-action');
+                    if (action === 'profile') {
+                        const href = button.getAttribute('data-profile-href');
+                        if (href) window.location.href = href;
+                        return;
+                    }
+
+                    if (action === 'reset-password') {
+                        const studentId = button.getAttribute('data-student-id');
                         if (studentId) {
                             handleResetPassword(studentId);
                         }

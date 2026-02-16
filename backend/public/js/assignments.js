@@ -54,7 +54,7 @@
                         data.classes.forEach(cls => {
                             const option = document.createElement('option');
                             option.value = cls.id;
-                            option.textContent = `${cls.name} - ${cls.grade_level} класс`;
+                            option.textContent = `${cls.name} - ${cls.grade_level} РєР»Р°СЃСЃ`;
                             classFilter.appendChild(option);
                         });
                     }
