@@ -164,6 +164,11 @@
             return answersMap[questionId] ?? answersMap[key] ?? null;
         },
 
+        isAnswersDebugEnabled: function () {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('debug_answers') === '1';
+        },
+
         applyLangButtons: function () {
             document.querySelectorAll('.lang-btn').forEach((btn) => {
                 btn.classList.toggle('active', btn.dataset.lang === this.currentLang);
@@ -337,6 +342,16 @@
                 const correctness = this.normalizeCorrectness(answer?.is_correct);
                 const isCorrect = correctness === true;
                 const isWrong = correctness === false;
+
+                if (this.isAnswersDebugEnabled()) {
+                    console.log('[answers-debug][student-results]', {
+                        questionId: question.id,
+                        answerFound: !!answer,
+                        rawIsCorrect: answer?.is_correct,
+                        normalizedIsCorrect: correctness,
+                        answerKeysSample: Object.keys(answers).slice(0, 8)
+                    });
+                }
 
                 if (this.currentFilter === 'correct' && !isCorrect) return;
                 if (this.currentFilter === 'incorrect' && !isWrong) return;

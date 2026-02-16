@@ -84,6 +84,11 @@
             return answersMap[questionId] ?? answersMap[key] ?? null;
         },
 
+        isAnswersDebugEnabled: function () {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('debug_answers') === '1';
+        },
+
         optionMarker: function (isStudentChoice, isCorrectChoice) {
             if (isStudentChoice && isCorrectChoice) {
                 return { className: 'option-marker is-correct', icon: this.icon('pass') };
@@ -175,6 +180,16 @@
                 const correctness = this.normalizeCorrectness(answer.is_correct);
                 const isCorrect = correctness === true;
                 const isWrong = correctness === false;
+
+                if (this.isAnswersDebugEnabled()) {
+                    console.log('[answers-debug][teacher-attempt]', {
+                        questionId: question.id,
+                        answerFound: Object.keys(answer).length > 0,
+                        rawIsCorrect: answer.is_correct,
+                        normalizedIsCorrect: correctness,
+                        answerKeysSample: Object.keys(answers).slice(0, 8)
+                    });
+                }
 
                 if (this.currentFilter === 'correct' && !isCorrect) return;
                 if (this.currentFilter === 'incorrect' && !isWrong) return;
