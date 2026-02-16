@@ -658,6 +658,7 @@
                 const parent = node.parentElement;
                 if (!parent) return NodeFilter.FILTER_REJECT;
                 if (parent.closest('[data-i18n],[data-i18n-placeholder],[data-i18n-title]')) return NodeFilter.FILTER_REJECT;
+                if (parent.closest('[data-no-fallback-i18n]')) return NodeFilter.FILTER_REJECT;
                 const tag = parent.tagName;
                 if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
                 const trimmed = normalizeText(node.nodeValue);
@@ -679,6 +680,7 @@
         });
 
         scope.querySelectorAll?.('input[placeholder], textarea[placeholder], [title]').forEach((el) => {
+            if (el.closest('[data-no-fallback-i18n]')) return;
             if (el.hasAttribute('placeholder')) {
                 const translatedPlaceholder = translateLooseText(el.getAttribute('placeholder'), lang);
                 if (translatedPlaceholder) el.setAttribute('placeholder', translatedPlaceholder);
