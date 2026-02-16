@@ -1,4 +1,4 @@
-// Student My Class Page
+п»ї// Student My Class Page
 (function () {
     'use strict';
 
@@ -42,9 +42,9 @@
     }
 
     function statusLabel(status) {
-        if (status === 'completed') return 'Сдано';
-        if (status === 'in_progress') return 'В процессе';
-        return 'Не начато';
+        if (status === 'completed') return 'РЎРґР°РЅРѕ';
+        if (status === 'in_progress') return 'Р’ РїСЂРѕС†РµСЃСЃРµ';
+        return 'РќРµ РЅР°С‡Р°С‚Рѕ';
     }
 
     function statusClass(status) {
@@ -61,7 +61,7 @@
         });
 
         if (!response.ok) {
-            throw new Error('Не удалось загрузить данные класса');
+            throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ РєР»Р°СЃСЃР°');
         }
 
         return response.json();
@@ -78,13 +78,13 @@
         const testsEl = byId('studentMyClassTests');
         const activeAssignEl = byId('studentMyClassActiveAssignments');
 
-        if (className) className.textContent = cls.name || 'Мой класс';
+        if (className) className.textContent = cls.name || 'РњРѕР№ РєР»Р°СЃСЃ';
         if (classMeta) {
-            const grade = cls.grade_level ? `${cls.grade_level} класс` : 'Класс';
+            const grade = cls.grade_level ? `${cls.grade_level} РєР»Р°СЃСЃ` : 'РљР»Р°СЃСЃ';
             const year = cls.academic_year || '-';
-            const teacher = cls.homeroom_teacher_name || 'Не указан';
+            const teacher = cls.homeroom_teacher_name || 'РќРµ СѓРєР°Р·Р°РЅ';
             const count = cls.student_count || 0;
-            classMeta.textContent = `${grade} • ${year} • Классный руководитель: ${teacher} • ${count} учеников`;
+            classMeta.textContent = `${grade} | ${year} | РљР»Р°СЃСЃРЅС‹Р№ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЊ: ${teacher} | ${count} СѓС‡РµРЅРёРєРѕРІ`;
         }
 
         if (rankEl) {
@@ -100,7 +100,7 @@
         if (!tbody) return;
 
         if (!Array.isArray(items) || !items.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="empty-row">Сейчас нет активных назначений</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-row">РЎРµР№С‡Р°СЃ РЅРµС‚ Р°РєС‚РёРІРЅС‹С… РЅР°Р·РЅР°С‡РµРЅРёР№</td></tr>';
             return;
         }
 
@@ -111,7 +111,7 @@
                 <td>${formatDate(item.end_date)}</td>
                 <td><span class="students-band ${statusClass(item.my_status)}">${statusLabel(item.my_status)}</span></td>
                 <td>
-                    <button class="btn btn-outline btn-sm" type="button" data-action="open-tests">Открыть</button>
+                    <button class="btn btn-outline btn-sm" type="button" data-action="open-tests">РћС‚РєСЂС‹С‚СЊ</button>
                 </td>
             </tr>
         `).join('');
@@ -128,7 +128,7 @@
         if (!container) return;
 
         if (!Array.isArray(items) || !items.length) {
-            container.innerHTML = '<div class="empty-state">Недостаточно данных по предметам</div>';
+            container.innerHTML = '<div class="empty-state">РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґР°РЅРЅС‹С… РїРѕ РїСЂРµРґРјРµС‚Р°Рј</div>';
             return;
         }
 
@@ -138,8 +138,8 @@
             return `
                 <div class="subject-item">
                     <div>
-                        <div class="subject-name">${escapeHtml(item.subject_name || 'Предмет')}</div>
-                        <div class="text-secondary" style="font-size:0.85rem;">Класс: ${classAvg} • Я: ${myAvg}</div>
+                        <div class="subject-name">${escapeHtml(item.subject_name || 'РџСЂРµРґРјРµС‚')}</div>
+                        <div class="text-secondary" style="font-size:0.85rem;">РљР»Р°СЃСЃ: ${classAvg} | РЇ: ${myAvg}</div>
                     </div>
                 </div>
             `;
@@ -151,13 +151,13 @@
         if (!tbody) return;
 
         if (!Array.isArray(items) || !items.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="empty-row">Список одноклассников пуст</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-row">РЎРїРёСЃРѕРє РѕРґРЅРѕРєР»Р°СЃСЃРЅРёРєРѕРІ РїСѓСЃС‚</td></tr>';
             return;
         }
 
-        tbody.innerHTML = items.map((item) => `
+        tbody.innerHTML = items.map((item, index) => `
             <tr>
-                <td>${escapeHtml(item.roll_number || '-')}</td>
+                <td>${escapeHtml(item.roll_number || String(index + 1))}</td>
                 <td>${escapeHtml(item.full_name || '-')}</td>
                 <td>${formatPercent(item.avg_score)}</td>
                 <td>${toNumber(item.tests_completed)}</td>
