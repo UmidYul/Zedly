@@ -39,6 +39,7 @@
         fullscreenGateBound: false,
         timerStarted: false,
         timerAnchorStorageKey: null,
+        shuffledMatchingRightOrder: {},
 
         notify: function (message, options) {
             if (window.ZedlyDialog?.alert) {
@@ -573,6 +574,9 @@
             `;
 
             container.innerHTML = html;
+            if (question.question_type === 'matching') {
+                this.initMatchingSelects(question);
+            }
 
             // Update navigation buttons
             document.getElementById('prevBtn').style.visibility = this.currentQuestionIndex === 0 ? 'hidden' : 'visible';
@@ -799,7 +803,7 @@
             orderedItems.forEach((itemIndex, position) => {
                 html += `
                     <div class="ordering-item" data-item-index="${itemIndex}" draggable="true">
-                        <span class="drag-handle">в‹®в‹®</span>
+                        <span class="drag-handle">&#8942;&#8942;</span>
                         <span class="item-number">${position + 1}.</span>
                         <span class="item-text">${items[itemIndex]}</span>
                     </div>
@@ -818,6 +822,7 @@
         renderMatching: function (question, existingAnswer) {
             const pairs = this.normalizeMatchingPairs(question.options);
             const rightItems = pairs.map((p) => p.right);
+            const rightOrder = this.getMatchingRightOrder(question, pairs.length);
             const matches = Array.isArray(existingAnswer)
                 ? existingAnswer.map((value) => {
                     const num = Number(value);
@@ -834,9 +839,9 @@
                         <div class="matching-left">${this.escapeHtml(left)}</div>
                         <div class="matching-arrow">→</div>
                         <select class="matching-select" data-pair-index="${index}">
-                            <option value="">Select match...</option>
-                            ${rightItems.map((item, i) => `
-                                <option value="${i}" ${matches[index] === i ? 'selected' : ''}>${this.escapeHtml(item)}</option>
+                            <option value="">${t('takeTest.selectMatch', 'Выберите соответствие...')}</option>
+                            ${rightOrder.map((originalIndex) => `
+                                <option value="${originalIndex}" ${matches[index] === originalIndex ? 'selected' : ''}>${this.escapeHtml(rightItems[originalIndex])}</option>
                             `).join('')}
                         </select>
                     </div>
@@ -909,6 +914,72 @@
                     return null;
                 })
                 .filter((pair) => pair && (pair.left || pair.right));
+        },
+
+        getMatchingRightOrder: function (question, pairCount) {
+            if (!question || !Number.isFinite(pairCount) || pairCount <= 1) {
+                return pairCount > 0 ? [0] : [];
+            }
+
+            if (this.shuffledMatchingRightOrder[question.id]) {
+                return this.shuffledMatchingRightOrder[question.id];
+            }
+
+            const baseOrder = Array.from({ length: pairCount }, (_, idx) => idx);
+            const seed = this.hashString(`${this.attemptId || 'attempt'}:${question.id}:matching-right`);
+            this.shuffledMatchingRightOrder[question.id] = this.shuffleWithSeed(baseOrder, seed);
+            return this.shuffledMatchingRightOrder[question.id];
+        },
+
+        initMatchingSelects: function (question) {
+            const selects = Array.from(document.querySelectorAll('.matching-select'));
+            if (!selects.length) return;
+
+            // Ensure existing duplicated values are resolved predictably.
+            this.sanitizeMatchingSelections(selects);
+            this.updateMatchingSelectOptions(selects);
+
+            selects.forEach((select) => {
+                select.addEventListener('change', () => {
+                    this.sanitizeMatchingSelections(selects);
+                    this.updateMatchingSelectOptions(selects);
+                    this.saveCurrentAnswer();
+                });
+            });
+
+            // Keep answer state in sync after rendering the restored answer.
+            this.saveCurrentAnswer();
+        },
+
+        sanitizeMatchingSelections: function (selects) {
+            const seen = new Set();
+            selects.forEach((select) => {
+                const value = select.value;
+                if (!value) return;
+                if (seen.has(value)) {
+                    select.value = '';
+                    return;
+                }
+                seen.add(value);
+            });
+        },
+
+        updateMatchingSelectOptions: function (selects) {
+            const selectedValues = selects
+                .map((select) => select.value)
+                .filter((value) => value !== '');
+
+            selects.forEach((select) => {
+                const ownValue = select.value;
+                const usedByOthers = new Set(selectedValues.filter((value) => value !== ownValue));
+
+                Array.from(select.options).forEach((option, index) => {
+                    if (index === 0) return;
+                    const shouldHide = usedByOthers.has(option.value);
+                    option.disabled = shouldHide;
+                    option.hidden = shouldHide;
+                });
+            });
         },
 
         // Render image-based
