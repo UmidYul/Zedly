@@ -63,7 +63,7 @@
                         data.classes.forEach(cls => {
                             const option = document.createElement('option');
                             option.value = cls.id;
-                            option.textContent = `${cls.name} - ${cls.grade_level} РєР»Р°СЃСЃ`;
+                            option.textContent = `${cls.name} - ${cls.grade_level} ${t('results.grade', 'класс')}`;
                             classFilter.appendChild(option);
                         });
                     }
@@ -231,7 +231,7 @@
                         </td>
                         <td data-label="${colClass}">
                             <div>${assignment.class_name}</div>
-                            <div class="text-secondary">${assignment.grade_level} РєР»Р°СЃСЃ</div>
+                            <div class="text-secondary">${assignment.grade_level} ${t('results.grade', 'класс')}</div>
                         </td>
                         <td data-label="${colSubject}">
                             ${assignment.subject_name ? `
@@ -834,7 +834,7 @@
                                     <div class="detail-grid">
                                         <div class="detail-item">
                                             <label>${t('assignments.colClass', 'РљР»Р°СЃСЃ')}:</label>
-                                            <span>${assignment.class_name} (${assignment.grade_level} РєР»Р°СЃСЃ)</span>
+                                            <span>${assignment.class_name} (${assignment.grade_level} ${t('results.grade', 'класс')})</span>
                                         </div>
                                         <div class="detail-item">
                                             <label>${t('assignments.colStartDate', 'Р”Р°С‚Р° РЅР°С‡Р°Р»Р°')}:</label>

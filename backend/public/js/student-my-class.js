@@ -157,8 +157,11 @@
 
         tbody.innerHTML = items.map((item, index) => `
             <tr>
-                <td data-label="№">${escapeHtml(item.roll_number || String(index + 1))}</td>
-                <td data-label="ФИО">${escapeHtml(item.full_name || '-')}</td>
+                <td data-label="№" class="classmate-roll">${escapeHtml(item.roll_number || String(index + 1))}</td>
+                <td data-label="ФИО" class="classmate-name">
+                    <span class="classmate-inline-number">${escapeHtml(item.roll_number || String(index + 1))}.</span>
+                    ${escapeHtml(item.full_name || '-')}
+                </td>
                 <td data-label="Средний балл">${formatPercent(item.avg_score)}</td>
                 <td data-label="Тестов пройдено">${toNumber(item.tests_completed)}</td>
             </tr>

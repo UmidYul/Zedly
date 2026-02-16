@@ -395,8 +395,77 @@
     }
 }
 
+@media (max-width: 768px) {
+    .advanced-analytics .analytics-container {
+        gap: var(--spacing-md);
+        padding: 12px;
+    }
+
+    .advanced-analytics .filters {
+        padding: 12px;
+        gap: 10px;
+        border-radius: 12px;
+    }
+
+    .advanced-analytics .chart-card {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .advanced-analytics .stat-card {
+        padding: 12px;
+    }
+
+    .advanced-analytics .stat-value {
+        font-size: 1.9rem;
+    }
+
+    .advanced-analytics .tabs {
+        margin: 0;
+        padding-bottom: 2px;
+    }
+
+    .advanced-analytics .tab {
+        padding: 9px 12px;
+        font-size: 0.82rem;
+    }
+
+    .advanced-analytics .heatmap-legend {
+        padding: 10px;
+        gap: 8px 10px;
+    }
+
+    .advanced-analytics .legend-item {
+        font-size: 0.8rem;
+    }
+
+    .advanced-analytics .comparison-table {
+        min-width: 680px;
+    }
+}
+
 @media (max-width: 480px) {
     .advanced-analytics .analytics-container {
-        padding: var(--spacing-md);
+        padding: 10px;
+    }
+
+    .advanced-analytics .filters {
+        padding: 10px;
+    }
+
+    .advanced-analytics .analytics-grid {
+        gap: 10px;
+    }
+
+    .advanced-analytics .chart-card h2 {
+        font-size: 1rem;
+    }
+
+    .advanced-analytics .heatmap {
+        min-width: 520px;
+    }
+
+    .advanced-analytics .comparison-table {
+        min-width: 620px;
     }
 }

@@ -3240,16 +3240,27 @@
         justify-content: center;
     }
 
+    #classesContainer {
+        margin-top: 14px;
+    }
+
+    #classesSearch,
+    #classesPerPage,
+    #gradeFilter,
+    #addClassBtn {
+        min-height: 44px;
+    }
+
     #classesContainer .table-responsive {
         overflow: visible;
-        margin: 10px 0;
+        margin: 14px 0;
     }
 
     #classesContainer .data-table {
         min-width: 0;
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 10px;
+        border-spacing: 0 14px;
         background: transparent;
     }
 
@@ -3268,13 +3279,13 @@
         border: 1px solid var(--border);
         border-radius: 12px;
         background: var(--bg-card);
-        padding: 6px 10px;
+        padding: 10px 12px;
     }
 
     #classesContainer .data-table td {
         border: 0;
         border-bottom: 1px dashed var(--border);
-        padding: 7px 0;
+        padding: 10px 0;
         white-space: normal;
     }
 
@@ -3285,7 +3296,7 @@
     #classesContainer .data-table td::before {
         content: attr(data-label);
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
         color: var(--text-secondary);
         font-size: 0.72rem;
         font-weight: 700;
@@ -3307,6 +3318,7 @@
     #classesContainer .action-buttons {
         flex-direction: row;
         flex-wrap: wrap;
+        gap: 8px;
     }
 
     #classesContainer .status-badge {
@@ -3647,6 +3659,31 @@
 
     .my-class-page .modal-actions {
         flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    #studentMyClassPage .mobile-stack-table .data-table {
+        border-spacing: 0 14px;
+    }
+
+    #studentMyClassPage .mobile-stack-table .data-table tr {
+        padding: 12px;
+    }
+
+    #studentMyClassPage .mobile-stack-table .data-table td {
+        padding: 10px 0;
+    }
+
+    #studentMyClassPage .mobile-stack-table .data-table td.classmate-roll {
+        display: none;
+    }
+
+    #studentMyClassPage .classmate-inline-number {
+        display: inline-block;
+        margin-right: 6px;
+        color: var(--text-secondary);
+        font-weight: 700;
     }
 }
 

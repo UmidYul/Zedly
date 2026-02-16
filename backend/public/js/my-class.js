@@ -214,10 +214,8 @@
                             </button>
                             <button class="icon-action-btn danger" type="button" data-action="reset-password" data-student-id="${student.id}" title="Сбросить пароль" aria-label="Сбросить пароль">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M10 13a5 5 0 0 1 9 3v1a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <line x1="3" y1="17" x2="9" y2="17"></line>
-                                    <line x1="6" y1="14" x2="6" y2="20"></line>
+                                    <rect x="5" y="11" width="14" height="10" rx="2"></rect>
+                                    <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
                                 </svg>
                             </button>
                         </div>

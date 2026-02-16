@@ -502,6 +502,40 @@
         flex-wrap: wrap;
     }
 
+    /* Assignments: mobile card layout order
+       A test, B class
+       C subject, D duration
+       E start, F end
+       G progress (full width)
+       H status, I actions
+    */
+    #assignmentsContainer .mobile-stack-table .data-table tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+        padding: 12px;
+    }
+
+    #assignmentsContainer .mobile-stack-table .data-table td {
+        width: auto;
+        border-bottom: 0;
+        padding: 0;
+        min-width: 0;
+    }
+
+    #assignmentsContainer .mobile-stack-table .data-table td::before {
+        margin-bottom: 6px;
+    }
+
+    #assignmentsContainer .mobile-stack-table .data-table td:nth-child(7) {
+        grid-column: 1 / -1;
+    }
+
+    #assignmentsContainer .mobile-stack-table .data-table td:nth-child(9) .action-buttons {
+        justify-content: flex-start;
+        gap: 6px;
+    }
+
     .data-table {
         font-size: 0.8125rem;
     }
