@@ -97,7 +97,8 @@
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
-                    { icon: 'star', label: 'dashboard.nav.results', id: 'results', href: '#results' }
+                    { icon: 'star', label: 'dashboard.nav.results', id: 'results', href: '#results' },
+                    { icon: 'users', label: 'dashboard.nav.myClass', id: 'my-class', href: '#my-class' }
                     // { icon: 'target', label: 'dashboard.nav.career', id: 'career', href: '#career' } // СЃРєСЂС‹С‚Рѕ
                 ]
             },
@@ -542,7 +543,9 @@
             'leaderboard': { src: '/js/student-leaderboard.js', manager: 'StudentLeaderboard' },
             'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
             'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' },
-            'my-class': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' },
+            'my-class': currentUser && currentUser.role === 'student'
+                ? { src: '/js/student-my-class.js', manager: 'StudentMyClassPage' }
+                : { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' },
             'students': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/students.js'], manager: 'StudentsPage' },
             'calendar': { src: '/js/calendar.js', manager: 'CalendarPage' },
             'reports': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/reports.js'], manager: 'ReportsManager' },
@@ -845,6 +848,94 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            `;
+        }
+
+        if (page === 'my-class' && role === 'student') {
+            return `
+                <div class="my-class-page student-my-class-page" id="studentMyClassPage">
+                    <section class="my-class-hero">
+                        <div class="hero-info">
+                            <p class="hero-label">Мой класс</p>
+                            <h1 id="studentMyClassName">Загрузка...</h1>
+                            <p id="studentMyClassMeta">Подготовка данных</p>
+                        </div>
+                        <div class="hero-metrics">
+                            <div class="metric">
+                                <div class="metric-label">Моё место</div>
+                                <div class="metric-value" id="studentMyClassRank">-</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Средний балл</div>
+                                <div class="metric-value" id="studentMyClassAvg">0%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Тестов пройдено</div>
+                                <div class="metric-value" id="studentMyClassTests">0</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Активных назначений</div>
+                                <div class="metric-value" id="studentMyClassActiveAssignments">0</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="students-grid-top">
+                        <div class="dashboard-section students-card">
+                            <div class="section-header"><h2 class="section-title">Активные назначения класса</h2></div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Тест</th>
+                                            <th>Предмет</th>
+                                            <th>Дедлайн</th>
+                                            <th>Мой статус</th>
+                                            <th>Действие</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentMyClassAssignmentsBody">
+                                        <tr><td colspan="5" class="empty-row">Загрузка...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="dashboard-section students-card">
+                            <div class="section-header"><h2 class="section-title">Прогресс по предметам</h2></div>
+                            <div id="studentMyClassSubjects" class="subject-performance">
+                                <div class="empty-state">Загрузка...</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-section students-card">
+                        <div class="section-header">
+                            <h2 class="section-title">Одноклассники</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>№</th>
+                                        <th>ФИО</th>
+                                        <th>Средний балл</th>
+                                        <th>Тестов пройдено</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentMyClassStudentsBody">
+                                    <tr><td colspan="4" class="empty-row">Загрузка...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-section my-class-card hidden" id="studentMyClassEmpty">
+                        <div class="empty-state">
+                            <h2>Класс не назначен</h2>
+                            <p>Вы пока не назначены в активный класс.</p>
+                        </div>
+                    </section>
                 </div>
             `;
         }

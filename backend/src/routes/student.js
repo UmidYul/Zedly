@@ -1070,6 +1070,191 @@ router.get('/classes', async (req, res) => {
 });
 
 /**
+ * GET /api/student/my-class/overview
+ * Get student's class overview, classmates and active assignments
+ */
+router.get('/my-class/overview', async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const classStudentColumns = await getTableColumns('class_students');
+        const classStudentActiveFilter = classStudentColumns.has('is_active')
+            ? 'AND cs.is_active = true'
+            : '';
+
+        const classResult = await query(
+            `SELECT
+                c.id,
+                c.name,
+                c.grade_level,
+                c.academic_year,
+                c.homeroom_teacher_id,
+                CONCAT(ht.first_name, ' ', ht.last_name) as homeroom_teacher_name
+             FROM class_students cs
+             JOIN classes c ON c.id = cs.class_id
+             LEFT JOIN users ht ON ht.id = c.homeroom_teacher_id
+             WHERE cs.student_id = $1 ${classStudentActiveFilter}
+             ORDER BY c.name ASC
+             LIMIT 1`,
+            [studentId]
+        );
+
+        if (!classResult.rows.length) {
+            return res.json({
+                has_class: false,
+                class: null,
+                me: null,
+                classmates: [],
+                assignments: [],
+                subjects: []
+            });
+        }
+
+        const activeClass = classResult.rows[0];
+
+        const classStatsResult = await query(
+            `SELECT COUNT(*)::int as student_count
+             FROM class_students cs
+             WHERE cs.class_id = $1 ${classStudentActiveFilter}`,
+            [activeClass.id]
+        );
+
+        const myStatsResult = await query(
+            `SELECT
+                COUNT(att.id) FILTER (WHERE att.is_completed = true)::int as tests_completed,
+                AVG(att.percentage) FILTER (WHERE att.is_completed = true)::float as avg_score
+             FROM test_assignments ta
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id AND att.student_id = $2
+             WHERE ta.class_id = $1`,
+            [activeClass.id, studentId]
+        );
+
+        const activeAssignmentsResult = await query(
+            `SELECT
+                ta.id,
+                t.title as test_title,
+                s.name as subject_name,
+                ta.end_date,
+                (
+                    SELECT CASE
+                        WHEN EXISTS (
+                            SELECT 1 FROM test_attempts att
+                            WHERE att.assignment_id = ta.id
+                              AND att.student_id = $2
+                              AND att.is_completed = true
+                        ) THEN 'completed'
+                        WHEN EXISTS (
+                            SELECT 1 FROM test_attempts att
+                            WHERE att.assignment_id = ta.id
+                              AND att.student_id = $2
+                              AND att.is_completed = false
+                        ) THEN 'in_progress'
+                        ELSE 'not_started'
+                    END
+                ) as my_status
+             FROM test_assignments ta
+             JOIN tests t ON t.id = ta.test_id
+             LEFT JOIN subjects s ON s.id = t.subject_id
+             WHERE ta.class_id = $1
+               AND ta.is_active = true
+               AND ta.end_date >= CURRENT_TIMESTAMP
+             ORDER BY ta.end_date ASC`,
+            [activeClass.id, studentId]
+        );
+
+        const classmatesResult = await query(
+            `SELECT
+                u.id,
+                cs.roll_number::text as roll_number,
+                CONCAT(u.first_name, ' ', u.last_name) as full_name,
+                COUNT(att.id) FILTER (WHERE att.is_completed = true)::int as tests_completed,
+                AVG(att.percentage) FILTER (WHERE att.is_completed = true)::float as avg_score
+             FROM class_students cs
+             JOIN users u ON u.id = cs.student_id
+             LEFT JOIN test_assignments ta ON ta.class_id = cs.class_id
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id AND att.student_id = u.id
+             WHERE cs.class_id = $1 ${classStudentActiveFilter}
+             GROUP BY u.id, cs.roll_number
+             ORDER BY u.last_name ASC, u.first_name ASC, u.id ASC`,
+            [activeClass.id]
+        );
+
+        const rankResult = await query(
+            `WITH class_scores AS (
+                SELECT
+                    u.id as student_id,
+                    AVG(att.percentage) FILTER (WHERE att.is_completed = true)::float as avg_score
+                FROM class_students cs
+                JOIN users u ON u.id = cs.student_id
+                LEFT JOIN test_assignments ta ON ta.class_id = cs.class_id
+                LEFT JOIN test_attempts att ON att.assignment_id = ta.id AND att.student_id = u.id
+                WHERE cs.class_id = $1 ${classStudentActiveFilter}
+                GROUP BY u.id
+            )
+            SELECT
+                ranked.student_id,
+                ranked.avg_score,
+                ranked.rank,
+                total.total_students
+            FROM (
+                SELECT
+                    student_id,
+                    avg_score,
+                    DENSE_RANK() OVER (ORDER BY COALESCE(avg_score, 0) DESC) as rank
+                FROM class_scores
+            ) ranked
+            CROSS JOIN (SELECT COUNT(*)::int as total_students FROM class_scores) total
+            WHERE ranked.student_id = $2
+            LIMIT 1`,
+            [activeClass.id, studentId]
+        );
+
+        const subjectsResult = await query(
+            `SELECT
+                s.id as subject_id,
+                s.name as subject_name,
+                AVG(att.percentage) FILTER (WHERE att.is_completed = true)::float as class_avg_score,
+                AVG(att_me.percentage) FILTER (WHERE att_me.is_completed = true)::float as my_avg_score
+             FROM test_assignments ta
+             JOIN tests t ON t.id = ta.test_id
+             LEFT JOIN subjects s ON s.id = t.subject_id
+             LEFT JOIN test_attempts att ON att.assignment_id = ta.id
+             LEFT JOIN test_attempts att_me ON att_me.assignment_id = ta.id AND att_me.student_id = $2
+             WHERE ta.class_id = $1
+             GROUP BY s.id, s.name
+             ORDER BY class_avg_score DESC NULLS LAST`,
+            [activeClass.id, studentId]
+        );
+
+        const myStats = myStatsResult.rows[0] || {};
+        const rankRow = rankResult.rows[0] || {};
+
+        res.json({
+            has_class: true,
+            class: {
+                ...activeClass,
+                student_count: classStatsResult.rows[0]?.student_count || 0
+            },
+            me: {
+                rank: rankRow.rank || null,
+                total_students: rankRow.total_students || (classStatsResult.rows[0]?.student_count || 0),
+                avg_score: myStats.avg_score || 0,
+                tests_completed: myStats.tests_completed || 0,
+                active_assignments: activeAssignmentsResult.rows.length
+            },
+            classmates: classmatesResult.rows,
+            assignments: activeAssignmentsResult.rows,
+            subjects: subjectsResult.rows
+        });
+    } catch (error) {
+        console.error('Get student my-class overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch class overview'
+        });
+    }
+});
+
+/**
  * GET /api/student/subjects
  * Get subjects taught to student (including subjects without assignments)
  */
