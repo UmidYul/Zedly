@@ -832,10 +832,13 @@
             tab.addEventListener('click', () => switchTab(tab.dataset.tab));
         });
 
-        const applyBtn = document.getElementById('applyAdvancedFilters');
-        if (applyBtn) {
-            applyBtn.addEventListener('click', applyFilters);
-        }
+        const periodFilter = document.getElementById('periodFilter');
+        const gradeLevelFilter = document.getElementById('gradeLevelFilter');
+        const classFilter = document.getElementById('advancedClassFilter');
+        const subjectFilter = document.getElementById('subjectFilter');
+        [periodFilter, gradeLevelFilter, classFilter, subjectFilter].forEach((el) => {
+            if (el) el.addEventListener('change', applyFilters);
+        });
 
         const exportBtn = document.getElementById('exportAdvancedAnalytics');
         if (exportBtn) {

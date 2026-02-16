@@ -1317,10 +1317,6 @@
                             <p class="export-hint" data-i18n="export.usersHint">The file includes users, classes and journal numbers.</p>
                             <div class="export-filters-grid">
                                 <div class="filter-group">
-                                    <label for="exportSearchInput" data-i18n="export.filter.searchLabel">${t('export.filter.searchLabel', 'Поиск')}</label>
-                                    <input id="exportSearchInput" class="form-input" type="text" data-i18n-placeholder="export.filter.searchPlaceholder" placeholder="${t('export.filter.searchPlaceholder', 'Имя, логин, email, телефон')}">
-                                </div>
-                                <div class="filter-group">
                                     <label for="exportRoleFilter" data-i18n="export.filter.roleLabel">${t('export.filter.roleLabel', 'Роль')}</label>
                                     <select id="exportRoleFilter" class="form-input">
                                         <option value="all" data-i18n="export.filter.roleAll">${t('export.filter.roleAll', 'Все роли')}</option>
@@ -1522,7 +1518,6 @@
                                     <option value="">Все предметы</option>
                                 </select>
                             </div>
-                            <button class="btn btn-primary" type="button" id="applyAdvancedFilters" data-i18n="apply">Применить</button>
                             <button class="btn btn-outline" type="button" id="exportAdvancedAnalytics" data-i18n="export">Экспорт</button>
                         </div>
 
