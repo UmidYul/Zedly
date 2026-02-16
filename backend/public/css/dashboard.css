@@ -3713,6 +3713,10 @@
         border-radius: 14px;
     }
 
+    #myClassPage .mobile-stack-table .data-table tr + tr {
+        margin-top: 12px;
+    }
+
     #myClassPage .mobile-stack-table .data-table td {
         padding: 10px 0;
     }
