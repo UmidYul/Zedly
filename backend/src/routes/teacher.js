@@ -2013,6 +2013,7 @@ router.get('/assignments', async (req, res) => {
         const offset = (page - 1) * limit;
         const teacherId = req.user.id;
         const schoolId = req.user.school_id;
+        const attempt = await getAttemptOverviewExpressions('att');
 
         // Build WHERE clause
         let whereClause = `WHERE ta.assigned_by = $1
@@ -2061,6 +2062,10 @@ router.get('/assignments', async (req, res) => {
                 c.name as class_name, c.grade_level,
                 s.name as subject_name, s.color as subject_color,
                 (SELECT COUNT(*) FROM test_attempts WHERE assignment_id = ta.id) as attempt_count,
+                (SELECT COUNT(DISTINCT att.student_id)
+                 FROM test_attempts att
+                 WHERE att.assignment_id = ta.id
+                   AND ${attempt.completedFilter}) as completed_student_count,
                 (SELECT COUNT(*) FROM class_students WHERE class_id = ta.class_id AND is_active = true) as student_count
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
