@@ -35,18 +35,23 @@
     faqQ6: 'Куда обращаться при вопросах?',
     faqA6: 'Напишите в Telegram-канал или на почту поддержки из блока обратной связи ниже.',
     feedbackTitle: 'Обратная связь',
-    feedbackSubtitle: 'Оставьте сообщение или свяжитесь с нами напрямую.',
-    contactTitle: 'Контакты',
+    feedbackSubtitle: 'Оставьте сообщение, и команда поддержки ответит вам по email.',
+    feedbackIntro: 'Заполните форму и отправьте обращение за пару кликов.',
     feedbackNameLabel: 'Имя',
     feedbackEmailLabel: 'Email',
     feedbackMessageLabel: 'Сообщение',
     feedbackSubmit: 'Отправить',
-    feedbackSuccess: 'Почтовый клиент открыт. Если не открылся, напишите на support@zedly.uz',
+    feedbackSending: 'Отправка...',
+    feedbackSuccess: 'Сообщение отправлено. Мы свяжемся с вами в ближайшее время.',
+    feedbackError: 'Не удалось отправить сообщение. Напишите на support@zedly.uz',
     highlightTitle: 'Готовы начать?',
     highlightBody: 'Войдите в систему и начните использовать ZEDLY прямо сейчас.',
     highlightCta: 'Войти в систему',
     footer: '© 2026 ZEDLY. Все права защищены.',
     footerLink: 'Перейти к входу',
+    footerContactsTitle: 'Контакты:',
+    footerTelegramLabel: 'Telegram:',
+    footerEmailLabel: 'Email:',
     loginLink: 'Вход'
   },
   uz: {
@@ -85,18 +90,23 @@
     faqQ6: 'Savol bolsa qayerga murojaat qilaman?',
     faqA6: 'Quyidagi aloqa blokidagi Telegram kanal yoki support pochta orqali yozing.',
     feedbackTitle: 'Qayta aloqa',
-    feedbackSubtitle: 'Xabar qoldiring yoki biz bilan togri boglaning.',
-    contactTitle: 'Kontaktlar',
+    feedbackSubtitle: 'Xabar qoldiring va support jamoasi sizga email orqali javob beradi.',
+    feedbackIntro: 'Formani toldiring va murojaatni bir necha bosishda yuboring.',
     feedbackNameLabel: 'Ism',
     feedbackEmailLabel: 'Email',
     feedbackMessageLabel: 'Xabar',
     feedbackSubmit: 'Yuborish',
-    feedbackSuccess: 'Pochta mijozi ochildi. Ochilmasa support@zedly.uz manziliga yozing.',
+    feedbackSending: 'Yuborilmoqda...',
+    feedbackSuccess: 'Xabar yuborildi. Tez orada siz bilan boglanamiz.',
+    feedbackError: 'Xabarni yuborib bolmadi. support@zedly.uz manziliga yozing.',
     highlightTitle: 'Boshlashga tayyormisiz?',
     highlightBody: 'Tizimga kiring va ZEDLYdan foydalanishni boshlang.',
     highlightCta: 'Tizimga kirish',
     footer: '© 2026 ZEDLY. Barcha huquqlar himoyalangan.',
     footerLink: 'Kirish sahifasiga otish',
+    footerContactsTitle: 'Kontaktlar:',
+    footerTelegramLabel: 'Telegram:',
+    footerEmailLabel: 'Email:',
     loginLink: 'Kirish'
   }
 };
@@ -217,19 +227,36 @@ if (landingLangBtn) {
 }
 
 if (landingFeedbackForm) {
-  landingFeedbackForm.addEventListener('submit', (event) => {
+  landingFeedbackForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const name = String(document.getElementById('feedbackName')?.value || '').trim();
     const email = String(document.getElementById('feedbackEmail')?.value || '').trim();
     const message = String(document.getElementById('feedbackMessage')?.value || '').trim();
-
-    const subject = encodeURIComponent(`ZEDLY Feedback from ${name}`);
-    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`);
-    window.location.href = `mailto:support@zedly.uz?subject=${subject}&body=${body}`;
-
     const dict = landingTranslations[currentLandingLang] || landingTranslations.ru;
-    if (landingFeedbackStatus) landingFeedbackStatus.textContent = dict.feedbackSuccess;
-    landingFeedbackForm.reset();
+
+    if (landingFeedbackStatus) landingFeedbackStatus.textContent = dict.feedbackSending;
+
+    try {
+      const response = await fetch('/api/public/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          message,
+          lang: currentLandingLang
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('feedback_failed');
+      }
+
+      if (landingFeedbackStatus) landingFeedbackStatus.textContent = dict.feedbackSuccess;
+      landingFeedbackForm.reset();
+    } catch (_) {
+      if (landingFeedbackStatus) landingFeedbackStatus.textContent = dict.feedbackError;
+    }
   });
 }
 

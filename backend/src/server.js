@@ -9,6 +9,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { initErrorTracking, captureException, captureMessage } = require('./utils/errorTracking');
 const { query } = require('./config/database');
+const { sendEmail, isEmailConfigured } = require('./utils/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -119,6 +120,7 @@ let landingStatsCache = {
     expiresAt: 0,
     payload: null
 };
+const landingFeedbackRateLimit = new Map();
 
 app.get('/api/public/landing-stats', async (req, res) => {
     try {
@@ -184,6 +186,93 @@ app.get('/api/public/landing-stats', async (req, res) => {
         console.error('Landing stats error:', error);
         return res.status(500).json({
             message: 'Failed to load landing stats'
+        });
+    }
+});
+
+app.post('/api/public/feedback', async (req, res) => {
+    try {
+        const name = String(req.body?.name || '').trim();
+        const email = String(req.body?.email || '').trim().toLowerCase();
+        const message = String(req.body?.message || '').trim();
+        const lang = String(req.body?.lang || 'ru').trim().toLowerCase() === 'uz' ? 'uz' : 'ru';
+        const ipKey = String(req.ip || req.headers['x-forwarded-for'] || 'unknown');
+        const now = Date.now();
+        const recentTs = landingFeedbackRateLimit.get(ipKey) || 0;
+
+        if (now - recentTs < 30_000) {
+            return res.status(429).json({
+                message: 'Too many requests. Please wait and try again.'
+            });
+        }
+
+        if (!name || !email || !message) {
+            return res.status(400).json({
+                message: 'Name, email and message are required.'
+            });
+        }
+
+        if (name.length > 120 || email.length > 160 || message.length > 5000) {
+            return res.status(400).json({
+                message: 'Input is too long.'
+            });
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({
+                message: 'Invalid email format.'
+            });
+        }
+
+        if (!isEmailConfigured()) {
+            return res.status(503).json({
+                message: 'Feedback service is temporarily unavailable.'
+            });
+        }
+
+        const feedbackTo = process.env.LANDING_FEEDBACK_TO || process.env.SUPPORT_EMAIL || 'support@zedly.uz';
+        const userAgent = String(req.get('user-agent') || '-');
+        const subject = `ZEDLY Landing Feedback [${lang.toUpperCase()}] ${name}`;
+        const text = [
+            'New feedback from landing page',
+            '',
+            `Name: ${name}`,
+            `Email: ${email}`,
+            `Language: ${lang}`,
+            `IP: ${ipKey}`,
+            `User-Agent: ${userAgent}`,
+            `Time: ${new Date().toISOString()}`,
+            '',
+            'Message:',
+            message
+        ].join('\n');
+
+        const sent = await sendEmail({
+            to: feedbackTo,
+            replyTo: email,
+            subject,
+            text
+        });
+
+        if (!sent) {
+            return res.status(502).json({
+                message: 'Failed to send feedback.'
+            });
+        }
+
+        landingFeedbackRateLimit.set(ipKey, now);
+        captureMessage('Landing feedback sent', 'info', {
+            tags: { component: 'landing_feedback' },
+            extra: { name, email, lang, ip: ipKey, request_id: req.requestId || null }
+        });
+
+        return res.json({
+            message: 'Feedback sent successfully.'
+        });
+    } catch (error) {
+        console.error('Landing feedback error:', error);
+        return res.status(500).json({
+            message: 'Failed to process feedback.'
         });
     }
 });

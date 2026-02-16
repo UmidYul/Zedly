@@ -135,9 +135,10 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
  * @param {string} options.subject - Email subject
  * @param {string} options.text - Plain text body
  * @param {string} options.html - HTML body
+ * @param {string} [options.replyTo] - Reply-To email
  * @returns {Promise<boolean>}
  */
-async function sendEmail({ to, subject, text, html }) {
+async function sendEmail({ to, subject, text, html, replyTo }) {
     if (!isEmailConfigured()) {
         console.warn('Email not configured. Skipping email notification.');
         return false;
@@ -156,6 +157,7 @@ async function sendEmail({ to, subject, text, html }) {
         await emailTransporter.sendMail({
             from: getEmailFrom(),
             to,
+            replyTo: replyTo || undefined,
             subject,
             text,
             html: html || text

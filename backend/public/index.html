@@ -164,20 +164,24 @@
 
     <section id="contact" class="landing-section landing-contact">
       <h2 data-i18n="feedbackTitle">Обратная связь</h2>
-      <p class="landing-section-subtitle" data-i18n="feedbackSubtitle">Оставьте сообщение или свяжитесь с нами напрямую.</p>
+      <p class="landing-section-subtitle" data-i18n="feedbackSubtitle">Оставьте сообщение, и команда поддержки ответит вам по email.</p>
       <div class="landing-contact-grid">
-        <article class="landing-contact-card">
-          <h3 data-i18n="contactTitle">Контакты</h3>
-          <a href="https://t.me/zedly_channel" target="_blank" rel="noopener noreferrer">https://t.me/zedly_channel</a>
-          <a href="mailto:support@zedly.uz">support@zedly.uz</a>
-        </article>
         <form class="landing-contact-form" id="landingFeedbackForm">
-          <label for="feedbackName" data-i18n="feedbackNameLabel">Имя</label>
-          <input id="feedbackName" name="name" type="text" required />
-          <label for="feedbackEmail" data-i18n="feedbackEmailLabel">Email</label>
-          <input id="feedbackEmail" name="email" type="email" required />
-          <label for="feedbackMessage" data-i18n="feedbackMessageLabel">Сообщение</label>
-          <textarea id="feedbackMessage" name="message" rows="4" required></textarea>
+          <p class="landing-form-intro" data-i18n="feedbackIntro">Заполните форму и отправьте обращение за пару кликов.</p>
+          <div class="landing-form-row">
+            <div class="landing-form-field">
+              <label for="feedbackName" data-i18n="feedbackNameLabel">Имя</label>
+              <input id="feedbackName" name="name" type="text" required />
+            </div>
+            <div class="landing-form-field">
+              <label for="feedbackEmail" data-i18n="feedbackEmailLabel">Email</label>
+              <input id="feedbackEmail" name="email" type="email" required />
+            </div>
+          </div>
+          <div class="landing-form-field">
+            <label for="feedbackMessage" data-i18n="feedbackMessageLabel">Сообщение</label>
+            <textarea id="feedbackMessage" name="message" rows="5" required></textarea>
+          </div>
           <button class="landing-btn landing-btn-primary" type="submit" data-i18n="feedbackSubmit">Отправить</button>
           <p id="landingFeedbackStatus" class="landing-feedback-status"></p>
         </form>
@@ -194,8 +198,17 @@
   </main>
 
   <footer class="landing-footer">
-    <span data-i18n="footer">© 2026 ZEDLY. Все права защищены.</span>
-    <a href="/login" data-i18n="footerLink">Перейти к входу</a>
+    <div class="landing-footer-main">
+      <span data-i18n="footer">© 2026 ZEDLY. Все права защищены.</span>
+      <a href="/login" data-i18n="footerLink">Перейти к входу</a>
+    </div>
+    <div class="landing-footer-contacts">
+      <strong data-i18n="footerContactsTitle">Контакты:</strong>
+      <span data-i18n="footerTelegramLabel">Telegram:</span>
+      <span>zedly_channel</span>
+      <span data-i18n="footerEmailLabel">Email:</span>
+      <span>support@zedly.uz</span>
+    </div>
   </footer>
   <script src="/js/landing.js"></script>
   <script src="/js/alert-modal.js"></script>
