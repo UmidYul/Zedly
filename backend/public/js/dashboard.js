@@ -854,13 +854,12 @@
                 <div class="students-page" id="studentsPage">
                     <section class="students-hero dashboard-section">
                         <div>
-                            <h1 class="section-title">Ученики</h1>
-                            <p class="page-subtitle">Срез по классу, поиск, отчеты учеников и быстрые действия</p>
+                            <h1 class="section-title">Ученики класса</h1>
+                            <p class="page-subtitle" id="studentsPageSubtitle">Выберите класс для просмотра учеников</p>
                         </div>
                         <div class="students-hero-actions">
                             <button class="btn btn-secondary" id="studentsRefreshBtn" type="button">Обновить</button>
                             <button class="btn btn-outline" id="studentsExportBtn" type="button">Экспорт CSV</button>
-                            <button class="btn btn-outline" id="studentsPdfBtn" type="button">Export PDF</button>
                         </div>
                     </section>
 
@@ -873,82 +872,71 @@
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="studentsSubjectFilter">Предмет</label>
-                                <select id="studentsSubjectFilter" class="filter-select">
-                                    <option value="">Все предметы</option>
+                                <label for="studentsSearchInput">Поиск</label>
+                                <input id="studentsSearchInput" class="form-input" type="text" placeholder="ФИО или логин">
+                            </div>
+                            <div class="filter-group">
+                                <label for="studentsStatusFilter">Статус</label>
+                                <select id="studentsStatusFilter" class="filter-select">
+                                    <option value="all">Все</option>
+                                    <option value="active">Активен</option>
+                                    <option value="inactive">Неактивен</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="studentsSearchInput">Поиск</label>
-                                <input id="studentsSearchInput" class="form-input" type="text" placeholder="Имя или логин">
-                            </div>
-                            <div class="filter-group">
-                                <label for="studentsScoreBandFilter">Уровень</label>
-                                <select id="studentsScoreBandFilter" class="filter-select">
+                                <label for="studentsProgressFilter">Прогресс</label>
+                                <select id="studentsProgressFilter" class="filter-select">
                                     <option value="all">Все</option>
-                                    <option value="high">Сильные (>=85)</option>
-                                    <option value="mid">Средние (60-84)</option>
-                                    <option value="risk">Риск (<60)</option>
+                                    <option value="with_attempts">Есть попытки</option>
+                                    <option value="no_attempts">Без попыток</option>
                                 </select>
                             </div>
                             <div class="filter-group">
                                 <label for="studentsSortFilter">Сортировка</label>
                                 <select id="studentsSortFilter" class="filter-select">
-                                    <option value="score_desc">По баллу (убыв.)</option>
-                                    <option value="score_asc">По баллу (возр.)</option>
-                                    <option value="tests_desc">По тестам (убыв.)</option>
                                     <option value="name_asc">По имени (А-Я)</option>
+                                    <option value="score_desc">По среднему баллу</option>
+                                    <option value="last_activity_desc">По последней активности</option>
                                 </select>
                             </div>
                         </div>
                     </section>
 
                     <section class="students-kpi-grid" id="studentsKpiGrid">
-                        <div class="report-kpi tone-blue"><span>Ученики</span><strong id="studentsKpiTotal">0</strong></div>
-                        <div class="report-kpi tone-violet"><span>Средний балл</span><strong id="studentsKpiAvg">0%</strong></div>
-                        <div class="report-kpi tone-green"><span>Пройдено тестов</span><strong id="studentsKpiCompleted">0</strong></div>
+                        <div class="report-kpi tone-blue"><span>Всего учеников</span><strong id="studentsKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-violet"><span>Активных</span><strong id="studentsKpiActive">0</strong></div>
                         <div class="report-kpi tone-rose"><span>В зоне риска</span><strong id="studentsKpiRisk">0</strong></div>
-                    </section>
-
-                    <section class="students-grid-top">
-                        <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Результаты по предметам</h2></div>
-                            <div class="students-chart-wrap"><canvas id="studentsSubjectChart"></canvas></div>
-                        </div>
-                        <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Динамика по назначениям</h2></div>
-                            <div class="students-chart-wrap"><canvas id="studentsAssignmentsChart"></canvas></div>
-                        </div>
                     </section>
 
                     <section class="students-grid-bottom">
                         <div class="dashboard-section students-card">
                             <div class="section-header">
                                 <h2 class="section-title">Список учеников</h2>
+                                <div class="students-bulk" id="studentsBulkPanel">
+                                    <button class="btn btn-outline" id="studentsBulkResetBtn" type="button" disabled>Сбросить пароль выбранным</button>
+                                </div>
                             </div>
                             <div class="table-responsive mobile-stack-table">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Ученик</th>
+                                            <th class="bulk-checkbox-cell"><input type="checkbox" id="studentsSelectAll"></th>
+                                            <th>№ в журнале</th>
+                                            <th>ФИО</th>
                                             <th>Логин</th>
-                                            <th>Класс</th>
-                                            <th>Тесты</th>
+                                            <th>Тестов пройдено</th>
                                             <th>Средний балл</th>
+                                            <th>Последняя активность</th>
                                             <th>Статус</th>
                                             <th>Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody id="studentsTableBody">
-                                        <tr><td colspan="7" class="empty-row">Загрузка...</td></tr>
+                                        <tr><td colspan="9" class="empty-row">Загрузка...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="students-pagination" id="studentsPagination"></div>
-                        </div>
-                        <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Инсайты</h2></div>
-                            <ul class="reports-insights-list" id="studentsInsights"></ul>
                         </div>
                     </section>
 

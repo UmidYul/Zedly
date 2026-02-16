@@ -1634,14 +1634,17 @@ router.get('/classes/:id/analytics', async (req, res) => {
                 u.last_name,
                 u.username,
                 cs.roll_number,
+                cs.is_active as enrollment_active,
+                u.is_active as user_active,
                 COUNT(att.id) FILTER (WHERE ${attempt.completedFilter}) as tests_completed,
-                AVG(${attempt.score}) FILTER (WHERE ${attempt.completedFilter}) as avg_score
+                AVG(${attempt.score}) FILTER (WHERE ${attempt.completedFilter}) as avg_score,
+                MAX(att.submitted_at) FILTER (WHERE ${attempt.completedFilter}) as last_attempt_at
              FROM class_students cs
              JOIN users u ON u.id = cs.student_id
              LEFT JOIN test_assignments ta ON ta.class_id = cs.class_id AND ta.assigned_by = $2
              LEFT JOIN test_attempts att ON att.assignment_id = ta.id AND att.student_id = u.id
-             WHERE cs.class_id = $1 AND cs.is_active = true
-             GROUP BY u.id, cs.roll_number
+             WHERE cs.class_id = $1
+             GROUP BY u.id, cs.roll_number, cs.is_active, u.is_active
              ORDER BY u.last_name ASC, u.first_name ASC, u.id ASC`,
             [id, teacherId]
         );
