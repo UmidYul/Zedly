@@ -54,7 +54,7 @@
                         data.classes.forEach(cls => {
                             const option = document.createElement('option');
                             option.value = cls.id;
-                            option.textContent = `${cls.name} - ${cls.grade_level} класс`;
+                            option.textContent = `${cls.name} - ${cls.grade_level} �����`;
                             classFilter.appendChild(option);
                         });
                     }
@@ -488,8 +488,11 @@
                                     <label class="form-label">
                                         ${t('assignments.classes', 'Классы')} <span class="required">*</span>
                                     </label>
-                                    <select class="form-input" name="class_ids" required ${isEdit ? 'disabled' : ''}>
-                                    </select>
+                                    <label class="multi-choice-option" for="assignmentSelectAllClasses" style="margin-bottom: 8px;">
+                                        <input type="checkbox" id="assignmentSelectAllClasses" />
+                                        <span>${t('assignments.selectAllClasses', 'Select all')}</span>
+                                    </label>
+                                    <div class="multi-choice-list" id="assignmentClassList"></div>
                                     <span class="form-hint">${t('assignments.allClassesHint', 'Опция "Все классы" выбирает сразу все доступные классы.')}</span>
                                 </div>
                                 ` : `
@@ -580,7 +583,8 @@
 
             if (!isEdit) {
                 const testSelect = document.querySelector('#assignmentForm select[name="test_id"]');
-                const classSelect = document.querySelector('#assignmentForm select[name="class_ids"]');
+                const classList = document.getElementById('assignmentClassList');
+                const selectAllClasses = document.getElementById('assignmentSelectAllClasses');
                 const templateSelect = document.getElementById('assignmentTemplateSelect');
                 const applyTemplateBtn = document.getElementById('applyTemplateBtn');
                 const deleteTemplateBtn = document.getElementById('deleteTemplateBtn');
@@ -593,30 +597,70 @@
                     templatesById[String(tpl.id)] = tpl;
                 });
 
-                const setClassOptions = (classes = []) => {
-                    if (!classSelect) return;
-                    if (!classes.length) {
-                        classSelect.innerHTML = `<option value="" disabled>${t('assignments.noClassesAvailable', 'Нет доступных классов')}</option>`;
-                        return;
-                    }
-                    classSelect.innerHTML = `
-                        <option value="__all__">${t('assignments.allClassesOption', 'Все классы')}</option>
-                        ${classes.map(cls =>
-                            `<option value="${cls.id}">${cls.name} - ${cls.grade_level} класс</option>`
-                        ).join('')}
-                    `;
+                const getCheckedClassIds = () => {
+                    if (!classList) return [];
+                    return Array.from(classList.querySelectorAll('input[name="class_ids"]:checked'))
+                        .map((input) => String(input.value))
+                        .filter(Boolean);
                 };
 
-                const loadClassesForSubject = async (subjectId) => {
+                const updateSelectAllState = () => {
+                    if (!classList || !selectAllClasses) return;
+                    const boxes = Array.from(classList.querySelectorAll('input[name="class_ids"]'));
+                    if (!boxes.length) {
+                        selectAllClasses.checked = false;
+                        selectAllClasses.indeterminate = false;
+                        selectAllClasses.disabled = true;
+                        return;
+                    }
+                    const checkedCount = boxes.filter((box) => box.checked).length;
+                    selectAllClasses.disabled = false;
+                    selectAllClasses.checked = checkedCount > 0 && checkedCount === boxes.length;
+                    selectAllClasses.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+                };
+
+                const setClassListMessage = (message) => {
+                    if (!classList) return;
+                    classList.innerHTML = `<div class="multi-choice-empty">${message}</div>`;
+                    updateSelectAllState();
+                };
+
+                const setClassOptions = (classes = [], preselected = null) => {
+                    if (!classList) return;
+                    if (!classes.length) {
+                        setClassListMessage(t('assignments.noClassesAvailable', 'No classes available'));
+                        return;
+                    }
+
+                    const wanted = preselected === null
+                        ? new Set(getCheckedClassIds())
+                        : new Set((Array.isArray(preselected) ? preselected : []).map(String));
+
+                    classList.innerHTML = classes.map((cls) => {
+                        const classId = String(cls.id);
+                        const checked = wanted.has(classId) ? 'checked' : '';
+                        return `
+                            <label class="multi-choice-option">
+                                <input type="checkbox" name="class_ids" value="${classId}" ${checked} />
+                                <span>${cls.name} - ${cls.grade_level}</span>
+                            </label>
+                        `;
+                    }).join('');
+
+                    classList.querySelectorAll('input[name="class_ids"]').forEach((box) => {
+                        box.addEventListener('change', updateSelectAllState);
+                    });
+                    updateSelectAllState();
+                };
+
+                const loadClassesForSubject = async (subjectId, preselected = null) => {
                     if (!subjectId) {
-                        if (classSelect) {
-                            classSelect.innerHTML = `<option value="" disabled>${t('assignments.selectTestFirst', 'Сначала выберите тест')}</option>`;
-                        }
+                        setClassListMessage(t('assignments.selectTestFirst', 'Select test first'));
                         return;
                     }
 
                     if (this.subjectClassesCache[subjectId]) {
-                        setClassOptions(this.subjectClassesCache[subjectId]);
+                        setClassOptions(this.subjectClassesCache[subjectId], preselected);
                         return;
                     }
 
@@ -629,7 +673,7 @@
                             const data = await response.json();
                             const classes = data.classes || [];
                             this.subjectClassesCache[subjectId] = classes;
-                            setClassOptions(classes);
+                            setClassOptions(classes, preselected);
                         } else {
                             setClassOptions([]);
                         }
@@ -650,22 +694,7 @@
                     if (testSelect) {
                         testSelect.value = template.test_id || '';
                         const subjectId = testSelect.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
-                        await loadClassesForSubject(subjectId);
-                    }
-                    if (classSelect) {
-                        const wanted = new Set((Array.isArray(template.class_ids) ? template.class_ids : []).map(String));
-                        const classOptions = Array.from(classSelect.options).filter((opt) => opt.value !== '__all__');
-                        const hasMultiple = wanted.size > 1;
-                        const hasSingleMatch = classOptions.some((opt) => wanted.has(String(opt.value)));
-
-                        if (hasMultiple) {
-                            classSelect.value = '__all__';
-                        } else if (hasSingleMatch) {
-                            const match = classOptions.find((opt) => wanted.has(String(opt.value)));
-                            classSelect.value = match ? match.value : '__all__';
-                        } else {
-                            classSelect.value = '__all__';
-                        }
+                        await loadClassesForSubject(subjectId, template.class_ids || []);
                     }
                     const now = new Date();
                     const [h, m] = String(template.start_hour || '08:00').split(':').map((v) => parseInt(v, 10));
@@ -687,17 +716,27 @@
                 if (testSelect) {
                     testSelect.addEventListener('change', () => {
                         const subjectId = testSelect.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
-                        loadClassesForSubject(subjectId);
+                        loadClassesForSubject(subjectId, []);
+                    });
+                }
+
+                if (selectAllClasses) {
+                    selectAllClasses.addEventListener('change', () => {
+                        if (!classList) return;
+                        const boxes = classList.querySelectorAll('input[name="class_ids"]');
+                        boxes.forEach((box) => {
+                            box.checked = selectAllClasses.checked;
+                        });
+                        updateSelectAllState();
                     });
                 }
 
                 const initialSubjectId = testSelect?.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
                 if (!initialSubjectId) {
-                    if (classSelect) classSelect.innerHTML = `<option value="" disabled>${t('assignments.selectTestFirst', 'Сначала выберите тест')}</option>`;
+                    setClassListMessage(t('assignments.selectTestFirst', 'Select test first'));
                 } else {
-                    loadClassesForSubject(initialSubjectId);
+                    loadClassesForSubject(initialSubjectId, []);
                 }
-
                 if (saveAsTemplateInput && templateNameInput) {
                     saveAsTemplateInput.addEventListener('change', () => {
                         templateNameInput.disabled = !saveAsTemplateInput.checked;
@@ -798,18 +837,10 @@
 
             if (!assignmentId) {
                 data.test_id = formData.get('test_id');
-                const classSelect = form.querySelector('select[name="class_ids"]');
-                if (classSelect) {
-                    const selectedValue = String(classSelect.value || '').trim();
-                    const hasAllOption = selectedValue === '__all__';
-                    data.class_ids = hasAllOption
-                        ? Array.from(classSelect.options)
-                            .map((opt) => String(opt.value))
-                            .filter((value) => value && value !== '__all__')
-                        : (selectedValue ? [selectedValue] : []);
-                } else {
-                    data.class_ids = [];
-                }
+                const classChecks = form.querySelectorAll('input[name="class_ids"]:checked');
+                data.class_ids = Array.from(classChecks)
+                    .map((input) => String(input.value))
+                    .filter(Boolean);
             }
 
             data.start_date = toIso(formData.get('start_date'));

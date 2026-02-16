@@ -6,7 +6,8 @@
     let currentFilters = {
         period: 30,
         grade_level: '',
-        subject_id: ''
+        subject_id: '',
+        class_id: ''
     };
 
     let comparisonChart = null;
@@ -15,7 +16,7 @@
     let activeTab = 'heatmap';
     let chartLoadPromise = null;
 
-    function showAlert(message, title = 'РћС€РёР±РєР°') {
+    function showAlert(message, title = 'Ошибка') {
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title });
         }
@@ -26,9 +27,9 @@
     function getLocalizedName(item) {
         const lang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
         if (lang === 'uz') {
-            return item?.name_uz || item?.name_ru || item?.name || 'вЂ”';
+            return item?.name_uz || item?.name_ru || item?.name || '—';
         }
-        return item?.name_ru || item?.name_uz || item?.name || 'вЂ”';
+        return item?.name_ru || item?.name_uz || item?.name || '—';
     }
 
     function getRoot() {
@@ -45,6 +46,14 @@
             console.warn('Failed to parse current user:', error);
             return '';
         }
+    }
+
+    function getCurrentLang() {
+        return window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+    }
+
+    function localize(ru, uz) {
+        return getCurrentLang() === 'uz' ? uz : ru;
     }
 
     function ensureChartJs() {
@@ -109,13 +118,15 @@
         const periodFilter = document.getElementById('periodFilter');
         const gradeLevelFilter = document.getElementById('gradeLevelFilter');
         const subjectFilter = document.getElementById('subjectFilter');
+        const classFilter = document.getElementById('advancedClassFilter');
 
-        if (!periodFilter || !gradeLevelFilter || !subjectFilter) return;
+        if (!periodFilter || !gradeLevelFilter || !subjectFilter || !classFilter) return;
 
         currentFilters = {
             period: periodFilter.value,
             grade_level: gradeLevelFilter.value,
-            subject_id: subjectFilter.value
+            subject_id: subjectFilter.value,
+            class_id: classFilter.value
         };
 
         loadOverview();
@@ -133,6 +144,9 @@
 
         if (currentFilters.subject_id) {
             params.set('subject_id', currentFilters.subject_id);
+        }
+        if (currentFilters.class_id) {
+            params.set('class_id', currentFilters.class_id);
         }
 
         return `${API_URL}/analytics/school/overview?${params.toString()}`;
@@ -193,10 +207,16 @@
                 return;
             }
 
-            let url = `${API_URL}/analytics/school/heatmap?period=${currentFilters.period}`;
+            const params = new URLSearchParams({
+                period: String(currentFilters.period || 30)
+            });
             if (currentFilters.grade_level) {
-                url += `&grade_level=${currentFilters.grade_level}`;
+                params.set('grade_level', currentFilters.grade_level);
             }
+            if (currentFilters.class_id) {
+                params.set('class_id', currentFilters.class_id);
+            }
+            const url = `${API_URL}/analytics/school/heatmap?${params.toString()}`;
 
             const response = await fetch(url, {
                 headers: {
@@ -211,7 +231,7 @@
             }
 
             if (response.status === 403) {
-                container.innerHTML = '<p style="color: var(--error);">РЈ РІР°СЃ РЅРµС‚ РґРѕСЃС‚СѓРїР° Рє СЌС‚РѕР№ Р°РЅР°Р»РёС‚РёРєРµ</p>';
+                container.innerHTML = '<p style="color: var(--error);">У вас нет доступа к этой аналитике</p>';
                 return;
             }
 
@@ -224,7 +244,7 @@
             renderHeatmap(data.heatmap);
         } catch (error) {
             console.error('Heatmap error:', error);
-            container.innerHTML = `<p style="color: var(--error);">РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С…: ${error.message}</p>`;
+            container.innerHTML = `<p style="color: var(--error);">Ошибка загрузки данных: ${error.message}</p>`;
         }
     }
 
@@ -233,7 +253,7 @@
         if (!container) return;
 
         if (!data || data.length === 0) {
-            container.innerHTML = '<p style="color: var(--text-secondary);">РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ</p>';
+            container.innerHTML = '<p style="color: var(--text-secondary);">Нет данных для отображения</p>';
             return;
         }
 
@@ -242,9 +262,9 @@
 
         let html = `<div class="heatmap" style="grid-template-columns: 150px repeat(${weeks.length}, 1fr);">`;
 
-        html += '<div class="heatmap-header">РџСЂРµРґРјРµС‚</div>';
+        html += '<div class="heatmap-header">Предмет</div>';
         weeks.forEach(week => {
-            html += `<div class="heatmap-header">РќРµРґРµР»СЏ ${week}</div>`;
+            html += `<div class="heatmap-header">Неделя ${week}</div>`;
         });
 
         subjects.forEach(subject => {
@@ -256,7 +276,7 @@
                     const color = getHeatmapColor(score);
                     html += `
                         <div class="heatmap-cell" style="background: ${color}; color: white;" 
-                            title="${subject}, РќРµРґРµР»СЏ ${week}: ${score.toFixed(1)}% (${item.attempt_count} РїРѕРїС‹С‚РѕРє)">
+                            title="${subject}, Неделя ${week}: ${score.toFixed(1)}% (${item.attempt_count} попыток)">
                             ${score.toFixed(0)}%
                         </div>
                     `;
@@ -298,6 +318,9 @@
             if (currentFilters.subject_id) {
                 url += `&subject_id=${currentFilters.subject_id}`;
             }
+            if (currentFilters.class_id) {
+                url += `&class_id=${currentFilters.class_id}`;
+            }
 
             const response = await fetch(url, {
                 headers: {
@@ -325,7 +348,7 @@
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="6" style="color: var(--error); text-align: center; padding: 20px;">
-                            РћС€РёР±РєР°: ${error.message}
+                            Ошибка: ${error.message}
                         </td>
                     </tr>
                 `;
@@ -355,7 +378,7 @@
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р» (%)',
+                    label: 'Средний балл (%)',
                     data: scores,
                     backgroundColor: 'rgba(74, 144, 226, 0.8)',
                     borderColor: 'rgba(74, 144, 226, 1)',
@@ -447,14 +470,14 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'РџРѕРїС‹С‚РєРё',
+                            label: 'Попытки',
                             data: attempts,
                             borderColor: 'rgba(74, 144, 226, 1)',
                             backgroundColor: 'rgba(74, 144, 226, 0.1)',
                             yAxisID: 'y'
                         },
                         {
-                            label: 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р» (%)',
+                            label: 'Средний балл (%)',
                             data: scores,
                             borderColor: 'rgba(80, 227, 194, 1)',
                             backgroundColor: 'rgba(80, 227, 194, 0.1)',
@@ -499,7 +522,7 @@
                             <span class="list-item-score success">${parseFloat(item.avg_score).toFixed(1)}%</span>
                         </div>
                         <div class="list-item-meta">
-                            ${item.student_count} СЃС‚СѓРґРµРЅС‚РѕРІ вЂў ${item.total_attempts} РїРѕРїС‹С‚РѕРє
+                            ${item.student_count} студентов • ${item.total_attempts} попыток
                         </div>
                     </div>
                 `).join('');
@@ -515,7 +538,7 @@
                             <span class="list-item-score error">${parseFloat(item.avg_score).toFixed(1)}%</span>
                         </div>
                         <div class="list-item-meta">
-                            РџСЂРѕС…РѕРґРЅРѕР№ Р±Р°Р»Р»: ${parseFloat(item.pass_rate || 0).toFixed(1)}%
+                            Проходной балл: ${parseFloat(item.pass_rate || 0).toFixed(1)}%
                         </div>
                     </div>
                 `).join('');
@@ -565,7 +588,7 @@
             if (!tbody) return;
 
             if (subjects.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">РќРµС‚ РґР°РЅРЅС‹С… РїРѕ РїСЂРµРґРјРµС‚Р°Рј</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">Нет данных по предметам</td></tr>';
                 return;
             }
 
@@ -577,7 +600,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р» (%)',
+                        label: 'Средний балл (%)',
                         data: scores,
                         backgroundColor: 'rgba(80, 227, 194, 0.8)',
                         borderColor: 'rgba(80, 227, 194, 1)',
@@ -633,7 +656,7 @@
             document.body.removeChild(link);
         } catch (error) {
             console.error('Export error:', error);
-            showAlert('РћС€РёР±РєР° РїСЂРё СЌРєСЃРїРѕСЂС‚Рµ РґР°РЅРЅС‹С…');
+            showAlert('Ошибка при экспорте данных');
         }
     }
 
@@ -662,7 +685,7 @@
                 data.subjects.forEach(subject => {
                     const option = document.createElement('option');
                     option.value = subject.id;
-                    option.textContent = subject.name_ru || subject.name || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ';
+                    option.textContent = subject.name_ru || subject.name || 'Без названия';
                     select.appendChild(option);
                 });
             }
@@ -710,12 +733,86 @@
             grades.forEach((grade) => {
                 const option = document.createElement('option');
                 option.value = String(grade);
-                option.textContent = `${grade} РєР»Р°СЃСЃ`;
+                option.textContent = `${grade} класс`;
                 select.appendChild(option);
             });
         } catch (error) {
             console.error('Failed to load grade levels:', error);
         }
+    }
+
+    async function fetchAnalyticsClasses() {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) return [];
+
+            const role = getCurrentUserRole();
+            const endpoint = role === 'teacher'
+                ? `${API_URL}/teacher/classes?page=1&limit=1000&search=&grade=all`
+                : `${API_URL}/admin/classes?page=1&limit=1000&search=&grade=all`;
+
+            const response = await fetch(endpoint, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                return [];
+            }
+
+            const data = await response.json();
+            return Array.isArray(data?.classes) ? data.classes : [];
+        } catch (error) {
+            console.error('Failed to load classes for analytics filters:', error);
+            return [];
+        }
+    }
+
+    async function loadClassAndGradeOptions() {
+        const classes = await fetchAnalyticsClasses();
+        const gradeSelect = document.getElementById('gradeLevelFilter');
+        const classSelect = document.getElementById('advancedClassFilter');
+        if (!gradeSelect || !classSelect) return;
+
+        if (gradeSelect.options.length > 0) {
+            gradeSelect.options[0].textContent = localize('Все параллели', 'Barcha parallellar');
+        }
+        if (classSelect.options.length > 0) {
+            classSelect.options[0].textContent = localize('Все классы', 'Barcha sinflar');
+        }
+
+        while (gradeSelect.options.length > 1) {
+            gradeSelect.remove(1);
+        }
+        while (classSelect.options.length > 1) {
+            classSelect.remove(1);
+        }
+
+        const uniqueClassIds = new Set();
+        classes.forEach((item) => {
+            const classId = item?.id;
+            if (!classId || uniqueClassIds.has(classId)) return;
+            uniqueClassIds.add(classId);
+
+            const option = document.createElement('option');
+            option.value = String(classId);
+            option.textContent = item?.name || `#${classId}`;
+            classSelect.appendChild(option);
+        });
+
+        const grades = [...new Set(
+            classes
+                .map(item => Number(item?.grade_level))
+                .filter(value => Number.isFinite(value) && value > 0)
+        )].sort((a, b) => a - b);
+
+        grades.forEach((grade) => {
+            const option = document.createElement('option');
+            option.value = String(grade);
+            option.textContent = localize(`${grade} класс`, `${grade}-sinf`);
+            gradeSelect.appendChild(option);
+        });
     }
 
     async function init() {
@@ -746,7 +843,7 @@
         refreshTranslations();
 
         await loadSubjectOptions();
-        await loadGradeLevelOptions();
+        await loadClassAndGradeOptions();
         await loadOverview();
         await loadHeatmap();
     }

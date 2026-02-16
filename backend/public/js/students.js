@@ -606,7 +606,7 @@
             applyFiltersAndRender();
         } catch (error) {
             console.error('Students page init error:', error);
-            alert('Не удалось инициализировать страницу Ученики');
+            alert('Не удалось инициализировать страницу "Ученики"');
         }
     }
 

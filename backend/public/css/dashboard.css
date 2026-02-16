@@ -1108,7 +1108,7 @@
 
 .reports-notification-filters {
     display: grid;
-    grid-template-columns: repeat(6, minmax(140px, 1fr));
+    grid-template-columns: repeat(6, minmax(150px, 1fr));
     gap: var(--spacing-sm);
     margin-bottom: var(--spacing-sm);
 }
@@ -1128,7 +1128,7 @@
 #reportsNotificationsCard .reports-notification-filters input[type="date"] {
     width: 100%;
     min-height: 44px;
-    padding: 10px 40px 10px 12px;
+    padding: 10px 56px 10px 12px;
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 12px;
     background-color: rgba(10, 19, 42, 0.82);
@@ -1146,6 +1146,11 @@
     appearance: none;
     -webkit-appearance: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+#reportsNotificationsCard .reports-notification-filters .filter-group:nth-child(4),
+#reportsNotificationsCard .reports-notification-filters .filter-group:nth-child(5) {
+    min-width: 210px;
 }
 
 #reportsNotificationsCard .reports-notification-filters input[type="datetime-local"]:hover,

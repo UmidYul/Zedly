@@ -590,7 +590,7 @@
             try {
                 if (window[scriptInfo.manager]) {
                     window[scriptInfo.manager].init();
-                    console.log(`вњ“ Initialized: ${scriptInfo.manager}`);
+                    console.log(`Initialized: ${scriptInfo.manager}`);
                 } else if (scriptInfo.manager) {
                     console.error(`Manager ${scriptInfo.manager} not found after loading script`);
                 }
@@ -609,117 +609,117 @@
                     <section class="profile-hero card-surface">
                         <div class="profile-avatar" id="profileAvatarText">U</div>
                         <div class="profile-hero-meta">
-                            <h1 id="profileName">РРјСЏ Р¤Р°РјРёР»РёСЏ</h1>
-                            <p id="profileRole">Р РѕР»СЊ</p>
-                            <p id="profileSchool">РЁРєРѕР»Р°</p>
+                            <h1 id="profileName">Имя Фамилия</h1>
+                            <p id="profileRole">Роль</p>
+                            <p id="profileSchool">Школа</p>
                         </div>
                     </section>
 
                     <section class="profile-grid">
                         <div class="profile-col">
                             <article class="profile-card card-surface">
-                                <h2 data-i18n="profile.yourData">Р’Р°С€Рё РґР°РЅРЅС‹Рµ</h2>
+                                <h2 data-i18n="profile.yourData">Ваши данные</h2>
                                 <div class="profile-info-grid">
-                                    <div class="info-row"><span data-i18n="profile.username">Р›РѕРіРёРЅ</span><strong id="profileUsername">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.username">Логин</span><strong id="profileUsername">-</strong></div>
                                     <div class="info-row"><span data-i18n="profile.email">Email</span><strong id="profileEmail">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.phone">РўРµР»РµС„РѕРЅ</span><strong id="profilePhone">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.dateOfBirth">Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</span><strong id="profileDOB">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.gender">РџРѕР»</span><strong id="profileGender">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.registered">Р РµРіРёСЃС‚СЂР°С†РёСЏ</span><strong id="profileCreatedAt">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.lastLogin">РџРѕСЃР»РµРґРЅРёР№ РІС…РѕРґ</span><strong id="profileLastLogin">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.phone">Телефон</span><strong id="profilePhone">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.dateOfBirth">Дата рождения</span><strong id="profileDOB">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.gender">Пол</span><strong id="profileGender">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.registered">Регистрация</span><strong id="profileCreatedAt">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.lastLogin">Последний вход</span><strong id="profileLastLogin">-</strong></div>
                                 </div>
                             </article>
 
                             <article class="profile-card card-surface" id="profileActionsCard" style="display: none;">
-                                <h2 data-i18n="profile.contactChanges">РЎРјРµРЅР° РєРѕРЅС‚Р°РєС‚РѕРІ</h2>
+                                <h2 data-i18n="profile.contactChanges">Смена контактов</h2>
                                 <div id="contactVerificationBanner" class="contact-verification-banner" style="display:none;"></div>
                                 <div class="profile-form-grid">
                                     <div class="field-block">
                                         <label for="emailInput" data-i18n="profile.email">Email</label>
                                         <div class="field-inline">
                                             <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
-                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">РџРѕР»СѓС‡РёС‚СЊ РєРѕРґ</button>
+                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
                                         </div>
-                                        <small id="emailStatusText">Email РЅРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅ</small>
+                                        <small id="emailStatusText">Email не подтвержден</small>
                                     </div>
                                     <div class="field-block">
-                                        <label for="phoneInput" data-i18n="profile.phone">РўРµР»РµС„РѕРЅ</label>
+                                        <label for="phoneInput" data-i18n="profile.phone">Телефон</label>
                                         <div class="field-inline">
                                             <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567" readonly>
-                                            <button id="requestPhoneFromTelegramBtn" class="btn btn-outline" type="button">Р—Р°РїСЂРѕСЃРёС‚СЊ С‡РµСЂРµР· Telegram</button>
+                                            <button id="requestPhoneFromTelegramBtn" class="btn btn-outline" type="button">Запросить через Telegram</button>
                                         </div>
-                                        <small id="phoneStatusText">РўРµР»РµС„РѕРЅ РЅРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅ</small>
+                                        <small id="phoneStatusText">Телефон не подтвержден</small>
                                     </div>
                                 </div>
                             </article>
 
                             <article class="profile-card card-surface" id="profilePersonalCard" style="display: none;">
-                                <h2 data-i18n="profile.personalEdit">Р›РёС‡РЅС‹Рµ РґР°РЅРЅС‹Рµ</h2>
+                                <h2 data-i18n="profile.personalEdit">Личные данные</h2>
                                 <div class="profile-form-grid">
                                     <div class="field-block">
-                                        <label for="dobInput" data-i18n="profile.dateOfBirth">Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</label>
+                                        <label for="dobInput" data-i18n="profile.dateOfBirth">Дата рождения</label>
                                         <input id="dobInput" class="field-input" type="date">
                                     </div>
                                     <div class="field-block">
-                                        <label for="genderInput" data-i18n="profile.gender">РџРѕР»</label>
+                                        <label for="genderInput" data-i18n="profile.gender">Пол</label>
                                         <select id="genderInput" class="field-input">
-                                            <option value="" data-i18n="profile.genderNotSpecified">РќРµ СѓРєР°Р·Р°РЅ</option>
-                                            <option value="male" data-i18n="profile.genderMale">РњСѓР¶СЃРєРѕР№</option>
-                                            <option value="female" data-i18n="profile.genderFemale">Р–РµРЅСЃРєРёР№</option>
-                                            <option value="other" data-i18n="profile.genderOther">Р”СЂСѓРіРѕР№</option>
+                                            <option value="" data-i18n="profile.genderNotSpecified">Не указан</option>
+                                            <option value="male" data-i18n="profile.genderMale">Мужской</option>
+                                            <option value="female" data-i18n="profile.genderFemale">Женский</option>
+                                            <option value="other" data-i18n="profile.genderOther">Другой</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div class="card-actions"><button id="savePersonalBtn" class="btn btn-primary" type="button" data-i18n="users.save">РЎРѕС…СЂР°РЅРёС‚СЊ</button></div>
+                                <div class="card-actions"><button id="savePersonalBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
                             </article>
 
                             <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
-                                <h2 data-i18n="profile.notifications">РќР°СЃС‚СЂРѕР№РєР° СѓРІРµРґРѕРјР»РµРЅРёР№</h2>
+                                <h2 data-i18n="profile.notifications">Настройка уведомлений</h2>
                                 <div class="notification-grid">
                                     <div class="field-block">
-                                        <h3 data-i18n="profile.notificationChannels">РљР°РЅР°Р»С‹</h3>
-                                        <label class="check-row"><input type="checkbox" id="channelInApp"> Р’ РїСЂРёР»РѕР¶РµРЅРёРё</label>
+                                        <h3 data-i18n="profile.notificationChannels">Каналы</h3>
+                                        <label class="check-row"><input type="checkbox" id="channelInApp"> В приложении</label>
                                         <label class="check-row"><input type="checkbox" id="channelEmail"> Email</label>
                                         <label class="check-row"><input type="checkbox" id="channelTelegram"> Telegram</label>
                                     </div>
                                     <div class="field-block">
-                                        <h3 data-i18n="profile.notificationEvents">РЎРѕР±С‹С‚РёСЏ</h3>
-                                        <label class="check-row"><input type="checkbox" id="eventNewTest"> РќРѕРІС‹Рµ С‚РµСЃС‚С‹</label>
-                                        <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Р”РµРґР»Р°Р№РЅС‹</label>
-                                        <label class="check-row"><input type="checkbox" id="eventPasswordReset"> РЎР±СЂРѕСЃ РїР°СЂРѕР»СЏ</label>
-                                        <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> РР·РјРµРЅРµРЅРёСЏ РїСЂРѕС„РёР»СЏ</label>
-                                        <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> РЎРёСЃС‚РµРјРЅС‹Рµ</label>
+                                        <h3 data-i18n="profile.notificationEvents">События</h3>
+                                        <label class="check-row"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
+                                        <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
+                                        <label class="check-row"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
+                                        <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
+                                        <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> Системные</label>
                                     </div>
                                 </div>
-                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">РЎРѕС…СЂР°РЅРёС‚СЊ</button></div>
+                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
                             </article>
                         </div>
 
                         <div class="profile-col">
                             <article class="profile-card card-surface" id="profileRoleInfoCard" style="display:none;">
-                                <h2 id="roleSpecificTitle">Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h2>
+                                <h2 id="roleSpecificTitle">Дополнительная информация</h2>
                                 <div class="profile-info-grid" id="roleSpecificContent"></div>
                             </article>
 
                             <article class="profile-card card-surface">
-                                <h2 data-i18n="profile.statistics">РљСЂР°С‚РєР°СЏ СЃС‚Р°С‚РёСЃС‚РёРєР°</h2>
+                                <h2 data-i18n="profile.statistics">Краткая статистика</h2>
                                 <div class="stats-grid" id="statsContent"></div>
                             </article>
 
                             <article class="profile-card card-surface" id="chartsCard" style="display:none;">
-                                <h2 data-i18n="profile.performance">РЈСЃРїРµРІР°РµРјРѕСЃС‚СЊ</h2>
+                                <h2 data-i18n="profile.performance">Успеваемость</h2>
                                 <canvas id="performanceChart"></canvas>
                             </article>
 
                             <article class="profile-card card-surface" id="careerTestCard" style="display:none;">
-                                <h2 data-i18n="career.title">РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёСЏ</h2>
-                                <div id="careerTestContent"><p class="no-data" data-i18n="profile.noCareerTest">РўРµСЃС‚ РЅРµ РїСЂРѕР№РґРµРЅ</p></div>
+                                <h2 data-i18n="career.title">Профориентация</h2>
+                                <div id="careerTestContent"><p class="no-data" data-i18n="profile.noCareerTest">Тест не пройден</p></div>
                                 <canvas id="careerRadarChart" style="display:none;"></canvas>
                             </article>
 
                             <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
-                                <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'РџРѕСЃР»РµРґРЅРёРµ РґРµР№СЃС‚РІРёСЏ')}</h2>
-                                <div class="activity-list" id="activityList"><p class="no-data">РќРµС‚ РґР°РЅРЅС‹С…</p></div>
+                                <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'Последние действия')}</h2>
+                                <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
                             </article>
                         </div>
                     </section>
@@ -747,29 +747,29 @@
                 <div class="my-class-page" id="myClassPage">
                     <section class="my-class-hero" id="heroCard">
                         <div class="hero-info">
-                            <p class="hero-label">РњРѕР№ РєР»Р°СЃСЃ</p>
+                            <p class="hero-label">Мой класс</p>
                             <div class="class-select-row hidden" id="classSelectRow">
-                                <label for="classSelect">РљР»Р°СЃСЃ</label>
+                                <label for="classSelect">Класс</label>
                                 <select id="classSelect" class="class-select"></select>
                             </div>
-                            <h1 id="className">Р—Р°РіСЂСѓР·РєР°...</h1>
-                            <p id="classMeta">РџРѕРґРіРѕС‚РѕРІРєР° РґР°РЅРЅС‹С…</p>
+                            <h1 id="className">Загрузка...</h1>
+                            <p id="classMeta">Подготовка данных</p>
                         </div>
                         <div class="hero-metrics">
                             <div class="metric">
-                                <div class="metric-label">РЈС‡РµРЅРёРєРѕРІ</div>
+                                <div class="metric-label">Учеников</div>
                                 <div class="metric-value" id="studentCount">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">РќР°Р·РЅР°С‡РµРЅРёР№</div>
+                                <div class="metric-label">Назначений</div>
                                 <div class="metric-value" id="assignmentCount">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">РђРєС‚РёРІРЅС‹Рµ</div>
+                                <div class="metric-label">Активные</div>
                                 <div class="metric-value" id="activeAssignments">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</div>
+                                <div class="metric-label">Средний балл</div>
                                 <div class="metric-value" id="avgScore">0%</div>
                             </div>
                         </div>
@@ -778,42 +778,42 @@
                     <section class="dashboard-section my-class-card" id="analyticsCard">
                         <div class="section-header">
                             <div>
-                                <h2 class="section-title">РџСЂРµРґРјРµС‚РЅР°СЏ СѓСЃРїРµРІР°РµРјРѕСЃС‚СЊ</h2>
-                                <p class="page-subtitle">РЎСЂРµРґРЅРёР№ СЂРµР·СѓР»СЊС‚Р°С‚ РїРѕ РїСЂРµРґРјРµС‚Р°Рј РІР°С€РµРіРѕ РєР»Р°СЃСЃР°</p>
+                                <h2 class="section-title">Предметная успеваемость</h2>
+                                <p class="page-subtitle">Средний результат по предметам вашего класса</p>
                             </div>
                         </div>
                         <div class="chart-wrap">
                             <canvas id="subjectChart" height="120"></canvas>
                         </div>
                         <div class="subject-performance" id="subjectPerformance">
-                            <div class="empty-state">Р”Р°РЅРЅС‹С… РїРѕРєР° РЅРµС‚</div>
+                            <div class="empty-state">Данных пока нет</div>
                         </div>
                     </section>
 
                     <section class="dashboard-section my-class-card" id="studentsCard">
                         <div class="section-header">
                             <div>
-                                <h2 class="section-title">РЈС‡РµРЅРёРєРё РєР»Р°СЃСЃР°</h2>
-                                <p class="page-subtitle">РЈРїСЂР°РІР»СЏР№С‚Рµ РґРѕСЃС‚СѓРїРѕРј Рё РїР°СЂРѕР»СЏРјРё СѓС‡РµРЅРёРєРѕРІ</p>
+                                <h2 class="section-title">Ученики класса</h2>
+                                <p class="page-subtitle">Управляйте доступом и паролями учеников</p>
                             </div>
                             <div class="table-controls">
-                                <input class="search-input" id="studentSearch" type="text" placeholder="РџРѕРёСЃРє РїРѕ РёРјРµРЅРё РёР»Рё Р»РѕРіРёРЅСѓ">
+                                <input class="search-input" id="studentSearch" type="text" placeholder="Поиск по имени или логину">
                             </div>
                         </div>
                         <div class="table-wrap">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>РРјСЏ</th>
-                                        <th>Р›РѕРіРёРЅ</th>
-                                        <th>РўРµСЃС‚РѕРІ РїСЂРѕР№РґРµРЅРѕ</th>
-                                        <th>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
-                                        <th>Р”РµР№СЃС‚РІРёСЏ</th>
+                                        <th>Имя</th>
+                                        <th>Логин</th>
+                                        <th>Тестов пройдено</th>
+                                        <th>Средний балл</th>
+                                        <th>Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody id="studentsTableBody">
                                     <tr>
-                                        <td colspan="5" class="empty-row">Р—Р°РіСЂСѓР·РєР°...</td>
+                                        <td colspan="5" class="empty-row">Загрузка...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -822,25 +822,25 @@
 
                     <section class="dashboard-section my-class-card hidden" id="emptyState">
                         <div class="empty-state">
-                            <h2>РљР»Р°СЃСЃ РЅРµ РЅР°Р·РЅР°С‡РµРЅ</h2>
-                            <p>РџРѕРєР° Сѓ РІР°СЃ РЅРµС‚ РєР»Р°СЃСЃР° РІ РєР°С‡РµСЃС‚РІРµ РєР»Р°СЃСЃРЅРѕРіРѕ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЏ.</p>
+                            <h2>Класс не назначен</h2>
+                            <p>Пока у вас нет класса в качестве классного руководителя.</p>
                         </div>
                     </section>
 
                     <div class="modal-overlay hidden" id="passwordModal">
                         <div class="modal">
                             <div class="modal-header">
-                                <h3>Р’СЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ</h3>
+                                <h3>Временный пароль</h3>
                                 <button class="modal-close" type="button" id="modalClose">&#215;</button>
                             </div>
                             <div class="modal-body">
-                                <p id="modalStudentName">РџР°СЂРѕР»СЊ РґР»СЏ СѓС‡РµРЅРёРєР°</p>
-                                <div class="password-box" id="modalPassword">вЂ”</div>
-                                <p class="modal-hint">РџРµСЂРµРґР°Р№С‚Рµ РїР°СЂРѕР»СЊ СѓС‡РµРЅРёРєСѓ Рё РїРѕРїСЂРѕСЃРёС‚Рµ СЃРјРµРЅРёС‚СЊ РµРіРѕ РїРѕСЃР»Рµ РІС…РѕРґР°.</p>
+                                <p id="modalStudentName">Пароль для ученика</p>
+                                <div class="password-box" id="modalPassword">—</div>
+                                <p class="modal-hint">Передайте пароль ученику и попросите сменить его после входа.</p>
                             </div>
                             <div class="modal-actions">
-                                <button class="btn btn-outline" type="button" id="modalCopy">РЎРєРѕРїРёСЂРѕРІР°С‚СЊ</button>
-                                <button class="btn btn-primary" type="button" id="modalOk">Р“РѕС‚РѕРІРѕ</button>
+                                <button class="btn btn-outline" type="button" id="modalCopy">Скопировать</button>
+                                <button class="btn btn-primary" type="button" id="modalOk">Готово</button>
                             </div>
                         </div>
                     </div>
@@ -853,12 +853,12 @@
                 <div class="students-page" id="studentsPage">
                     <section class="students-hero dashboard-section">
                         <div>
-                            <h1 class="section-title">РЈС‡РµРЅРёРєРё</h1>
-                            <p class="page-subtitle">РЎСЂРµР· РїРѕ РєР»Р°СЃСЃСѓ, РїРѕРёСЃРє, РѕС‚С‡РµС‚С‹ СѓС‡РµРЅРёРєРѕРІ Рё Р±С‹СЃС‚СЂС‹Рµ РґРµР№СЃС‚РІРёСЏ</p>
+                            <h1 class="section-title">Ученики</h1>
+                            <p class="page-subtitle">Срез по классу, поиск, отчеты учеников и быстрые действия</p>
                         </div>
                         <div class="students-hero-actions">
-                            <button class="btn btn-secondary" id="studentsRefreshBtn" type="button">РћР±РЅРѕРІРёС‚СЊ</button>
-                            <button class="btn btn-outline" id="studentsExportBtn" type="button">Р­РєСЃРїРѕСЂС‚ CSV</button>
+                            <button class="btn btn-secondary" id="studentsRefreshBtn" type="button">Обновить</button>
+                            <button class="btn btn-outline" id="studentsExportBtn" type="button">Экспорт CSV</button>
                             <button class="btn btn-outline" id="studentsPdfBtn" type="button">Export PDF</button>
                         </div>
                     </section>
@@ -866,56 +866,56 @@
                     <section class="students-toolbar dashboard-section">
                         <div class="students-filter-grid">
                             <div class="filter-group">
-                                <label for="studentsClassFilter">РљР»Р°СЃСЃ</label>
+                                <label for="studentsClassFilter">Класс</label>
                                 <select id="studentsClassFilter" class="filter-select">
-                                    <option value="">Р’С‹Р±РµСЂРёС‚Рµ РєР»Р°СЃСЃ</option>
+                                    <option value="">Выберите класс</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="studentsSubjectFilter">РџСЂРµРґРјРµС‚</label>
+                                <label for="studentsSubjectFilter">Предмет</label>
                                 <select id="studentsSubjectFilter" class="filter-select">
-                                    <option value="">Р’СЃРµ РїСЂРµРґРјРµС‚С‹</option>
+                                    <option value="">Все предметы</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="studentsSearchInput">РџРѕРёСЃРє</label>
-                                <input id="studentsSearchInput" class="form-input" type="text" placeholder="РРјСЏ РёР»Рё Р»РѕРіРёРЅ">
+                                <label for="studentsSearchInput">Поиск</label>
+                                <input id="studentsSearchInput" class="form-input" type="text" placeholder="Имя или логин">
                             </div>
                             <div class="filter-group">
-                                <label for="studentsScoreBandFilter">РЈСЂРѕРІРµРЅСЊ</label>
+                                <label for="studentsScoreBandFilter">Уровень</label>
                                 <select id="studentsScoreBandFilter" class="filter-select">
-                                    <option value="all">Р’СЃРµ</option>
-                                    <option value="high">РЎРёР»СЊРЅС‹Рµ (>=85)</option>
-                                    <option value="mid">РЎСЂРµРґРЅРёРµ (60-84)</option>
-                                    <option value="risk">Р РёСЃРє (<60)</option>
+                                    <option value="all">Все</option>
+                                    <option value="high">Сильные (>=85)</option>
+                                    <option value="mid">Средние (60-84)</option>
+                                    <option value="risk">Риск (<60)</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="studentsSortFilter">РЎРѕСЂС‚РёСЂРѕРІРєР°</label>
+                                <label for="studentsSortFilter">Сортировка</label>
                                 <select id="studentsSortFilter" class="filter-select">
-                                    <option value="score_desc">РџРѕ Р±Р°Р»Р»Сѓ (СѓР±С‹РІ.)</option>
-                                    <option value="score_asc">РџРѕ Р±Р°Р»Р»Сѓ (РІРѕР·СЂ.)</option>
-                                    <option value="tests_desc">РџРѕ С‚РµСЃС‚Р°Рј (СѓР±С‹РІ.)</option>
-                                    <option value="name_asc">РџРѕ РёРјРµРЅРё (Рђ-РЇ)</option>
+                                    <option value="score_desc">По баллу (убыв.)</option>
+                                    <option value="score_asc">По баллу (возр.)</option>
+                                    <option value="tests_desc">По тестам (убыв.)</option>
+                                    <option value="name_asc">По имени (А-Я)</option>
                                 </select>
                             </div>
                         </div>
                     </section>
 
                     <section class="students-kpi-grid" id="studentsKpiGrid">
-                        <div class="report-kpi tone-blue"><span>РЈС‡РµРЅРёРєРё</span><strong id="studentsKpiTotal">0</strong></div>
-                        <div class="report-kpi tone-violet"><span>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</span><strong id="studentsKpiAvg">0%</strong></div>
-                        <div class="report-kpi tone-green"><span>РџСЂРѕР№РґРµРЅРѕ С‚РµСЃС‚РѕРІ</span><strong id="studentsKpiCompleted">0</strong></div>
-                        <div class="report-kpi tone-rose"><span>Р’ Р·РѕРЅРµ СЂРёСЃРєР°</span><strong id="studentsKpiRisk">0</strong></div>
+                        <div class="report-kpi tone-blue"><span>Ученики</span><strong id="studentsKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-violet"><span>Средний балл</span><strong id="studentsKpiAvg">0%</strong></div>
+                        <div class="report-kpi tone-green"><span>Пройдено тестов</span><strong id="studentsKpiCompleted">0</strong></div>
+                        <div class="report-kpi tone-rose"><span>В зоне риска</span><strong id="studentsKpiRisk">0</strong></div>
                     </section>
 
                     <section class="students-grid-top">
                         <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Р РµР·СѓР»СЊС‚Р°С‚С‹ РїРѕ РїСЂРµРґРјРµС‚Р°Рј</h2></div>
+                            <div class="section-header"><h2 class="section-title">Результаты по предметам</h2></div>
                             <div class="students-chart-wrap"><canvas id="studentsSubjectChart"></canvas></div>
                         </div>
                         <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Р”РёРЅР°РјРёРєР° РїРѕ РЅР°Р·РЅР°С‡РµРЅРёСЏРј</h2></div>
+                            <div class="section-header"><h2 class="section-title">Динамика по назначениям</h2></div>
                             <div class="students-chart-wrap"><canvas id="studentsAssignmentsChart"></canvas></div>
                         </div>
                     </section>
@@ -923,30 +923,30 @@
                     <section class="students-grid-bottom">
                         <div class="dashboard-section students-card">
                             <div class="section-header">
-                                <h2 class="section-title">РЎРїРёСЃРѕРє СѓС‡РµРЅРёРєРѕРІ</h2>
+                                <h2 class="section-title">Список учеников</h2>
                             </div>
                             <div class="table-responsive mobile-stack-table">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>РЈС‡РµРЅРёРє</th>
-                                            <th>Р›РѕРіРёРЅ</th>
-                                            <th>РљР»Р°СЃСЃ</th>
-                                            <th>РўРµСЃС‚С‹</th>
-                                            <th>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
-                                            <th>РЎС‚Р°С‚СѓСЃ</th>
-                                            <th>Р”РµР№СЃС‚РІРёСЏ</th>
+                                            <th>Ученик</th>
+                                            <th>Логин</th>
+                                            <th>Класс</th>
+                                            <th>Тесты</th>
+                                            <th>Средний балл</th>
+                                            <th>Статус</th>
+                                            <th>Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody id="studentsTableBody">
-                                        <tr><td colspan="7" class="empty-row">Р—Р°РіСЂСѓР·РєР°...</td></tr>
+                                        <tr><td colspan="7" class="empty-row">Загрузка...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="students-pagination" id="studentsPagination"></div>
                         </div>
                         <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">РРЅСЃР°Р№С‚С‹</h2></div>
+                            <div class="section-header"><h2 class="section-title">Инсайты</h2></div>
                             <ul class="reports-insights-list" id="studentsInsights"></ul>
                         </div>
                     </section>
@@ -954,12 +954,12 @@
                     <div class="modal-overlay hidden" id="studentsDetailModal">
                         <div class="modal students-modal">
                             <div class="modal-header">
-                                <h3 id="studentsModalTitle">РћС‚С‡РµС‚ СѓС‡РµРЅРёРєР°</h3>
+                                <h3 id="studentsModalTitle">Отчет ученика</h3>
                                 <button class="modal-close" type="button" id="studentsModalClose">&#215;</button>
                             </div>
                             <div class="modal-body" id="studentsModalBody"></div>
                             <div class="modal-actions">
-                                <button class="btn btn-primary" type="button" id="studentsModalOk">Р—Р°РєСЂС‹С‚СЊ</button>
+                                <button class="btn btn-primary" type="button" id="studentsModalOk">Закрыть</button>
                             </div>
                         </div>
                     </div>
@@ -1162,9 +1162,9 @@
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Import</h2>
+                            <h2 class="section-title">${t('dashboard.nav.import', 'Импорт')}</h2>
                         </div>
-                        <p style="color: var(--text-secondary);">This section is only available for School Admin.</p>
+                        <p style="color: var(--text-secondary);">${t('tools.schoolAdminOnly', 'Этот раздел доступен только для администратора школы.')}</p>
                     </div>
                 `;
             }
@@ -1179,26 +1179,26 @@
                     <div class="import-layout">
                         <div class="dashboard-section import-lane" data-import-lane="student">
                             <div class="section-header">
-                                <h2 class="section-title">Students</h2>
+                                <h2 class="section-title" data-i18n="tools.students">${t('tools.students', 'Ученики')}</h2>
                                 <button class="btn btn-secondary download-template-btn" data-import-type="student" data-i18n="import.downloadTemplate">Download template</button>
                             </div>
                             <input type="file" id="importFileStudent" class="import-file-input" data-import-type="student" accept=".xlsx,.xls,.csv" />
                             <div class="import-file-row">
-                                <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileStudent">Choose file</button>
-                                <span class="import-file-name" id="importFileStudentName">No file selected</span>
+                                <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileStudent" data-i18n="tools.chooseFile">${t('tools.chooseFile', 'Выбрать файл')}</button>
+                                <span class="import-file-name" id="importFileStudentName" data-i18n="tools.noFileSelected">${t('tools.noFileSelected', 'Файл не выбран')}</span>
                             </div>
                             <button class="btn btn-primary start-import-btn" type="button" data-import-type="student" data-i18n="import.start">Start import</button>
                         </div>
 
                         <div class="dashboard-section import-lane" data-import-lane="teacher">
                             <div class="section-header">
-                                <h2 class="section-title">Teachers</h2>
+                                <h2 class="section-title" data-i18n="tools.teachers">${t('tools.teachers', 'Учителя')}</h2>
                                 <button class="btn btn-secondary download-template-btn" data-import-type="teacher" data-i18n="import.downloadTemplate">Download template</button>
                             </div>
                             <input type="file" id="importFileTeacher" class="import-file-input" data-import-type="teacher" accept=".xlsx,.xls,.csv" />
                             <div class="import-file-row">
-                                <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileTeacher">Choose file</button>
-                                <span class="import-file-name" id="importFileTeacherName">No file selected</span>
+                                <button class="btn btn-outline import-file-trigger" type="button" data-target="importFileTeacher" data-i18n="tools.chooseFile">${t('tools.chooseFile', 'Выбрать файл')}</button>
+                                <span class="import-file-name" id="importFileTeacherName" data-i18n="tools.noFileSelected">${t('tools.noFileSelected', 'Файл не выбран')}</span>
                             </div>
                             <button class="btn btn-primary start-import-btn" type="button" data-import-type="teacher" data-i18n="import.start">Start import</button>
                         </div>
@@ -1215,9 +1215,9 @@
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Export</h2>
+                            <h2 class="section-title">${t('dashboard.nav.export', 'Экспорт')}</h2>
                         </div>
-                        <p style="color: var(--text-secondary);">This section is only available for School Admin.</p>
+                        <p style="color: var(--text-secondary);">${t('tools.schoolAdminOnly', 'Этот раздел доступен только для администратора школы.')}</p>
                     </div>
                 `;
             }
@@ -1232,37 +1232,37 @@
                         <div class="dashboard-section export-card export-card-main">
                             <div class="section-header">
                                 <h2 class="section-title" data-i18n="export.usersTitle">User export</h2>
-                                <span class="export-chip" id="exportStatusChip">Ready to export</span>
+                                <span class="export-chip" id="exportStatusChip" data-i18n="tools.readyToExport">${t('tools.readyToExport', 'Готово к экспорту')}</span>
                             </div>
                             <p class="export-hint" data-i18n="export.usersHint">The file includes users, classes and journal numbers.</p>
                             <div class="export-actions-row">
                                 <button class="btn btn-primary" id="exportUsersBtn" data-i18n="export.downloadUsers">Download users</button>
-                                <button class="btn btn-secondary" id="refreshExportPreviewBtn" type="button">Refresh preview</button>
+                                <button class="btn btn-secondary" id="refreshExportPreviewBtn" type="button" data-i18n="tools.refreshPreview">${t('tools.refreshPreview', 'Обновить превью')}</button>
                             </div>
-                            <div class="export-last-meta" id="exportLastMeta">
-                                Export history is empty.
+                            <div class="export-last-meta" id="exportLastMeta" data-i18n="tools.exportHistoryEmpty">
+                                ${t('tools.exportHistoryEmpty', 'История экспорта пуста.')}
                             </div>
                         </div>
                         <div class="dashboard-section export-card export-card-preview">
                             <div class="section-header">
-                                <h2 class="section-title">Data preview</h2>
-                                <span class="export-chip subtle" id="exportPreviewUpdated">Not updated</span>
+                                <h2 class="section-title" data-i18n="tools.dataPreview">${t('tools.dataPreview', 'Предпросмотр данных')}</h2>
+                                <span class="export-chip subtle" id="exportPreviewUpdated" data-i18n="tools.notUpdated">${t('tools.notUpdated', 'Не обновлено')}</span>
                             </div>
                             <div class="export-preview-grid">
                                 <div class="export-preview-item">
-                                    <span>Total</span>
+                                    <span data-i18n="common.total">${t('common.total', 'Всего')}</span>
                                     <strong id="exportTotalUsers">-</strong>
                                 </div>
                                 <div class="export-preview-item">
-                                    <span>Students</span>
+                                    <span data-i18n="tools.students">${t('tools.students', 'Ученики')}</span>
                                     <strong id="exportStudentUsers">-</strong>
                                 </div>
                                 <div class="export-preview-item">
-                                    <span>Teachers</span>
+                                    <span data-i18n="tools.teachers">${t('tools.teachers', 'Учителя')}</span>
                                     <strong id="exportTeacherUsers">-</strong>
                                 </div>
                             </div>
-                            <p class="export-hint">Check counts before downloading the file.</p>
+                            <p class="export-hint" data-i18n="tools.checkCountsHint">${t('tools.checkCountsHint', 'Проверьте количество перед скачиванием файла.')}</p>
                         </div>
                     </div>
                 </div>
@@ -1367,7 +1367,7 @@
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title" data-i18n="advanced_analytics">Р Р°СЃС€РёСЂРµРЅРЅР°СЏ Р°РЅР°Р»РёС‚РёРєР°</h2>
+                            <h2 class="section-title" data-i18n="advanced_analytics">Расширенная аналитика</h2>
                         </div>
                         <p style="color: var(--text-secondary);">This section is only available for School Admin and Teacher.</p>
                     </div>
@@ -1378,79 +1378,85 @@
                 <div class="advanced-analytics" id="advancedAnalyticsRoot">
                     <div class="analytics-container">
                         <div class="page-header-section">
-                            <h1 class="page-main-title" data-i18n="advanced_analytics">Р Р°СЃС€РёСЂРµРЅРЅР°СЏ Р°РЅР°Р»РёС‚РёРєР°</h1>
+                            <h1 class="page-main-title" data-i18n="advanced_analytics">Расширенная аналитика</h1>
                         </div>
 
                         <div class="filters" id="advancedFilters">
                             <div class="filter-group">
-                                <label data-i18n="period">РџРµСЂРёРѕРґ</label>
+                                <label data-i18n="period">Период</label>
                                 <select id="periodFilter">
-                                    <option value="7">РџРѕСЃР»РµРґРЅРёРµ 7 РґРЅРµР№</option>
-                                    <option value="30" selected>РџРѕСЃР»РµРґРЅРёРµ 30 РґРЅРµР№</option>
-                                    <option value="90">РџРѕСЃР»РµРґРЅРёРµ 90 РґРЅРµР№</option>
-                                    <option value="365">РџРѕСЃР»РµРґРЅРёР№ РіРѕРґ</option>
+                                    <option value="7">Последние 7 дней</option>
+                                    <option value="30" selected>Последние 30 дней</option>
+                                    <option value="90">Последние 90 дней</option>
+                                    <option value="365">Последний год</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label data-i18n="grade_level">РџР°СЂР°Р»Р»РµР»СЊ</label>
+                                <label data-i18n="grade_level">Параллель</label>
                                 <select id="gradeLevelFilter">
-                                    <option value="">Р’СЃРµ РїР°СЂР°Р»Р»РµР»Рё</option>
+                                    <option value="">Все параллели</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label data-i18n="subject">РџСЂРµРґРјРµС‚</label>
-                                <select id="subjectFilter">
-                                    <option value="">Р’СЃРµ РїСЂРµРґРјРµС‚С‹</option>
+                                <label data-i18n="reports.class">Класс</label>
+                                <select id="advancedClassFilter">
+                                    <option value="">Все классы</option>
                                 </select>
                             </div>
-                            <button class="btn btn-primary" type="button" id="applyAdvancedFilters" data-i18n="apply">РџСЂРёРјРµРЅРёС‚СЊ</button>
-                            <button class="btn btn-outline" type="button" id="exportAdvancedAnalytics" data-i18n="export">Р­РєСЃРїРѕСЂС‚</button>
+                            <div class="filter-group">
+                                <label data-i18n="subject">Предмет</label>
+                                <select id="subjectFilter">
+                                    <option value="">Все предметы</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" type="button" id="applyAdvancedFilters" data-i18n="apply">Применить</button>
+                            <button class="btn btn-outline" type="button" id="exportAdvancedAnalytics" data-i18n="export">Экспорт</button>
                         </div>
 
                         <div class="analytics-grid" id="overviewStats">
                             <div class="stat-card">
-                                <h3 data-i18n="total_students">Р’СЃРµРіРѕ СЃС‚СѓРґРµРЅС‚РѕРІ</h3>
+                                <h3 data-i18n="total_students">Всего студентов</h3>
                                 <div class="stat-value" id="totalStudents">-</div>
                             </div>
                             <div class="stat-card">
-                                <h3 data-i18n="average_score">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</h3>
+                                <h3 data-i18n="average_score">Средний балл</h3>
                                 <div class="stat-value" id="avgScore">-</div>
                             </div>
                             <div class="stat-card">
-                                <h3 data-i18n="total_tests">Р’СЃРµРіРѕ С‚РµСЃС‚РѕРІ</h3>
+                                <h3 data-i18n="total_tests">Всего тестов</h3>
                                 <div class="stat-value" id="totalTests">-</div>
                             </div>
                             <div class="stat-card">
-                                <h3 data-i18n="total_attempts">Р’СЃРµРіРѕ РїРѕРїС‹С‚РѕРє</h3>
+                                <h3 data-i18n="total_attempts">Всего попыток</h3>
                                 <div class="stat-value" id="totalAttempts">-</div>
                             </div>
                         </div>
 
                         <div class="tabs">
                             <button class="tab active" type="button" data-tab="heatmap">
-                                <span data-i18n="heatmap">РўРµРїР»РѕРІР°СЏ РєР°СЂС‚Р°</span>
+                                <span data-i18n="heatmap">Тепловая карта</span>
                             </button>
                             <button class="tab" type="button" data-tab="comparison">
-                                <span data-i18n="comparison">РЎСЂР°РІРЅРµРЅРёРµ</span>
+                                <span data-i18n="comparison">Сравнение</span>
                             </button>
                             <button class="tab" type="button" data-tab="trends">
-                                <span data-i18n="trends">РўСЂРµРЅРґС‹</span>
+                                <span data-i18n="trends">Тренды</span>
                             </button>
                             <button class="tab" type="button" data-tab="subjects">
-                                <span data-i18n="subjects">РџРѕ РїСЂРµРґРјРµС‚Р°Рј</span>
+                                <span data-i18n="subjects">По предметам</span>
                             </button>
                         </div>
 
                         <div class="tab-content active" id="heatmap-content">
                             <div class="chart-card">
                                 <h2>
-                                    <span data-i18n="performance_heatmap">РўРµРїР»РѕРІР°СЏ РєР°СЂС‚Р° СѓСЃРїРµРІР°РµРјРѕСЃС‚Рё</span>
+                                    <span data-i18n="performance_heatmap">Тепловая карта успеваемости</span>
                                 </h2>
                                 <p class="chart-subtitle" data-i18n="heatmap_description">
-                                    Р’РёР·СѓР°Р»РёР·Р°С†РёСЏ СЃСЂРµРґРЅРёС… Р±Р°Р»Р»РѕРІ РїРѕ РїСЂРµРґРјРµС‚Р°Рј Рё РЅРµРґРµР»СЏРј
+                                    Визуализация средних баллов по предметам и неделям
                                 </p>
                                 <div class="heatmap-legend">
-                                    <span class="legend-title">Р›РµРіРµРЅРґР°:</span>
+                                    <span class="legend-title">Легенда:</span>
                                     <div class="legend-item">
                                         <div class="legend-color" style="background: linear-gradient(to right, #ef4444, #f97316);"></div>
                                         <span>0-50%</span>
@@ -1471,7 +1477,7 @@
                                 <div class="heatmap-container">
                                     <div id="heatmapCanvas" class="loading">
                                         <div class="spinner"></div>
-                                        <span>Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…...</span>
+                                        <span>Загрузка данных...</span>
                                     </div>
                                 </div>
                             </div>
@@ -1480,11 +1486,11 @@
                         <div class="tab-content" id="comparison-content">
                             <div class="chart-card">
                                 <h2>
-                                    <span data-i18n="class_comparison">РЎСЂР°РІРЅРµРЅРёРµ РєР»Р°СЃСЃРѕРІ</span>
+                                    <span data-i18n="class_comparison">Сравнение классов</span>
                                     <select id="comparisonType">
-                                        <option value="classes">РџРѕ РєР»Р°СЃСЃР°Рј</option>
-                                        <option value="subjects">РџРѕ РїСЂРµРґРјРµС‚Р°Рј</option>
-                                        <option value="students">РџРѕ СѓС‡РµРЅРёРєР°Рј</option>
+                                        <option value="classes">По классам</option>
+                                        <option value="subjects">По предметам</option>
+                                        <option value="students">По ученикам</option>
                                     </select>
                                 </h2>
                                 <div class="chart-container">
@@ -1493,24 +1499,24 @@
                             </div>
 
                             <div class="chart-card">
-                                <h2 data-i18n="detailed_comparison">Р”РµС‚Р°Р»СЊРЅРѕРµ СЃСЂР°РІРЅРµРЅРёРµ</h2>
+                                <h2 data-i18n="detailed_comparison">Детальное сравнение</h2>
                                 <div class="table-container">
                                     <table class="comparison-table" id="comparisonTable">
                                         <thead>
                                             <tr>
-                                                <th>РќР°Р·РІР°РЅРёРµ</th>
-                                                <th>РџРѕРїС‹С‚РѕРє</th>
-                                                <th>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
-                                                <th>РњРёРЅ Р±Р°Р»Р»</th>
-                                                <th>РњР°РєСЃ Р±Р°Р»Р»</th>
-                                                <th>РџСЂРѕРіСЂРµСЃСЃ</th>
+                                                <th>Название</th>
+                                                <th>Попыток</th>
+                                                <th>Средний балл</th>
+                                                <th>Мин балл</th>
+                                                <th>Макс балл</th>
+                                                <th>Прогресс</th>
                                             </tr>
                                         </thead>
                                         <tbody id="comparisonTableBody">
                                             <tr>
                                                 <td colspan="6" class="loading">
                                                     <div class="spinner"></div>
-                                                    <span>Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…...</span>
+                                                    <span>Загрузка данных...</span>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -1521,7 +1527,7 @@
 
                         <div class="tab-content" id="trends-content">
                             <div class="chart-card">
-                                <h2 data-i18n="activity_trends">РўСЂРµРЅРґС‹ Р°РєС‚РёРІРЅРѕСЃС‚Рё</h2>
+                                <h2 data-i18n="activity_trends">Тренды активности</h2>
                                 <div class="chart-container">
                                     <canvas id="trendsChart"></canvas>
                                 </div>
@@ -1529,11 +1535,11 @@
 
                             <div class="analytics-grid">
                                 <div class="chart-card">
-                                    <h2 data-i18n="top_classes">Р›СѓС‡С€РёРµ РєР»Р°СЃСЃС‹</h2>
+                                    <h2 data-i18n="top_classes">Лучшие классы</h2>
                                     <div id="topClassesList"></div>
                                 </div>
                                 <div class="chart-card">
-                                    <h2 data-i18n="needs_attention">РўСЂРµР±СѓСЋС‚ РІРЅРёРјР°РЅРёСЏ</h2>
+                                    <h2 data-i18n="needs_attention">Требуют внимания</h2>
                                     <div id="needsAttentionList"></div>
                                 </div>
                             </div>
@@ -1541,30 +1547,30 @@
 
                         <div class="tab-content" id="subjects-content">
                             <div class="chart-card">
-                                <h2 data-i18n="subject_performance">РЈСЃРїРµРІР°РµРјРѕСЃС‚СЊ РїРѕ РїСЂРµРґРјРµС‚Р°Рј</h2>
+                                <h2 data-i18n="subject_performance">Успеваемость по предметам</h2>
                                 <div class="chart-container">
                                     <canvas id="subjectsChart"></canvas>
                                 </div>
                             </div>
 
                             <div class="chart-card">
-                                <h2 data-i18n="subject_stats">РЎС‚Р°С‚РёСЃС‚РёРєР° РїРѕ РїСЂРµРґРјРµС‚Р°Рј</h2>
+                                <h2 data-i18n="subject_stats">Статистика по предметам</h2>
                                 <div class="table-container">
                                     <table class="comparison-table">
                                         <thead>
                                             <tr>
-                                                <th>РџСЂРµРґРјРµС‚</th>
-                                                <th>РўРµСЃС‚РѕРІ</th>
-                                                <th>РџРѕРїС‹С‚РѕРє</th>
-                                                <th>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
-                                                <th>РЎСЂРµРґРЅРµРµ РІСЂРµРјСЏ (РјРёРЅ)</th>
+                                                <th>Предмет</th>
+                                                <th>Тестов</th>
+                                                <th>Попыток</th>
+                                                <th>Средний балл</th>
+                                                <th>Среднее время (мин)</th>
                                             </tr>
                                         </thead>
                                         <tbody id="subjectsTableBody">
                                             <tr>
                                                 <td colspan="5" class="loading">
                                                     <div class="spinner"></div>
-                                                    <span>Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…...</span>
+                                                    <span>Загрузка данных...</span>
                                                 </td>
                                             </tr>
                                         </tbody>

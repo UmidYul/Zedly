@@ -1526,6 +1526,7 @@
         'assignments.templateHint': 'Шаблон автоматически заполняет тест, классы и даты.',
         'assignments.selectTest': 'Выберите тест',
         'assignments.classes': 'Классы',
+        'assignments.selectAllClasses': 'Выбрать все',
         'assignments.allClassesHint': 'Опция "Все классы" выбирает сразу все доступные классы.',
         'assignments.startDateTime': 'Дата и время начала',
         'assignments.endDateTime': 'Дата и время окончания',
@@ -1603,6 +1604,7 @@
         'assignments.templateHint': 'Shablon test, sinflar va sanalarni avtomatik to\'ldiradi.',
         'assignments.selectTest': 'Testni tanlang',
         'assignments.classes': 'Sinflar',
+        'assignments.selectAllClasses': 'Barchasini tanlash',
         'assignments.allClassesHint': '"Barcha sinflar" opsiyasi barcha mavjud sinflarni tanlaydi.',
         'assignments.startDateTime': 'Boshlanish sana va vaqti',
         'assignments.endDateTime': 'Tugash sana va vaqti',
@@ -1984,6 +1986,170 @@
         'subjects.deleteSubjectConfirm': '"{name}" fanini butunlay o\'chirmoqchimisiz?',
         'subjects.failedDeleteSubject': 'Fanni o\'chirib bo\'lmadi'
     });
+
+    Object.assign(translations.ru, {
+        'tools.schoolAdminOnly': 'Этот раздел доступен только для администратора школы.',
+        'tools.students': 'Ученики',
+        'tools.teachers': 'Учителя',
+        'tools.chooseFile': 'Выбрать файл',
+        'tools.noFileSelected': 'Файл не выбран',
+        'tools.readyToExport': 'Готово к экспорту',
+        'tools.refreshPreview': 'Обновить превью',
+        'tools.exportHistoryEmpty': 'История экспорта пуста.',
+        'tools.dataPreview': 'Предпросмотр данных',
+        'tools.notUpdated': 'Не обновлено',
+        'tools.checkCountsHint': 'Проверьте количество перед скачиванием файла.',
+        'tools.noSavedImportData': 'Нет сохраненных данных импорта',
+        'tools.preparing': 'Подготовка...',
+        'tools.exportInProgress': 'Экспорт выполняется...',
+        'tools.exportComplete': 'Экспорт завершен',
+        'tools.exportFailed': 'Не удалось выполнить экспорт',
+        'tools.failedExportUsers': 'Не удалось экспортировать пользователей',
+        'tools.refreshing': 'Обновление...',
+        'tools.updatedAt': 'Обновлено: {time}',
+        'tools.previewFailed': 'Не удалось обновить превью',
+        'tools.lastExportMeta': 'Последний экспорт: {date}. Файл: {file} ({size}).'
+    });
+
+    Object.assign(translations.uz, {
+        'tools.schoolAdminOnly': 'Bu bo\'lim faqat maktab administratori uchun mavjud.',
+        'tools.students': 'O\'quvchilar',
+        'tools.teachers': 'O\'qituvchilar',
+        'tools.chooseFile': 'Fayl tanlash',
+        'tools.noFileSelected': 'Fayl tanlanmagan',
+        'tools.readyToExport': 'Eksportga tayyor',
+        'tools.refreshPreview': 'Oldindan ko\'rishni yangilash',
+        'tools.exportHistoryEmpty': 'Eksport tarixi bo\'sh.',
+        'tools.dataPreview': 'Ma\'lumotlar oldindan ko\'rish',
+        'tools.notUpdated': 'Yangilanmagan',
+        'tools.checkCountsHint': 'Faylni yuklab olishdan oldin sonlarni tekshiring.',
+        'tools.noSavedImportData': 'Saqlangan import ma\'lumotlari yo\'q',
+        'tools.preparing': 'Tayyorlanmoqda...',
+        'tools.exportInProgress': 'Eksport bajarilmoqda...',
+        'tools.exportComplete': 'Eksport yakunlandi',
+        'tools.exportFailed': 'Eksportni bajarib bo\'lmadi',
+        'tools.failedExportUsers': 'Foydalanuvchilarni eksport qilib bo\'lmadi',
+        'tools.refreshing': 'Yangilanmoqda...',
+        'tools.updatedAt': 'Yangilandi: {time}',
+        'tools.previewFailed': 'Oldindan ko\'rishni yangilab bo\'lmadi',
+        'tools.lastExportMeta': 'So\'nggi eksport: {date}. Fayl: {file} ({size}).'
+    });
+
+    Object.assign(translations.ru, {
+        'tools.rowLabel': 'Строка',
+        'tools.totalRows': 'Всего строк',
+        'tools.processedRows': 'Обработано',
+        'tools.importedRows': 'Импортировано',
+        'tools.skippedRows': 'Пропущено',
+        'tools.errorsCount': 'Ошибки',
+        'tools.createdUsersOtp': 'Созданные пользователи (OTP)',
+        'tools.downloadLoginsOtp': 'Скачать логины и OTP (XLSX)',
+        'tools.newClassesNoHomeroom': 'Новые классы без классного руководителя',
+        'tools.selectHomeroomHint': 'Выберите классного руководителя для новых классов. Это можно сделать позже.',
+        'tools.assignHomeroomTeachers': 'Назначить классных руководителей',
+        'tools.showingFirstErrors': 'Показаны первые 300 ошибок.',
+        'tools.skippedRowsTitle': 'Пропущенные строки',
+        'tools.showingFirstSkipped': 'Показаны первые 300 пропущенных строк.',
+        'tools.lastImportWithFile': 'Последний импорт: {date}. Файл с логинами/OTP доступен.',
+        'tools.failedDownloadOtpFile': 'Не удалось скачать файл с логинами/OTP',
+        'tools.failedLoadTeachersList': 'Не удалось загрузить список учителей',
+        'tools.noHomeroomTeacher': 'Без классного руководителя',
+        'tools.assignHomeroomTeacher': 'Назначить классного руководителя',
+        'tools.assignTeachersAfterImport': 'Назначьте учителей для новых классов после импорта.',
+        'tools.later': 'Позже',
+        'tools.homeroomSaved': 'Классные руководители назначены',
+        'tools.failedSaveAssignments': 'Не удалось сохранить назначения'
+    });
+
+    Object.assign(translations.uz, {
+        'tools.rowLabel': 'Qator',
+        'tools.totalRows': 'Jami qatorlar',
+        'tools.processedRows': 'Qayta ishlangan',
+        'tools.importedRows': 'Import qilingan',
+        'tools.skippedRows': 'O\'tkazib yuborilgan',
+        'tools.errorsCount': 'Xatolar',
+        'tools.createdUsersOtp': 'Yaratilgan foydalanuvchilar (OTP)',
+        'tools.downloadLoginsOtp': 'Login va OTP ni yuklab olish (XLSX)',
+        'tools.newClassesNoHomeroom': 'Sinf rahbarisiz yangi sinflar',
+        'tools.selectHomeroomHint': 'Yangi sinflar uchun sinf rahbarini tanlang. Buni keyinroq ham qilish mumkin.',
+        'tools.assignHomeroomTeachers': 'Sinf rahbarlarini tayinlash',
+        'tools.showingFirstErrors': 'Birinchi 300 ta xato ko\'rsatilmoqda.',
+        'tools.skippedRowsTitle': 'O\'tkazib yuborilgan qatorlar',
+        'tools.showingFirstSkipped': 'Birinchi 300 ta o\'tkazib yuborilgan qator ko\'rsatilmoqda.',
+        'tools.lastImportWithFile': 'So\'nggi import: {date}. Login/OTP fayli mavjud.',
+        'tools.failedDownloadOtpFile': 'Login/OTP faylini yuklab bo\'lmadi',
+        'tools.failedLoadTeachersList': 'O\'qituvchilar ro\'yxatini yuklab bo\'lmadi',
+        'tools.noHomeroomTeacher': 'Sinf rahbarisiz',
+        'tools.assignHomeroomTeacher': 'Sinf rahbarini tayinlash',
+        'tools.assignTeachersAfterImport': 'Importdan so\'ng yangi sinflar uchun o\'qituvchilarni tayinlang.',
+        'tools.later': 'Keyinroq',
+        'tools.homeroomSaved': 'Sinf rahbarlari tayinlandi',
+        'tools.failedSaveAssignments': 'Tayinlovlarni saqlab bo\'lmadi'
+    });
+
+    function normalizeRuMojibake() {
+        const decoder = typeof TextDecoder !== 'undefined'
+            ? new TextDecoder('utf-8', { fatal: false })
+            : null;
+        if (!decoder || !translations?.ru) return;
+
+        const cp1251High = [
+            '\u0402', '\u0403', '\u201A', '\u0453', '\u201E', '\u2026', '\u2020', '\u2021',
+            '\u20AC', '\u2030', '\u0409', '\u2039', '\u040A', '\u040C', '\u040B', '\u040F',
+            '\u0452', '\u2018', '\u2019', '\u201C', '\u201D', '\u2022', '\u2013', '\u2014',
+            '\u0098', '\u2122', '\u0459', '\u203A', '\u045A', '\u045C', '\u045B', '\u045F',
+            '\u00A0', '\u040E', '\u045E', '\u0408', '\u00A4', '\u0490', '\u00A6', '\u00A7',
+            '\u0401', '\u00A9', '\u0404', '\u00AB', '\u00AC', '\u00AD', '\u00AE', '\u0407',
+            '\u00B0', '\u00B1', '\u0406', '\u0456', '\u0491', '\u00B5', '\u00B6', '\u00B7',
+            '\u0451', '\u2116', '\u0454', '\u00BB', '\u0458', '\u0405', '\u0455', '\u0457',
+            '\u0410', '\u0411', '\u0412', '\u0413', '\u0414', '\u0415', '\u0416', '\u0417',
+            '\u0418', '\u0419', '\u041A', '\u041B', '\u041C', '\u041D', '\u041E', '\u041F',
+            '\u0420', '\u0421', '\u0422', '\u0423', '\u0424', '\u0425', '\u0426', '\u0427',
+            '\u0428', '\u0429', '\u042A', '\u042B', '\u042C', '\u042D', '\u042E', '\u042F',
+            '\u0430', '\u0431', '\u0432', '\u0433', '\u0434', '\u0435', '\u0436', '\u0437',
+            '\u0438', '\u0439', '\u043A', '\u043B', '\u043C', '\u043D', '\u043E', '\u043F',
+            '\u0440', '\u0441', '\u0442', '\u0443', '\u0444', '\u0445', '\u0446', '\u0447',
+            '\u0448', '\u0449', '\u044A', '\u044B', '\u044C', '\u044D', '\u044E', '\u044F'
+        ];
+
+        const cp1251Map = new Map();
+        cp1251High.forEach((ch, idx) => cp1251Map.set(ch, idx + 0x80));
+
+        function looksLikeMojibake(value) {
+            if (typeof value !== 'string' || value.length < 4) return false;
+            const suspicious = (value.match(/[РСв]/g) || []).length;
+            return suspicious >= 3 && suspicious / value.length > 0.22;
+        }
+
+        function decodeCp1251AsUtf8(value) {
+            const bytes = [];
+            for (const ch of value) {
+                const code = ch.charCodeAt(0);
+                if (code <= 0x7F) {
+                    bytes.push(code);
+                    continue;
+                }
+                const mapped = cp1251Map.get(ch);
+                if (typeof mapped !== 'number') {
+                    return value;
+                }
+                bytes.push(mapped);
+            }
+            try {
+                return decoder.decode(new Uint8Array(bytes));
+            } catch (error) {
+                return value;
+            }
+        }
+
+        Object.keys(translations.ru).forEach((key) => {
+            const value = translations.ru[key];
+            if (!looksLikeMojibake(value)) return;
+            translations.ru[key] = decodeCp1251AsUtf8(value);
+        });
+    }
+
+    normalizeRuMojibake();
 
     window.ZedlyI18n = {
         setLang,

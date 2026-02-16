@@ -4,6 +4,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const XLSX = require('xlsx');
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const bcrypt = require('bcrypt');
@@ -699,6 +700,353 @@ router.delete('/tests/:id', async (req, res) => {
     }
 });
 
+const questionExcelUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 8 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const fileName = String(file.originalname || '').toLowerCase();
+        const mime = String(file.mimetype || '').toLowerCase();
+        const allowedMime = new Set([
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+            'application/octet-stream'
+        ]);
+        const hasAllowedExt = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+        if (!hasAllowedExt && !allowedMime.has(mime)) {
+            return cb(new Error('Only .xlsx/.xls files are allowed'));
+        }
+        cb(null, true);
+    }
+});
+
+const SHEET_TO_TYPE = {
+    singlechoice: 'singlechoice',
+    single_choice: 'singlechoice',
+    single: 'singlechoice',
+    singlechoicequestions: 'singlechoice',
+    multiplechoice: 'multiplechoice',
+    multiple_choice: 'multiplechoice',
+    multiple: 'multiplechoice',
+    truefalse: 'truefalse',
+    true_false: 'truefalse',
+    boolean: 'truefalse',
+    shortanswer: 'shortanswer',
+    short_answer: 'shortanswer',
+    text: 'shortanswer',
+    matching: 'matching',
+    pairs: 'matching',
+    ordering: 'ordering',
+    order: 'ordering',
+    sequence: 'ordering',
+    fillblanks: 'fillblanks',
+    fill_blanks: 'fillblanks',
+    blanks: 'fillblanks',
+    imagebased: 'imagebased',
+    image_based: 'imagebased',
+    image: 'imagebased',
+    photo: 'imagebased'
+};
+
+function normalizeImportKey(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[.\s\-]+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
+}
+
+function buildRowMap(row) {
+    const map = {};
+    Object.keys(row || {}).forEach((key) => {
+        map[normalizeImportKey(key)] = row[key];
+    });
+    return map;
+}
+
+function readAliases(rowMap, aliases) {
+    for (const alias of aliases) {
+        const key = normalizeImportKey(alias);
+        if (Object.prototype.hasOwnProperty.call(rowMap, key)) {
+            const value = rowMap[key];
+            if (value !== null && value !== undefined && String(value).trim() !== '') {
+                return value;
+            }
+        }
+    }
+    return '';
+}
+
+function parseMarks(raw) {
+    const marks = parseInt(raw, 10);
+    return Number.isFinite(marks) && marks > 0 ? marks : 1;
+}
+
+function parseDelimited(value) {
+    return String(value || '')
+        .split('|')
+        .map((part) => part.trim())
+        .filter(Boolean);
+}
+
+function parseOptions(rowMap) {
+    const inline = readAliases(rowMap, ['options', 'answers', 'variants']);
+    if (inline) return parseDelimited(inline);
+
+    const options = [];
+    for (let i = 1; i <= 12; i++) {
+        const value = readAliases(rowMap, [`option_${i}`, `option${i}`, `answer_${i}`, `answer${i}`]);
+        if (!value) break;
+        options.push(String(value).trim());
+    }
+    return options;
+}
+
+function parseCorrectIndices(raw, optionCount) {
+    if (raw === null || raw === undefined) return [];
+    const text = String(raw).trim();
+    if (!text) return [];
+    const parts = text.split(/[;,|]/).map((x) => x.trim()).filter(Boolean);
+    const source = parts.length ? parts : [text];
+    const indices = source
+        .map((part) => parseInt(part, 10))
+        .filter((n) => Number.isFinite(n))
+        .map((n) => n - 1)
+        .filter((idx) => idx >= 0 && idx < optionCount);
+    return Array.from(new Set(indices));
+}
+
+function parseTrueFalse(raw) {
+    const value = String(raw || '').trim().toLowerCase();
+    if (!value) return null;
+    if (['true', '1', 'yes', 'y', 'верно', 'истина'].includes(value)) return 'true';
+    if (['false', '0', 'no', 'n', 'неверно', 'ложь'].includes(value)) return 'false';
+    return null;
+}
+
+function parseMatchingPairs(rowMap) {
+    const packed = readAliases(rowMap, ['pairs', 'matching_pairs']);
+    if (packed) {
+        const pairs = parseDelimited(packed)
+            .map((chunk) => chunk.split('=>'))
+            .map(([left, right]) => ({ left: String(left || '').trim(), right: String(right || '').trim() }))
+            .filter((pair) => pair.left && pair.right);
+        if (pairs.length) return pairs;
+    }
+
+    const pairs = [];
+    for (let i = 1; i <= 12; i++) {
+        const left = readAliases(rowMap, [`left_${i}`, `left${i}`]);
+        const right = readAliases(rowMap, [`right_${i}`, `right${i}`]);
+        if (!left && !right) break;
+        if (left && right) pairs.push({ left: String(left).trim(), right: String(right).trim() });
+    }
+    return pairs;
+}
+
+function parseOrderingItems(rowMap) {
+    const packed = readAliases(rowMap, ['items', 'ordering_items', 'sequence']);
+    if (packed) return parseDelimited(packed);
+
+    const items = [];
+    for (let i = 1; i <= 12; i++) {
+        const value = readAliases(rowMap, [`item_${i}`, `item${i}`]);
+        if (!value) break;
+        items.push(String(value).trim());
+    }
+    return items;
+}
+
+function parseBlankAnswers(rowMap) {
+    const packed = readAliases(rowMap, ['blank_answers', 'answers', 'correct_answers']);
+    if (packed) return parseDelimited(packed);
+
+    const answers = [];
+    for (let i = 1; i <= 12; i++) {
+        const value = readAliases(rowMap, [`blank_${i}`, `blank${i}`, `answer_${i}`, `answer${i}`]);
+        if (!value) break;
+        answers.push(String(value).trim());
+    }
+    return answers;
+}
+
+function parseQuestionRow(questionType, rowMap) {
+    const questionText = String(readAliases(rowMap, ['question_text', 'question', 'text'])).trim();
+    const marks = parseMarks(readAliases(rowMap, ['marks', 'points', 'score']));
+    const mediaUrl = String(readAliases(rowMap, ['media_url', 'image_url', 'url'])).trim() || null;
+
+    if (!questionText) return null;
+
+    if (questionType === 'singlechoice' || questionType === 'multiplechoice' || questionType === 'imagebased') {
+        const options = parseOptions(rowMap);
+        if (options.length < 2) return null;
+
+        const rawCorrect = readAliases(rowMap, ['correct_answer', 'correct', 'correct_index', 'correct_indices']);
+        const correct = parseCorrectIndices(rawCorrect, options.length);
+        if (!correct.length) return null;
+
+        const payload = {
+            question_type: questionType,
+            question_text: questionText,
+            options,
+            correct_answer: questionType === 'multiplechoice' ? correct : correct[0],
+            marks,
+            media_url: questionType === 'imagebased' ? mediaUrl : null
+        };
+        if (questionType === 'imagebased' && !payload.media_url) return null;
+        return payload;
+    }
+
+    if (questionType === 'truefalse') {
+        const value = parseTrueFalse(readAliases(rowMap, ['correct_answer', 'correct', 'answer']));
+        if (!value) return null;
+        return {
+            question_type: questionType,
+            question_text: questionText,
+            options: [],
+            correct_answer: value,
+            marks,
+            media_url: mediaUrl
+        };
+    }
+
+    if (questionType === 'shortanswer') {
+        const answers = parseDelimited(readAliases(rowMap, ['correct_answer', 'answers', 'correct_answers']));
+        if (!answers.length) return null;
+        return {
+            question_type: questionType,
+            question_text: questionText,
+            options: [],
+            correct_answer: answers.length === 1 ? answers[0] : answers,
+            marks,
+            media_url: mediaUrl
+        };
+    }
+
+    if (questionType === 'matching') {
+        const pairs = parseMatchingPairs(rowMap);
+        if (pairs.length < 2) return null;
+        return {
+            question_type: questionType,
+            question_text: questionText,
+            options: pairs,
+            correct_answer: pairs.map((_, i) => i),
+            marks,
+            media_url: mediaUrl
+        };
+    }
+
+    if (questionType === 'ordering') {
+        const items = parseOrderingItems(rowMap);
+        if (items.length < 2) return null;
+        return {
+            question_type: questionType,
+            question_text: questionText,
+            options: items,
+            correct_answer: items.map((_, i) => i),
+            marks,
+            media_url: mediaUrl
+        };
+    }
+
+    if (questionType === 'fillblanks') {
+        const blanks = parseBlankAnswers(rowMap);
+        if (!blanks.length) return null;
+        return {
+            question_type: questionType,
+            question_text: questionText,
+            options: [],
+            correct_answer: blanks,
+            marks,
+            media_url: mediaUrl
+        };
+    }
+
+    return null;
+}
+
+function parseQuestionsFromWorkbook(workbook) {
+    const questions = [];
+    const stats = { imported: 0, skipped: 0, sheets: [] };
+
+    (workbook.SheetNames || []).forEach((sheetName) => {
+        const normalizedSheet = normalizeImportKey(sheetName).replace(/_/g, '');
+        const questionType = SHEET_TO_TYPE[normalizedSheet] || SHEET_TO_TYPE[normalizeImportKey(sheetName)];
+        if (!questionType) return;
+
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', blankrows: false });
+        let imported = 0;
+        let skipped = 0;
+
+        rows.forEach((row) => {
+            const rowMap = buildRowMap(row);
+            const hasAnyValue = Object.values(rowMap).some((value) => String(value || '').trim() !== '');
+            if (!hasAnyValue) return;
+
+            const parsed = parseQuestionRow(questionType, rowMap);
+            if (!parsed) {
+                skipped += 1;
+                return;
+            }
+
+            questions.push(parsed);
+            imported += 1;
+        });
+
+        stats.imported += imported;
+        stats.skipped += skipped;
+        stats.sheets.push({ sheet: sheetName, type: questionType, imported, skipped });
+    });
+
+    return { questions, stats };
+}
+
+function buildQuestionImportTemplateWorkbook() {
+    const wb = XLSX.utils.book_new();
+
+    const sheets = [
+        {
+            name: 'singlechoice',
+            rows: [{ question_text: 'Capital of France?', marks: 1, option1: 'Paris', option2: 'London', option3: 'Berlin', option4: 'Rome', correct: '1' }]
+        },
+        {
+            name: 'multiplechoice',
+            rows: [{ question_text: 'Select prime numbers', marks: 1, option1: '2', option2: '3', option3: '4', option4: '5', correct: '1,2,4' }]
+        },
+        {
+            name: 'truefalse',
+            rows: [{ question_text: 'The Sun is a star', marks: 1, correct: 'true' }]
+        },
+        {
+            name: 'shortanswer',
+            rows: [{ question_text: 'Chemical symbol for water', marks: 1, correct_answers: 'H2O|h2o' }]
+        },
+        {
+            name: 'matching',
+            rows: [{ question_text: 'Match country and capital', marks: 2, left1: 'France', right1: 'Paris', left2: 'Germany', right2: 'Berlin' }]
+        },
+        {
+            name: 'ordering',
+            rows: [{ question_text: 'Order planets from Sun', marks: 2, item1: 'Mercury', item2: 'Venus', item3: 'Earth' }]
+        },
+        {
+            name: 'fillblanks',
+            rows: [{ question_text: '___ is the largest planet in the Solar System', marks: 1, blank1: 'Jupiter' }]
+        },
+        {
+            name: 'imagebased',
+            rows: [{ question_text: 'What is shown in the image?', marks: 1, media_url: 'https://example.com/image.jpg', option1: 'Cat', option2: 'Dog', option3: 'Bird', option4: 'Fish', correct: '2' }]
+        }
+    ];
+
+    sheets.forEach((sheet) => {
+        const ws = XLSX.utils.json_to_sheet(sheet.rows, { skipHeader: false });
+        XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+    });
+
+    return wb;
+}
+
 /**
  * GET /api/teacher/subjects
  * Get subjects for dropdowns
@@ -1276,6 +1624,64 @@ router.post('/students/:id/reset-password', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to reset password'
+        });
+    }
+});
+
+/**
+ * GET /api/teacher/tests/questions/import-template
+ * Download Excel template for question import.
+ */
+router.get('/tests/questions/import-template', async (req, res) => {
+    try {
+        const workbook = buildQuestionImportTemplateWorkbook();
+        const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename=\"test_questions_import_template.xlsx\"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Questions import template error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to generate import template'
+        });
+    }
+});
+
+/**
+ * POST /api/teacher/tests/questions/import-excel
+ * Parse questions from uploaded excel where each sheet = question type.
+ */
+router.post('/tests/questions/import-excel', questionExcelUpload.single('file'), async (req, res) => {
+    try {
+        if (!req.file || !req.file.buffer) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Excel file is required'
+            });
+        }
+
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const { questions, stats } = parseQuestionsFromWorkbook(workbook);
+        if (!questions.length) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'No valid questions found in workbook',
+                stats
+            });
+        }
+
+        res.json({
+            message: 'Questions imported successfully',
+            questions,
+            stats
+        });
+    } catch (error) {
+        console.error('Import questions excel error:', error);
+        res.status(400).json({
+            error: 'validation_error',
+            message: 'Failed to parse Excel file'
         });
     }
 });

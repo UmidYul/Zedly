@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     function showConfirm(message, title = 'Подтверждение') {
@@ -163,7 +163,7 @@
         }
 
         select.innerHTML = state.classes.map((cls) => {
-            const label = `${cls.name || 'Класс'} · ${cls.grade_level || '-'} класс`;
+            const label = `${cls.name || 'Класс'} • ${cls.grade_level || '-'} класс`;
             return `<option value="${cls.id}">${label}</option>`;
         }).join('');
 
@@ -256,6 +256,7 @@
             alert(`Временный пароль для ${studentName}: ${data.tempPassword || '-'}`);
         }
     }
+
     async function loadClassData(classId) {
         state.activeClassId = classId;
 

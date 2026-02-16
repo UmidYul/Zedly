@@ -1,4 +1,4 @@
-// Test Editor Module - Question Constructor
+﻿// Test Editor Module - Question Constructor
 (function () {
     'use strict';
 
@@ -7,7 +7,7 @@
     }
 
     function showConfirm(message, title = null) {
-        const dialogTitle = title || t('common.confirmation', 'Подтверждение');
+        const dialogTitle = title || t('common.confirmation', 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ');
         if (window.ZedlyDialog?.confirm) {
             return window.ZedlyDialog.confirm(message, { title: dialogTitle });
         }
@@ -16,14 +16,14 @@
 
     // Question types configuration
     const QUESTION_TYPES = {
-        SINGLE_CHOICE: { id: 'singlechoice', name: t('testEditor.typeSingleChoice', 'Один выбор'), icon: '⦿', description: t('testEditor.typeSingleChoiceDesc', 'Один правильный ответ') },
-        MULTIPLE_CHOICE: { id: 'multiplechoice', name: t('testEditor.typeMultipleChoice', 'Множественный выбор'), icon: '☑', description: t('testEditor.typeMultipleChoiceDesc', 'Несколько правильных ответов') },
-        TRUE_FALSE: { id: 'truefalse', name: t('testEditor.typeTrueFalse', 'Верно/Неверно'), icon: '✓✗', description: t('testEditor.typeTrueFalseDesc', 'Выберите верное утверждение') },
-        SHORT_ANSWER: { id: 'shortanswer', name: t('testEditor.typeShortAnswer', 'Краткий ответ'), icon: '✎', description: t('testEditor.typeShortAnswerDesc', 'Короткий текстовый ответ') },
-        MATCHING: { id: 'matching', name: t('testEditor.typeMatching', 'Сопоставление'), icon: '⇄', description: t('testEditor.typeMatchingDesc', 'Соедините пары') },
-        ORDERING: { id: 'ordering', name: t('testEditor.typeOrdering', 'Последовательность'), icon: '↕', description: t('testEditor.typeOrderingDesc', 'Расположите в правильном порядке') },
-        FILL_BLANKS: { id: 'fillblanks', name: t('testEditor.typeFillBlanks', 'Заполнить пропуски'), icon: '___', description: t('testEditor.typeFillBlanksDesc', 'Заполните пропущенные слова') },
-        IMAGE_BASED: { id: 'imagebased', name: t('testEditor.typeImageBased', 'По изображению'), icon: '🖼', description: t('testEditor.typeImageBasedDesc', 'Вопрос с изображением') }
+        SINGLE_CHOICE: { id: 'singlechoice', name: t('testEditor.typeSingleChoice', 'РћРґРёРЅ РІС‹Р±РѕСЂ'), icon: 'в¦ї', description: t('testEditor.typeSingleChoiceDesc', 'РћРґРёРЅ РїСЂР°РІРёР»СЊРЅС‹Р№ РѕС‚РІРµС‚') },
+        MULTIPLE_CHOICE: { id: 'multiplechoice', name: t('testEditor.typeMultipleChoice', 'РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№ РІС‹Р±РѕСЂ'), icon: 'в‘', description: t('testEditor.typeMultipleChoiceDesc', 'РќРµСЃРєРѕР»СЊРєРѕ РїСЂР°РІРёР»СЊРЅС‹С… РѕС‚РІРµС‚РѕРІ') },
+        TRUE_FALSE: { id: 'truefalse', name: t('testEditor.typeTrueFalse', 'Р’РµСЂРЅРѕ/РќРµРІРµСЂРЅРѕ'), icon: 'вњ“вњ—', description: t('testEditor.typeTrueFalseDesc', 'Р’С‹Р±РµСЂРёС‚Рµ РІРµСЂРЅРѕРµ СѓС‚РІРµСЂР¶РґРµРЅРёРµ') },
+        SHORT_ANSWER: { id: 'shortanswer', name: t('testEditor.typeShortAnswer', 'РљСЂР°С‚РєРёР№ РѕС‚РІРµС‚'), icon: 'вњЋ', description: t('testEditor.typeShortAnswerDesc', 'РљРѕСЂРѕС‚РєРёР№ С‚РµРєСЃС‚РѕРІС‹Р№ РѕС‚РІРµС‚') },
+        MATCHING: { id: 'matching', name: t('testEditor.typeMatching', 'РЎРѕРїРѕСЃС‚Р°РІР»РµРЅРёРµ'), icon: 'в‡„', description: t('testEditor.typeMatchingDesc', 'РЎРѕРµРґРёРЅРёС‚Рµ РїР°СЂС‹') },
+        ORDERING: { id: 'ordering', name: t('testEditor.typeOrdering', 'РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ'), icon: 'в†•', description: t('testEditor.typeOrderingDesc', 'Р Р°СЃРїРѕР»РѕР¶РёС‚Рµ РІ РїСЂР°РІРёР»СЊРЅРѕРј РїРѕСЂСЏРґРєРµ') },
+        FILL_BLANKS: { id: 'fillblanks', name: t('testEditor.typeFillBlanks', 'Р—Р°РїРѕР»РЅРёС‚СЊ РїСЂРѕРїСѓСЃРєРё'), icon: '___', description: t('testEditor.typeFillBlanksDesc', 'Р—Р°РїРѕР»РЅРёС‚Рµ РїСЂРѕРїСѓС‰РµРЅРЅС‹Рµ СЃР»РѕРІР°') },
+        IMAGE_BASED: { id: 'imagebased', name: t('testEditor.typeImageBased', 'РџРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЋ'), icon: 'рџ–ј', description: t('testEditor.typeImageBasedDesc', 'Р’РѕРїСЂРѕСЃ СЃ РёР·РѕР±СЂР°Р¶РµРЅРёРµРј') }
     };
 
     window.TestEditor = {
@@ -59,11 +59,11 @@
                     this.currentTest = data.test;
                     this.questions = data.questions || [];
                 } else {
-                    throw new Error(t('tests.failedLoadTest', 'Не удалось загрузить тест'));
+                    throw new Error(t('tests.failedLoadTest', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С‚РµСЃС‚'));
                 }
             } catch (error) {
                 console.error('Load test error:', error);
-                alert(t('tests.failedLoadTest', 'Не удалось загрузить тест'));
+                alert(t('tests.failedLoadTest', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С‚РµСЃС‚'));
             }
         },
 
@@ -84,6 +84,80 @@
             }
         },
 
+        downloadImportTemplate: async function () {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/teacher/tests/questions/import-template', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error(t('testEditor.downloadTemplateFailed', 'Failed to download import template'));
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'test_questions_import_template.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Download import template error:', error);
+                alert(error.message || t('testEditor.downloadTemplateFailed', 'Failed to download import template'));
+            }
+        },
+
+        triggerImportExcel: function () {
+            const input = document.getElementById('questionsImportFile');
+            if (input) input.click();
+        },
+
+        importFromExcelFile: async function (file) {
+            if (!file) return;
+            const name = String(file.name || '').toLowerCase();
+            if (!name.endsWith('.xlsx') && !name.endsWith('.xls')) {
+                alert(t('testEditor.importExcelInvalidType', 'Select an Excel file (.xlsx or .xls)'));
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/teacher/tests/questions/import-excel', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.message || t('testEditor.importExcelFailed', 'Failed to import questions'));
+                }
+
+                const importedQuestions = Array.isArray(data.questions) ? data.questions : [];
+                if (!importedQuestions.length) {
+                    alert(t('testEditor.importExcelNoQuestions', 'No valid questions found in file'));
+                    return;
+                }
+
+                this.questions = this.questions.concat(importedQuestions);
+                this.updateQuestionsList();
+
+                const imported = Number(data?.stats?.imported || importedQuestions.length);
+                const skipped = Number(data?.stats?.skipped || 0);
+                alert(t('testEditor.importExcelSuccess', `Questions imported: ${imported}. Skipped: ${skipped}.`));
+            } catch (error) {
+                console.error('Import questions from excel error:', error);
+                alert(error.message || t('testEditor.importExcelFailed', 'Failed to import questions'));
+            } finally {
+                const input = document.getElementById('questionsImportFile');
+                if (input) input.value = '';
+            }
+        },
+
         // Render editor modal
         render: function () {
             const test = this.currentTest || {};
@@ -91,7 +165,7 @@
                 <div class="modal-overlay" id="testEditorModal">
                     <div class="modal modal-xl test-editor">
                         <div class="modal-header">
-                            <h2 class="modal-title">${test.id ? t('testEditor.editTest', 'Редактировать тест') : t('testEditor.createNewTest', 'Создать новый тест')}</h2>
+                            <h2 class="modal-title">${test.id ? t('testEditor.editTest', 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ С‚РµСЃС‚') : t('testEditor.createNewTest', 'РЎРѕР·РґР°С‚СЊ РЅРѕРІС‹Р№ С‚РµСЃС‚')}</h2>
                             <button class="modal-close" onclick="TestEditor.close()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -102,16 +176,16 @@
                         <div class="modal-body test-editor-body">
                             <!-- Test Settings -->
                             <div class="test-editor-section">
-                                <h3 class="section-title">${t('testEditor.testInformation', 'Информация о тесте')}</h3>
+                                <h3 class="section-title">${t('testEditor.testInformation', 'РРЅС„РѕСЂРјР°С†РёСЏ Рѕ С‚РµСЃС‚Рµ')}</h3>
                                 <div class="form-row">
                                     <div class="form-group" style="flex: 2;">
-                                        <label class="form-label">${t('testEditor.testTitle', 'Название теста')} <span class="required">*</span></label>
-                                        <input type="text" id="testTitle" class="form-input" value="${test.title || ''}" placeholder="${t('testEditor.testTitlePlaceholder', 'Введите название теста')}" required>
+                                        <label class="form-label">${t('testEditor.testTitle', 'РќР°Р·РІР°РЅРёРµ С‚РµСЃС‚Р°')} <span class="required">*</span></label>
+                                        <input type="text" id="testTitle" class="form-input" value="${test.title || ''}" placeholder="${t('testEditor.testTitlePlaceholder', 'Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ С‚РµСЃС‚Р°')}" required>
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">${t('testEditor.subject', 'Предмет')} <span class="required">*</span></label>
+                                        <label class="form-label">${t('testEditor.subject', 'РџСЂРµРґРјРµС‚')} <span class="required">*</span></label>
                                         <select id="testSubject" class="form-input" required>
-                                            <option value="">${t('testEditor.selectSubject', 'Выберите предмет')}</option>
+                                            <option value="">${t('testEditor.selectSubject', 'Р’С‹Р±РµСЂРёС‚Рµ РїСЂРµРґРјРµС‚')}</option>
                                             ${this.subjects.map(s => `
                                                 <option value="${s.id}" ${test.subject_id == s.id ? 'selected' : ''}>${s.name}</option>
                                             `).join('')}
@@ -119,43 +193,43 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">${t('testEditor.description', 'Описание')}</label>
-                                    <textarea id="testDescription" class="form-textarea" rows="3" placeholder="${t('testEditor.descriptionPlaceholder', 'Введите описание теста')}">${test.description || ''}</textarea>
+                                    <label class="form-label">${t('testEditor.description', 'РћРїРёСЃР°РЅРёРµ')}</label>
+                                    <textarea id="testDescription" class="form-textarea" rows="3" placeholder="${t('testEditor.descriptionPlaceholder', 'Р’РІРµРґРёС‚Рµ РѕРїРёСЃР°РЅРёРµ С‚РµСЃС‚Р°')}">${test.description || ''}</textarea>
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label class="form-label">${t('testEditor.durationMinutes', 'Длительность (минуты)')}</label>
+                                        <label class="form-label">${t('testEditor.durationMinutes', 'Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ (РјРёРЅСѓС‚С‹)')}</label>
                                         <input type="number" id="testDuration" class="form-input" value="${test.duration_minutes || 60}" min="1">
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">${t('testEditor.passingScore', 'Проходной балл (%)')}</label>
+                                        <label class="form-label">${t('testEditor.passingScore', 'РџСЂРѕС…РѕРґРЅРѕР№ Р±Р°Р»Р» (%)')}</label>
                                         <input type="number" id="testPassingScore" class="form-input" value="${test.passing_score || 60}" min="0" max="100">
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">${t('testEditor.maxAttempts', 'Макс. попыток')}</label>
+                                        <label class="form-label">${t('testEditor.maxAttempts', 'РњР°РєСЃ. РїРѕРїС‹С‚РѕРє')}</label>
                                         <input type="number" id="testMaxAttempts" class="form-input" value="${test.max_attempts || 1}" min="1">
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">${t('testEditor.questionOrder', 'Порядок вопросов')}</label>
+                                    <label class="form-label">${t('testEditor.questionOrder', 'РџРѕСЂСЏРґРѕРє РІРѕРїСЂРѕСЃРѕРІ')}</label>
                                     <label class="checkbox-label">
                                         <input type="checkbox" id="testShuffleQuestions" ${test.shuffle_questions ? 'checked' : ''}>
-                                        <span>${t('testEditor.shuffleQuestions', 'Перемешивать вопросы для учеников')}</span>
+                                        <span>${t('testEditor.shuffleQuestions', 'РџРµСЂРµРјРµС€РёРІР°С‚СЊ РІРѕРїСЂРѕСЃС‹ РґР»СЏ СѓС‡РµРЅРёРєРѕРІ')}</span>
                                     </label>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">${t('testEditor.antiCheating', 'Анти-списывание')}</label>
+                                    <label class="form-label">${t('testEditor.antiCheating', 'РђРЅС‚Рё-СЃРїРёСЃС‹РІР°РЅРёРµ')}</label>
                                     <label class="checkbox-label">
                                         <input type="checkbox" id="testBlockCopyPaste" ${test.block_copy_paste !== false ? 'checked' : ''}>
-                                        <span>${t('testEditor.blockCopyPaste', 'Запретить копирование/вставку')}</span>
+                                        <span>${t('testEditor.blockCopyPaste', 'Р—Р°РїСЂРµС‚РёС‚СЊ РєРѕРїРёСЂРѕРІР°РЅРёРµ/РІСЃС‚Р°РІРєСѓ')}</span>
                                     </label>
                                     <label class="checkbox-label" style="margin-left: 16px;">
                                         <input type="checkbox" id="testTrackTabSwitches" ${test.track_tab_switches !== false ? 'checked' : ''}>
-                                        <span>${t('testEditor.trackTabSwitches', 'Отслеживать переключение вкладок')}</span>
+                                        <span>${t('testEditor.trackTabSwitches', 'РћС‚СЃР»РµР¶РёРІР°С‚СЊ РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РІРєР»Р°РґРѕРє')}</span>
                                     </label>
                                     <label class="checkbox-label" style="margin-left: 16px;">
                                         <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required !== false ? 'checked' : ''}>
-                                        <span>${t('testEditor.requireFullscreen', 'Требовать полноэкранный режим')}</span>
+                                        <span>${t('testEditor.requireFullscreen', 'РўСЂРµР±РѕРІР°С‚СЊ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј')}</span>
                                     </label>
                                 </div>
                             </div>
@@ -163,24 +237,31 @@
                             <!-- Questions Section -->
                             <div class="test-editor-section">
                                 <div class="section-header">
-                                    <h3 class="section-title" id="questionsSectionTitle">${t('testEditor.questions', 'Вопросы')} (${this.questions.length})</h3>
-                                    <button class="btn btn-primary btn-sm" onclick="TestEditor.showQuestionTypeSelector()">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                                        </svg>
-                                        ${t('testEditor.addQuestion', 'Добавить вопрос')}
-                                    </button>
+                                    <h3 class="section-title" id="questionsSectionTitle">${t('testEditor.questions', 'Р’РѕРїСЂРѕСЃС‹')} (${this.questions.length})</h3>
+                                    <button class="btn btn-outline btn-sm" onclick="TestEditor.downloadImportTemplate()">
+                                            ${t('testEditor.downloadImportTemplate', 'Download template')}
+                                        </button>
+                                        <button class="btn btn-outline btn-sm" onclick="TestEditor.triggerImportExcel()">
+                                            ${t('testEditor.importFromExcel', 'Import Excel')}
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" onclick="TestEditor.showQuestionTypeSelector()">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            </svg>
+                                            ${t('testEditor.addQuestion', 'Р”РѕР±Р°РІРёС‚СЊ РІРѕРїСЂРѕСЃ')}
+                                        </button>
                                 </div>
+                                <input id="questionsImportFile" type="file" accept=".xlsx,.xls" style="display:none;">
                                 <div id="questionsList">
                                     ${this.renderQuestionsList()}
                                 </div>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="TestEditor.close()">${t('common.close', 'Закрыть')}</button>
-                            <button class="btn btn-outline" onclick="TestEditor.saveAsDraft()">${t('testEditor.saveAsDraft', 'Сохранить как черновик')}</button>
-                            <button class="btn btn-primary" onclick="TestEditor.publish()">${t('testEditor.publishTest', 'Опубликовать тест')}</button>
+                            <button class="btn btn-outline" onclick="TestEditor.close()">${t('common.close', 'Р—Р°РєСЂС‹С‚СЊ')}</button>
+                            <button class="btn btn-outline" onclick="TestEditor.saveAsDraft()">${t('testEditor.saveAsDraft', 'РЎРѕС…СЂР°РЅРёС‚СЊ РєР°Рє С‡РµСЂРЅРѕРІРёРє')}</button>
+                            <button class="btn btn-primary" onclick="TestEditor.publish()">${t('testEditor.publishTest', 'РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ С‚РµСЃС‚')}</button>
                         </div>
                     </div>
                 </div>
@@ -195,6 +276,15 @@
                 }
             });
 
+            const importInput = document.getElementById('questionsImportFile');
+            if (importInput) {
+                importInput.addEventListener('change', (event) => {
+                    const file = event.target?.files?.[0];
+                    if (file) {
+                        this.importFromExcelFile(file);
+                    }
+                });
+            }
             this.initDragAndDrop();
         },
 
@@ -203,7 +293,7 @@
             if (this.questions.length === 0) {
                 return `
                     <div class="empty-state">
-                        <p>${t('testEditor.noQuestionsAdded', 'Пока нет вопросов. Нажмите "Добавить вопрос", чтобы начать создание теста.')}</p>
+                        <p>${t('testEditor.noQuestionsAdded', 'РџРѕРєР° РЅРµС‚ РІРѕРїСЂРѕСЃРѕРІ. РќР°Р¶РјРёС‚Рµ "Р”РѕР±Р°РІРёС‚СЊ РІРѕРїСЂРѕСЃ", С‡С‚РѕР±С‹ РЅР°С‡Р°С‚СЊ СЃРѕР·РґР°РЅРёРµ С‚РµСЃС‚Р°.')}</p>
                     </div>
                 `;
             }
@@ -211,7 +301,7 @@
             return this.questions.map((q, index) => `
                 <div class="question-item" data-index="${index}" draggable="true">
                     <div class="question-header">
-                        <div class="drag-handle" title="${t('testEditor.dragToReorder', 'Перетащите для изменения порядка')}">
+                        <div class="drag-handle" title="${t('testEditor.dragToReorder', 'РџРµСЂРµС‚Р°С‰РёС‚Рµ РґР»СЏ РёР·РјРµРЅРµРЅРёСЏ РїРѕСЂСЏРґРєР°')}">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="10" y1="6" x2="21" y2="6"></line>
                                 <line x1="10" y1="12" x2="21" y2="12"></line>
@@ -221,17 +311,17 @@
                                 <circle cx="4" cy="18" r="1"></circle>
                             </svg>
                         </div>
-                        <div class="question-number">${t('testEditor.questionShort', 'В')} ${index + 1}</div>
+                        <div class="question-number">${t('testEditor.questionShort', 'Р’')} ${index + 1}</div>
                         <div class="question-type-badge">${Object.values(QUESTION_TYPES).find(t => t.id === q.question_type)?.name || q.question_type}</div>
-                        <div class="question-marks">${q.marks || 1} ${t('testEditor.points', 'балл(ов)')}</div>
+                        <div class="question-marks">${q.marks || 1} ${t('testEditor.points', 'Р±Р°Р»Р»(РѕРІ)')}</div>
                         <div class="question-actions">
-                            <button class="btn-icon" onclick="TestEditor.editQuestion(${index})" title="${t('tests.edit', 'Редактировать')}">
+                            <button class="btn-icon" onclick="TestEditor.editQuestion(${index})" title="${t('tests.edit', 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </button>
-                            <button class="btn-icon btn-danger" onclick="TestEditor.deleteQuestion(${index})" title="${t('tests.delete', 'Удалить')}">
+                            <button class="btn-icon btn-danger" onclick="TestEditor.deleteQuestion(${index})" title="${t('tests.delete', 'РЈРґР°Р»РёС‚СЊ')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -252,7 +342,7 @@
                 <div class="modal-overlay" id="questionTypeSelector">
                     <div class="modal">
                         <div class="modal-header">
-                            <h2 class="modal-title">${t('testEditor.selectQuestionType', 'Выберите тип вопроса')}</h2>
+                            <h2 class="modal-title">${t('testEditor.selectQuestionType', 'Р’С‹Р±РµСЂРёС‚Рµ С‚РёРї РІРѕРїСЂРѕСЃР°')}</h2>
                             <button class="modal-close" onclick="TestEditor.closeQuestionTypeSelector()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -308,7 +398,7 @@
 
         // Delete question
         deleteQuestion: async function (index) {
-            const confirmed = await showConfirm(t('testEditor.deleteQuestionConfirm', 'Удалить этот вопрос?'));
+            const confirmed = await showConfirm(t('testEditor.deleteQuestionConfirm', 'РЈРґР°Р»РёС‚СЊ СЌС‚РѕС‚ РІРѕРїСЂРѕСЃ?'));
             if (!confirmed) return;
 
             this.questions.splice(index, 1);
@@ -328,17 +418,17 @@
             const commonFieldsHtml = `
                 ${showQuestionTextField ? `
                 <div class="form-group">
-                    <label class="form-label">${t('testEditor.questionText', 'Текст вопроса')} <span class="required">*</span></label>
-                    <textarea id="questionText" class="form-textarea" rows="3" placeholder="${t('testEditor.questionTextPlaceholder', 'Введите текст вопроса')}" required>${question.question_text || ''}</textarea>
+                    <label class="form-label">${t('testEditor.questionText', 'РўРµРєСЃС‚ РІРѕРїСЂРѕСЃР°')} <span class="required">*</span></label>
+                    <textarea id="questionText" class="form-textarea" rows="3" placeholder="${t('testEditor.questionTextPlaceholder', 'Р’РІРµРґРёС‚Рµ С‚РµРєСЃС‚ РІРѕРїСЂРѕСЃР°')}" required>${question.question_text || ''}</textarea>
                 </div>
                 ` : ''}
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">${t('tests.marks', 'Баллы')} <span class="required">*</span></label>
+                        <label class="form-label">${t('tests.marks', 'Р‘Р°Р»Р»С‹')} <span class="required">*</span></label>
                         <input type="number" id="questionMarks" class="form-input" value="${question.marks || 1}" min="1" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">${t('testEditor.imageMediaUrlOptional', 'URL изображения/медиа (необязательно)')}</label>
+                        <label class="form-label">${t('testEditor.imageMediaUrlOptional', 'URL РёР·РѕР±СЂР°Р¶РµРЅРёСЏ/РјРµРґРёР° (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)')}</label>
                         <input type="url" id="questionMediaUrl" class="form-input" value="${question.media_url || ''}" placeholder="https://...">
                     </div>
                 </div>
@@ -376,7 +466,7 @@
                 <div class="modal-overlay" id="questionEditorModal">
                     <div class="modal modal-large">
                         <div class="modal-header">
-                            <h2 class="modal-title">${isEdit ? t('tests.edit', 'Редактировать') : t('testEditor.add', 'Добавить')} ${typeConfig.name} ${t('testEditor.question', 'вопрос')}</h2>
+                            <h2 class="modal-title">${isEdit ? t('tests.edit', 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ') : t('testEditor.add', 'Р”РѕР±Р°РІРёС‚СЊ')} ${typeConfig.name} ${t('testEditor.question', 'РІРѕРїСЂРѕСЃ')}</h2>
                             <button class="modal-close" onclick="TestEditor.closeQuestionEditor()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -391,9 +481,9 @@
                             }
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="TestEditor.closeQuestionEditor()">${t('common.close', 'Закрыть')}</button>
+                            <button class="btn btn-outline" onclick="TestEditor.closeQuestionEditor()">${t('common.close', 'Р—Р°РєСЂС‹С‚СЊ')}</button>
                             <button class="btn btn-primary" onclick="TestEditor.saveQuestion('${question.question_type}')">
-                                ${isEdit ? t('testEditor.update', 'Обновить') : t('testEditor.add', 'Добавить')} ${t('testEditor.question', 'вопрос')}
+                                ${isEdit ? t('testEditor.update', 'РћР±РЅРѕРІРёС‚СЊ') : t('testEditor.add', 'Р”РѕР±Р°РІРёС‚СЊ')} ${t('testEditor.question', 'РІРѕРїСЂРѕСЃ')}
                             </button>
                         </div>
                     </div>
@@ -534,7 +624,7 @@
                         ${pairs.map((pair, i) => `
                             <div class="pair-item">
                                 <input type="text" class="form-input pair-left" data-index="${i}" value="${pair.left || ''}" placeholder="Left item ${i + 1}">
-                                <span class="pair-separator">⇄</span>
+                                <span class="pair-separator">в‡„</span>
                                 <input type="text" class="form-input pair-right" data-index="${i}" value="${pair.right || ''}" placeholder="Right item ${i + 1}">
                                 ${i > 1 ? `
                                     <button class="btn-icon btn-danger" onclick="TestEditor.removePair(${i})" title="Remove">
@@ -597,8 +687,8 @@
             return `
                 <div class="form-group">
                     <label class="form-label">Text with Blanks <span class="required">*</span></label>
-                    <p class="form-hint">Используйте тройное подчеркивание ___ для пропусков. Пример: "___ — самая большая планета"</p>
-                    <textarea id="blanksText" class="form-textarea" rows="4" placeholder="Введите текст с ___ для пропусков">${question.question_text || ''}</textarea>
+                    <p class="form-hint">РСЃРїРѕР»СЊР·СѓР№С‚Рµ С‚СЂРѕР№РЅРѕРµ РїРѕРґС‡РµСЂРєРёРІР°РЅРёРµ ___ РґР»СЏ РїСЂРѕРїСѓСЃРєРѕРІ. РџСЂРёРјРµСЂ: "___ вЂ” СЃР°РјР°СЏ Р±РѕР»СЊС€Р°СЏ РїР»Р°РЅРµС‚Р°"</p>
+                    <textarea id="blanksText" class="form-textarea" rows="4" placeholder="Р’РІРµРґРёС‚Рµ С‚РµРєСЃС‚ СЃ ___ РґР»СЏ РїСЂРѕРїСѓСЃРєРѕРІ">${question.question_text || ''}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Correct Answers for Blanks <span class="required">*</span></label>
@@ -632,7 +722,7 @@
                     <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
                         <input type="file" id="imageFileInput" accept="image/*" class="form-input" style="max-width: 320px;">
                         <button type="button" class="btn btn-outline btn-sm" onclick="TestEditor.uploadImageForQuestion()">
-                            ${t('testEditor.uploadImage', 'Загрузить изображение')}
+                            ${t('testEditor.uploadImage', 'Р—Р°РіСЂСѓР·РёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ')}
                         </button>
                         <span id="imageUploadStatus" style="font-size: 12px; color: var(--text-secondary);"></span>
                     </div>
@@ -641,10 +731,10 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">${t('testEditor.answerType', 'Тип ответа')}</label>
+                    <label class="form-label">${t('testEditor.answerType', 'РўРёРї РѕС‚РІРµС‚Р°')}</label>
                     <select id="imageAnswerType" class="form-input">
-                        <option value="single" ${answerType === 'single' ? 'selected' : ''}>${t('testEditor.typeSingleChoice', 'Один выбор')}</option>
-                        <option value="multiple" ${answerType === 'multiple' ? 'selected' : ''}>${t('testEditor.typeMultipleChoice', 'Множественный выбор')}</option>
+                        <option value="single" ${answerType === 'single' ? 'selected' : ''}>${t('testEditor.typeSingleChoice', 'РћРґРёРЅ РІС‹Р±РѕСЂ')}</option>
+                        <option value="multiple" ${answerType === 'multiple' ? 'selected' : ''}>${t('testEditor.typeMultipleChoice', 'РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№ РІС‹Р±РѕСЂ')}</option>
                     </select>
                 </div>
                 <div id="imageAnswerOptions">
@@ -728,7 +818,7 @@
 
                 const data = await response.json();
                 if (!response.ok) {
-                    throw new Error(data.message || t('testEditor.failedUploadImage', 'Не удалось загрузить изображение'));
+                    throw new Error(data.message || t('testEditor.failedUploadImage', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ'));
                 }
 
                 if (imageUrlInput) imageUrlInput.value = data.url;
@@ -736,11 +826,11 @@
                     preview.src = data.url;
                     preview.style.display = 'block';
                 }
-                if (status) status.textContent = t('testEditor.uploadedSuccessfully', 'Успешно загружено');
+                if (status) status.textContent = t('testEditor.uploadedSuccessfully', 'РЈСЃРїРµС€РЅРѕ Р·Р°РіСЂСѓР¶РµРЅРѕ');
             } catch (error) {
                 console.error('Question image upload error:', error);
                 if (status) status.textContent = '';
-                alert(error.message || t('testEditor.failedUploadImage', 'Не удалось загрузить изображение'));
+                alert(error.message || t('testEditor.failedUploadImage', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ'));
             }
         },
 
@@ -807,7 +897,7 @@
             const itemHtml = `
                 <div class="pair-item">
                     <input type="text" class="form-input pair-left" data-index="${index}" value="" placeholder="Left item ${index + 1}">
-                    <span class="pair-separator">⇄</span>
+                    <span class="pair-separator">в‡„</span>
                     <input type="text" class="form-input pair-right" data-index="${index}" value="" placeholder="Right item ${index + 1}">
                     <button class="btn-icon btn-danger" onclick="TestEditor.removePair(${index})" title="Remove">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -890,7 +980,7 @@
 
             // Validation
             if (questionType !== 'fillblanks' && !questionText) {
-                alert(t('testEditor.enterQuestionText', 'Введите текст вопроса'));
+                alert(t('testEditor.enterQuestionText', 'Р’РІРµРґРёС‚Рµ С‚РµРєСЃС‚ РІРѕРїСЂРѕСЃР°'));
                 return;
             }
 
@@ -1039,7 +1129,7 @@
             // Also update the question count in the section header
             const header = document.getElementById('questionsSectionTitle');
             if (header) {
-                header.textContent = `${t('testEditor.questions', 'Вопросы')} (${this.questions.length})`;
+                header.textContent = `${t('testEditor.questions', 'Р’РѕРїСЂРѕСЃС‹')} (${this.questions.length})`;
             }
 
             this.initDragAndDrop();
@@ -1118,7 +1208,7 @@
         // Publish test
         publish: async function () {
             if (this.questions.length === 0) {
-                alert(t('testEditor.addOneQuestionBeforePublish', 'Добавьте хотя бы один вопрос перед публикацией.'));
+                alert(t('testEditor.addOneQuestionBeforePublish', 'Р”РѕР±Р°РІСЊС‚Рµ С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ РІРѕРїСЂРѕСЃ РїРµСЂРµРґ РїСѓР±Р»РёРєР°С†РёРµР№.'));
                 return;
             }
             await this.save(true);
@@ -1138,7 +1228,7 @@
             const fullscreen_required = document.getElementById('testFullscreenRequired')?.checked === true;
 
             if (!title || !subject_id) {
-                alert(t('testEditor.fillRequiredFields', 'Заполните все обязательные поля.'));
+                alert(t('testEditor.fillRequiredFields', 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ.'));
                 return;
             }
 
@@ -1176,8 +1266,8 @@
                 if (response.ok) {
                     alert(
                         isPublished
-                            ? t('testEditor.publishSuccess', 'Тест успешно опубликован!')
-                            : t('testEditor.draftSavedSuccess', 'Тест успешно сохранен как черновик!')
+                            ? t('testEditor.publishSuccess', 'РўРµСЃС‚ СѓСЃРїРµС€РЅРѕ РѕРїСѓР±Р»РёРєРѕРІР°РЅ!')
+                            : t('testEditor.draftSavedSuccess', 'РўРµСЃС‚ СѓСЃРїРµС€РЅРѕ СЃРѕС…СЂР°РЅРµРЅ РєР°Рє С‡РµСЂРЅРѕРІРёРє!')
                     );
                     this.close();
                     if (window.TestsManager) {
@@ -1185,11 +1275,11 @@
                     }
                 } else {
                     const error = await response.json();
-                    alert(error.message || t('testEditor.failedSaveTest', 'Не удалось сохранить тест'));
+                    alert(error.message || t('testEditor.failedSaveTest', 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ С‚РµСЃС‚'));
                 }
             } catch (error) {
                 console.error('Save test error:', error);
-                alert(t('testEditor.failedSaveTest', 'Не удалось сохранить тест'));
+                alert(t('testEditor.failedSaveTest', 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ С‚РµСЃС‚'));
             }
         },
 
@@ -1200,3 +1290,5 @@
         }
     };
 })();
+
+
