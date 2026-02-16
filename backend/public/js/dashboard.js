@@ -50,7 +50,6 @@
             {
                 section: 'dashboard.nav.analytics',
                 items: [
-                    { icon: 'chart', label: 'dashboard.nav.statistics', id: 'statistics', href: '#statistics' },
                     { icon: 'chart', label: 'dashboard.nav.advanced', id: 'advanced', href: '#advanced' },
                     { icon: 'file', label: 'dashboard.nav.reports', id: 'reports', href: '#reports' }
                 ]
@@ -107,6 +106,12 @@
                 items: [
                     { icon: 'chart', label: 'dashboard.nav.progress', id: 'progress', href: '#progress' },
                     { icon: 'trophy', label: 'dashboard.nav.leaderboard', id: 'leaderboard', href: '#leaderboard' }
+                ]
+            },
+            {
+                section: 'dashboard.nav.resources',
+                items: [
+                    { icon: 'calendar', label: 'dashboard.nav.calendar', id: 'calendar', href: '#calendar' }
                 ]
             }
         ]
@@ -519,9 +524,7 @@
             'schools': { src: '/js/schools.js', manager: 'SchoolsManager' },
             'school-admins': { src: '/js/school-admins.js', manager: 'SchoolAdminsManager' },
             'comparison': { src: '/js/school-comparison.js', manager: 'SchoolComparisonManager' },
-            'statistics': currentUser && currentUser.role === 'school_admin'
-                ? { src: '/js/school-admin-stats.js', manager: 'SchoolAdminStats' }
-                : { src: '/js/superadmin-stats.js', manager: 'SuperadminStats' },
+            'statistics': { src: '/js/superadmin-stats.js', manager: 'SuperadminStats' },
             'advanced': { src: '/js/advanced-analytics.js', manager: 'AdvancedAnalytics' },
             'users': { src: '/js/users.js', manager: 'UsersManager' },
             'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
@@ -547,7 +550,9 @@
                 ? { src: '/js/student-my-class.js', manager: 'StudentMyClassPage' }
                 : { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/my-class.js'], manager: 'MyClassPage' },
             'students': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/students.js'], manager: 'StudentsPage' },
-            'calendar': { src: '/js/calendar.js', manager: 'CalendarPage' },
+            'calendar': currentUser && currentUser.role === 'student'
+                ? { src: '/js/student-calendar.js', manager: 'StudentCalendarPage' }
+                : { src: '/js/calendar.js', manager: 'CalendarPage' },
             'reports': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/reports.js'], manager: 'ReportsManager' },
             'settings': { src: '/js/settings.js', manager: 'SettingsPage' },
             'audit': { src: '/js/audit.js', manager: 'AuditPage' },
@@ -1154,6 +1159,109 @@
             `;
         }
 
+        if (page === 'calendar' && role === 'student') {
+            return `
+                <div class="calendar-page" id="calendarPage">
+                    <section class="calendar-hero dashboard-section">
+                        <div>
+                            <h1 class="section-title">Календарь</h1>
+                            <p class="page-subtitle">Ваши тесты, дедлайны и активные назначения</p>
+                        </div>
+                        <div class="calendar-hero-actions">
+                            <button class="btn btn-secondary" id="calendarTodayBtn" type="button">Сегодня</button>
+                            <button class="btn btn-outline" id="calendarExportIcsBtn" type="button">Экспорт .ics</button>
+                            <button class="btn btn-outline" id="calendarPdfBtn" type="button">Export PDF</button>
+                        </div>
+                    </section>
+
+                    <section class="calendar-toolbar dashboard-section">
+                        <div class="calendar-nav">
+                            <button class="btn btn-outline" id="calendarPrevBtn" type="button">&#9664;</button>
+                            <h2 id="calendarMonthLabel">Месяц</h2>
+                            <button class="btn btn-outline" id="calendarNextBtn" type="button">&#9654;</button>
+                        </div>
+                        <div class="calendar-filters">
+                            <div class="filter-group">
+                                <label for="calendarStatusFilter">Статус</label>
+                                <select id="calendarStatusFilter" class="filter-select">
+                                    <option value="all">Все</option>
+                                    <option value="upcoming">Предстоящие</option>
+                                    <option value="active">Активные</option>
+                                    <option value="completed">Завершенные</option>
+                                    <option value="inactive">Неактивные</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="calendarSearchInput">Поиск</label>
+                                <input id="calendarSearchInput" class="form-input" type="text" placeholder="Тест, предмет">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="calendar-kpi-grid">
+                        <div class="report-kpi tone-blue"><span>Всего событий</span><strong id="calendarKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-green"><span>Активные</span><strong id="calendarKpiActive">0</strong></div>
+                        <div class="report-kpi tone-orange"><span>Предстоят</span><strong id="calendarKpiUpcoming">0</strong></div>
+                        <div class="report-kpi tone-rose"><span>Завершены</span><strong id="calendarKpiCompleted">0</strong></div>
+                    </section>
+
+                    <section class="calendar-layout">
+                        <div class="dashboard-section">
+                            <div class="calendar-weekdays">
+                                <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                            </div>
+                            <div class="calendar-grid" id="calendarGrid"></div>
+                        </div>
+                        <div class="dashboard-section calendar-side">
+                            <div class="section-header">
+                                <h2 class="section-title">События дня</h2>
+                                <span id="calendarSelectedDateLabel">-</span>
+                            </div>
+                            <div class="calendar-day-events" id="calendarDayEvents">
+                                <p class="text-secondary">Выберите дату в календаре</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Ближайшие назначения</h2>
+                        </div>
+                        <div class="table-responsive mobile-stack-table">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Тест</th>
+                                        <th>Предмет</th>
+                                        <th>Начало</th>
+                                        <th>Окончание</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calendarUpcomingTableBody">
+                                    <tr><td colspan="6" class="empty-row">Загрузка...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <div class="modal-overlay hidden" id="calendarEventModal">
+                        <div class="modal calendar-event-modal">
+                            <div class="modal-header">
+                                <h3 id="calendarEventModalTitle">Событие</h3>
+                                <button class="modal-close" id="calendarEventModalClose" type="button">&#215;</button>
+                            </div>
+                            <div class="modal-body" id="calendarEventModalBody"></div>
+                            <div class="modal-actions">
+                                <button class="btn btn-primary" type="button" id="calendarEventModalOk">ОК</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // Schools Management (SuperAdmin)
         if (page === 'schools') {
             return `
@@ -1755,17 +1863,9 @@
                         </div>
                         <select id="gradeFilter" class="select-input">
                             <option value="all">${t('classes.allGrades', 'Р’СЃРµ РїР°СЂР°Р»Р»РµР»Рё')}</option>
-                            <option value="1">1 РєР»Р°СЃСЃ</option>
-                            <option value="2">2 РєР»Р°СЃСЃ</option>
-                            <option value="3">3 РєР»Р°СЃСЃ</option>
-                            <option value="4">4 РєР»Р°СЃСЃ</option>
-                            <option value="5">5 РєР»Р°СЃСЃ</option>
-                            <option value="6">6 РєР»Р°СЃСЃ</option>
-                            <option value="7">7 РєР»Р°СЃСЃ</option>
-                            <option value="8">8 РєР»Р°СЃСЃ</option>
-                            <option value="9">9 РєР»Р°СЃСЃ</option>
-                            <option value="10">10 РєР»Р°СЃСЃ</option>
-                            <option value="11">11 РєР»Р°СЃСЃ</option>
+                            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                                .map((grade) => `<option value="${grade}">${grade} ${t('results.grade', 'класс')}</option>`)
+                                .join('')}
                         </select>
                         <button class="btn btn-primary" id="addClassBtn">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2063,19 +2163,6 @@
 
         // Global Statistics (SuperAdmin) / School Statistics (School Admin)
         if (page === 'statistics') {
-            if (role === 'school_admin') {
-                return `
-                    <div class="stats-grid" id="schoolAdminStatsCards"></div>
-                    <div class="dashboard-section">
-                        <div class="section-header">
-                            <h2 class="section-title">${t('dashboard.statistics.schoolBreakdown', 'School Breakdown')}</h2>
-                        </div>
-                        <div id="schoolAdminStatsBreakdown"></div>
-                    </div>
-                    <div class="dashboard-section" id="schoolAdminStatsNote"></div>
-                `;
-            }
-
             if (role !== 'superadmin') {
                 return `
                     <div class="dashboard-section">
@@ -2155,16 +2242,8 @@
                                     <option value="teacher_count">${t('reports.teachers', 'РЈС‡РёС‚РµР»СЏ')}</option>
                                 </select>
                             </div>
-                            <div class="filter-group">
-                                <label for="reportsPresetSelect">${t('reports.preset', 'РџСЂРµСЃРµС‚')}</label>
-                                <select id="reportsPresetSelect" class="filter-select">
-                                    <option value="">${t('reports.defaultPreset', 'РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ')}</option>
-                                </select>
-                            </div>
                         </div>
                         <div class="toolbar-right">
-                            <button class="btn btn-outline" id="reportsSavePresetBtn" type="button">${t('reports.savePreset', 'РЎРѕС…СЂР°РЅРёС‚СЊ РїСЂРµСЃРµС‚')}</button>
-                            <button class="btn btn-outline" id="reportsDeletePresetBtn" type="button">${t('reports.deletePreset', 'РЈРґР°Р»РёС‚СЊ РїСЂРµСЃРµС‚')}</button>
                             <button class="btn btn-secondary" id="reportsRefreshBtn" type="button">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
                             <button class="btn btn-secondary" id="reportsPdfBtn" type="button">${t('reports.exportPdf', 'Р­РєСЃРїРѕСЂС‚ PDF')}</button>
                             <button class="btn btn-primary" id="reportsExportBtn" type="button">${t('reports.exportData', 'Р­РєСЃРїРѕСЂС‚ РґР°РЅРЅС‹С…')}</button>

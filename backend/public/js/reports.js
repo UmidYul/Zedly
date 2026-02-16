@@ -3,7 +3,6 @@
     'use strict';
 
     const API = '/api';
-    const PRESETS_KEY = 'zedly_reports_presets_v1';
 
     const state = {
         role: '',
@@ -49,12 +48,6 @@
         return getCurrentUser().role || '';
     }
 
-    function getPresetStorageKey() {
-        const user = getCurrentUser();
-        const userId = user.id || user.user_id || user.username || 'anon';
-        return `${PRESETS_KEY}:${userId}`;
-    }
-
     async function apiGet(url) {
         const response = await fetch(url, {
             headers: { Authorization: `Bearer ${getToken()}` }
@@ -89,46 +82,6 @@
         `;
     }
 
-    function loadPresets() {
-        try {
-            const raw = localStorage.getItem(getPresetStorageKey());
-            const parsed = raw ? JSON.parse(raw) : {};
-            return parsed && typeof parsed === 'object' ? parsed : {};
-        } catch (error) {
-            return {};
-        }
-    }
-
-    function savePresets(presets) {
-        localStorage.setItem(getPresetStorageKey(), JSON.stringify(presets || {}));
-    }
-
-    function updatePresetSelect() {
-        const select = document.getElementById('reportsPresetSelect');
-        if (!select) return;
-        const presets = loadPresets();
-        const options = Object.keys(presets)
-            .sort((a, b) => a.localeCompare(b))
-            .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
-            .join('');
-        select.innerHTML = `<option value="">${t('reports.defaultPreset', 'РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ')}</option>${options}`;
-    }
-
-    function getCurrentFilters() {
-        return {
-            period: Number(state.period) || 30,
-            metric: state.metric || 'avg_score'
-        };
-    }
-
-    function getSelectedPresetKey() {
-        return `${getPresetStorageKey()}:selected`;
-    }
-
-    function saveSelectedPreset(name) {
-        localStorage.setItem(getSelectedPresetKey(), String(name || ''));
-    }
-
     function applyFilters(filters) {
         state.period = Number(filters?.period) || 30;
         state.metric = filters?.metric || 'avg_score';
@@ -136,60 +89,6 @@
         const metric = document.getElementById('reportsMetricFilter');
         if (period) period.value = String(state.period);
         if (metric) metric.value = state.metric;
-    }
-
-    function bindPresetEvents() {
-        const presetSelect = document.getElementById('reportsPresetSelect');
-        const saveBtn = document.getElementById('reportsSavePresetBtn');
-        const deleteBtn = document.getElementById('reportsDeletePresetBtn');
-
-        if (presetSelect) {
-            presetSelect.addEventListener('change', () => {
-                const name = presetSelect.value;
-                if (!name) {
-                    applyFilters({ period: 30, metric: 'avg_score' });
-                    saveSelectedPreset('');
-                    refreshView();
-                    return;
-                }
-                const presets = loadPresets();
-                if (presets[name]) {
-                    applyFilters(presets[name]);
-                    saveSelectedPreset(name);
-                    refreshView();
-                }
-            });
-        }
-
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                const name = prompt(t('reports.presetNamePrompt', 'РќР°Р·РІР°РЅРёРµ РїСЂРµСЃРµС‚Р°'));
-                if (!name) return;
-                const trimmed = name.trim();
-                if (!trimmed) return;
-                const presets = loadPresets();
-                presets[trimmed] = getCurrentFilters();
-                savePresets(presets);
-                updatePresetSelect();
-                const select = document.getElementById('reportsPresetSelect');
-                if (select) select.value = trimmed;
-                saveSelectedPreset(trimmed);
-            });
-        }
-
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => {
-                const select = document.getElementById('reportsPresetSelect');
-                const name = select?.value || '';
-                if (!name) return;
-                const presets = loadPresets();
-                delete presets[name];
-                savePresets(presets);
-                updatePresetSelect();
-                if (select) select.value = '';
-                saveSelectedPreset('');
-            });
-        }
     }
 
     function renderSummary() {
@@ -531,7 +430,7 @@
                 <span class="text-secondary">${t('common.page', 'РЎС‚СЂР°РЅРёС†Р°')} ${fmtInt(state.riskPagination.page || 1)} / ${fmtInt(Math.max(1, Math.ceil((state.riskPagination.total || 0) / (state.riskPagination.limit || 20))))} В· ${t('common.total', 'Р’СЃРµРіРѕ')}: ${fmtInt(state.riskPagination.total || 0)}</span>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <label for="reportsRiskLimitSelect" class="text-secondary">${t('common.perPage', 'РќР° СЃС‚СЂР°РЅРёС†Рµ')}</label>
-                    <select id="reportsRiskLimitSelect" class="form-control" style="width:auto; min-width: 90px;">
+                    <select id="reportsRiskLimitSelect" class="filter-select" style="width:auto; min-width: 90px;">
                         <option value="20" ${(state.riskPagination.limit || 20) === 20 ? 'selected' : ''}>20</option>
                         <option value="50" ${(state.riskPagination.limit || 20) === 50 ? 'selected' : ''}>50</option>
                         <option value="100" ${(state.riskPagination.limit || 20) === 100 ? 'selected' : ''}>100</option>
@@ -1021,19 +920,8 @@
         if (notificationsLimit) {
             notificationsLimit.value = String(state.notificationsPagination.limit || 20);
         }
-        updatePresetSelect();
         bindEvents();
-        bindPresetEvents();
-        const selectedPreset = localStorage.getItem(getSelectedPresetKey()) || '';
-        const presets = loadPresets();
-        if (selectedPreset && presets[selectedPreset]) {
-            applyFilters(presets[selectedPreset]);
-            const select = document.getElementById('reportsPresetSelect');
-            if (select) select.value = selectedPreset;
-        } else {
-            applyFilters({ period: 30, metric: 'avg_score' });
-            saveSelectedPreset('');
-        }
+        applyFilters({ period: 30, metric: 'avg_score' });
         refreshView();
     }
 
