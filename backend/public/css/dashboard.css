@@ -2331,6 +2331,21 @@
         -webkit-overflow-scrolling: touch;
     }
 
+    #studentsPage .mobile-stack-table {
+        overflow-x: visible;
+    }
+
+    #studentsPage .mobile-stack-table .data-table {
+        table-layout: fixed;
+    }
+
+    #studentsPage .mobile-stack-table .data-table th,
+    #studentsPage .mobile-stack-table .data-table td {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     .form-row {
         grid-template-columns: 1fr;
     }

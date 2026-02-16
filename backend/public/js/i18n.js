@@ -1927,6 +1927,64 @@
     }
 
     // Export for use in other scripts
+    Object.assign(translations.ru, {
+        'subjects.searchPlaceholder': 'Поиск предметов...',
+        'subjects.rows': 'Строк:',
+        'subjects.addSubject': 'Добавить предмет',
+        'subjects.loadingSubjects': 'Загрузка предметов...',
+        'subjects.failedLoadSubjects': 'Не удалось загрузить предметы. Попробуйте снова.',
+        'subjects.noSubjectsFound': 'Предметы не найдены.',
+        'subjects.selectAllSubjects': 'Выбрать все предметы',
+        'subjects.selectSubject': 'Выбрать предмет',
+        'subjects.colCode': 'Код',
+        'subjects.colSubjectName': 'Название предмета',
+        'subjects.colStatus': 'Статус',
+        'subjects.colActions': 'Действия',
+        'subjects.bulkDeleteConfirm': 'Удалить выбранные предметы ({count}) безвозвратно?',
+        'subjects.failedLoadSubjectData': 'Не удалось загрузить данные предмета',
+        'subjects.editSubject': 'Редактировать предмет',
+        'subjects.addNewSubject': 'Добавить предмет',
+        'subjects.nameRu': 'Название (RU)',
+        'subjects.nameUz': 'Название (UZ)',
+        'subjects.subjectCode': 'Код предмета',
+        'subjects.subjectCodeHint': 'Короткий код (например, MATH, PHYS, CHEM)',
+        'subjects.updateSubject': 'Обновить предмет',
+        'subjects.createSubject': 'Создать предмет',
+        'subjects.fillRequiredFields': 'Заполните все обязательные поля',
+        'subjects.networkError': 'Ошибка сети. Попробуйте снова.',
+        'subjects.deleteSubjectConfirm': 'Удалить предмет "{name}" безвозвратно?',
+        'subjects.failedDeleteSubject': 'Не удалось удалить предмет'
+    });
+
+    Object.assign(translations.uz, {
+        'subjects.searchPlaceholder': 'Fanlarni qidirish...',
+        'subjects.rows': 'Qatorlar:',
+        'subjects.addSubject': 'Fan qo\'shish',
+        'subjects.loadingSubjects': 'Fanlar yuklanmoqda...',
+        'subjects.failedLoadSubjects': 'Fanlarni yuklab bo\'lmadi. Qayta urinib ko\'ring.',
+        'subjects.noSubjectsFound': 'Fanlar topilmadi.',
+        'subjects.selectAllSubjects': 'Barcha fanlarni tanlash',
+        'subjects.selectSubject': 'Fanni tanlash',
+        'subjects.colCode': 'Kod',
+        'subjects.colSubjectName': 'Fan nomi',
+        'subjects.colStatus': 'Holat',
+        'subjects.colActions': 'Amallar',
+        'subjects.bulkDeleteConfirm': 'Tanlangan fanlarni ({count}) butunlay o\'chirishni xohlaysizmi?',
+        'subjects.failedLoadSubjectData': 'Fan ma\'lumotlarini yuklab bo\'lmadi',
+        'subjects.editSubject': 'Fanni tahrirlash',
+        'subjects.addNewSubject': 'Fan qo\'shish',
+        'subjects.nameRu': 'Nomi (RU)',
+        'subjects.nameUz': 'Nomi (UZ)',
+        'subjects.subjectCode': 'Fan kodi',
+        'subjects.subjectCodeHint': 'Qisqa kod (masalan, MATH, PHYS, CHEM)',
+        'subjects.updateSubject': 'Fanni yangilash',
+        'subjects.createSubject': 'Fan yaratish',
+        'subjects.fillRequiredFields': 'Barcha majburiy maydonlarni to\'ldiring',
+        'subjects.networkError': 'Tarmoq xatosi. Qayta urinib ko\'ring.',
+        'subjects.deleteSubjectConfirm': '"{name}" fanini butunlay o\'chirmoqchimisiz?',
+        'subjects.failedDeleteSubject': 'Fanni o\'chirib bo\'lmadi'
+    });
+
     window.ZedlyI18n = {
         setLang,
         getCurrentLang,

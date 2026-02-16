@@ -2,7 +2,12 @@
 (function () {
     'use strict';
 
-    function showAlert(message, title = 'Error') {
+    function t(key, fallback, params) {
+        const tr = window.ZedlyI18n?.translate?.(key, params);
+        return tr && tr !== key ? tr : (fallback || key);
+    }
+
+    function showAlert(message, title = t('common.error', 'Ошибка')) {
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title });
         }
@@ -10,7 +15,7 @@
         return Promise.resolve(true);
     }
 
-    function showConfirm(message, title = 'Confirmation') {
+    function showConfirm(message, title = t('common.confirmation', 'Подтверждение')) {
         if (window.ZedlyDialog?.confirm) {
             return window.ZedlyDialog.confirm(message, { title });
         }
@@ -26,7 +31,7 @@
         overlay.innerHTML = `
             <div class="operation-progress-modal">
                 <div class="progress-head">
-                    <div class="progress-label"><span class="spinner" style="display:inline-block;"></span><span>Массовое удаление...</span></div>
+                    <div class="progress-label"><span class="spinner" style="display:inline-block;"></span><span>${t('users.bulkDeleteProgress', 'Массовое удаление...')}</span></div>
                     <strong id="subjectsBulkDeletePercent">0%</strong>
                 </div>
                 <div class="progress-track"><div class="progress-fill" id="subjectsBulkDeleteFill" style="width:0%"></div></div>
@@ -45,7 +50,7 @@
         const meta = document.getElementById('subjectsBulkDeleteMeta');
         if (fill) fill.style.width = `${percent}%`;
         if (pct) pct.textContent = `${percent}%`;
-        if (meta) meta.textContent = `${safeDone} / ${safeTotal}` + (failed ? ` · Failed: ${failed}` : '');
+        if (meta) meta.textContent = `${safeDone} / ${safeTotal}` + (failed ? ` • ${t('audit.failed', 'Ошибка')}: ${failed}` : '');
     }
 
     function hideBulkProgress() {
@@ -134,7 +139,7 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
                     <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Loading subjects...</p>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('subjects.loadingSubjects', 'Загрузка предметов...')}</p>
                 </div>
             `;
 
@@ -164,7 +169,7 @@
                 console.error('Load subjects error:', error);
                 container.innerHTML = `
                     <div class="error-message">
-                        <p>Failed to load subjects. Please try again.</p>
+                        <p>${t('subjects.failedLoadSubjects', 'Не удалось загрузить предметы. Попробуйте снова.')}</p>
                     </div>
                 `;
             } finally {
@@ -181,7 +186,7 @@
             if (subjects.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">No subjects found.</p>
+                        <p style="color: var(--text-secondary);">${t('subjects.noSubjectsFound', 'Предметы не найдены.')}</p>
                     </div>
                 `;
                 return;
@@ -190,12 +195,12 @@
             let html = `
                 <div class="bulk-toolbar" id="subjectsBulkToolbar">
                     <div class="bulk-toolbar-left">
-                        <span class="bulk-count-pill" id="subjectsBulkCount">0 selected</span>
-                        <button class="btn btn-sm btn-outline" id="subjectsClearSelectionBtn" onclick="SubjectsManager.clearSelection()">Clear</button>
+                        <span class="bulk-count-pill" id="subjectsBulkCount">${t('users.selectedCount', 'Выбрано: {count}', { count: 0 })}</span>
+                        <button class="btn btn-sm btn-outline" id="subjectsClearSelectionBtn" onclick="SubjectsManager.clearSelection()">${t('users.clear', 'Очистить')}</button>
                     </div>
                     <div class="bulk-toolbar-right">
                         <button class="btn btn-sm btn-danger" id="subjectsBulkDeleteBtn" onclick="SubjectsManager.bulkDeleteSubjects()" disabled>
-                            Delete selected
+                            ${t('users.deleteSelected', 'Удалить выбранных')}
                         </button>
                     </div>
                 </div>
@@ -208,13 +213,13 @@
                                         type="checkbox"
                                         id="subjectsSelectAll"
                                         onchange="SubjectsManager.toggleSelectAllSubjects(this.checked)"
-                                        aria-label="Select all subjects"
+                                        aria-label="${t('subjects.selectAllSubjects', 'Выбрать все предметы')}"
                                     >
                                 </th>
-                                <th>Code</th>
-                                <th>Subject Name</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>${t('subjects.colCode', 'Код')}</th>
+                                <th>${t('subjects.colSubjectName', 'Название предмета')}</th>
+                                <th>${t('subjects.colStatus', 'Статус')}</th>
+                                <th>${t('subjects.colActions', 'Действия')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -223,7 +228,7 @@
             const currentLang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
             subjects.forEach(subject => {
                 const statusClass = subject.is_active ? 'status-active' : 'status-inactive';
-                const statusText = subject.is_active ? 'Active' : 'Inactive';
+                const statusText = subject.is_active ? t('users.active', 'Активный') : t('users.inactive', 'Неактивный');
                 const safeName = (subject.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 const isSelected = this.selectedIds.has(String(subject.id));
                 const subjectDisplayName = currentLang === 'uz'
@@ -238,7 +243,7 @@
                                 class="bulk-row-checkbox"
                                 ${isSelected ? 'checked' : ''}
                                 onchange="SubjectsManager.toggleSelectSubject('${subject.id}')"
-                                aria-label="Select ${subject.name || 'subject'}"
+                                aria-label="${t('subjects.selectSubject', 'Выбрать предмет')} ${subject.name || ''}"
                             >
                         </td>
                         <td>
@@ -252,13 +257,13 @@
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn-icon" onclick="SubjectsManager.editSubject('${subject.id}')" title="Edit">
+                                <button class="btn-icon" onclick="SubjectsManager.editSubject('${subject.id}')" title="${t('users.edit', 'Редактировать')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon btn-danger" onclick="SubjectsManager.deleteSubject('${subject.id}', '${safeName}')" title="Delete">
+                                <button class="btn-icon btn-danger" onclick="SubjectsManager.deleteSubject('${subject.id}', '${safeName}')" title="${t('users.delete', 'Удалить')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"></polyline>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -314,7 +319,7 @@
             const count = this.selectedIds.size;
             const countEl = document.getElementById('subjectsBulkCount');
             if (countEl) {
-                countEl.textContent = `${count} selected`;
+                countEl.textContent = t('users.selectedCount', 'Выбрано: {count}', { count });
             }
 
             const deleteBtn = document.getElementById('subjectsBulkDeleteBtn');
@@ -348,7 +353,10 @@
             const ids = Array.from(this.selectedIds);
             if (ids.length === 0) return;
 
-            const confirmed = await showConfirm(`Are you sure you want to delete ${ids.length} selected subjects permanently?`);
+            const confirmed = await showConfirm(
+                t('subjects.bulkDeleteConfirm', 'Удалить выбранные предметы ({count}) безвозвратно?', { count: ids.length }),
+                t('common.confirmation', 'Подтверждение')
+            );
             if (!confirmed) return;
 
             const token = localStorage.getItem('access_token');
@@ -379,7 +387,10 @@
             const deleted = ids.length - failed;
             this.clearSelection();
             if (failed > 0) {
-                showAlert(`Deleted: ${deleted}. Failed: ${failed}.`, 'Bulk delete result');
+                showAlert(
+                    t('users.bulkDeleteStats', 'Удалено: {deleted}. Ошибок: {failed}.', { deleted, failed }),
+                    t('users.bulkDeleteResult', 'Массовое удаление')
+                );
             }
             this.loadSubjects();
         },
@@ -391,7 +402,7 @@
             const currentPage = Math.min(Math.max(1, Number(pagination.page) || 1), totalPages);
 
             if (currentPage > 1) {
-                html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${currentPage - 1})">Previous</button>`;
+                html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${currentPage - 1})">${t('reports.previous', 'Назад')}</button>`;
             }
 
             const pagesToRender = [];
@@ -420,7 +431,7 @@
             }
 
             if (currentPage < totalPages) {
-                html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${currentPage + 1})">Next</button>`;
+                html += `<button class="pagination-btn" onclick="SubjectsManager.goToPage(${currentPage + 1})">${t('reports.next', 'Далее')}</button>`;
             }
 
             html += '</div>';
@@ -452,12 +463,12 @@
                         const data = await response.json();
                         subject = data.subject;
                     } else {
-                        showAlert('Failed to load subject data');
+                        showAlert(t('subjects.failedLoadSubjectData', 'Не удалось загрузить данные предмета'));
                         return;
                     }
                 } catch (error) {
                     console.error('Load subject error:', error);
-                    showAlert('Failed to load subject data');
+                    showAlert(t('subjects.failedLoadSubjectData', 'Не удалось загрузить данные предмета'));
                     return;
                 }
             }
@@ -468,7 +479,7 @@
                 <div class="modal-overlay" id="subjectModal">
                     <div class="modal">
                         <div class="modal-header">
-                            <h2 class="modal-title">${isEdit ? 'Edit Subject' : 'Add New Subject'}</h2>
+                            <h2 class="modal-title">${isEdit ? t('subjects.editSubject', 'Редактировать предмет') : t('subjects.addNewSubject', 'Добавить предмет')}</h2>
                             <button class="modal-close" onclick="SubjectsManager.closeModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -481,7 +492,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Name (RU) <span class="required">*</span>
+                                            ${t('subjects.nameRu', 'Название (RU)')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -495,7 +506,7 @@
 
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Name (UZ) <span class="required">*</span>
+                                            ${t('subjects.nameUz', 'Название (UZ)')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -511,7 +522,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            Subject Code <span class="required">*</span>
+                                            ${t('subjects.subjectCode', 'Код предмета')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -523,7 +534,7 @@
                                             maxlength="10"
                                             style="text-transform: uppercase;"
                                         />
-                                        <span class="form-hint">Short code (e.g., MATH, PHYS, CHEM)</span>
+                                        <span class="form-hint">${t('subjects.subjectCodeHint', 'Короткий код (например, MATH, PHYS, CHEM)')}</span>
                                     </div>
                                 </div>
 
@@ -538,7 +549,7 @@
                                             ${subject?.is_active ? 'checked' : ''}
                                         />
                                         <label class="form-check-label" for="subjectActive">
-                                            Active
+                                            ${t('users.active', 'Активный')}
                                         </label>
                                     </div>
                                 </div>
@@ -549,10 +560,10 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="SubjectsManager.closeModal()">
-                                Cancel
+                                ${t('users.cancel', 'Отмена')}
                             </button>
                             <button type="submit" form="subjectForm" class="btn btn-primary" id="submitBtn">
-                                ${isEdit ? 'Update Subject' : 'Create Subject'}
+                                ${isEdit ? t('subjects.updateSubject', 'Обновить предмет') : t('subjects.createSubject', 'Создать предмет')}
                             </button>
                         </div>
                     </div>
@@ -621,7 +632,7 @@
             // Validation
             if (!data.name_ru || !data.name_uz || !data.code) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Please fill all required fields';
+                formAlert.textContent = t('subjects.fillRequiredFields', 'Заполните все обязательные поля');
                 return;
             }
 
@@ -660,12 +671,12 @@
                 } else {
                     // Show error
                     formAlert.className = 'alert alert-error';
-                    formAlert.textContent = result.message || 'An error occurred';
+                    formAlert.textContent = result.message || t('common.error', 'Произошла ошибка');
                 }
             } catch (error) {
                 console.error('Submit subject error:', error);
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = 'Network error. Please try again.';
+                formAlert.textContent = t('subjects.networkError', 'Ошибка сети. Попробуйте снова.');
             } finally {
                 submitBtn.classList.remove('loading');
                 submitBtn.disabled = false;
@@ -679,7 +690,9 @@
 
         // Delete subject
         deleteSubject: async function (subjectId, subjectName) {
-            const confirmed = await showConfirm(`Are you sure you want to delete subject "${subjectName}" permanently?`);
+            const confirmed = await showConfirm(
+                t('subjects.deleteSubjectConfirm', 'Удалить предмет "{name}" безвозвратно?', { name: subjectName })
+            );
             if (!confirmed) {
                 return;
             }
@@ -697,11 +710,11 @@
                     this.selectedIds.delete(subjectId);
                     this.loadSubjects();
                 } else {
-                    showAlert('Failed to delete subject');
+                    showAlert(t('subjects.failedDeleteSubject', 'Не удалось удалить предмет'));
                 }
             } catch (error) {
                 console.error('Delete subject error:', error);
-                showAlert('Failed to delete subject');
+                showAlert(t('subjects.failedDeleteSubject', 'Не удалось удалить предмет'));
             }
         }
     };

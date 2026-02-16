@@ -1,4 +1,4 @@
-// Dashboard JavaScript
+﻿// Dashboard JavaScript
 (function () {
     'use strict';
 
@@ -44,7 +44,7 @@
                     { icon: 'users', label: 'dashboard.nav.users', id: 'users', href: '#users' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
                     { icon: 'book', label: 'dashboard.nav.subjects', id: 'subjects', href: '#subjects' }
-                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career-admin', href: '#career-admin' } // скрыто
+                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career-admin', href: '#career-admin' } // СЃРєСЂС‹С‚Рѕ
                 ]
             },
             {
@@ -99,7 +99,7 @@
                     { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'star', label: 'dashboard.nav.results', id: 'results', href: '#results' }
-                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career', href: '#career' } // скрыто
+                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career', href: '#career' } // СЃРєСЂС‹С‚Рѕ
                 ]
             },
             {
@@ -140,14 +140,14 @@
 
     // Initialize dashboard
     async function initDashboard() {
-        console.log('🔐 Checking authentication...');
+        console.log('рџ”ђ Checking authentication...');
 
         // Check authentication
         const token = localStorage.getItem('access_token');
         console.log('Access token exists:', !!token);
 
         if (!token) {
-            console.log('❌ No access token found, redirecting to login');
+            console.log('вќЊ No access token found, redirecting to login');
             redirectToLogin();
             refreshTranslations();
             return;
@@ -156,7 +156,7 @@
 
         refreshTranslations();
         try {
-            console.log('📡 Fetching user info from /api/auth/me');
+            console.log('рџ“Ў Fetching user info from /api/auth/me');
             // Fetch current user info
             const response = await fetch('/api/auth/me', {
                 headers: {
@@ -168,7 +168,7 @@
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log('⚠️ Token expired, attempting refresh...');
+                    console.log('вљ пёЏ Token expired, attempting refresh...');
                     // Token expired, try to refresh
                     await refreshToken();
                     return initDashboard();
@@ -179,7 +179,7 @@
             }
 
             const data = await response.json();
-            console.log('✅ User authenticated:', data.user);
+            console.log('вњ… User authenticated:', data.user);
             currentUser = data.user;
             const requestedPage = getRequestedPageFromUrl();
             if (requestedPage && isPageAvailableForCurrentUser(requestedPage)) {
@@ -188,26 +188,26 @@
 
             try {
                 // Update UI (with error handling for each step)
-                console.log('📝 Updating user info...');
+                console.log('рџ“ќ Updating user info...');
                 if (currentUser.role === 'teacher') {
                     teacherHasHomeroom = await checkTeacherHomeroom();
                 }
                 updateUserInfo();
 
-                console.log('🧭 Rendering navigation...');
+                console.log('рџ§­ Rendering navigation...');
                 renderNavigation();
 
-                console.log('📄 Loading dashboard content...');
+                console.log('рџ“„ Loading dashboard content...');
                 loadDashboardContent();
 
-                console.log('✅ Dashboard fully loaded');
+                console.log('вњ… Dashboard fully loaded');
             } catch (uiError) {
-                console.error('⚠️ UI update error (non-critical):', uiError);
+                console.error('вљ пёЏ UI update error (non-critical):', uiError);
                 // Don't redirect on UI errors, dashboard might still be usable
             }
 
         } catch (error) {
-            console.error('❌ Dashboard initialization error:', error);
+            console.error('вќЊ Dashboard initialization error:', error);
             console.log('Error stack:', error.stack);
             console.log('Redirecting to login...');
             redirectToLogin();
@@ -246,7 +246,7 @@
     function renderNavigation() {
         const sidebarNav = document.getElementById('sidebarNav');
         if (!sidebarNav || !currentUser || !navigationConfig[currentUser.role]) {
-            console.warn('⚠️ Cannot render navigation: element or config missing');
+            console.warn('вљ пёЏ Cannot render navigation: element or config missing');
             return;
         }
 
@@ -388,7 +388,7 @@
     // Load dashboard content based on role
     function loadDashboardContent() {
         if (!currentUser) {
-            console.warn('⚠️ No current user, skipping content load');
+            console.warn('вљ пёЏ No current user, skipping content load');
             return;
         }
 
@@ -407,7 +407,7 @@
         syncActiveNavItem(currentPageId);
 
         if (!content) {
-            console.warn('⚠️ dashboardContent element not found');
+            console.warn('вљ пёЏ dashboardContent element not found');
             return;
         }
 
@@ -461,7 +461,7 @@
                 <div class="dashboard-section">
                     <p style="color: var(--text-secondary);">${t('dashboard.activity.none', 'No recent activity yet.')}</p>
                     <p style="color: var(--danger, #ef4444); margin-top: 8px;">
-                        ${t('dashboard.stats.loadError', 'Не удалось загрузить актуальную статистику. Обновите страницу.')}
+                        ${t('dashboard.stats.loadError', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р°РєС‚СѓР°Р»СЊРЅСѓСЋ СЃС‚Р°С‚РёСЃС‚РёРєСѓ. РћР±РЅРѕРІРёС‚Рµ СЃС‚СЂР°РЅРёС†Сѓ.')}
                     </p>
                 </div>
             `;
@@ -574,7 +574,7 @@
             const script = document.createElement('script');
             script.src = src;
             script.onload = () => {
-                console.log(`✓ Loaded: ${src}`);
+                console.log(`вњ“ Loaded: ${src}`);
                 resolve();
             };
             script.onerror = () => {
@@ -590,7 +590,7 @@
             try {
                 if (window[scriptInfo.manager]) {
                     window[scriptInfo.manager].init();
-                    console.log(`✓ Initialized: ${scriptInfo.manager}`);
+                    console.log(`вњ“ Initialized: ${scriptInfo.manager}`);
                 } else if (scriptInfo.manager) {
                     console.error(`Manager ${scriptInfo.manager} not found after loading script`);
                 }
@@ -609,117 +609,117 @@
                     <section class="profile-hero card-surface">
                         <div class="profile-avatar" id="profileAvatarText">U</div>
                         <div class="profile-hero-meta">
-                            <h1 id="profileName">Имя Фамилия</h1>
-                            <p id="profileRole">Роль</p>
-                            <p id="profileSchool">Школа</p>
+                            <h1 id="profileName">РРјСЏ Р¤Р°РјРёР»РёСЏ</h1>
+                            <p id="profileRole">Р РѕР»СЊ</p>
+                            <p id="profileSchool">РЁРєРѕР»Р°</p>
                         </div>
                     </section>
 
                     <section class="profile-grid">
                         <div class="profile-col">
                             <article class="profile-card card-surface">
-                                <h2 data-i18n="profile.yourData">Ваши данные</h2>
+                                <h2 data-i18n="profile.yourData">Р’Р°С€Рё РґР°РЅРЅС‹Рµ</h2>
                                 <div class="profile-info-grid">
-                                    <div class="info-row"><span data-i18n="profile.username">Логин</span><strong id="profileUsername">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.username">Р›РѕРіРёРЅ</span><strong id="profileUsername">-</strong></div>
                                     <div class="info-row"><span data-i18n="profile.email">Email</span><strong id="profileEmail">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.phone">Телефон</span><strong id="profilePhone">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.dateOfBirth">Дата рождения</span><strong id="profileDOB">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.gender">Пол</span><strong id="profileGender">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.registered">Регистрация</span><strong id="profileCreatedAt">-</strong></div>
-                                    <div class="info-row"><span data-i18n="profile.lastLogin">Последний вход</span><strong id="profileLastLogin">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.phone">РўРµР»РµС„РѕРЅ</span><strong id="profilePhone">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.dateOfBirth">Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</span><strong id="profileDOB">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.gender">РџРѕР»</span><strong id="profileGender">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.registered">Р РµРіРёСЃС‚СЂР°С†РёСЏ</span><strong id="profileCreatedAt">-</strong></div>
+                                    <div class="info-row"><span data-i18n="profile.lastLogin">РџРѕСЃР»РµРґРЅРёР№ РІС…РѕРґ</span><strong id="profileLastLogin">-</strong></div>
                                 </div>
                             </article>
 
                             <article class="profile-card card-surface" id="profileActionsCard" style="display: none;">
-                                <h2 data-i18n="profile.contactChanges">Смена контактов</h2>
+                                <h2 data-i18n="profile.contactChanges">РЎРјРµРЅР° РєРѕРЅС‚Р°РєС‚РѕРІ</h2>
                                 <div id="contactVerificationBanner" class="contact-verification-banner" style="display:none;"></div>
                                 <div class="profile-form-grid">
                                     <div class="field-block">
                                         <label for="emailInput" data-i18n="profile.email">Email</label>
                                         <div class="field-inline">
                                             <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
-                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
+                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">РџРѕР»СѓС‡РёС‚СЊ РєРѕРґ</button>
                                         </div>
-                                        <small id="emailStatusText">Email не подтвержден</small>
+                                        <small id="emailStatusText">Email РЅРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅ</small>
                                     </div>
                                     <div class="field-block">
-                                        <label for="phoneInput" data-i18n="profile.phone">Телефон</label>
+                                        <label for="phoneInput" data-i18n="profile.phone">РўРµР»РµС„РѕРЅ</label>
                                         <div class="field-inline">
                                             <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567" readonly>
-                                            <button id="requestPhoneFromTelegramBtn" class="btn btn-outline" type="button">Запросить через Telegram</button>
+                                            <button id="requestPhoneFromTelegramBtn" class="btn btn-outline" type="button">Р—Р°РїСЂРѕСЃРёС‚СЊ С‡РµСЂРµР· Telegram</button>
                                         </div>
-                                        <small id="phoneStatusText">Телефон не подтвержден</small>
+                                        <small id="phoneStatusText">РўРµР»РµС„РѕРЅ РЅРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅ</small>
                                     </div>
                                 </div>
                             </article>
 
                             <article class="profile-card card-surface" id="profilePersonalCard" style="display: none;">
-                                <h2 data-i18n="profile.personalEdit">Личные данные</h2>
+                                <h2 data-i18n="profile.personalEdit">Р›РёС‡РЅС‹Рµ РґР°РЅРЅС‹Рµ</h2>
                                 <div class="profile-form-grid">
                                     <div class="field-block">
-                                        <label for="dobInput" data-i18n="profile.dateOfBirth">Дата рождения</label>
+                                        <label for="dobInput" data-i18n="profile.dateOfBirth">Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</label>
                                         <input id="dobInput" class="field-input" type="date">
                                     </div>
                                     <div class="field-block">
-                                        <label for="genderInput" data-i18n="profile.gender">Пол</label>
+                                        <label for="genderInput" data-i18n="profile.gender">РџРѕР»</label>
                                         <select id="genderInput" class="field-input">
-                                            <option value="" data-i18n="profile.genderNotSpecified">Не указан</option>
-                                            <option value="male" data-i18n="profile.genderMale">Мужской</option>
-                                            <option value="female" data-i18n="profile.genderFemale">Женский</option>
-                                            <option value="other" data-i18n="profile.genderOther">Другой</option>
+                                            <option value="" data-i18n="profile.genderNotSpecified">РќРµ СѓРєР°Р·Р°РЅ</option>
+                                            <option value="male" data-i18n="profile.genderMale">РњСѓР¶СЃРєРѕР№</option>
+                                            <option value="female" data-i18n="profile.genderFemale">Р–РµРЅСЃРєРёР№</option>
+                                            <option value="other" data-i18n="profile.genderOther">Р”СЂСѓРіРѕР№</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div class="card-actions"><button id="savePersonalBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
+                                <div class="card-actions"><button id="savePersonalBtn" class="btn btn-primary" type="button" data-i18n="users.save">РЎРѕС…СЂР°РЅРёС‚СЊ</button></div>
                             </article>
 
                             <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
-                                <h2 data-i18n="profile.notifications">Настройка уведомлений</h2>
+                                <h2 data-i18n="profile.notifications">РќР°СЃС‚СЂРѕР№РєР° СѓРІРµРґРѕРјР»РµРЅРёР№</h2>
                                 <div class="notification-grid">
                                     <div class="field-block">
-                                        <h3 data-i18n="profile.notificationChannels">Каналы</h3>
-                                        <label class="check-row"><input type="checkbox" id="channelInApp"> В приложении</label>
+                                        <h3 data-i18n="profile.notificationChannels">РљР°РЅР°Р»С‹</h3>
+                                        <label class="check-row"><input type="checkbox" id="channelInApp"> Р’ РїСЂРёР»РѕР¶РµРЅРёРё</label>
                                         <label class="check-row"><input type="checkbox" id="channelEmail"> Email</label>
                                         <label class="check-row"><input type="checkbox" id="channelTelegram"> Telegram</label>
                                     </div>
                                     <div class="field-block">
-                                        <h3 data-i18n="profile.notificationEvents">События</h3>
-                                        <label class="check-row"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
-                                        <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
-                                        <label class="check-row"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
-                                        <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
-                                        <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> Системные</label>
+                                        <h3 data-i18n="profile.notificationEvents">РЎРѕР±С‹С‚РёСЏ</h3>
+                                        <label class="check-row"><input type="checkbox" id="eventNewTest"> РќРѕРІС‹Рµ С‚РµСЃС‚С‹</label>
+                                        <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Р”РµРґР»Р°Р№РЅС‹</label>
+                                        <label class="check-row"><input type="checkbox" id="eventPasswordReset"> РЎР±СЂРѕСЃ РїР°СЂРѕР»СЏ</label>
+                                        <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> РР·РјРµРЅРµРЅРёСЏ РїСЂРѕС„РёР»СЏ</label>
+                                        <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> РЎРёСЃС‚РµРјРЅС‹Рµ</label>
                                     </div>
                                 </div>
-                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
+                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">РЎРѕС…СЂР°РЅРёС‚СЊ</button></div>
                             </article>
                         </div>
 
                         <div class="profile-col">
                             <article class="profile-card card-surface" id="profileRoleInfoCard" style="display:none;">
-                                <h2 id="roleSpecificTitle">Дополнительная информация</h2>
+                                <h2 id="roleSpecificTitle">Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h2>
                                 <div class="profile-info-grid" id="roleSpecificContent"></div>
                             </article>
 
                             <article class="profile-card card-surface">
-                                <h2 data-i18n="profile.statistics">Краткая статистика</h2>
+                                <h2 data-i18n="profile.statistics">РљСЂР°С‚РєР°СЏ СЃС‚Р°С‚РёСЃС‚РёРєР°</h2>
                                 <div class="stats-grid" id="statsContent"></div>
                             </article>
 
                             <article class="profile-card card-surface" id="chartsCard" style="display:none;">
-                                <h2 data-i18n="profile.performance">Успеваемость</h2>
+                                <h2 data-i18n="profile.performance">РЈСЃРїРµРІР°РµРјРѕСЃС‚СЊ</h2>
                                 <canvas id="performanceChart"></canvas>
                             </article>
 
                             <article class="profile-card card-surface" id="careerTestCard" style="display:none;">
-                                <h2 data-i18n="career.title">Профориентация</h2>
-                                <div id="careerTestContent"><p class="no-data" data-i18n="profile.noCareerTest">Тест не пройден</p></div>
+                                <h2 data-i18n="career.title">РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёСЏ</h2>
+                                <div id="careerTestContent"><p class="no-data" data-i18n="profile.noCareerTest">РўРµСЃС‚ РЅРµ РїСЂРѕР№РґРµРЅ</p></div>
                                 <canvas id="careerRadarChart" style="display:none;"></canvas>
                             </article>
 
                             <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
-                                <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'Последние действия')}</h2>
-                                <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
+                                <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'РџРѕСЃР»РµРґРЅРёРµ РґРµР№СЃС‚РІРёСЏ')}</h2>
+                                <div class="activity-list" id="activityList"><p class="no-data">РќРµС‚ РґР°РЅРЅС‹С…</p></div>
                             </article>
                         </div>
                     </section>
@@ -730,12 +730,12 @@
         if (page === 'career-results' && role === 'superadmin') {
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="career.resultsTitle">Профориентация: Результаты</h1>
-                    <p class="page-subtitle" data-i18n="career.resultsSubtitle">Просмотр результатов профориентации по школам, классам и ученикам</p>
+                    <h1 class="page-main-title" data-i18n="career.resultsTitle">РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёСЏ: Р РµР·СѓР»СЊС‚Р°С‚С‹</h1>
+                    <p class="page-subtitle" data-i18n="career.resultsSubtitle">РџСЂРѕСЃРјРѕС‚СЂ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РїСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРё РїРѕ С€РєРѕР»Р°Рј, РєР»Р°СЃСЃР°Рј Рё СѓС‡РµРЅРёРєР°Рј</p>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title" data-i18n="career.resultsAnalytics">Аналитика и результаты</h2>
+                        <h2 class="section-title" data-i18n="career.resultsAnalytics">РђРЅР°Р»РёС‚РёРєР° Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹</h2>
                     </div>
                     <div id="careerResultsAnalytics"></div>
                 </div>
@@ -747,29 +747,29 @@
                 <div class="my-class-page" id="myClassPage">
                     <section class="my-class-hero" id="heroCard">
                         <div class="hero-info">
-                            <p class="hero-label">Мой класс</p>
+                            <p class="hero-label">РњРѕР№ РєР»Р°СЃСЃ</p>
                             <div class="class-select-row hidden" id="classSelectRow">
-                                <label for="classSelect">Класс</label>
+                                <label for="classSelect">РљР»Р°СЃСЃ</label>
                                 <select id="classSelect" class="class-select"></select>
                             </div>
-                            <h1 id="className">Загрузка...</h1>
-                            <p id="classMeta">Подготовка данных</p>
+                            <h1 id="className">Р—Р°РіСЂСѓР·РєР°...</h1>
+                            <p id="classMeta">РџРѕРґРіРѕС‚РѕРІРєР° РґР°РЅРЅС‹С…</p>
                         </div>
                         <div class="hero-metrics">
                             <div class="metric">
-                                <div class="metric-label">Учеников</div>
+                                <div class="metric-label">РЈС‡РµРЅРёРєРѕРІ</div>
                                 <div class="metric-value" id="studentCount">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Назначений</div>
+                                <div class="metric-label">РќР°Р·РЅР°С‡РµРЅРёР№</div>
                                 <div class="metric-value" id="assignmentCount">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Активные</div>
+                                <div class="metric-label">РђРєС‚РёРІРЅС‹Рµ</div>
                                 <div class="metric-value" id="activeAssignments">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Средний балл</div>
+                                <div class="metric-label">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</div>
                                 <div class="metric-value" id="avgScore">0%</div>
                             </div>
                         </div>
@@ -778,42 +778,42 @@
                     <section class="dashboard-section my-class-card" id="analyticsCard">
                         <div class="section-header">
                             <div>
-                                <h2 class="section-title">Предметная успеваемость</h2>
-                                <p class="page-subtitle">Средний результат по предметам вашего класса</p>
+                                <h2 class="section-title">РџСЂРµРґРјРµС‚РЅР°СЏ СѓСЃРїРµРІР°РµРјРѕСЃС‚СЊ</h2>
+                                <p class="page-subtitle">РЎСЂРµРґРЅРёР№ СЂРµР·СѓР»СЊС‚Р°С‚ РїРѕ РїСЂРµРґРјРµС‚Р°Рј РІР°С€РµРіРѕ РєР»Р°СЃСЃР°</p>
                             </div>
                         </div>
                         <div class="chart-wrap">
                             <canvas id="subjectChart" height="120"></canvas>
                         </div>
                         <div class="subject-performance" id="subjectPerformance">
-                            <div class="empty-state">Данных пока нет</div>
+                            <div class="empty-state">Р”Р°РЅРЅС‹С… РїРѕРєР° РЅРµС‚</div>
                         </div>
                     </section>
 
                     <section class="dashboard-section my-class-card" id="studentsCard">
                         <div class="section-header">
                             <div>
-                                <h2 class="section-title">Ученики класса</h2>
-                                <p class="page-subtitle">Управляйте доступом и паролями учеников</p>
+                                <h2 class="section-title">РЈС‡РµРЅРёРєРё РєР»Р°СЃСЃР°</h2>
+                                <p class="page-subtitle">РЈРїСЂР°РІР»СЏР№С‚Рµ РґРѕСЃС‚СѓРїРѕРј Рё РїР°СЂРѕР»СЏРјРё СѓС‡РµРЅРёРєРѕРІ</p>
                             </div>
                             <div class="table-controls">
-                                <input class="search-input" id="studentSearch" type="text" placeholder="Поиск по имени или логину">
+                                <input class="search-input" id="studentSearch" type="text" placeholder="РџРѕРёСЃРє РїРѕ РёРјРµРЅРё РёР»Рё Р»РѕРіРёРЅСѓ">
                             </div>
                         </div>
                         <div class="table-wrap">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Имя</th>
-                                        <th>Логин</th>
-                                        <th>Тестов пройдено</th>
-                                        <th>Средний балл</th>
-                                        <th>Действия</th>
+                                        <th>РРјСЏ</th>
+                                        <th>Р›РѕРіРёРЅ</th>
+                                        <th>РўРµСЃС‚РѕРІ РїСЂРѕР№РґРµРЅРѕ</th>
+                                        <th>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
+                                        <th>Р”РµР№СЃС‚РІРёСЏ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="studentsTableBody">
                                     <tr>
-                                        <td colspan="5" class="empty-row">Загрузка...</td>
+                                        <td colspan="5" class="empty-row">Р—Р°РіСЂСѓР·РєР°...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -822,25 +822,25 @@
 
                     <section class="dashboard-section my-class-card hidden" id="emptyState">
                         <div class="empty-state">
-                            <h2>Класс не назначен</h2>
-                            <p>Пока у вас нет класса в качестве классного руководителя.</p>
+                            <h2>РљР»Р°СЃСЃ РЅРµ РЅР°Р·РЅР°С‡РµРЅ</h2>
+                            <p>РџРѕРєР° Сѓ РІР°СЃ РЅРµС‚ РєР»Р°СЃСЃР° РІ РєР°С‡РµСЃС‚РІРµ РєР»Р°СЃСЃРЅРѕРіРѕ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЏ.</p>
                         </div>
                     </section>
 
                     <div class="modal-overlay hidden" id="passwordModal">
                         <div class="modal">
                             <div class="modal-header">
-                                <h3>Временный пароль</h3>
-                                <button class="modal-close" type="button" id="modalClose">×</button>
+                                <h3>Р’СЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ</h3>
+                                <button class="modal-close" type="button" id="modalClose">Г—</button>
                             </div>
                             <div class="modal-body">
-                                <p id="modalStudentName">Пароль для ученика</p>
-                                <div class="password-box" id="modalPassword">—</div>
-                                <p class="modal-hint">Передайте пароль ученику и попросите сменить его после входа.</p>
+                                <p id="modalStudentName">РџР°СЂРѕР»СЊ РґР»СЏ СѓС‡РµРЅРёРєР°</p>
+                                <div class="password-box" id="modalPassword">вЂ”</div>
+                                <p class="modal-hint">РџРµСЂРµРґР°Р№С‚Рµ РїР°СЂРѕР»СЊ СѓС‡РµРЅРёРєСѓ Рё РїРѕРїСЂРѕСЃРёС‚Рµ СЃРјРµРЅРёС‚СЊ РµРіРѕ РїРѕСЃР»Рµ РІС…РѕРґР°.</p>
                             </div>
                             <div class="modal-actions">
-                                <button class="btn btn-outline" type="button" id="modalCopy">Скопировать</button>
-                                <button class="btn btn-primary" type="button" id="modalOk">Готово</button>
+                                <button class="btn btn-outline" type="button" id="modalCopy">РЎРєРѕРїРёСЂРѕРІР°С‚СЊ</button>
+                                <button class="btn btn-primary" type="button" id="modalOk">Р“РѕС‚РѕРІРѕ</button>
                             </div>
                         </div>
                     </div>
@@ -853,12 +853,12 @@
                 <div class="students-page" id="studentsPage">
                     <section class="students-hero dashboard-section">
                         <div>
-                            <h1 class="section-title">Ученики</h1>
-                            <p class="page-subtitle">Срез по классу, поиск, отчеты учеников и быстрые действия</p>
+                            <h1 class="section-title">РЈС‡РµРЅРёРєРё</h1>
+                            <p class="page-subtitle">РЎСЂРµР· РїРѕ РєР»Р°СЃСЃСѓ, РїРѕРёСЃРє, РѕС‚С‡РµС‚С‹ СѓС‡РµРЅРёРєРѕРІ Рё Р±С‹СЃС‚СЂС‹Рµ РґРµР№СЃС‚РІРёСЏ</p>
                         </div>
                         <div class="students-hero-actions">
-                            <button class="btn btn-secondary" id="studentsRefreshBtn" type="button">Обновить</button>
-                            <button class="btn btn-outline" id="studentsExportBtn" type="button">Экспорт CSV</button>
+                            <button class="btn btn-secondary" id="studentsRefreshBtn" type="button">РћР±РЅРѕРІРёС‚СЊ</button>
+                            <button class="btn btn-outline" id="studentsExportBtn" type="button">Р­РєСЃРїРѕСЂС‚ CSV</button>
                             <button class="btn btn-outline" id="studentsPdfBtn" type="button">Export PDF</button>
                         </div>
                     </section>
@@ -866,56 +866,56 @@
                     <section class="students-toolbar dashboard-section">
                         <div class="students-filter-grid">
                             <div class="filter-group">
-                                <label for="studentsClassFilter">Класс</label>
+                                <label for="studentsClassFilter">РљР»Р°СЃСЃ</label>
                                 <select id="studentsClassFilter" class="filter-select">
-                                    <option value="">Выберите класс</option>
+                                    <option value="">Р’С‹Р±РµСЂРёС‚Рµ РєР»Р°СЃСЃ</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="studentsSubjectFilter">Предмет</label>
+                                <label for="studentsSubjectFilter">РџСЂРµРґРјРµС‚</label>
                                 <select id="studentsSubjectFilter" class="filter-select">
-                                    <option value="">Все предметы</option>
+                                    <option value="">Р’СЃРµ РїСЂРµРґРјРµС‚С‹</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="studentsSearchInput">Поиск</label>
-                                <input id="studentsSearchInput" class="form-input" type="text" placeholder="Имя или логин">
+                                <label for="studentsSearchInput">РџРѕРёСЃРє</label>
+                                <input id="studentsSearchInput" class="form-input" type="text" placeholder="РРјСЏ РёР»Рё Р»РѕРіРёРЅ">
                             </div>
                             <div class="filter-group">
-                                <label for="studentsScoreBandFilter">Уровень</label>
+                                <label for="studentsScoreBandFilter">РЈСЂРѕРІРµРЅСЊ</label>
                                 <select id="studentsScoreBandFilter" class="filter-select">
-                                    <option value="all">Все</option>
-                                    <option value="high">Сильные (>=85)</option>
-                                    <option value="mid">Средние (60-84)</option>
-                                    <option value="risk">Риск (<60)</option>
+                                    <option value="all">Р’СЃРµ</option>
+                                    <option value="high">РЎРёР»СЊРЅС‹Рµ (>=85)</option>
+                                    <option value="mid">РЎСЂРµРґРЅРёРµ (60-84)</option>
+                                    <option value="risk">Р РёСЃРє (<60)</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="studentsSortFilter">Сортировка</label>
+                                <label for="studentsSortFilter">РЎРѕСЂС‚РёСЂРѕРІРєР°</label>
                                 <select id="studentsSortFilter" class="filter-select">
-                                    <option value="score_desc">По баллу (убыв.)</option>
-                                    <option value="score_asc">По баллу (возр.)</option>
-                                    <option value="tests_desc">По тестам (убыв.)</option>
-                                    <option value="name_asc">По имени (А-Я)</option>
+                                    <option value="score_desc">РџРѕ Р±Р°Р»Р»Сѓ (СѓР±С‹РІ.)</option>
+                                    <option value="score_asc">РџРѕ Р±Р°Р»Р»Сѓ (РІРѕР·СЂ.)</option>
+                                    <option value="tests_desc">РџРѕ С‚РµСЃС‚Р°Рј (СѓР±С‹РІ.)</option>
+                                    <option value="name_asc">РџРѕ РёРјРµРЅРё (Рђ-РЇ)</option>
                                 </select>
                             </div>
                         </div>
                     </section>
 
                     <section class="students-kpi-grid" id="studentsKpiGrid">
-                        <div class="report-kpi tone-blue"><span>Ученики</span><strong id="studentsKpiTotal">0</strong></div>
-                        <div class="report-kpi tone-violet"><span>Средний балл</span><strong id="studentsKpiAvg">0%</strong></div>
-                        <div class="report-kpi tone-green"><span>Пройдено тестов</span><strong id="studentsKpiCompleted">0</strong></div>
-                        <div class="report-kpi tone-rose"><span>В зоне риска</span><strong id="studentsKpiRisk">0</strong></div>
+                        <div class="report-kpi tone-blue"><span>РЈС‡РµРЅРёРєРё</span><strong id="studentsKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-violet"><span>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</span><strong id="studentsKpiAvg">0%</strong></div>
+                        <div class="report-kpi tone-green"><span>РџСЂРѕР№РґРµРЅРѕ С‚РµСЃС‚РѕРІ</span><strong id="studentsKpiCompleted">0</strong></div>
+                        <div class="report-kpi tone-rose"><span>Р’ Р·РѕРЅРµ СЂРёСЃРєР°</span><strong id="studentsKpiRisk">0</strong></div>
                     </section>
 
                     <section class="students-grid-top">
                         <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Результаты по предметам</h2></div>
+                            <div class="section-header"><h2 class="section-title">Р РµР·СѓР»СЊС‚Р°С‚С‹ РїРѕ РїСЂРµРґРјРµС‚Р°Рј</h2></div>
                             <div class="students-chart-wrap"><canvas id="studentsSubjectChart"></canvas></div>
                         </div>
                         <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Динамика по назначениям</h2></div>
+                            <div class="section-header"><h2 class="section-title">Р”РёРЅР°РјРёРєР° РїРѕ РЅР°Р·РЅР°С‡РµРЅРёСЏРј</h2></div>
                             <div class="students-chart-wrap"><canvas id="studentsAssignmentsChart"></canvas></div>
                         </div>
                     </section>
@@ -923,30 +923,30 @@
                     <section class="students-grid-bottom">
                         <div class="dashboard-section students-card">
                             <div class="section-header">
-                                <h2 class="section-title">Список учеников</h2>
+                                <h2 class="section-title">РЎРїРёСЃРѕРє СѓС‡РµРЅРёРєРѕРІ</h2>
                             </div>
                             <div class="table-responsive mobile-stack-table">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Ученик</th>
-                                            <th>Логин</th>
-                                            <th>Класс</th>
-                                            <th>Тесты</th>
-                                            <th>Средний балл</th>
-                                            <th>Статус</th>
-                                            <th>Действия</th>
+                                            <th>РЈС‡РµРЅРёРє</th>
+                                            <th>Р›РѕРіРёРЅ</th>
+                                            <th>РљР»Р°СЃСЃ</th>
+                                            <th>РўРµСЃС‚С‹</th>
+                                            <th>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
+                                            <th>РЎС‚Р°С‚СѓСЃ</th>
+                                            <th>Р”РµР№СЃС‚РІРёСЏ</th>
                                         </tr>
                                     </thead>
                                     <tbody id="studentsTableBody">
-                                        <tr><td colspan="7" class="empty-row">Загрузка...</td></tr>
+                                        <tr><td colspan="7" class="empty-row">Р—Р°РіСЂСѓР·РєР°...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="students-pagination" id="studentsPagination"></div>
                         </div>
                         <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Инсайты</h2></div>
+                            <div class="section-header"><h2 class="section-title">РРЅСЃР°Р№С‚С‹</h2></div>
                             <ul class="reports-insights-list" id="studentsInsights"></ul>
                         </div>
                     </section>
@@ -954,12 +954,12 @@
                     <div class="modal-overlay hidden" id="studentsDetailModal">
                         <div class="modal students-modal">
                             <div class="modal-header">
-                                <h3 id="studentsModalTitle">Отчет ученика</h3>
-                                <button class="modal-close" type="button" id="studentsModalClose">×</button>
+                                <h3 id="studentsModalTitle">РћС‚С‡РµС‚ СѓС‡РµРЅРёРєР°</h3>
+                                <button class="modal-close" type="button" id="studentsModalClose">Г—</button>
                             </div>
                             <div class="modal-body" id="studentsModalBody"></div>
                             <div class="modal-actions">
-                                <button class="btn btn-primary" type="button" id="studentsModalOk">Закрыть</button>
+                                <button class="btn btn-primary" type="button" id="studentsModalOk">Р—Р°РєСЂС‹С‚СЊ</button>
                             </div>
                         </div>
                     </div>
@@ -972,90 +972,90 @@
                 <div class="calendar-page" id="calendarPage">
                     <section class="calendar-hero dashboard-section">
                         <div>
-                            <h1 class="section-title">Календарь</h1>
-                            <p class="page-subtitle">План назначений, дедлайнов и активностей по классам</p>
+                            <h1 class="section-title">РљР°Р»РµРЅРґР°СЂСЊ</h1>
+                            <p class="page-subtitle">РџР»Р°РЅ РЅР°Р·РЅР°С‡РµРЅРёР№, РґРµРґР»Р°Р№РЅРѕРІ Рё Р°РєС‚РёРІРЅРѕСЃС‚РµР№ РїРѕ РєР»Р°СЃСЃР°Рј</p>
                         </div>
                         <div class="calendar-hero-actions">
-                            <button class="btn btn-secondary" id="calendarTodayBtn" type="button">Сегодня</button>
-                            <button class="btn btn-outline" id="calendarExportIcsBtn" type="button">Экспорт .ics</button>
+                            <button class="btn btn-secondary" id="calendarTodayBtn" type="button">РЎРµРіРѕРґРЅСЏ</button>
+                            <button class="btn btn-outline" id="calendarExportIcsBtn" type="button">Р­РєСЃРїРѕСЂС‚ .ics</button>
                             <button class="btn btn-outline" id="calendarPdfBtn" type="button">Export PDF</button>
                         </div>
                     </section>
 
                     <section class="calendar-toolbar dashboard-section">
                         <div class="calendar-nav">
-                            <button class="btn btn-outline" id="calendarPrevBtn" type="button">◀</button>
-                            <h2 id="calendarMonthLabel">Месяц</h2>
-                            <button class="btn btn-outline" id="calendarNextBtn" type="button">▶</button>
+                            <button class="btn btn-outline" id="calendarPrevBtn" type="button">в—Ђ</button>
+                            <h2 id="calendarMonthLabel">РњРµСЃСЏС†</h2>
+                            <button class="btn btn-outline" id="calendarNextBtn" type="button">в–¶</button>
                         </div>
                         <div class="calendar-filters">
                             <div class="filter-group">
-                                <label for="calendarClassFilter">Класс</label>
+                                <label for="calendarClassFilter">РљР»Р°СЃСЃ</label>
                                 <select id="calendarClassFilter" class="filter-select">
-                                    <option value="all">Все классы</option>
+                                    <option value="all">Р’СЃРµ РєР»Р°СЃСЃС‹</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="calendarStatusFilter">Статус</label>
+                                <label for="calendarStatusFilter">РЎС‚Р°С‚СѓСЃ</label>
                                 <select id="calendarStatusFilter" class="filter-select">
-                                    <option value="all">Все</option>
-                                    <option value="upcoming">Предстоит</option>
-                                    <option value="active">Активные</option>
-                                    <option value="completed">Завершенные</option>
-                                    <option value="inactive">Неактивные</option>
+                                    <option value="all">Р’СЃРµ</option>
+                                    <option value="upcoming">РџСЂРµРґСЃС‚РѕРёС‚</option>
+                                    <option value="active">РђРєС‚РёРІРЅС‹Рµ</option>
+                                    <option value="completed">Р—Р°РІРµСЂС€РµРЅРЅС‹Рµ</option>
+                                    <option value="inactive">РќРµР°РєС‚РёРІРЅС‹Рµ</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="calendarSearchInput">Поиск</label>
-                                <input id="calendarSearchInput" class="form-input" type="text" placeholder="Тест, класс, предмет">
+                                <label for="calendarSearchInput">РџРѕРёСЃРє</label>
+                                <input id="calendarSearchInput" class="form-input" type="text" placeholder="РўРµСЃС‚, РєР»Р°СЃСЃ, РїСЂРµРґРјРµС‚">
                             </div>
                         </div>
                     </section>
 
                     <section class="calendar-kpi-grid">
-                        <div class="report-kpi tone-blue"><span>Всего событий</span><strong id="calendarKpiTotal">0</strong></div>
-                        <div class="report-kpi tone-green"><span>Активные</span><strong id="calendarKpiActive">0</strong></div>
-                        <div class="report-kpi tone-orange"><span>Предстоят</span><strong id="calendarKpiUpcoming">0</strong></div>
-                        <div class="report-kpi tone-rose"><span>Завершены</span><strong id="calendarKpiCompleted">0</strong></div>
+                        <div class="report-kpi tone-blue"><span>Р’СЃРµРіРѕ СЃРѕР±С‹С‚РёР№</span><strong id="calendarKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-green"><span>РђРєС‚РёРІРЅС‹Рµ</span><strong id="calendarKpiActive">0</strong></div>
+                        <div class="report-kpi tone-orange"><span>РџСЂРµРґСЃС‚РѕСЏС‚</span><strong id="calendarKpiUpcoming">0</strong></div>
+                        <div class="report-kpi tone-rose"><span>Р—Р°РІРµСЂС€РµРЅС‹</span><strong id="calendarKpiCompleted">0</strong></div>
                     </section>
 
                     <section class="calendar-layout">
                         <div class="dashboard-section">
                             <div class="calendar-weekdays">
-                                <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                                <span>РџРЅ</span><span>Р’С‚</span><span>РЎСЂ</span><span>Р§С‚</span><span>РџС‚</span><span>РЎР±</span><span>Р’СЃ</span>
                             </div>
                             <div class="calendar-grid" id="calendarGrid"></div>
                         </div>
                         <div class="dashboard-section calendar-side">
                             <div class="section-header">
-                                <h2 class="section-title">События дня</h2>
+                                <h2 class="section-title">РЎРѕР±С‹С‚РёСЏ РґРЅСЏ</h2>
                                 <span id="calendarSelectedDateLabel">-</span>
                             </div>
                             <div class="calendar-day-events" id="calendarDayEvents">
-                                <p class="text-secondary">Выберите дату в календаре</p>
+                                <p class="text-secondary">Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ РІ РєР°Р»РµРЅРґР°СЂРµ</p>
                             </div>
                         </div>
                     </section>
 
                     <section class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Ближайшие назначения</h2>
+                            <h2 class="section-title">Р‘Р»РёР¶Р°Р№С€РёРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ</h2>
                         </div>
                         <div class="table-responsive mobile-stack-table">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Тест</th>
-                                        <th>Класс</th>
-                                        <th>Предмет</th>
-                                        <th>Начало</th>
-                                        <th>Окончание</th>
-                                        <th>Статус</th>
-                                        <th>Действия</th>
+                                        <th>РўРµСЃС‚</th>
+                                        <th>РљР»Р°СЃСЃ</th>
+                                        <th>РџСЂРµРґРјРµС‚</th>
+                                        <th>РќР°С‡Р°Р»Рѕ</th>
+                                        <th>РћРєРѕРЅС‡Р°РЅРёРµ</th>
+                                        <th>РЎС‚Р°С‚СѓСЃ</th>
+                                        <th>Р”РµР№СЃС‚РІРёСЏ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="calendarUpcomingTableBody">
-                                    <tr><td colspan="7" class="empty-row">Загрузка...</td></tr>
+                                    <tr><td colspan="7" class="empty-row">Р—Р°РіСЂСѓР·РєР°...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1064,14 +1064,11 @@
                     <div class="modal-overlay hidden" id="calendarEventModal">
                         <div class="modal calendar-event-modal">
                             <div class="modal-header">
-                                <h3 id="calendarEventModalTitle">Событие</h3>
-                                <button class="modal-close" id="calendarEventModalClose" type="button">×</button>
+                                <h3 id="calendarEventModalTitle">РЎРѕР±С‹С‚РёРµ</h3>
+                                <button class="modal-close" id="calendarEventModalClose" type="button">Г—</button>
                             </div>
                             <div class="modal-body" id="calendarEventModalBody"></div>
-                            <div class="modal-actions">
-                                <button class="btn btn-primary" id="calendarEventModalOk" type="button">Закрыть</button>
                             </div>
-                        </div>
                     </div>
                 </div>
             `;
@@ -1370,7 +1367,7 @@
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title" data-i18n="advanced_analytics">Расширенная аналитика</h2>
+                            <h2 class="section-title" data-i18n="advanced_analytics">Р Р°СЃС€РёСЂРµРЅРЅР°СЏ Р°РЅР°Р»РёС‚РёРєР°</h2>
                         </div>
                         <p style="color: var(--text-secondary);">This section is only available for School Admin and Teacher.</p>
                     </div>
@@ -1381,79 +1378,79 @@
                 <div class="advanced-analytics" id="advancedAnalyticsRoot">
                     <div class="analytics-container">
                         <div class="page-header-section">
-                            <h1 class="page-main-title" data-i18n="advanced_analytics">Расширенная аналитика</h1>
+                            <h1 class="page-main-title" data-i18n="advanced_analytics">Р Р°СЃС€РёСЂРµРЅРЅР°СЏ Р°РЅР°Р»РёС‚РёРєР°</h1>
                         </div>
 
                         <div class="filters" id="advancedFilters">
                             <div class="filter-group">
-                                <label data-i18n="period">Период</label>
+                                <label data-i18n="period">РџРµСЂРёРѕРґ</label>
                                 <select id="periodFilter">
-                                    <option value="7">Последние 7 дней</option>
-                                    <option value="30" selected>Последние 30 дней</option>
-                                    <option value="90">Последние 90 дней</option>
-                                    <option value="365">Последний год</option>
+                                    <option value="7">РџРѕСЃР»РµРґРЅРёРµ 7 РґРЅРµР№</option>
+                                    <option value="30" selected>РџРѕСЃР»РµРґРЅРёРµ 30 РґРЅРµР№</option>
+                                    <option value="90">РџРѕСЃР»РµРґРЅРёРµ 90 РґРЅРµР№</option>
+                                    <option value="365">РџРѕСЃР»РµРґРЅРёР№ РіРѕРґ</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label data-i18n="grade_level">Параллель</label>
+                                <label data-i18n="grade_level">РџР°СЂР°Р»Р»РµР»СЊ</label>
                                 <select id="gradeLevelFilter">
-                                    <option value="">Все параллели</option>
+                                    <option value="">Р’СЃРµ РїР°СЂР°Р»Р»РµР»Рё</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label data-i18n="subject">Предмет</label>
+                                <label data-i18n="subject">РџСЂРµРґРјРµС‚</label>
                                 <select id="subjectFilter">
-                                    <option value="">Все предметы</option>
+                                    <option value="">Р’СЃРµ РїСЂРµРґРјРµС‚С‹</option>
                                 </select>
                             </div>
-                            <button class="btn btn-primary" type="button" id="applyAdvancedFilters" data-i18n="apply">Применить</button>
-                            <button class="btn btn-outline" type="button" id="exportAdvancedAnalytics" data-i18n="export">Экспорт</button>
+                            <button class="btn btn-primary" type="button" id="applyAdvancedFilters" data-i18n="apply">РџСЂРёРјРµРЅРёС‚СЊ</button>
+                            <button class="btn btn-outline" type="button" id="exportAdvancedAnalytics" data-i18n="export">Р­РєСЃРїРѕСЂС‚</button>
                         </div>
 
                         <div class="analytics-grid" id="overviewStats">
                             <div class="stat-card">
-                                <h3 data-i18n="total_students">Всего студентов</h3>
+                                <h3 data-i18n="total_students">Р’СЃРµРіРѕ СЃС‚СѓРґРµРЅС‚РѕРІ</h3>
                                 <div class="stat-value" id="totalStudents">-</div>
                             </div>
                             <div class="stat-card">
-                                <h3 data-i18n="average_score">Средний балл</h3>
+                                <h3 data-i18n="average_score">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</h3>
                                 <div class="stat-value" id="avgScore">-</div>
                             </div>
                             <div class="stat-card">
-                                <h3 data-i18n="total_tests">Всего тестов</h3>
+                                <h3 data-i18n="total_tests">Р’СЃРµРіРѕ С‚РµСЃС‚РѕРІ</h3>
                                 <div class="stat-value" id="totalTests">-</div>
                             </div>
                             <div class="stat-card">
-                                <h3 data-i18n="total_attempts">Всего попыток</h3>
+                                <h3 data-i18n="total_attempts">Р’СЃРµРіРѕ РїРѕРїС‹С‚РѕРє</h3>
                                 <div class="stat-value" id="totalAttempts">-</div>
                             </div>
                         </div>
 
                         <div class="tabs">
                             <button class="tab active" type="button" data-tab="heatmap">
-                                <span data-i18n="heatmap">Тепловая карта</span>
+                                <span data-i18n="heatmap">РўРµРїР»РѕРІР°СЏ РєР°СЂС‚Р°</span>
                             </button>
                             <button class="tab" type="button" data-tab="comparison">
-                                <span data-i18n="comparison">Сравнение</span>
+                                <span data-i18n="comparison">РЎСЂР°РІРЅРµРЅРёРµ</span>
                             </button>
                             <button class="tab" type="button" data-tab="trends">
-                                <span data-i18n="trends">Тренды</span>
+                                <span data-i18n="trends">РўСЂРµРЅРґС‹</span>
                             </button>
                             <button class="tab" type="button" data-tab="subjects">
-                                <span data-i18n="subjects">По предметам</span>
+                                <span data-i18n="subjects">РџРѕ РїСЂРµРґРјРµС‚Р°Рј</span>
                             </button>
                         </div>
 
                         <div class="tab-content active" id="heatmap-content">
                             <div class="chart-card">
                                 <h2>
-                                    <span data-i18n="performance_heatmap">Тепловая карта успеваемости</span>
+                                    <span data-i18n="performance_heatmap">РўРµРїР»РѕРІР°СЏ РєР°СЂС‚Р° СѓСЃРїРµРІР°РµРјРѕСЃС‚Рё</span>
                                 </h2>
                                 <p class="chart-subtitle" data-i18n="heatmap_description">
-                                    Визуализация средних баллов по предметам и неделям
+                                    Р’РёР·СѓР°Р»РёР·Р°С†РёСЏ СЃСЂРµРґРЅРёС… Р±Р°Р»Р»РѕРІ РїРѕ РїСЂРµРґРјРµС‚Р°Рј Рё РЅРµРґРµР»СЏРј
                                 </p>
                                 <div class="heatmap-legend">
-                                    <span class="legend-title">Легенда:</span>
+                                    <span class="legend-title">Р›РµРіРµРЅРґР°:</span>
                                     <div class="legend-item">
                                         <div class="legend-color" style="background: linear-gradient(to right, #ef4444, #f97316);"></div>
                                         <span>0-50%</span>
@@ -1474,7 +1471,7 @@
                                 <div class="heatmap-container">
                                     <div id="heatmapCanvas" class="loading">
                                         <div class="spinner"></div>
-                                        <span>Загрузка данных...</span>
+                                        <span>Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…...</span>
                                     </div>
                                 </div>
                             </div>
@@ -1483,11 +1480,11 @@
                         <div class="tab-content" id="comparison-content">
                             <div class="chart-card">
                                 <h2>
-                                    <span data-i18n="class_comparison">Сравнение классов</span>
+                                    <span data-i18n="class_comparison">РЎСЂР°РІРЅРµРЅРёРµ РєР»Р°СЃСЃРѕРІ</span>
                                     <select id="comparisonType">
-                                        <option value="classes">По классам</option>
-                                        <option value="subjects">По предметам</option>
-                                        <option value="students">По ученикам</option>
+                                        <option value="classes">РџРѕ РєР»Р°СЃСЃР°Рј</option>
+                                        <option value="subjects">РџРѕ РїСЂРµРґРјРµС‚Р°Рј</option>
+                                        <option value="students">РџРѕ СѓС‡РµРЅРёРєР°Рј</option>
                                     </select>
                                 </h2>
                                 <div class="chart-container">
@@ -1496,24 +1493,24 @@
                             </div>
 
                             <div class="chart-card">
-                                <h2 data-i18n="detailed_comparison">Детальное сравнение</h2>
+                                <h2 data-i18n="detailed_comparison">Р”РµС‚Р°Р»СЊРЅРѕРµ СЃСЂР°РІРЅРµРЅРёРµ</h2>
                                 <div class="table-container">
                                     <table class="comparison-table" id="comparisonTable">
                                         <thead>
                                             <tr>
-                                                <th>Название</th>
-                                                <th>Попыток</th>
-                                                <th>Средний балл</th>
-                                                <th>Мин балл</th>
-                                                <th>Макс балл</th>
-                                                <th>Прогресс</th>
+                                                <th>РќР°Р·РІР°РЅРёРµ</th>
+                                                <th>РџРѕРїС‹С‚РѕРє</th>
+                                                <th>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
+                                                <th>РњРёРЅ Р±Р°Р»Р»</th>
+                                                <th>РњР°РєСЃ Р±Р°Р»Р»</th>
+                                                <th>РџСЂРѕРіСЂРµСЃСЃ</th>
                                             </tr>
                                         </thead>
                                         <tbody id="comparisonTableBody">
                                             <tr>
                                                 <td colspan="6" class="loading">
                                                     <div class="spinner"></div>
-                                                    <span>Загрузка данных...</span>
+                                                    <span>Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…...</span>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -1524,7 +1521,7 @@
 
                         <div class="tab-content" id="trends-content">
                             <div class="chart-card">
-                                <h2 data-i18n="activity_trends">Тренды активности</h2>
+                                <h2 data-i18n="activity_trends">РўСЂРµРЅРґС‹ Р°РєС‚РёРІРЅРѕСЃС‚Рё</h2>
                                 <div class="chart-container">
                                     <canvas id="trendsChart"></canvas>
                                 </div>
@@ -1532,11 +1529,11 @@
 
                             <div class="analytics-grid">
                                 <div class="chart-card">
-                                    <h2 data-i18n="top_classes">Лучшие классы</h2>
+                                    <h2 data-i18n="top_classes">Р›СѓС‡С€РёРµ РєР»Р°СЃСЃС‹</h2>
                                     <div id="topClassesList"></div>
                                 </div>
                                 <div class="chart-card">
-                                    <h2 data-i18n="needs_attention">Требуют внимания</h2>
+                                    <h2 data-i18n="needs_attention">РўСЂРµР±СѓСЋС‚ РІРЅРёРјР°РЅРёСЏ</h2>
                                     <div id="needsAttentionList"></div>
                                 </div>
                             </div>
@@ -1544,30 +1541,30 @@
 
                         <div class="tab-content" id="subjects-content">
                             <div class="chart-card">
-                                <h2 data-i18n="subject_performance">Успеваемость по предметам</h2>
+                                <h2 data-i18n="subject_performance">РЈСЃРїРµРІР°РµРјРѕСЃС‚СЊ РїРѕ РїСЂРµРґРјРµС‚Р°Рј</h2>
                                 <div class="chart-container">
                                     <canvas id="subjectsChart"></canvas>
                                 </div>
                             </div>
 
                             <div class="chart-card">
-                                <h2 data-i18n="subject_stats">Статистика по предметам</h2>
+                                <h2 data-i18n="subject_stats">РЎС‚Р°С‚РёСЃС‚РёРєР° РїРѕ РїСЂРµРґРјРµС‚Р°Рј</h2>
                                 <div class="table-container">
                                     <table class="comparison-table">
                                         <thead>
                                             <tr>
-                                                <th>Предмет</th>
-                                                <th>Тестов</th>
-                                                <th>Попыток</th>
-                                                <th>Средний балл</th>
-                                                <th>Среднее время (мин)</th>
+                                                <th>РџСЂРµРґРјРµС‚</th>
+                                                <th>РўРµСЃС‚РѕРІ</th>
+                                                <th>РџРѕРїС‹С‚РѕРє</th>
+                                                <th>РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
+                                                <th>РЎСЂРµРґРЅРµРµ РІСЂРµРјСЏ (РјРёРЅ)</th>
                                             </tr>
                                         </thead>
                                         <tbody id="subjectsTableBody">
                                             <tr>
                                                 <td colspan="5" class="loading">
                                                     <div class="spinner"></div>
-                                                    <span>Загрузка данных...</span>
+                                                    <span>Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…...</span>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -1630,12 +1627,12 @@
                             type="text"
                             id="classesSearch"
                             class="search-input"
-                            placeholder="${t('classes.searchPlaceholder', 'Поиск классов...')}"
+                            placeholder="${t('classes.searchPlaceholder', 'РџРѕРёСЃРє РєР»Р°СЃСЃРѕРІ...')}"
                         />
                     </div>
                     <div class="toolbar-right">
                         <div class="page-size-control">
-                            <label for="classesPerPage" class="page-size-label">${t('classes.rows', 'Строк:')}</label>
+                            <label for="classesPerPage" class="page-size-label">${t('classes.rows', 'РЎС‚СЂРѕРє:')}</label>
                             <select id="classesPerPage" class="select-input page-size-select">
                                 <option value="10">10</option>
                                 <option value="20">20</option>
@@ -1644,25 +1641,25 @@
                             </select>
                         </div>
                         <select id="gradeFilter" class="select-input">
-                            <option value="all">${t('classes.allGrades', 'Все параллели')}</option>
-                            <option value="1">1 класс</option>
-                            <option value="2">2 класс</option>
-                            <option value="3">3 класс</option>
-                            <option value="4">4 класс</option>
-                            <option value="5">5 класс</option>
-                            <option value="6">6 класс</option>
-                            <option value="7">7 класс</option>
-                            <option value="8">8 класс</option>
-                            <option value="9">9 класс</option>
-                            <option value="10">10 класс</option>
-                            <option value="11">11 класс</option>
+                            <option value="all">${t('classes.allGrades', 'Р’СЃРµ РїР°СЂР°Р»Р»РµР»Рё')}</option>
+                            <option value="1">1 РєР»Р°СЃСЃ</option>
+                            <option value="2">2 РєР»Р°СЃСЃ</option>
+                            <option value="3">3 РєР»Р°СЃСЃ</option>
+                            <option value="4">4 РєР»Р°СЃСЃ</option>
+                            <option value="5">5 РєР»Р°СЃСЃ</option>
+                            <option value="6">6 РєР»Р°СЃСЃ</option>
+                            <option value="7">7 РєР»Р°СЃСЃ</option>
+                            <option value="8">8 РєР»Р°СЃСЃ</option>
+                            <option value="9">9 РєР»Р°СЃСЃ</option>
+                            <option value="10">10 РєР»Р°СЃСЃ</option>
+                            <option value="11">11 РєР»Р°СЃСЃ</option>
                         </select>
                         <button class="btn btn-primary" id="addClassBtn">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            ${t('classes.addClass', 'Добавить класс')}
+                            ${t('classes.addClass', 'Р”РѕР±Р°РІРёС‚СЊ РєР»Р°СЃСЃ')}
                         </button>
                     </div>
                 </div>
@@ -1679,12 +1676,12 @@
                             type="text"
                             id="subjectsSearch"
                             class="search-input"
-                            placeholder="Search subjects..."
+                            placeholder="${t('subjects.searchPlaceholder', 'Поиск предметов...')}"
                         />
                     </div>
                     <div class="toolbar-right">
                         <div class="page-size-control">
-                            <label for="subjectsPerPage" class="page-size-label">Rows:</label>
+                            <label for="subjectsPerPage" class="page-size-label">${t('subjects.rows', 'Строк:')}</label>
                             <select id="subjectsPerPage" class="select-input page-size-select">
                                 <option value="10">10</option>
                                 <option value="20">20</option>
@@ -1697,7 +1694,7 @@
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            Add Subject
+                            ${t('subjects.addSubject', 'Добавить предмет')}
                         </button>
                     </div>
                 </div>
@@ -1711,8 +1708,8 @@
                 return `
                     <div class="page-tabs">
                         <div class="tabs">
-                            <button class="tab active" data-tab="available">${t('tests.availableTests', 'Доступные тесты')}</button>
-                            <button class="tab" data-tab="completed">${t('tests.completedTests', 'Завершенные тесты')}</button>
+                            <button class="tab active" data-tab="available">${t('tests.availableTests', 'Р”РѕСЃС‚СѓРїРЅС‹Рµ С‚РµСЃС‚С‹')}</button>
+                            <button class="tab" data-tab="completed">${t('tests.completedTests', 'Р—Р°РІРµСЂС€РµРЅРЅС‹Рµ С‚РµСЃС‚С‹')}</button>
                         </div>
                     </div>
                     <div id="studentSubjectFilter"></div>
@@ -1726,17 +1723,17 @@
                                 type="text"
                                 id="testsSearch"
                                 class="search-input"
-                                placeholder="${t('tests.searchPlaceholder', 'Поиск тестов...')}"
+                                placeholder="${t('tests.searchPlaceholder', 'РџРѕРёСЃРє С‚РµСЃС‚РѕРІ...')}"
                             />
                         </div>
                         <div class="toolbar-filters">
                             <select id="subjectFilter" class="filter-select">
-                                <option value="all">${t('tests.allSubjects', 'Все предметы')}</option>
+                                <option value="all">${t('tests.allSubjects', 'Р’СЃРµ РїСЂРµРґРјРµС‚С‹')}</option>
                             </select>
                             <select id="statusFilter" class="filter-select">
-                                <option value="all">${t('tests.allStatus', 'Все статусы')}</option>
-                                <option value="active">${t('tests.statusActive', 'Активный')}</option>
-                                <option value="draft">${t('tests.statusDraft', 'Черновик')}</option>
+                                <option value="all">${t('tests.allStatus', 'Р’СЃРµ СЃС‚Р°С‚СѓСЃС‹')}</option>
+                                <option value="active">${t('tests.statusActive', 'РђРєС‚РёРІРЅС‹Р№')}</option>
+                                <option value="draft">${t('tests.statusDraft', 'Р§РµСЂРЅРѕРІРёРє')}</option>
                             </select>
                         </div>
                         <div class="toolbar-right">
@@ -1745,7 +1742,7 @@
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                ${t('tests.createTest', 'Создать тест')}
+                                ${t('tests.createTest', 'РЎРѕР·РґР°С‚СЊ С‚РµСЃС‚')}
                             </button>
                         </div>
                     </div>
@@ -1760,17 +1757,17 @@
                 <div class="page-toolbar">
                     <div class="search-box">
                         <select id="classAnalyticsSelect" class="select-input" style="width: 100%;">
-                            <option value="">${t('results.selectClass', 'Выберите класс...')}</option>
+                            <option value="">${t('results.selectClass', 'Р’С‹Р±РµСЂРёС‚Рµ РєР»Р°СЃСЃ...')}</option>
                         </select>
                     </div>
                     <div class="toolbar-right">
-                        <button class="btn btn-outline" id="refreshAnalyticsBtn">${t('common.refresh', 'Обновить')}</button>
+                        <button class="btn btn-outline" id="refreshAnalyticsBtn">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
                     </div>
                 </div>
                 <div class="stats-grid" id="classAnalyticsStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('results.recentAssignments', 'Недавние назначения')}</h2>
+                        <h2 class="section-title">${t('results.recentAssignments', 'РќРµРґР°РІРЅРёРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ')}</h2>
                     </div>
                     <div id="classAnalyticsAssignments"></div>
                 </div>
@@ -1787,17 +1784,17 @@
                             type="text"
                             id="studentResultsSearch"
                             class="search-input"
-                            placeholder="${t('results.searchPlaceholder', 'Поиск результатов...')}"
+                            placeholder="${t('results.searchPlaceholder', 'РџРѕРёСЃРє СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ...')}"
                         />
                     </div>
                     <div class="toolbar-right">
-                        <button class="btn btn-outline" id="studentResultsRefresh">${t('common.refresh', 'Обновить')}</button>
+                        <button class="btn btn-outline" id="studentResultsRefresh">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
                     </div>
                 </div>
                 <div class="stats-grid" id="studentResultsStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('results.testHistory', 'История тестов')}</h2>
+                        <h2 class="section-title">${t('results.testHistory', 'РСЃС‚РѕСЂРёСЏ С‚РµСЃС‚РѕРІ')}</h2>
                     </div>
                     <div id="studentResultsTable"></div>
                 </div>
@@ -1808,19 +1805,19 @@
             return `
                 <div class="page-toolbar">
                     <div class="toolbar-right">
-                        <button class="btn btn-outline" id="studentProgressRefresh">${t('common.refresh', 'Обновить')}</button>
+                        <button class="btn btn-outline" id="studentProgressRefresh">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
                     </div>
                 </div>
                 <div class="stats-grid" id="studentProgressStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('progress.trendTitle', 'Динамика прогресса')}</h2>
+                        <h2 class="section-title">${t('progress.trendTitle', 'Р”РёРЅР°РјРёРєР° РїСЂРѕРіСЂРµСЃСЃР°')}</h2>
                     </div>
                     <div id="studentProgressTrend"></div>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('progress.bySubjectTitle', 'По предметам')}</h2>
+                        <h2 class="section-title">${t('progress.bySubjectTitle', 'РџРѕ РїСЂРµРґРјРµС‚Р°Рј')}</h2>
                     </div>
                     <div id="studentProgressSubjects"></div>
                 </div>
@@ -1832,21 +1829,21 @@
                 <div class="page-toolbar">
                     <div class="toolbar-filters">
                         <select id="leaderboardScope" class="filter-select">
-                            <option value="class">${t('leaderboard.scopeClass', 'Класс')}</option>
-                            <option value="school">${t('leaderboard.scopeSchool', 'Школа')}</option>
-                            <option value="subject">${t('leaderboard.scopeSubject', 'Предмет')}</option>
+                            <option value="class">${t('leaderboard.scopeClass', 'РљР»Р°СЃСЃ')}</option>
+                            <option value="school">${t('leaderboard.scopeSchool', 'РЁРєРѕР»Р°')}</option>
+                            <option value="subject">${t('leaderboard.scopeSubject', 'РџСЂРµРґРјРµС‚')}</option>
                         </select>
                         <select id="leaderboardClass" class="filter-select" style="display: none;"></select>
                         <select id="leaderboardSubject" class="filter-select" style="display: none;"></select>
                     </div>
                     <div class="toolbar-right">
-                        <button class="btn btn-outline" id="leaderboardRefresh">${t('common.refresh', 'Обновить')}</button>
+                        <button class="btn btn-outline" id="leaderboardRefresh">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
                     </div>
                 </div>
                 <div class="stats-grid" id="leaderboardStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('leaderboard.title', 'Рейтинг')}</h2>
+                        <h2 class="section-title">${t('leaderboard.title', 'Р РµР№С‚РёРЅРі')}</h2>
                     </div>
                     <div id="leaderboardTable"></div>
                 </div>
@@ -1857,30 +1854,30 @@
         if (page === 'career' && role === 'student') {
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="career.title">Профориентация</h1>
-                    <p class="page-subtitle" data-i18n="career.subtitle">Тест интересов и рекомендации по предметам</p>
+                    <h1 class="page-main-title" data-i18n="career.title">РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёСЏ</h1>
+                    <p class="page-subtitle" data-i18n="career.subtitle">РўРµСЃС‚ РёРЅС‚РµСЂРµСЃРѕРІ Рё СЂРµРєРѕРјРµРЅРґР°С†РёРё РїРѕ РїСЂРµРґРјРµС‚Р°Рј</p>
                 </div>
                 <div class="career-grid">
                     <div class="card career-card">
                         <div class="career-card-header">
-                            <h2 data-i18n="career.testTitle">Тест интересов</h2>
-                            <p class="career-hint" data-i18n="career.testHint">Оцените утверждения по шкале от 1 до 5</p>
+                            <h2 data-i18n="career.testTitle">РўРµСЃС‚ РёРЅС‚РµСЂРµСЃРѕРІ</h2>
+                            <p class="career-hint" data-i18n="career.testHint">РћС†РµРЅРёС‚Рµ СѓС‚РІРµСЂР¶РґРµРЅРёСЏ РїРѕ С€РєР°Р»Рµ РѕС‚ 1 РґРѕ 5</p>
                         </div>
                         <form id="careerTestForm">
                             <div id="careerQuestions" class="career-questions"></div>
                             <div class="career-actions">
-                                <button class="btn btn-primary" type="submit" id="careerSubmitBtn" data-i18n="career.submit">Пройти тест</button>
+                                <button class="btn btn-primary" type="submit" id="careerSubmitBtn" data-i18n="career.submit">РџСЂРѕР№С‚Рё С‚РµСЃС‚</button>
                                 <span id="careerFormStatus" class="career-status"></span>
                             </div>
                         </form>
                     </div>
                     <div class="card career-card">
                         <div class="career-card-header">
-                            <h2 data-i18n="career.resultsTitle">Результаты</h2>
-                            <p class="career-hint" data-i18n="career.resultsHint">Ваши сильные интересы и рекомендации</p>
+                            <h2 data-i18n="career.resultsTitle">Р РµР·СѓР»СЊС‚Р°С‚С‹</h2>
+                            <p class="career-hint" data-i18n="career.resultsHint">Р’Р°С€Рё СЃРёР»СЊРЅС‹Рµ РёРЅС‚РµСЂРµСЃС‹ Рё СЂРµРєРѕРјРµРЅРґР°С†РёРё</p>
                         </div>
                         <div id="careerResultsEmpty" class="empty-state">
-                            <p data-i18n="career.noResults">Пока нет результатов. Пройдите тест.</p>
+                            <p data-i18n="career.noResults">РџРѕРєР° РЅРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ. РџСЂРѕР№РґРёС‚Рµ С‚РµСЃС‚.</p>
                         </div>
                         <canvas id="careerRadarChart" class="career-radar" style="display: none;"></canvas>
                         <div id="careerRecommendations" class="career-recommendations"></div>
@@ -1893,19 +1890,19 @@
         if (page === 'career-admin' && role === 'school_admin') {
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="career.adminTitle">Профориентация: Управление тестами</h1>
-                    <p class="page-subtitle" data-i18n="career.adminSubtitle">Создавайте, редактируйте и анализируйте профориентационные тесты для вашей школы</p>
+                    <h1 class="page-main-title" data-i18n="career.adminTitle">РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёСЏ: РЈРїСЂР°РІР»РµРЅРёРµ С‚РµСЃС‚Р°РјРё</h1>
+                    <p class="page-subtitle" data-i18n="career.adminSubtitle">РЎРѕР·РґР°РІР°Р№С‚Рµ, СЂРµРґР°РєС‚РёСЂСѓР№С‚Рµ Рё Р°РЅР°Р»РёР·РёСЂСѓР№С‚Рµ РїСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРѕРЅРЅС‹Рµ С‚РµСЃС‚С‹ РґР»СЏ РІР°С€РµР№ С€РєРѕР»С‹</p>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title" data-i18n="career.tests">Тесты профориентации</h2>
-                        <button class="btn btn-primary" id="addCareerTestBtn" data-i18n="career.addTest">Создать тест</button>
+                        <h2 class="section-title" data-i18n="career.tests">РўРµСЃС‚С‹ РїСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРё</h2>
+                        <button class="btn btn-primary" id="addCareerTestBtn" data-i18n="career.addTest">РЎРѕР·РґР°С‚СЊ С‚РµСЃС‚</button>
                     </div>
                     <div id="careerTestsTable"></div>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title" data-i18n="career.analytics">Аналитика и результаты</h2>
+                        <h2 class="section-title" data-i18n="career.analytics">РђРЅР°Р»РёС‚РёРєР° Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹</h2>
                     </div>
                     <div id="careerAnalytics"></div>
                 </div>
@@ -1921,18 +1918,18 @@
                             type="text"
                             id="assignmentsSearch"
                             class="search-input"
-                            placeholder="${t('assignments.searchPlaceholder', 'Поиск назначений...')}"
+                            placeholder="${t('assignments.searchPlaceholder', 'РџРѕРёСЃРє РЅР°Р·РЅР°С‡РµРЅРёР№...')}"
                         />
                     </div>
                     <div class="toolbar-filters">
                         <select id="classFilter" class="filter-select">
-                            <option value="all">${t('assignments.allClasses', 'Все классы')}</option>
+                            <option value="all">${t('assignments.allClasses', 'Р’СЃРµ РєР»Р°СЃСЃС‹')}</option>
                         </select>
                         <select id="statusFilter" class="filter-select">
-                            <option value="all">${t('assignments.allStatuses', 'Все статусы')}</option>
-                            <option value="active">${t('assignments.statusActive', 'Активно')}</option>
-                            <option value="completed">${t('assignments.statusCompleted', 'Завершено')}</option>
-                            <option value="inactive">${t('assignments.statusInactive', 'Неактивно')}</option>
+                            <option value="all">${t('assignments.allStatuses', 'Р’СЃРµ СЃС‚Р°С‚СѓСЃС‹')}</option>
+                            <option value="active">${t('assignments.statusActive', 'РђРєС‚РёРІРЅРѕ')}</option>
+                            <option value="completed">${t('assignments.statusCompleted', 'Р—Р°РІРµСЂС€РµРЅРѕ')}</option>
+                            <option value="inactive">${t('assignments.statusInactive', 'РќРµР°РєС‚РёРІРЅРѕ')}</option>
                         </select>
                     </div>
                     <div class="toolbar-right">
@@ -1941,7 +1938,7 @@
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            ${t('assignments.createAssignment', 'Создать назначение')}
+                            ${t('assignments.createAssignment', 'РЎРѕР·РґР°С‚СЊ РЅР°Р·РЅР°С‡РµРЅРёРµ')}
                         </button>
                     </div>
                 </div>
@@ -1949,7 +1946,7 @@
             `;
         }
 
-        // Career Interests Management (SuperAdmin) — удалено по требованиям RBAC
+        // Career Interests Management (SuperAdmin) вЂ” СѓРґР°Р»РµРЅРѕ РїРѕ С‚СЂРµР±РѕРІР°РЅРёСЏРј RBAC
 
         // Global Statistics (SuperAdmin) / School Statistics (School Admin)
         if (page === 'statistics') {
@@ -1994,22 +1991,22 @@
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">${t('settings.pageTitle', 'Настройки')}</h2>
+                            <h2 class="section-title">${t('settings.pageTitle', 'РќР°СЃС‚СЂРѕР№РєРё')}</h2>
                         </div>
-                        <p style="color: var(--text-secondary);">${t('settings.superadminOnly', 'Этот раздел доступен только для SuperAdmin.')}</p>
+                        <p style="color: var(--text-secondary);">${t('settings.superadminOnly', 'Р­С‚РѕС‚ СЂР°Р·РґРµР» РґРѕСЃС‚СѓРїРµРЅ С‚РѕР»СЊРєРѕ РґР»СЏ SuperAdmin.')}</p>
                     </div>
                 `;
             }
 
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title">${t('settings.notificationDefaults.title', 'Дефолтные уведомления')}</h1>
-                    <p class="page-subtitle">${t('settings.notificationDefaults.subtitle', 'Ролевые настройки каналов и событий для новых уведомлений')}</p>
+                    <h1 class="page-main-title">${t('settings.notificationDefaults.title', 'Р”РµС„РѕР»С‚РЅС‹Рµ СѓРІРµРґРѕРјР»РµРЅРёСЏ')}</h1>
+                    <p class="page-subtitle">${t('settings.notificationDefaults.subtitle', 'Р РѕР»РµРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё РєР°РЅР°Р»РѕРІ Рё СЃРѕР±С‹С‚РёР№ РґР»СЏ РЅРѕРІС‹С… СѓРІРµРґРѕРјР»РµРЅРёР№')}</p>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('settings.notificationDefaults.roleMatrix', 'Матрица ролей')}</h2>
-                        <button class="btn btn-primary" id="settingsSaveNotificationDefaultsBtn" type="button">${t('settings.notificationDefaults.saveDefaults', 'Сохранить настройки')}</button>
+                        <h2 class="section-title">${t('settings.notificationDefaults.roleMatrix', 'РњР°С‚СЂРёС†Р° СЂРѕР»РµР№')}</h2>
+                        <button class="btn btn-primary" id="settingsSaveNotificationDefaultsBtn" type="button">${t('settings.notificationDefaults.saveDefaults', 'РЎРѕС…СЂР°РЅРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё')}</button>
                     </div>
                     <div id="settingsNotificationDefaultsStatus" class="text-secondary" style="margin-bottom:10px;"></div>
                     <div id="settingsNotificationDefaultsMatrix"></div>
@@ -2021,43 +2018,43 @@
             return `
                 <div class="reports-page">
                     <div class="page-header-section reports-header">
-                        <h1 class="page-main-title">${t('reports.pageTitle', 'Центр отчетов')}</h1>
-                        <p class="page-subtitle">${t('reports.subtitle', 'Интерактивные отчеты, сравнения и экспорт готовых сводок')}</p>
+                        <h1 class="page-main-title">${t('reports.pageTitle', 'Р¦РµРЅС‚СЂ РѕС‚С‡РµС‚РѕРІ')}</h1>
+                        <p class="page-subtitle">${t('reports.subtitle', 'РРЅС‚РµСЂР°РєС‚РёРІРЅС‹Рµ РѕС‚С‡РµС‚С‹, СЃСЂР°РІРЅРµРЅРёСЏ Рё СЌРєСЃРїРѕСЂС‚ РіРѕС‚РѕРІС‹С… СЃРІРѕРґРѕРє')}</p>
                     </div>
 
                     <div class="reports-toolbar dashboard-section">
                         <div class="toolbar-filters">
                             <div class="filter-group">
-                                <label for="reportsPeriodFilter">${t('reports.period', 'Период')}</label>
+                                <label for="reportsPeriodFilter">${t('reports.period', 'РџРµСЂРёРѕРґ')}</label>
                                 <select id="reportsPeriodFilter" class="filter-select">
-                                    <option value="7">${t('reports.last7Days', 'Последние 7 дней')}</option>
-                                    <option value="30" selected>${t('reports.last30Days', 'Последние 30 дней')}</option>
-                                    <option value="90">${t('reports.last90Days', 'Последние 90 дней')}</option>
-                                    <option value="365">${t('reports.lastYear', 'Последний год')}</option>
+                                    <option value="7">${t('reports.last7Days', 'РџРѕСЃР»РµРґРЅРёРµ 7 РґРЅРµР№')}</option>
+                                    <option value="30" selected>${t('reports.last30Days', 'РџРѕСЃР»РµРґРЅРёРµ 30 РґРЅРµР№')}</option>
+                                    <option value="90">${t('reports.last90Days', 'РџРѕСЃР»РµРґРЅРёРµ 90 РґРЅРµР№')}</option>
+                                    <option value="365">${t('reports.lastYear', 'РџРѕСЃР»РµРґРЅРёР№ РіРѕРґ')}</option>
                                 </select>
                             </div>
                             <div class="filter-group" id="reportsMetricWrap" style="display:none;">
-                                <label for="reportsMetricFilter">${t('reports.metric', 'Метрика')}</label>
+                                <label for="reportsMetricFilter">${t('reports.metric', 'РњРµС‚СЂРёРєР°')}</label>
                                 <select id="reportsMetricFilter" class="filter-select">
-                                    <option value="avg_score">${t('reports.avgScore', 'Средний балл')}</option>
-                                    <option value="test_completion">${t('reports.completionRate', 'Процент завершения')}</option>
-                                    <option value="student_count">${t('reports.students', 'Ученики')}</option>
-                                    <option value="teacher_count">${t('reports.teachers', 'Учителя')}</option>
+                                    <option value="avg_score">${t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»')}</option>
+                                    <option value="test_completion">${t('reports.completionRate', 'РџСЂРѕС†РµРЅС‚ Р·Р°РІРµСЂС€РµРЅРёСЏ')}</option>
+                                    <option value="student_count">${t('reports.students', 'РЈС‡РµРЅРёРєРё')}</option>
+                                    <option value="teacher_count">${t('reports.teachers', 'РЈС‡РёС‚РµР»СЏ')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="reportsPresetSelect">${t('reports.preset', 'Пресет')}</label>
+                                <label for="reportsPresetSelect">${t('reports.preset', 'РџСЂРµСЃРµС‚')}</label>
                                 <select id="reportsPresetSelect" class="filter-select">
-                                    <option value="">${t('reports.defaultPreset', 'По умолчанию')}</option>
+                                    <option value="">${t('reports.defaultPreset', 'РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ')}</option>
                                 </select>
                             </div>
                         </div>
                         <div class="toolbar-right">
-                            <button class="btn btn-outline" id="reportsSavePresetBtn" type="button">${t('reports.savePreset', 'Сохранить пресет')}</button>
-                            <button class="btn btn-outline" id="reportsDeletePresetBtn" type="button">${t('reports.deletePreset', 'Удалить пресет')}</button>
-                            <button class="btn btn-secondary" id="reportsRefreshBtn" type="button">${t('common.refresh', 'Обновить')}</button>
-                            <button class="btn btn-secondary" id="reportsPdfBtn" type="button">${t('reports.exportPdf', 'Экспорт PDF')}</button>
-                            <button class="btn btn-primary" id="reportsExportBtn" type="button">${t('reports.exportData', 'Экспорт данных')}</button>
+                            <button class="btn btn-outline" id="reportsSavePresetBtn" type="button">${t('reports.savePreset', 'РЎРѕС…СЂР°РЅРёС‚СЊ РїСЂРµСЃРµС‚')}</button>
+                            <button class="btn btn-outline" id="reportsDeletePresetBtn" type="button">${t('reports.deletePreset', 'РЈРґР°Р»РёС‚СЊ РїСЂРµСЃРµС‚')}</button>
+                            <button class="btn btn-secondary" id="reportsRefreshBtn" type="button">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
+                            <button class="btn btn-secondary" id="reportsPdfBtn" type="button">${t('reports.exportPdf', 'Р­РєСЃРїРѕСЂС‚ PDF')}</button>
+                            <button class="btn btn-primary" id="reportsExportBtn" type="button">${t('reports.exportData', 'Р­РєСЃРїРѕСЂС‚ РґР°РЅРЅС‹С…')}</button>
                         </div>
                     </div>
 
@@ -2066,14 +2063,14 @@
                     <div class="reports-grid-main">
                         <div class="dashboard-section reports-card">
                             <div class="section-header">
-                                <h2 class="section-title">${t('reports.topEntities', 'Топ сущностей')}</h2>
+                                <h2 class="section-title">${t('reports.topEntities', 'РўРѕРї СЃСѓС‰РЅРѕСЃС‚РµР№')}</h2>
                             </div>
                             <div id="reportsTopTable"></div>
                         </div>
 
                         <div class="dashboard-section reports-card">
                             <div class="section-header">
-                                <h2 class="section-title">${t('reports.recentActivity', 'Недавняя активность')}</h2>
+                                <h2 class="section-title">${t('reports.recentActivity', 'РќРµРґР°РІРЅСЏСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ')}</h2>
                             </div>
                             <div id="reportsActivityList"></div>
                         </div>
@@ -2081,68 +2078,61 @@
 
                     <div class="dashboard-section reports-card">
                         <div class="section-header">
-                            <h2 class="section-title">${t('reports.trends', 'Тренды')}</h2>
+                            <h2 class="section-title">${t('reports.trends', 'РўСЂРµРЅРґС‹')}</h2>
                         </div>
                         <div class="reports-trends-wrap">
                             <canvas id="reportsTrendsChart" height="110"></canvas>
-                            <div class="reports-trends-empty" id="reportsTrendsEmpty" style="display:none;">${t('reports.noTrendData', 'Нет данных тренда для выбранных фильтров')}</div>
+                            <div class="reports-trends-empty" id="reportsTrendsEmpty" style="display:none;">${t('reports.noTrendData', 'РќРµС‚ РґР°РЅРЅС‹С… С‚СЂРµРЅРґР° РґР»СЏ РІС‹Р±СЂР°РЅРЅС‹С… С„РёР»СЊС‚СЂРѕРІ')}</div>
                         </div>
                     </div>
 
                     <div class="dashboard-section reports-card">
                         <div class="section-header">
-                            <h2 class="section-title">${t('reports.comparisonBreakdown', 'Сравнительная сводка')}</h2>
-                        </div>
-                        <div id="reportsCompareTable"></div>
-                    </div>
-
-                    <div class="dashboard-section reports-card">
-                        <div class="section-header">
-                            <h2 class="section-title">${t('reports.insights', 'Инсайты')}</h2>
+                            <h2 class="section-title">${t('reports.insights', 'РРЅСЃР°Р№С‚С‹')}</h2>
                         </div>
                         <div id="reportsInsights"></div>
                     </div>
 
                     <div class="dashboard-section reports-card" id="reportsNotificationsCard" style="display:none;">
                         <div class="section-header">
-                            <h2 class="section-title">${t('reports.notificationLog', 'Лог доставки уведомлений')}</h2>
+                            <h2 class="section-title">${t('reports.notificationLog', 'Р›РѕРі РґРѕСЃС‚Р°РІРєРё СѓРІРµРґРѕРјР»РµРЅРёР№')}</h2>
                         </div>
                         <div class="reports-notification-filters">
                             <div class="filter-group">
-                                <label for="reportsNotificationChannel">${t('common.channel', 'Канал')}</label>
+                                <label for="reportsNotificationChannel">${t('common.channel', 'РљР°РЅР°Р»')}</label>
                                 <select id="reportsNotificationChannel" class="filter-select">
-                                    <option value="">${t('common.all', 'Все')}</option>
+                                    <option value="">${t('common.all', 'Р’СЃРµ')}</option>
                                     <option value="email">Email</option>
                                     <option value="telegram">Telegram</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationEvent">${t('common.event', 'Событие')}</label>
+                                <label for="reportsNotificationEvent">${t('common.event', 'РЎРѕР±С‹С‚РёРµ')}</label>
                                 <select id="reportsNotificationEvent" class="filter-select">
-                                    <option value="">${t('common.all', 'Все')}</option>
-                                    <option value="welcome">${t('settings.event.welcome', 'Приветствие')}</option>
-                                    <option value="password_reset">${t('settings.event.password_reset', 'Сброс пароля')}</option>
-                                    <option value="new_test">${t('settings.event.new_test', 'Новый тест')}</option>
+                                    <option value="">${t('common.all', 'Р’СЃРµ')}</option>
+                                    <option value="welcome">${t('settings.event.welcome', 'РџСЂРёРІРµС‚СЃС‚РІРёРµ')}</option>
+                                    <option value="password_reset">${t('settings.event.password_reset', 'РЎР±СЂРѕСЃ РїР°СЂРѕР»СЏ')}</option>
+                                    <option value="new_test">${t('settings.event.new_test', 'РќРѕРІС‹Р№ С‚РµСЃС‚')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationStatus">${t('common.status', 'Статус')}</label>
+                                <label for="reportsNotificationStatus">${t('common.status', 'РЎС‚Р°С‚СѓСЃ')}</label>
                                 <select id="reportsNotificationStatus" class="filter-select">
-                                    <option value="">${t('common.all', 'Все')}</option>
-                                    <option value="sent">${t('reports.statusSent', 'Отправлено')}</option>
-                                    <option value="failed">${t('reports.statusFailed', 'Ошибка')}</option>
+                                    <option value="">${t('common.all', 'Р’СЃРµ')}</option>
+                                    <option value="sent">${t('reports.statusSent', 'РћС‚РїСЂР°РІР»РµРЅРѕ')}</option>
+                                    <option value="failed">${t('reports.statusFailed', 'РћС€РёР±РєР°')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationFrom">${t('common.from', 'От')}</label>
+                                <label for="reportsNotificationFrom">${t('common.from', 'РћС‚')}</label>
                                 <input id="reportsNotificationFrom" class="form-control" type="datetime-local">
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationTo">${t('common.to', 'До')}</label>
+                                <label for="reportsNotificationTo">${t('common.to', 'Р”Рѕ')}</label>
                                 <input id="reportsNotificationTo" class="form-control" type="datetime-local">
                             </div>
                             <div class="filter-group">
-                                <label for="reportsNotificationLimit">${t('common.perPage', 'На странице')}</label>
+                                <label for="reportsNotificationLimit">${t('common.perPage', 'РќР° СЃС‚СЂР°РЅРёС†Рµ')}</label>
                                 <select id="reportsNotificationLimit" class="filter-select">
                                     <option value="20">20</option>
                                     <option value="50">50</option>
@@ -2155,7 +2145,7 @@
 
                     <div class="dashboard-section reports-card">
                         <div class="section-header">
-                            <h2 class="section-title">${t('reports.atRiskStudents', 'Ученики в зоне риска')}</h2>
+                            <h2 class="section-title">${t('reports.atRiskStudents', 'РЈС‡РµРЅРёРєРё РІ Р·РѕРЅРµ СЂРёСЃРєР°')}</h2>
                         </div>
                         <div class="reports-risk-grid">
                             <div id="reportsRiskSummary"></div>
@@ -2171,9 +2161,9 @@
                 return `
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">${t('dashboard.nav.audit', 'Аудит')}</h2>
+                            <h2 class="section-title">${t('dashboard.nav.audit', 'РђСѓРґРёС‚')}</h2>
                         </div>
-                        <p style="color: var(--text-secondary);">${t('settings.superadminOnly', 'Этот раздел доступен только для SuperAdmin.')}</p>
+                        <p style="color: var(--text-secondary);">${t('settings.superadminOnly', 'Р­С‚РѕС‚ СЂР°Р·РґРµР» РґРѕСЃС‚СѓРїРµРЅ С‚РѕР»СЊРєРѕ РґР»СЏ SuperAdmin.')}</p>
                     </div>
                 `;
             }
@@ -2181,46 +2171,46 @@
             return `
                 <div class="audit-page">
                     <div class="page-header-section">
-                        <h1 class="page-main-title">${t('audit.pageTitle', 'Центр аудита')}</h1>
-                        <p class="page-subtitle">${t('audit.subtitle', 'Интерактивный мониторинг активности системы и forensic-анализ')}</p>
+                        <h1 class="page-main-title">${t('audit.pageTitle', 'Р¦РµРЅС‚СЂ Р°СѓРґРёС‚Р°')}</h1>
+                        <p class="page-subtitle">${t('audit.subtitle', 'РРЅС‚РµСЂР°РєС‚РёРІРЅС‹Р№ РјРѕРЅРёС‚РѕСЂРёРЅРі Р°РєС‚РёРІРЅРѕСЃС‚Рё СЃРёСЃС‚РµРјС‹ Рё forensic-Р°РЅР°Р»РёР·')}</p>
                     </div>
 
                     <div class="dashboard-section audit-toolbar">
                         <div class="toolbar-filters">
                             <div class="filter-group">
-                                <label for="auditSearch">${t('common.search', 'Поиск')}</label>
-                                <input id="auditSearch" class="form-control" placeholder="${t('audit.searchPlaceholder', 'действие, сущность, пользователь, детали')}">
+                                <label for="auditSearch">${t('common.search', 'РџРѕРёСЃРє')}</label>
+                                <input id="auditSearch" class="form-control" placeholder="${t('audit.searchPlaceholder', 'РґРµР№СЃС‚РІРёРµ, СЃСѓС‰РЅРѕСЃС‚СЊ, РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ, РґРµС‚Р°Р»Рё')}">
                             </div>
                             <div class="filter-group">
-                                <label for="auditActionFilter">${t('audit.action', 'Действие')}</label>
-                                <select id="auditActionFilter" class="filter-select"><option value="">${t('common.all', 'Все')}</option></select>
+                                <label for="auditActionFilter">${t('audit.action', 'Р”РµР№СЃС‚РІРёРµ')}</label>
+                                <select id="auditActionFilter" class="filter-select"><option value="">${t('common.all', 'Р’СЃРµ')}</option></select>
                             </div>
                             <div class="filter-group">
-                                <label for="auditEntityFilter">${t('audit.entity', 'Сущность')}</label>
-                                <select id="auditEntityFilter" class="filter-select"><option value="">${t('common.all', 'Все')}</option></select>
+                                <label for="auditEntityFilter">${t('audit.entity', 'РЎСѓС‰РЅРѕСЃС‚СЊ')}</label>
+                                <select id="auditEntityFilter" class="filter-select"><option value="">${t('common.all', 'Р’СЃРµ')}</option></select>
                             </div>
                             <div class="filter-group">
-                                <label for="auditRoleFilter">${t('audit.actorRole', 'Роль инициатора')}</label>
-                                <select id="auditRoleFilter" class="filter-select"><option value="">${t('common.all', 'Все')}</option></select>
+                                <label for="auditRoleFilter">${t('audit.actorRole', 'Р РѕР»СЊ РёРЅРёС†РёР°С‚РѕСЂР°')}</label>
+                                <select id="auditRoleFilter" class="filter-select"><option value="">${t('common.all', 'Р’СЃРµ')}</option></select>
                             </div>
                             <div class="filter-group">
-                                <label for="auditStatusFilter">${t('audit.status', 'Статус')}</label>
+                                <label for="auditStatusFilter">${t('audit.status', 'РЎС‚Р°С‚СѓСЃ')}</label>
                                 <select id="auditStatusFilter" class="filter-select">
-                                    <option value="">${t('common.all', 'Все')}</option>
-                                    <option value="success">${t('audit.success', 'Успех')}</option>
-                                    <option value="failed">${t('audit.failed', 'Ошибка')}</option>
+                                    <option value="">${t('common.all', 'Р’СЃРµ')}</option>
+                                    <option value="success">${t('audit.success', 'РЈСЃРїРµС…')}</option>
+                                    <option value="failed">${t('audit.failed', 'РћС€РёР±РєР°')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="auditFromFilter">${t('common.from', 'От')}</label>
+                                <label for="auditFromFilter">${t('common.from', 'РћС‚')}</label>
                                 <input id="auditFromFilter" class="form-control" type="datetime-local">
                             </div>
                             <div class="filter-group">
-                                <label for="auditToFilter">${t('common.to', 'До')}</label>
+                                <label for="auditToFilter">${t('common.to', 'Р”Рѕ')}</label>
                                 <input id="auditToFilter" class="form-control" type="datetime-local">
                             </div>
                             <div class="filter-group">
-                                <label for="auditPageSize">${t('common.perPage', 'На странице')}</label>
+                                <label for="auditPageSize">${t('common.perPage', 'РќР° СЃС‚СЂР°РЅРёС†Рµ')}</label>
                                 <select id="auditPageSize" class="filter-select">
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -2232,10 +2222,10 @@
                             <button class="btn btn-outline" id="auditPreset24hBtn" type="button">24h</button>
                             <button class="btn btn-outline" id="auditPreset7dBtn" type="button">7d</button>
                             <button class="btn btn-outline" id="auditPreset30dBtn" type="button">30d</button>
-                            <button class="btn btn-outline" id="auditResetFiltersBtn" type="button">${t('users.clear', 'Очистить')}</button>
-                            <button class="btn btn-secondary" id="auditRefreshBtn" type="button">${t('common.refresh', 'Обновить')}</button>
-                            <button class="btn btn-secondary" id="auditAutoRefreshBtn" type="button">${t('audit.autoOff', 'Авто: Выкл')}</button>
-                            <button class="btn btn-primary" id="auditExportBtn" type="button">${t('audit.exportCsv', 'Экспорт CSV')}</button>
+                            <button class="btn btn-outline" id="auditResetFiltersBtn" type="button">${t('users.clear', 'РћС‡РёСЃС‚РёС‚СЊ')}</button>
+                            <button class="btn btn-secondary" id="auditRefreshBtn" type="button">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
+                            <button class="btn btn-secondary" id="auditAutoRefreshBtn" type="button">${t('audit.autoOff', 'РђРІС‚Рѕ: Р’С‹РєР»')}</button>
+                            <button class="btn btn-primary" id="auditExportBtn" type="button">${t('audit.exportCsv', 'Р­РєСЃРїРѕСЂС‚ CSV')}</button>
                         </div>
                     </div>
 
@@ -2243,27 +2233,27 @@
 
                     <div class="reports-grid-main">
                         <div class="dashboard-section reports-card">
-                            <div class="section-header"><h2 class="section-title">${t('audit.topActions', 'Топ действий')}</h2></div>
+                            <div class="section-header"><h2 class="section-title">${t('audit.topActions', 'РўРѕРї РґРµР№СЃС‚РІРёР№')}</h2></div>
                             <div id="auditTopActions"></div>
                         </div>
                         <div class="dashboard-section reports-card">
-                            <div class="section-header"><h2 class="section-title">${t('audit.topActors', 'Топ инициаторов')}</h2></div>
+                            <div class="section-header"><h2 class="section-title">${t('audit.topActors', 'РўРѕРї РёРЅРёС†РёР°С‚РѕСЂРѕРІ')}</h2></div>
                             <div id="auditTopActors"></div>
                         </div>
                     </div>
 
                     <div class="dashboard-section reports-card">
-                        <div class="section-header"><h2 class="section-title">${t('audit.dailyTimeline', 'Ежедневная активность')}</h2></div>
+                        <div class="section-header"><h2 class="section-title">${t('audit.dailyTimeline', 'Р•Р¶РµРґРЅРµРІРЅР°СЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ')}</h2></div>
                         <div id="auditTimeline"></div>
                     </div>
 
                     <div class="dashboard-section reports-card">
-                        <div class="section-header"><h2 class="section-title">${t('audit.logs', 'Логи аудита')}</h2></div>
+                        <div class="section-header"><h2 class="section-title">${t('audit.logs', 'Р›РѕРіРё Р°СѓРґРёС‚Р°')}</h2></div>
                         <div id="auditLogsTable"></div>
                     </div>
 
                     <div class="dashboard-section reports-card" id="auditDetailsCard" style="display:none;">
-                        <div class="section-header"><h2 class="section-title">${t('audit.logDetails', 'Детали лога')}</h2></div>
+                        <div class="section-header"><h2 class="section-title">${t('audit.logDetails', 'Р”РµС‚Р°Р»Рё Р»РѕРіР°')}</h2></div>
                         <div id="auditDetailsView"></div>
                     </div>
                 </div>
@@ -2273,10 +2263,10 @@
         // Overview page with stats
         if (page === 'overview') {
             const titles = {
-                superadmin: { title: 'Админ Панель', subtitle: 'Управление системой и контроль' },
-                school_admin: { title: 'Админ Панель', subtitle: 'Управление школой' },
-                teacher: { title: 'Панель Учителя', subtitle: 'Тесты и аналитика' },
-                student: { title: 'Панель Ученика', subtitle: 'Обучение и результаты' }
+                superadmin: { title: 'РђРґРјРёРЅ РџР°РЅРµР»СЊ', subtitle: 'РЈРїСЂР°РІР»РµРЅРёРµ СЃРёСЃС‚РµРјРѕР№ Рё РєРѕРЅС‚СЂРѕР»СЊ' },
+                school_admin: { title: 'РђРґРјРёРЅ РџР°РЅРµР»СЊ', subtitle: 'РЈРїСЂР°РІР»РµРЅРёРµ С€РєРѕР»РѕР№' },
+                teacher: { title: 'РџР°РЅРµР»СЊ РЈС‡РёС‚РµР»СЏ', subtitle: 'РўРµСЃС‚С‹ Рё Р°РЅР°Р»РёС‚РёРєР°' },
+                student: { title: 'РџР°РЅРµР»СЊ РЈС‡РµРЅРёРєР°', subtitle: 'РћР±СѓС‡РµРЅРёРµ Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹' }
             };
 
             const roleTitle = titles[role] || titles.student;
@@ -2304,7 +2294,7 @@
                 <div class="section-header">
                     <h2 class="section-title">${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
                 </div>
-                <p style="color: var(--text-secondary);">${t('dashboard.activity.placeholder', 'Скоро появится...')}</p>
+                <p style="color: var(--text-secondary);">${t('dashboard.activity.placeholder', 'РЎРєРѕСЂРѕ РїРѕСЏРІРёС‚СЃСЏ...')}</p>
             </div>
         `;
     }
@@ -2527,17 +2517,17 @@
     // Refresh token
     async function refreshToken() {
         const refreshToken = localStorage.getItem('refresh_token');
-        console.log('🔄 Attempting to refresh token...');
+        console.log('рџ”„ Attempting to refresh token...');
         console.log('Refresh token exists:', !!refreshToken);
 
         if (!refreshToken) {
-            console.log('❌ No refresh token, redirecting to login');
+            console.log('вќЊ No refresh token, redirecting to login');
             redirectToLogin();
             return;
         }
 
         try {
-            console.log('📡 Calling /api/auth/refresh');
+            console.log('рџ“Ў Calling /api/auth/refresh');
             const response = await fetch('/api/auth/refresh', {
                 method: 'POST',
                 headers: {
@@ -2551,10 +2541,10 @@
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem('access_token', data.access_token);
-                console.log('✅ Token refreshed successfully');
+                console.log('вњ… Token refreshed successfully');
             } else {
                 const errorData = await response.json();
-                console.error('❌ Refresh failed:', errorData);
+                console.error('вќЊ Refresh failed:', errorData);
                 redirectToLogin();
             }
         } catch (error) {
@@ -2654,6 +2644,8 @@
             });
         });
 
-        console.log('Dashboard initialized ✓');
+        console.log('Dashboard initialized вњ“');
     });
 })();
+
+
