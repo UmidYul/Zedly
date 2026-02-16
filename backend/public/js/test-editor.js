@@ -256,13 +256,6 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">${t('testEditor.questionOrder', 'РџРѕСЂСЏРґРѕРє РІРѕРїСЂРѕСЃРѕРІ')}</label>
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="testShuffleQuestions" ${test.shuffle_questions ? 'checked' : ''}>
-                                        <span>${t('testEditor.shuffleQuestions', 'РџРµСЂРµРјРµС€РёРІР°С‚СЊ РІРѕРїСЂРѕСЃС‹ РґР»СЏ СѓС‡РµРЅРёРєРѕРІ')}</span>
-                                    </label>
-                                </div>
-                                <div class="form-group">
                                     <label class="form-label">${t('testEditor.antiCheating', 'РђРЅС‚Рё-СЃРїРёСЃС‹РІР°РЅРёРµ')}</label>
                                     <label class="checkbox-label">
                                         <input type="checkbox" id="testBlockCopyPaste" ${test.block_copy_paste !== false ? 'checked' : ''}>
@@ -273,7 +266,7 @@
                                         <span>${t('testEditor.trackTabSwitches', 'РћС‚СЃР»РµР¶РёРІР°С‚СЊ РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РІРєР»Р°РґРѕРє')}</span>
                                     </label>
                                     <label class="checkbox-label" style="margin-left: 16px;">
-                                        <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required !== false ? 'checked' : ''}>
+                                        <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required !== false ? 'checked' : ''} disabled>
                                         <span>${t('testEditor.requireFullscreen', 'РўСЂРµР±РѕРІР°С‚СЊ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј')}</span>
                                     </label>
                                 </div>
@@ -1272,7 +1265,7 @@
             const duration_minutes = parseInt(document.getElementById('testDuration').value);
             const passing_score = parseFloat(document.getElementById('testPassingScore').value);
             const max_attempts = parseInt(document.getElementById('testMaxAttempts').value);
-            const shuffle_questions = document.getElementById('testShuffleQuestions')?.checked || false;
+            const shuffle_questions = true;
             const block_copy_paste = document.getElementById('testBlockCopyPaste')?.checked !== false;
             const track_tab_switches = document.getElementById('testTrackTabSwitches')?.checked !== false;
             const fullscreen_required = document.getElementById('testFullscreenRequired')?.checked === true;

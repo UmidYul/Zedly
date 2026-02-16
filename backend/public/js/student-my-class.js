@@ -53,6 +53,15 @@
         return 'risk';
     }
 
+    function openTestsPage() {
+        const testsNav = document.querySelector('.nav-item[data-page="tests"]');
+        if (testsNav) {
+            testsNav.click();
+            return;
+        }
+        window.location.href = '/dashboard#tests';
+    }
+
     async function loadOverview() {
         const response = await fetch('/api/student/my-class/overview', {
             headers: {
@@ -118,7 +127,7 @@
 
         tbody.querySelectorAll('button[data-action="open-tests"]').forEach((button) => {
             button.addEventListener('click', () => {
-                window.location.hash = 'tests';
+                openTestsPage();
             });
         });
     }

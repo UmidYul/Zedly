@@ -3098,14 +3098,14 @@
 
     .recent-activity-table {
         overflow: visible;
-        margin: 10px 0;
+        margin: 14px 0;
     }
 
     .recent-activity-table .data-table {
         min-width: 0;
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 10px;
+        border-spacing: 0 14px;
         background: transparent;
     }
 
@@ -3124,18 +3124,18 @@
         border: 1px solid var(--border);
         border-radius: 12px;
         background: var(--bg-card);
-        padding: 6px 10px;
+        padding: 12px;
     }
 
     .recent-activity-table .data-table td {
         border: 0;
         border-bottom: 1px dashed var(--border);
-        padding: 7px 0;
+        padding: 10px 0;
         white-space: normal;
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 10px;
+        gap: 14px;
         text-align: right;
     }
 
@@ -3154,6 +3154,7 @@
         text-align: left;
         max-width: 45%;
         flex: 0 0 45%;
+        margin-bottom: 2px;
     }
 
     #studentsPage .students-bulk {
