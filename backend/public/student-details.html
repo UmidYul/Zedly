@@ -1,12 +1,12 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title>Student Details - ZEDLY</title>
+    <title>Профиль ученика - ZEDLY</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/tables.css">
     <link rel="stylesheet" href="css/dashboard.css">
@@ -43,7 +43,7 @@
                         <path d="M21 3L3 10l7 2 2 7 9-16z"></path>
                     </svg>
                 </button>
-                <button class="icon-btn" id="notificationsBtn" title="Notifications">
+                <button class="icon-btn" id="notificationsBtn" title="Уведомления">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
@@ -54,7 +54,7 @@
                     <button class="lang-btn active" data-lang="ru">RU</button>
                     <button class="lang-btn" data-lang="uz">UZ</button>
                 </div>
-                <button class="theme-toggle icon-btn" id="themeToggle" title="Theme">
+                <button class="theme-toggle icon-btn" id="themeToggle" title="Тема">
                     <svg class="theme-icon" width="20" height="20" viewBox="0 0 20 20">
                         <path class="sun" d="M10 2v2m0 12v2M4.22 4.22l1.42 1.42m8.72 8.72l1.42 1.42M2 10h2m12 0h2M4.22 15.78l1.42-1.42m8.72-8.72l1.42-1.42M10 5.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z" />
                         <path class="moon" d="M10 2c1.34 0 2.62.26 3.77.74A6 6 0 017.5 14a6 6 0 01-5.26-6.49A8 8 0 0010 2z" />
@@ -67,85 +67,85 @@
     <main class="student-main-content">
         <div class="student-content-wrapper">
             <div class="student-top-actions">
-                <button class="btn btn-outline student-back-btn" id="backBtn" type="button" aria-label="Back">
+                <button class="btn btn-outline student-back-btn" id="backBtn" type="button" aria-label="Назад">
                     <span aria-hidden="true">←</span>
-                    <span>Back</span>
+                    <span>Назад</span>
                 </button>
             </div>
 
             <section class="student-hero card" id="heroSection">
                 <div class="student-hero__main">
-                    <p class="hero-kicker">Student Profile</p>
-                    <h2 id="studentFullName">Loading...</h2>
-                    <p id="studentMeta">Preparing student report...</p>
+                    <p class="hero-kicker">Профиль ученика</p>
+                    <h2 id="studentFullName">Загрузка...</h2>
+                    <p id="studentMeta">Подготавливаем отчет ученика...</p>
                     <div class="hero-actions">
-                        <button class="btn btn-outline" id="copyEmailBtn" type="button">Copy Email</button>
-                        <button class="btn btn-outline" id="exportJsonBtn" type="button">Export JSON</button>
-                        <button class="btn btn-secondary" id="printBtn" type="button">Print</button>
-                        <button class="btn btn-primary" id="resetPasswordBtn" type="button">Reset Password</button>
+                        <button class="btn btn-outline" id="copyEmailBtn" type="button">Скопировать Email</button>
+                        <button class="btn btn-outline" id="exportJsonBtn" type="button">Экспорт JSON</button>
+                        <button class="btn btn-secondary" id="printBtn" type="button">Печать</button>
+                        <button class="btn btn-primary" id="resetPasswordBtn" type="button">Сбросить пароль</button>
                     </div>
                 </div>
                 <div class="student-hero__side">
                     <div class="student-avatar" id="studentAvatar">S</div>
-                    <p class="updated-at">Updated: <span id="updatedAt">-</span></p>
+                    <p class="updated-at">Обновлено: <span id="updatedAt">-</span></p>
                 </div>
             </section>
 
             <section class="kpi-grid">
                 <article class="kpi-card">
-                    <p class="kpi-label">Attempts</p>
+                    <p class="kpi-label">Попытки</p>
                     <p class="kpi-value" id="kpiAttempts">0</p>
                 </article>
                 <article class="kpi-card">
-                    <p class="kpi-label">Average Score</p>
+                    <p class="kpi-label">Средний балл</p>
                     <p class="kpi-value" id="kpiAvgScore">0%</p>
                 </article>
                 <article class="kpi-card">
-                    <p class="kpi-label">Pass Rate</p>
+                    <p class="kpi-label">Процент прохождения</p>
                     <p class="kpi-value" id="kpiPassRate">0%</p>
                 </article>
                 <article class="kpi-card">
-                    <p class="kpi-label">Class Rank</p>
+                    <p class="kpi-label">Место в классе</p>
                     <p class="kpi-value" id="kpiRank">-</p>
                 </article>
                 <article class="kpi-card">
-                    <p class="kpi-label">Best Score</p>
+                    <p class="kpi-label">Лучший результат</p>
                     <p class="kpi-value" id="kpiBest">0%</p>
                 </article>
                 <article class="kpi-card">
-                    <p class="kpi-label">Average Time</p>
-                    <p class="kpi-value" id="kpiAvgTime">0m</p>
+                    <p class="kpi-label">Среднее время</p>
+                    <p class="kpi-value" id="kpiAvgTime">0м</p>
                 </article>
             </section>
 
             <section class="tabs-card card">
-                <div class="tabs-bar" role="tablist" aria-label="Student report tabs">
-                    <button type="button" class="tab-btn is-active" data-tab="subjects" role="tab" aria-selected="true">Subjects</button>
-                    <button type="button" class="tab-btn" data-tab="progress" role="tab" aria-selected="false">Progress</button>
-                    <button type="button" class="tab-btn" data-tab="insights" role="tab" aria-selected="false">Insights</button>
+                <div class="tabs-bar" role="tablist" aria-label="Вкладки отчета ученика">
+                    <button type="button" class="tab-btn is-active" data-tab="subjects" role="tab" aria-selected="true">Предметы</button>
+                    <button type="button" class="tab-btn" data-tab="progress" role="tab" aria-selected="false">Прогресс</button>
+                    <button type="button" class="tab-btn" data-tab="insights" role="tab" aria-selected="false">Инсайты</button>
                 </div>
 
                 <div class="tab-panel is-active" data-panel="subjects">
                     <div class="panel-toolbar">
-                        <input id="subjectSearch" class="filter-input" type="search" placeholder="Search subject...">
+                        <input id="subjectSearch" class="filter-input" type="search" placeholder="Поиск предмета...">
                         <select id="subjectSort" class="filter-select">
-                            <option value="avg_desc">Top Score</option>
-                            <option value="avg_asc">Lowest Score</option>
-                            <option value="attempts_desc">Most Attempts</option>
-                            <option value="pass_desc">Top Pass Rate</option>
-                            <option value="name_asc">Name A-Z</option>
+                            <option value="avg_desc">Лучший балл</option>
+                            <option value="avg_asc">Низкий балл</option>
+                            <option value="attempts_desc">Больше попыток</option>
+                            <option value="pass_desc">Лучший процент прохождения</option>
+                            <option value="name_asc">Название А-Я</option>
                         </select>
                     </div>
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Subject</th>
-                                    <th>Attempts</th>
-                                    <th>Avg Score</th>
-                                    <th>Best</th>
-                                    <th>Worst</th>
-                                    <th>Pass Rate</th>
+                                    <th>Предмет</th>
+                                    <th>Попытки</th>
+                                    <th>Средний балл</th>
+                                    <th>Лучший</th>
+                                    <th>Худший</th>
+                                    <th>Прохождение</th>
                                 </tr>
                             </thead>
                             <tbody id="subjectsBody"></tbody>
@@ -158,7 +158,7 @@
                         <div class="segmented" id="rangeControls">
                             <button type="button" class="segment-btn is-active" data-range="30">30d</button>
                             <button type="button" class="segment-btn" data-range="90">90d</button>
-                            <button type="button" class="segment-btn" data-range="all">All</button>
+                            <button type="button" class="segment-btn" data-range="all">Все</button>
                         </div>
                     </div>
                     <div class="progress-visual" id="progressVisual"></div>
@@ -167,17 +167,17 @@
                 <div class="tab-panel" data-panel="insights">
                     <div class="insight-grid">
                         <article class="insight-card">
-                            <h3>Strengths</h3>
+                            <h3>Сильные стороны</h3>
                             <div class="tag-list" id="strengthsList"></div>
                         </article>
                         <article class="insight-card">
-                            <h3>Growth Areas</h3>
+                            <h3>Зоны роста</h3>
                             <div class="tag-list" id="weaknessesList"></div>
                         </article>
                         <article class="insight-card">
-                            <h3>Class Position</h3>
+                            <h3>Позиция в классе</h3>
                             <p class="rank-value" id="rankDetail">-</p>
-                            <p class="rank-note" id="rankNote">No class ranking data yet.</p>
+                            <p class="rank-note" id="rankNote">Пока нет данных о позиции в классе.</p>
                         </article>
                     </div>
                 </div>

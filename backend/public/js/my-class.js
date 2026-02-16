@@ -33,6 +33,15 @@
         return `${rounded}%`;
     }
 
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     async function loadHomeroomClasses() {
         const response = await fetch('/api/teacher/homeroom-classes', {
             headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
@@ -188,10 +197,11 @@
         tbody.innerHTML = students.map((student) => {
             const name = `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Без имени';
             const avg = Number(student.avg_score);
+            const profileHref = `student-details.html?id=${encodeURIComponent(student.id)}&class_id=${encodeURIComponent(state.activeClassId || '')}`;
             return `
                 <tr>
-                    <td>${name}</td>
-                    <td>${student.username || '-'}</td>
+                    <td><a class="student-name-link" href="${profileHref}">${escapeHtml(name)}</a></td>
+                    <td>${escapeHtml(student.username || '-')}</td>
                     <td>${student.tests_completed || 0}</td>
                     <td>${Number.isFinite(avg) ? formatPercent(avg) : '—'}</td>
                     <td>

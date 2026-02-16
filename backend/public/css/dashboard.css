@@ -3426,6 +3426,17 @@
     color: var(--text-tertiary);
 }
 
+.my-class-page .student-name-link {
+    color: var(--text-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.my-class-page .student-name-link:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
 .my-class-page .action-btn {
     padding: 0.35rem 0.8rem;
     border-radius: 999px;

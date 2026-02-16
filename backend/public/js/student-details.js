@@ -14,7 +14,7 @@
         progressRange: '30'
     };
 
-    function showAlert(message, title = 'Info') {
+    function showAlert(message, title = 'Информация') {
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title });
         }
@@ -22,7 +22,7 @@
         return Promise.resolve(true);
     }
 
-    function showConfirm(message, title = 'Confirmation') {
+    function showConfirm(message, title = 'Подтверждение') {
         if (window.ZedlyDialog?.confirm) {
             return window.ZedlyDialog.confirm(message, { title });
         }
@@ -32,15 +32,15 @@
     function showTempPassword(password, studentName) {
         if (window.ZedlyDialog?.temporaryPassword) {
             return window.ZedlyDialog.temporaryPassword({
-                title: 'Temporary password',
-                subtitle: `Password for ${studentName}`,
+                title: 'Временный пароль',
+                subtitle: `Пароль для ${studentName}`,
                 password: password || '',
-                passwordLabel: 'Temporary password',
-                copyText: 'Copy',
-                hint: 'Student must change this password after next login.'
+                passwordLabel: 'Временный пароль',
+                copyText: 'Скопировать',
+                hint: 'Ученик должен сменить пароль после следующего входа.'
             });
         }
-        return showAlert(`Temporary password: ${password || '-'}`, 'Password reset');
+        return showAlert(`Временный пароль: ${password || '-'}`, 'Сброс пароля');
     }
 
     function safeText(value, fallback = '-') {
@@ -81,7 +81,7 @@
 
     function getInitials(name) {
         const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
-        if (!parts.length) return 'S';
+        if (!parts.length) return 'У';
         if (parts.length === 1) return parts[0][0].toUpperCase();
         return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
@@ -104,7 +104,7 @@
         const response = await fetch(`${API_URL}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        if (!response.ok) throw new Error('Failed to fetch current user');
+        if (!response.ok) throw new Error('Не удалось получить данные текущего пользователя');
         const data = await response.json();
         localStorage.setItem('user', JSON.stringify(data));
         return data;
@@ -130,9 +130,9 @@
         });
 
         if (!response.ok) {
-            if (response.status === 403) throw new Error('Access denied for this student');
-            if (response.status === 404) throw new Error('Student not found');
-            throw new Error('Failed to load student report');
+            if (response.status === 403) throw new Error('Нет доступа к профилю этого ученика');
+            if (response.status === 404) throw new Error('Ученик не найден');
+            throw new Error('Не удалось загрузить отчет ученика');
         }
 
         return response.json();
@@ -149,13 +149,13 @@
 
     function renderHero() {
         const student = state.report?.student || {};
-        const fullName = `${safeText(student.first_name, '').trim()} ${safeText(student.last_name, '').trim()}`.trim() || 'Student';
-        const classPart = safeText(student.class_name, 'No class');
-        const gradePart = safeText(student.grade_level, 'N/A');
-        const emailPart = safeText(student.email, 'No email');
+        const fullName = `${safeText(student.first_name, '').trim()} ${safeText(student.last_name, '').trim()}`.trim() || 'Ученик';
+        const classPart = safeText(student.class_name, 'Без класса');
+        const gradePart = safeText(student.grade_level, '-');
+        const emailPart = safeText(student.email, 'Нет email');
 
         document.getElementById('studentFullName').textContent = fullName;
-        document.getElementById('studentMeta').textContent = `Class: ${classPart} • Grade: ${gradePart} • Email: ${emailPart}`;
+        document.getElementById('studentMeta').textContent = `Класс: ${classPart} • Параллель: ${gradePart} • Email: ${emailPart}`;
         document.getElementById('studentAvatar').textContent = getInitials(fullName);
         document.getElementById('updatedAt').textContent = formatDateTime(new Date().toISOString());
     }
@@ -174,7 +174,7 @@
         document.getElementById('kpiPassRate').textContent = toPercent(passRate);
         document.getElementById('kpiRank').textContent = rank > 0 ? `#${rank}/${totalStudents}` : '-';
         document.getElementById('kpiBest').textContent = toPercent(overall.max_score);
-        document.getElementById('kpiAvgTime').textContent = `${toNumber(overall.avg_time_minutes).toFixed(1)}m`;
+        document.getElementById('kpiAvgTime').textContent = `${toNumber(overall.avg_time_minutes).toFixed(1)}м`;
     }
 
     function getFilteredSubjects() {
@@ -203,7 +203,7 @@
         const rows = getFilteredSubjects();
 
         if (!rows.length) {
-            body.innerHTML = '<tr><td class="empty-row" colspan="6">No subject records found.</td></tr>';
+            body.innerHTML = '<tr><td class="empty-row" colspan="6">Записи по предметам не найдены.</td></tr>';
             return;
         }
 
@@ -236,7 +236,7 @@
 
     function buildChartSvg(rows) {
         if (!rows.length) {
-            return '<div class="chart-empty">No progress data for selected range.</div>';
+            return '<div class="chart-empty">Нет данных прогресса за выбранный период.</div>';
         }
 
         const width = 920;
@@ -261,7 +261,7 @@
         }).join('');
 
         const dots = points.map((point) => {
-            const label = `${formatShortDate(point.raw.week)} - ${toPercent(point.raw.avg_score)} (${toNumber(point.raw.attempts)} attempts)`;
+            const label = `${formatShortDate(point.raw.week)} - ${toPercent(point.raw.avg_score)} (${toNumber(point.raw.attempts)} попыток)`;
             return `<circle class="chart-dot" cx="${point.x}" cy="${point.y}" r="5"><title>${escapeHtml(label)}</title></circle>`;
         }).join('');
 
@@ -271,7 +271,7 @@
         }).join('');
 
         return `
-            <svg class="progress-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Student progress chart">
+            <svg class="progress-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="График прогресса ученика">
                 ${gridLines}
                 <path class="chart-line" d="${path}"></path>
                 ${dots}
@@ -298,20 +298,20 @@
 
         strengthsList.innerHTML = strengths.length
             ? strengths.map((item) => `<span class="tag good">${escapeHtml(item.subject || '-')} • ${toPercent(item.avg_score)}</span>`).join('')
-            : '<span class="tag">Not enough data yet</span>';
+            : '<span class="tag">Пока недостаточно данных</span>';
 
         weaknessesList.innerHTML = weaknesses.length
             ? weaknesses.map((item) => `<span class="tag bad">${escapeHtml(item.subject || '-')} • ${toPercent(item.avg_score)}</span>`).join('')
-            : '<span class="tag">Not enough data yet</span>';
+            : '<span class="tag">Пока недостаточно данных</span>';
 
         const rank = toNumber(ranking.rank);
         const total = toNumber(ranking.total_students);
         if (rank > 0 && total > 0) {
             rankDetail.textContent = `#${rank}`;
-            rankNote.textContent = `Out of ${total} students in class.`;
+            rankNote.textContent = `Из ${total} учеников в классе.`;
         } else {
             rankDetail.textContent = '-';
-            rankNote.textContent = 'No class ranking data yet.';
+            rankNote.textContent = 'Пока нет данных о позиции в классе.';
         }
     }
 
@@ -338,18 +338,18 @@
         if (!state.currentUser || !state.studentId) return;
         const role = state.currentUser.role;
         if (!['school_admin', 'teacher'].includes(role)) {
-            return showAlert('Only school admin or teacher can reset student password.', 'Access');
+            return showAlert('Только администратор школы или учитель может сбросить пароль ученика.', 'Доступ');
         }
         if (role === 'teacher') {
             const sourceClassId = state.sourceClassId ? String(state.sourceClassId) : '';
             const homeroomClassId = state.teacherHomeroomClassId ? String(state.teacherHomeroomClassId) : '';
             if (!sourceClassId || !homeroomClassId || sourceClassId !== homeroomClassId) {
-                return showAlert('You can reset password only for students from your homeroom class.', 'Access');
+                return showAlert('Вы можете сбрасывать пароль только ученикам своего класса.', 'Доступ');
             }
         }
 
-        const studentName = document.getElementById('studentFullName').textContent || 'Student';
-        const approved = await showConfirm(`Reset password for ${studentName}?`, 'Confirm');
+        const studentName = document.getElementById('studentFullName').textContent || 'ученика';
+        const approved = await showConfirm(`Сбросить пароль для ${studentName}?`, 'Подтверждение');
         if (!approved) return;
 
         const endpoint = role === 'teacher'
@@ -363,7 +363,7 @@
         const payload = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            throw new Error(payload.message || 'Failed to reset password');
+            throw new Error(payload.message || 'Не удалось сбросить пароль');
         }
 
         await showTempPassword(payload.tempPassword || '', studentName);
@@ -388,15 +388,15 @@
     async function copyEmail() {
         const email = state.report?.student?.email;
         if (!email) {
-            await showAlert('Student email is empty.', 'Info');
+            await showAlert('У ученика не указан email.', 'Информация');
             return;
         }
 
         try {
             await navigator.clipboard.writeText(String(email));
-            await showAlert('Email copied to clipboard.', 'Success');
+            await showAlert('Email скопирован в буфер обмена.', 'Успешно');
         } catch (_) {
-            await showAlert(`Email: ${email}`, 'Copy failed');
+            await showAlert(`Email: ${email}`, 'Не удалось скопировать');
         }
     }
 
@@ -437,10 +437,10 @@
         document.getElementById('exportJsonBtn').addEventListener('click', downloadJsonReport);
         document.getElementById('printBtn').addEventListener('click', () => window.print());
         document.getElementById('copyEmailBtn').addEventListener('click', () => {
-            copyEmail().catch((error) => showAlert(error.message || 'Failed to copy email', 'Error'));
+            copyEmail().catch((error) => showAlert(error.message || 'Не удалось скопировать email', 'Ошибка'));
         });
         document.getElementById('resetPasswordBtn').addEventListener('click', () => {
-            handleResetPassword().catch((error) => showAlert(error.message || 'Failed to reset password', 'Error'));
+            handleResetPassword().catch((error) => showAlert(error.message || 'Не удалось сбросить пароль', 'Ошибка'));
         });
     }
 
@@ -476,7 +476,7 @@
                 state.teacherHomeroomClassId = await fetchTeacherHomeroomClassId();
             }
             if (!state.studentId) {
-                throw new Error('Student id is required in URL (?id=...) for this role');
+                throw new Error('Для этой роли нужно передать id ученика в URL (?id=...)');
             }
 
             bindEvents();
@@ -485,9 +485,9 @@
             renderAll();
         } catch (error) {
             console.error('Student details init error:', error);
-            document.getElementById('studentFullName').textContent = 'Failed to load student profile';
-            document.getElementById('studentMeta').textContent = error.message || 'Unknown error';
-            showAlert(error.message || 'Failed to open student page', 'Error');
+            document.getElementById('studentFullName').textContent = 'Не удалось загрузить профиль ученика';
+            document.getElementById('studentMeta').textContent = error.message || 'Неизвестная ошибка';
+            showAlert(error.message || 'Не удалось открыть страницу ученика', 'Ошибка');
         }
     }
 
