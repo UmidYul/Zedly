@@ -89,9 +89,8 @@
         // Load existing test
         loadTest: async function (testId) {
             try {
-                const token = localStorage.getItem('access_token');
                 const response = await fetch(`/api/teacher/tests/${testId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
 
                 if (response.ok) {
@@ -110,9 +109,8 @@
         // Load subjects
         loadSubjects: async function () {
             try {
-                const token = localStorage.getItem('access_token');
                 const response = await fetch('/api/teacher/subjects', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
 
                 if (response.ok) {
@@ -126,9 +124,8 @@
 
         downloadImportTemplate: async function () {
             try {
-                const token = localStorage.getItem('access_token');
                 const response = await fetch('/api/teacher/tests/questions/import-template', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
                 if (!response.ok) {
                     throw new Error(t('testEditor.downloadTemplateFailed', 'Failed to download import template'));
@@ -163,13 +160,12 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
                 const formData = new FormData();
                 formData.append('file', file);
 
                 const response = await fetch('/api/teacher/tests/questions/import-excel', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include',
                     body: formData
                 });
                 const data = await response.json().catch(() => ({}));
@@ -845,12 +841,9 @@
 
             try {
                 if (status) status.textContent = t('testEditor.uploading', 'Загрузка...');
-                const token = localStorage.getItem('access_token');
                 const response = await fetch('/api/teacher/upload/question-image', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
+                    credentials: 'include',
                     body: formData
                 });
 
@@ -1291,7 +1284,6 @@
             };
 
             try {
-                const token = localStorage.getItem('access_token');
                 const url = this.currentTest
                     ? `/api/teacher/tests/${this.currentTest.id}`
                     : '/api/teacher/tests';
@@ -1299,8 +1291,8 @@
 
                 const response = await fetch(url, {
                     method,
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(testData)
@@ -1333,5 +1325,3 @@
         }
     };
 })();
-
-

@@ -181,23 +181,7 @@
 
     async function loadOverview() {
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
-
-            const response = await fetch(buildOverviewUrl(), {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401) {
-                localStorage.removeItem('access_token');
-                window.location.href = '/login.html';
-                return;
-            }
+            const response = await fetch(buildOverviewUrl(), { credentials: 'include' });
 
             if (!response.ok) {
                 return;
@@ -228,12 +212,6 @@
         if (!container) return;
 
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
-
             const params = new URLSearchParams({
                 period: String(currentFilters.period || 30)
             });
@@ -245,17 +223,7 @@
             }
             const url = `${API_URL}/analytics/school/heatmap?${params.toString()}`;
 
-            const response = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401) {
-                localStorage.removeItem('access_token');
-                window.location.href = '/login.html';
-                return;
-            }
+            const response = await fetch(url, { credentials: 'include' });
 
             if (response.status === 403) {
                 container.innerHTML = '<p style="color: var(--error);">У вас нет доступа к этой аналитике</p>';
@@ -332,11 +300,6 @@
 
         try {
             await ensureChartJs();
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
 
             let url = `${API_URL}/analytics/school/comparison?type=${type}`;
             if (currentFilters.grade_level) {
@@ -349,17 +312,7 @@
                 url += `&class_id=${currentFilters.class_id}`;
             }
 
-            const response = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401) {
-                localStorage.removeItem('access_token');
-                window.location.href = '/login.html';
-                return;
-            }
+            const response = await fetch(url, { credentials: 'include' });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -456,23 +409,7 @@
     async function loadTrends() {
         try {
             await ensureChartJs();
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
-
-            const response = await fetch(buildOverviewUrl(), {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401) {
-                localStorage.removeItem('access_token');
-                window.location.href = '/login.html';
-                return;
-            }
+            const response = await fetch(buildOverviewUrl(), { credentials: 'include' });
 
             if (!response.ok) {
                 throw new Error('Failed to load trends');
@@ -578,23 +515,7 @@
     async function loadSubjects() {
         try {
             await ensureChartJs();
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
-
-            const response = await fetch(buildOverviewUrl(), {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401) {
-                localStorage.removeItem('access_token');
-                window.location.href = '/login.html';
-                return;
-            }
+            const response = await fetch(buildOverviewUrl(), { credentials: 'include' });
 
             if (!response.ok) {
                 throw new Error('Failed to load subjects');
@@ -663,12 +584,7 @@
 
     async function exportData() {
         try {
-            const token = localStorage.getItem('access_token');
-            const response = await fetch(`${API_URL}/analytics/export/school`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetch(`${API_URL}/analytics/export/school`, { credentials: 'include' });
 
             if (!response.ok) throw new Error('Export failed');
 
@@ -689,19 +605,12 @@
 
     async function loadSubjectOptions() {
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) return;
-
             const role = getCurrentUserRole();
             const endpoint = role === 'teacher'
                 ? `${API_URL}/teacher/subjects`
                 : `${API_URL}/admin/subjects?limit=100`;
 
-            const response = await fetch(endpoint, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetch(endpoint, { credentials: 'include' });
 
             if (!response.ok) {
                 return;
@@ -730,19 +639,12 @@
 
     async function loadGradeLevelOptions() {
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) return;
-
             const role = getCurrentUserRole();
             const endpoint = role === 'teacher'
                 ? `${API_URL}/teacher/classes?page=1&limit=1000&search=&grade=all`
                 : `${API_URL}/admin/classes?page=1&limit=1000&search=&grade=all`;
 
-            const response = await fetch(endpoint, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetch(endpoint, { credentials: 'include' });
 
             if (!response.ok) {
                 return;
@@ -937,4 +839,3 @@
         init
     };
 })();
-
