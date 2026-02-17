@@ -25,7 +25,8 @@ function shouldUseSecureCookies(req) {
     const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
     if (forwardedProto.includes('https')) return true;
 
-    return process.env.NODE_ENV === 'production';
+    // Default to non-secure for local HTTP unless explicitly forced by env.
+    return false;
 }
 
 function getCookieOptions(req, { httpOnly = true, maxAge } = {}) {
