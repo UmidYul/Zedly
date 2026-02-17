@@ -57,6 +57,22 @@
         return getCurrentLang() === 'uz' ? uz : ru;
     }
 
+    function getSchoolScopeId() {
+        const role = getCurrentUserRole();
+        if (role !== 'superadmin') return null;
+        const params = new URLSearchParams(window.location.search);
+        const value = params.get('school_id') || params.get('schoolId');
+        const parsed = Number.parseInt(String(value || ''), 10);
+        return Number.isFinite(parsed) && parsed > 0 ? String(parsed) : null;
+    }
+
+    function appendSchoolScope(params) {
+        const schoolId = getSchoolScopeId();
+        if (schoolId) {
+            params.set('school_id', schoolId);
+        }
+    }
+
     function ensureChartJs() {
         if (window.Chart) {
             return Promise.resolve();
@@ -164,6 +180,7 @@
         const params = new URLSearchParams({
             period: String(currentFilters.period || 30)
         });
+        appendSchoolScope(params);
 
         if (currentFilters.grade_level) {
             params.set('grade_level', currentFilters.grade_level);
@@ -215,6 +232,7 @@
             const params = new URLSearchParams({
                 period: String(currentFilters.period || 30)
             });
+            appendSchoolScope(params);
             if (currentFilters.grade_level) {
                 params.set('grade_level', currentFilters.grade_level);
             }
@@ -302,6 +320,10 @@
             await ensureChartJs();
 
             let url = `${API_URL}/analytics/school/comparison?type=${type}`;
+            const schoolId = getSchoolScopeId();
+            if (schoolId) {
+                url += `&school_id=${encodeURIComponent(schoolId)}`;
+            }
             if (currentFilters.grade_level) {
                 url += `&grade_level=${currentFilters.grade_level}`;
             }
@@ -606,6 +628,9 @@
     async function loadSubjectOptions() {
         try {
             const role = getCurrentUserRole();
+            if (role === 'superadmin') {
+                return;
+            }
             const endpoint = role === 'teacher'
                 ? `${API_URL}/teacher/subjects`
                 : `${API_URL}/admin/subjects?limit=100`;
@@ -640,6 +665,9 @@
     async function loadGradeLevelOptions() {
         try {
             const role = getCurrentUserRole();
+            if (role === 'superadmin') {
+                return;
+            }
             const endpoint = role === 'teacher'
                 ? `${API_URL}/teacher/classes?page=1&limit=1000&search=&grade=all`
                 : `${API_URL}/admin/classes?page=1&limit=1000&search=&grade=all`;
@@ -680,6 +708,9 @@
     async function fetchAnalyticsClasses() {
         try {
             const role = getCurrentUserRole();
+            if (role === 'superadmin') {
+                return [];
+            }
             const endpoint = role === 'teacher'
                 ? `${API_URL}/teacher/classes?page=1&limit=1000&search=&grade=all`
                 : `${API_URL}/admin/classes?page=1&limit=1000&search=&grade=all`;
@@ -782,6 +813,10 @@
     async function init() {
         const root = getRoot();
         if (!root || root.dataset.initialized === 'true') return;
+        if (getCurrentUserRole() === 'superadmin' && !getSchoolScopeId()) {
+            await showAlert('Для супер-админа укажите school_id в URL, чтобы открыть аналитику школы');
+            return;
+        }
 
         root.dataset.initialized = 'true';
 

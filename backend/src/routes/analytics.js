@@ -131,6 +131,21 @@ function sanitizePeriodDays(rawValue, fallback = 30) {
     return parsed;
 }
 
+function resolveSchoolScope(req) {
+    const isSuperadmin = req.user.role === 'superadmin';
+    if (!isSuperadmin) {
+        return { isSuperadmin: false, schoolId: req.user.school_id };
+    }
+
+    const rawSchoolId = req.query.school_id ?? req.query.schoolId ?? req.user.school_id;
+    const schoolId = Number.parseInt(String(rawSchoolId ?? ''), 10);
+    if (!Number.isFinite(schoolId) || schoolId <= 0) {
+        return { isSuperadmin: true, schoolId: null };
+    }
+
+    return { isSuperadmin: true, schoolId };
+}
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -144,9 +159,15 @@ router.use(authenticate);
  * GET /api/analytics/school/overview
  * Get comprehensive school analytics
  */
-router.get('/school/overview', authorize('school_admin', 'teacher'), async (req, res) => {
+router.get('/school/overview', authorize('school_admin', 'teacher', 'superadmin'), async (req, res) => {
     try {
-        const schoolId = req.user.school_id;
+        const { schoolId } = resolveSchoolScope(req);
+        if (!schoolId) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'school_id is required for superadmin analytics'
+            });
+        }
         const isTeacher = req.user.role === 'teacher';
         const { period = '30', grade_level, subject_id, class_id } = req.query; // days
         const periodDays = sanitizePeriodDays(period, 30);
@@ -361,9 +382,15 @@ router.get('/school/overview', authorize('school_admin', 'teacher'), async (req,
  * GET /api/analytics/school/heatmap
  * Get heatmap data for student performance by subject and time
  */
-router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, res) => {
+router.get('/school/heatmap', authorize('school_admin', 'teacher', 'superadmin'), async (req, res) => {
     try {
-        const schoolId = req.user.school_id;
+        const { schoolId } = resolveSchoolScope(req);
+        if (!schoolId) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'school_id is required for superadmin analytics'
+            });
+        }
         const isTeacher = req.user.role === 'teacher';
         const { grade_level, class_id, period = '90' } = req.query;
         const periodDays = sanitizePeriodDays(period, 90);
@@ -426,9 +453,15 @@ router.get('/school/heatmap', authorize('school_admin', 'teacher'), async (req, 
  * GET /api/analytics/school/risk-dashboard
  * Students-at-risk dashboard with role-aware scope
  */
-router.get('/school/risk-dashboard', authorize('school_admin', 'teacher'), async (req, res) => {
+router.get('/school/risk-dashboard', authorize('school_admin', 'teacher', 'superadmin'), async (req, res) => {
     try {
-        const schoolId = req.user.school_id;
+        const { schoolId } = resolveSchoolScope(req);
+        if (!schoolId) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'school_id is required for superadmin analytics'
+            });
+        }
         const isTeacher = req.user.role === 'teacher';
         const periodDays = sanitizePeriodDays(req.query.period, 30);
         const riskThresholdRaw = Number.parseFloat(String(req.query.risk_threshold ?? 60));
@@ -628,9 +661,15 @@ router.get('/school/risk-dashboard', authorize('school_admin', 'teacher'), async
  * GET /api/analytics/school/comparison
  * Compare performance across different dimensions
  */
-router.get('/school/comparison', authorize('school_admin', 'teacher'), async (req, res) => {
+router.get('/school/comparison', authorize('school_admin', 'teacher', 'superadmin'), async (req, res) => {
     try {
-        const schoolId = req.user.school_id;
+        const { schoolId } = resolveSchoolScope(req);
+        if (!schoolId) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'school_id is required for superadmin analytics'
+            });
+        }
         const isTeacher = req.user.role === 'teacher';
         const { type = 'classes', subject_id, grade_level, class_id } = req.query;
         const { nameRu, nameUz } = await getSubjectNameExpressions();
@@ -981,9 +1020,10 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
  * GET /api/analytics/student/:id/report
  * Get comprehensive student performance report
  */
-router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'), async (req, res) => {
+router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student', 'superadmin'), async (req, res) => {
     try {
         const { id } = req.params;
+        const isSuperadmin = req.user.role === 'superadmin';
         const schoolId = req.user.school_id;
         const { nameRu } = await getSubjectNameExpressions();
         const attempt = await getAttemptExpressions();
@@ -1028,6 +1068,12 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         }
 
         // Get student info
+        const studentInfoParams = [id];
+        const studentSchoolFilter = isSuperadmin ? '' : 'AND u.school_id = $2';
+        if (!isSuperadmin) {
+            studentInfoParams.push(schoolId);
+        }
+
         const studentInfo = await query(`
             SELECT
                 u.id, u.first_name, u.last_name, u.email,
@@ -1036,9 +1082,9 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
             LEFT JOIN classes c ON c.id = cs.class_id
             WHERE u.id = $1
-              AND u.school_id = $2
+              ${studentSchoolFilter}
               AND u.role = 'student'
-        `, [id, schoolId]);
+        `, studentInfoParams);
 
         if (studentInfo.rows.length === 0) {
             return res.status(404).json({
@@ -1046,6 +1092,9 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                 message: 'Student not found'
             });
         }
+        const testSchoolFilter = isSuperadmin ? '' : 'AND t.school_id = $2';
+        const rankingSchoolJoinFilter = isSuperadmin ? '' : 'AND t.school_id = $2';
+        const params = isSuperadmin ? [id] : [id, schoolId];
 
         // Overall statistics
         const overallStats = await query(`
@@ -1059,9 +1108,9 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             FROM test_attempts ta
             JOIN tests t ON t.id = ta.test_id
             WHERE ta.student_id = $1
-              AND t.school_id = $2
+              ${testSchoolFilter}
               AND ${attempt.completedFilter}
-        `, [id, schoolId]);
+        `, params);
 
         // Performance by subject
         const subjectPerformance = await query(`
@@ -1076,11 +1125,11 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
             WHERE ta.student_id = $1
-              AND t.school_id = $2
+              ${testSchoolFilter}
               AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             ORDER BY avg_score DESC
-        `, [id, schoolId]);
+        `, params);
 
         // Progress over time
         const progress = await query(`
@@ -1091,12 +1140,12 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                         FROM test_attempts ta
                         JOIN tests t ON t.id = ta.test_id
                         WHERE ta.student_id = $1
-                          AND t.school_id = $2
+                          ${testSchoolFilter}
                           AND ${attempt.completedFilter}
                             AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '90 days'
                         GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
             ORDER BY week
-        `, [id, schoolId]);
+        `, params);
 
         // Strengths and weaknesses (by subject)
         const strengths = await query(`
@@ -1107,13 +1156,13 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
             WHERE ta.student_id = $1
-              AND t.school_id = $2
+              ${testSchoolFilter}
               AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             HAVING COUNT(*) >= 3
             ORDER BY avg_score DESC
             LIMIT 3
-        `, [id, schoolId]);
+        `, params);
 
         const weaknesses = await query(`
             SELECT
@@ -1123,13 +1172,13 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             JOIN tests t ON t.id = ta.test_id
             JOIN subjects s ON s.id = t.subject_id
             WHERE ta.student_id = $1
-              AND t.school_id = $2
+              ${testSchoolFilter}
               AND ${attempt.completedFilter}
             GROUP BY ${nameRu}
             HAVING COUNT(*) >= 3
             ORDER BY avg_score ASC
             LIMIT 3
-        `, [id, schoolId]);
+        `, params);
 
         // Class ranking
         const ranking = await query(`
@@ -1163,7 +1212,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
                     ON ta.student_id = cm.student_id
                 LEFT JOIN tests t
                     ON t.id = ta.test_id
-                   AND t.school_id = $2
+                   ${rankingSchoolJoinFilter}
                 GROUP BY cm.student_id
             ),
             ranked AS (
@@ -1178,7 +1227,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             SELECT rank, total_students
             FROM ranked
             WHERE student_id = $1
-        `, [id, schoolId]);
+        `, params);
 
         res.json({
             student: studentInfo.rows[0],
@@ -1202,9 +1251,15 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
  * GET /api/analytics/export/school
  * Export school analytics to Excel
  */
-router.get('/export/school', authorize('school_admin', 'teacher'), async (req, res) => {
+router.get('/export/school', authorize('school_admin', 'teacher', 'superadmin'), async (req, res) => {
     try {
-        const schoolId = req.user.school_id;
+        const { schoolId } = resolveSchoolScope(req);
+        if (!schoolId) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'school_id is required for superadmin analytics'
+            });
+        }
         const isTeacher = req.user.role === 'teacher';
         const teacherId = req.user.id;
         const { nameRu } = await getSubjectNameExpressions();
