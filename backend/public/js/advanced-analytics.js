@@ -679,19 +679,12 @@
 
     async function fetchAnalyticsClasses() {
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) return [];
-
             const role = getCurrentUserRole();
             const endpoint = role === 'teacher'
                 ? `${API_URL}/teacher/classes?page=1&limit=1000&search=&grade=all`
                 : `${API_URL}/admin/classes?page=1&limit=1000&search=&grade=all`;
 
-            const response = await fetch(endpoint, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetch(endpoint, { credentials: 'include' });
 
             if (!response.ok) {
                 return [];

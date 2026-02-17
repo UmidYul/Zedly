@@ -3,7 +3,6 @@
 
     const API_URL = '/api';
     const state = {
-        token: null,
         currentUser: null,
         studentId: null,
         sourceClassId: null,
@@ -104,10 +103,6 @@
         return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
 
-    function getToken() {
-        return localStorage.getItem('access_token') || localStorage.getItem('accessToken') || '';
-    }
-
     function applyStaticI18n() {
         window.i18n?.translate?.();
 
@@ -127,7 +122,7 @@
         }
     }
 
-    async function fetchCurrentUser(token) {
+    async function fetchCurrentUser() {
         const cached = localStorage.getItem('user');
         if (cached) {
             try {
@@ -139,10 +134,13 @@
         }
 
         const response = await fetch(`${API_URL}/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` }
+            credentials: 'include'
         });
 
         if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('auth_required');
+            }
             throw new Error(t('studentDetails.failedFetchCurrentUser', 'Failed to fetch current user'));
         }
 
@@ -167,7 +165,7 @@
 
     async function fetchStudentReport() {
         const response = await fetch(`${API_URL}/analytics/student/${encodeURIComponent(state.studentId)}/report`, {
-            headers: { Authorization: `Bearer ${state.token}` }
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -181,7 +179,7 @@
 
     async function fetchTeacherHomeroomClassId() {
         const response = await fetch(`${API_URL}/teacher/homeroom-class`, {
-            headers: { Authorization: `Bearer ${state.token}` }
+            credentials: 'include'
         });
         if (!response.ok) return null;
         const data = await response.json().catch(() => ({}));
@@ -418,7 +416,7 @@
 
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${state.token}` }
+            credentials: 'include'
         });
         const payload = await response.json().catch(() => ({}));
 
@@ -541,13 +539,7 @@
     async function init() {
         try {
             applyStaticI18n();
-            state.token = getToken();
-            if (!state.token) {
-                window.location.href = '/login.html';
-                return;
-            }
-
-            state.currentUser = await fetchCurrentUser(state.token);
+            state.currentUser = await fetchCurrentUser();
             state.studentId = resolveStudentId(state.currentUser);
             state.sourceClassId = resolveSourceClassId();
             if (state.currentUser.role === 'teacher') {
@@ -564,6 +556,10 @@
             renderAll();
         } catch (error) {
             console.error('Student details init error:', error);
+            if (error?.message === 'auth_required') {
+                window.location.href = '/login';
+                return;
+            }
             setText('studentFullName', t('studentDetails.failedLoadProfile', 'Failed to load student profile'));
             setText('studentMeta', error.message || t('studentDetails.unknownError', 'Unknown error'));
             showAlert(error.message || t('studentDetails.failedOpenPage', 'Failed to open student page'), t('common.error', 'Error'));
