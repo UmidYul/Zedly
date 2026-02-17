@@ -217,7 +217,6 @@
         setText('kpiAvgScore', toPercent(overall.avg_score));
         setText('kpiPassRate', toPercent(passRate));
         setText('kpiRank', rank > 0 ? `#${rank}/${totalStudents}` : '-');
-        setText('kpiBest', toPercent(overall.max_score));
         setText('kpiAvgTime', `${toNumber(overall.avg_time_minutes).toFixed(1)}${t('studentDetails.minutesSuffix', 'm')}`);
     }
 

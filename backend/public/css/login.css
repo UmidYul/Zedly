@@ -203,6 +203,22 @@
     padding-right: 48px;
 }
 
+/* Hide native password reveal/clear controls (Edge/IE/Chromium variants)
+   to avoid duplicate "eye" icon with custom toggle button */
+#password::-ms-reveal,
+#password::-ms-clear {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+#password::-webkit-credentials-auto-fill-button,
+#password::-webkit-textfield-decoration-container {
+    display: none !important;
+    visibility: hidden;
+    pointer-events: none;
+}
+
 .password-toggle {
     position: absolute;
     right: var(--spacing-md);

@@ -482,7 +482,24 @@
 
 /* Light theme tuning for student details page */
 [data-theme="light"] .student-page-header {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
     box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .student-main-content {
+    background:
+        radial-gradient(circle at 12% 12%, rgba(74, 144, 226, 0.08), transparent 35%),
+        linear-gradient(180deg, #f8fbff 0%, #f1f5fb 100%);
+}
+
+[data-theme="light"] .student-hero,
+[data-theme="light"] .kpi-card,
+[data-theme="light"] .tabs-card {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.12);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
 [data-theme="light"] .tab-btn {
@@ -532,10 +549,104 @@
     border-color: rgba(15, 23, 42, 0.12);
 }
 
+[data-theme="light"] .data-table thead th {
+    background: #f8fafc;
+    color: #334155;
+}
+
 [data-theme="light"] .chart-grid {
     stroke: rgba(15, 23, 42, 0.12);
 }
 
 [data-theme="light"] .chart-dot {
     stroke: #ffffff;
+}
+
+/* Print / PDF layout */
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    html,
+    body {
+        background: #ffffff !important;
+        color: #111827 !important;
+    }
+
+    .dashboard-header,
+    .student-top-actions,
+    .hero-actions,
+    .tabs-bar,
+    .panel-toolbar {
+        display: none !important;
+    }
+
+    .student-main-content {
+        padding: 0 !important;
+    }
+
+    .student-content-wrapper {
+        max-width: 100% !important;
+        gap: 12px !important;
+    }
+
+    .card,
+    .student-hero,
+    .tabs-card,
+    .kpi-card,
+    .insight-card,
+    .table-wrap,
+    .progress-visual {
+        background: #ffffff !important;
+        color: #111827 !important;
+        border: 1px solid #d1d5db !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .hero-kicker,
+    #studentMeta,
+    .updated-at,
+    .kpi-label,
+    .rank-note,
+    .empty-row,
+    .chart-axis text {
+        color: #4b5563 !important;
+    }
+
+    .student-avatar {
+        color: #111827 !important;
+        background: #e5e7eb !important;
+    }
+
+    .data-table th,
+    .data-table td {
+        color: #111827 !important;
+        background: #ffffff !important;
+        border-color: #e5e7eb !important;
+    }
+
+    .data-table thead th {
+        background: #f3f4f6 !important;
+    }
+
+    .tab-panel {
+        display: block !important;
+    }
+
+    .chart-grid {
+        stroke: #d1d5db !important;
+    }
+
+    .chart-line {
+        stroke: #2563eb !important;
+    }
+
+    .chart-dot {
+        fill: #10b981 !important;
+        stroke: #ffffff !important;
+    }
 }

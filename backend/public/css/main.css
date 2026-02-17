@@ -356,7 +356,7 @@ body {
     font-size: 1rem;
     line-height: 1.6;
     color: var(--text-primary);
-    background: #0F1729;
+    background: var(--bg-main);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
