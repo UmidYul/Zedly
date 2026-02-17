@@ -510,4 +510,34 @@
     .subject-hub {
         padding: var(--spacing-md);
     }
+
+    .subject-selection-summary {
+        align-items: stretch;
+        gap: var(--spacing-sm);
+    }
+
+    .subject-selection-title {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .subject-selection-title h3 {
+        font-size: 1rem;
+        line-height: 1.3;
+    }
+
+    .subject-selection-actions {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+
+    .subject-selection-actions p {
+        font-size: var(--text-xs);
+    }
+
+    .subject-selection-actions .btn {
+        width: 100%;
+        white-space: normal;
+    }
 }
