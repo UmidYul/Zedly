@@ -258,7 +258,6 @@
             const testsCount = subjectAssignments.length;
 
             let html = `
-                ${this.renderSubjectsCatalog()}
                 <div class="tests-section">
                     <div class="subject-selection-summary">
                         <div class="subject-selection-title">

@@ -748,7 +748,9 @@ function initTelegramStartListener() {
                 `Номер телефона успешно обновлен: <b>${normalizedPhone}</b>`,
                 {
                     reply_markup: {
-                        remove_keyboard: true
+                        inline_keyboard: [[
+                            { text: 'Перейти на сайт', url: `${getAppUrl().replace(/\/$/, '')}/dashboard` }
+                        ]]
                     }
                 }
             );
