@@ -262,7 +262,7 @@
                                         <span>${t('testEditor.trackTabSwitches', 'РћС‚СЃР»РµР¶РёРІР°С‚СЊ РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РІРєР»Р°РґРѕРє')}</span>
                                     </label>
                                     <label class="checkbox-label" style="margin-left: 16px;">
-                                        <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required === true ? 'checked' : ''} disabled>
+                                        <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required === true ? 'checked' : ''}>
                                         <span>${t('testEditor.requireFullscreen', 'РўСЂРµР±РѕРІР°С‚СЊ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј')}</span>
                                     </label>
                                 </div>

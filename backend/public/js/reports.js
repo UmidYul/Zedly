@@ -775,9 +775,47 @@
                 <title>${t('reports.pdfTitle', 'РћС‚С‡РµС‚С‹ PDF')}</title>
                 ${styles}
                 <style>
-                    body { background: #fff !important; padding: 16px; }
+                    :root {
+                        --bg-main: #f8fafc;
+                        --bg-primary: #ffffff;
+                        --bg-secondary: #f8fafc;
+                        --bg-card: #ffffff;
+                        --surface-card: #ffffff;
+                        --surface-glass: #ffffff;
+                        --text-primary: #0f172a;
+                        --text-secondary: #475569;
+                        --text-tertiary: #64748b;
+                        --text-muted: #64748b;
+                        --border: rgba(15, 23, 42, 0.12);
+                        --border-light: rgba(15, 23, 42, 0.08);
+                        --border-strong: rgba(15, 23, 42, 0.16);
+                    }
+                    * { color-adjust: exact; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    body {
+                        background: #ffffff !important;
+                        color: #0f172a !important;
+                        padding: 18px;
+                    }
                     .reports-page { width: 100% !important; max-width: 100% !important; }
-                    .dashboard-section { break-inside: avoid; page-break-inside: avoid; }
+                    .dashboard-section, .card, .surface, .surface-glass {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                        box-shadow: none !important;
+                        border-color: rgba(15, 23, 42, 0.12) !important;
+                        background: #ffffff !important;
+                    }
+                    .reports-toolbar .btn,
+                    .reports-toolbar .toolbar-right,
+                    #reportsRefreshBtn,
+                    #reportsExportBtn,
+                    #reportsPdfBtn {
+                        display: none !important;
+                    }
+                    table, .data-table { border-color: rgba(15, 23, 42, 0.12) !important; }
+                    .data-table th {
+                        background: #f1f5f9 !important;
+                        color: #334155 !important;
+                    }
                 </style>
             </head>
             <body>${clone.outerHTML}</body>
