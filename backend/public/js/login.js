@@ -82,6 +82,12 @@
                 console.log('Login response data:', data);
 
                 if (response.ok) {
+                    if (remember) {
+                        localStorage.setItem('remembered_username', username);
+                    } else {
+                        localStorage.removeItem('remembered_username');
+                    }
+
                     // Check if user must change password
                     if (data.must_change_password) {
                         console.log('⚠️ User must change password');
