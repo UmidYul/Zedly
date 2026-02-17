@@ -1,4 +1,14 @@
-const CACHE_NAME = 'zedly-shell-v6';
+// Silence browser console output for service worker context.
+if (typeof self !== 'undefined' && self.console) {
+  const noop = () => {};
+  self.console.log = noop;
+  self.console.info = noop;
+  self.console.warn = noop;
+  self.console.error = noop;
+  self.console.debug = noop;
+}
+
+const CACHE_NAME = 'zedly-shell-v7';
 const APP_SHELL = [
   '/',
   '/css/landing.css',

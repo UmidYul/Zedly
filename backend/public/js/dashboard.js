@@ -145,7 +145,6 @@
     // Initialize dashboard
     async function initDashboard() {
         console.log('[auth] Checking authentication...');
-        await loadDashboardContent();
 
         refreshTranslations();
         try {
