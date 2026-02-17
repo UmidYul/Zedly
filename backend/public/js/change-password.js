@@ -8,6 +8,7 @@
     const confirmPasswordInput = document.getElementById('confirm_password');
     const errorMessage = document.getElementById('error-message');
     const submitBtn = document.getElementById('changePasswordBtn');
+    const passwordToggles = document.querySelectorAll('.password-toggle');
 
     // Password validation requirements
     const requirements = {
@@ -69,6 +70,21 @@
     // Listen to password input changes
     newPasswordInput.addEventListener('input', validatePassword);
     confirmPasswordInput.addEventListener('input', validatePassword);
+
+    // Show/hide password fields
+    passwordToggles.forEach((toggleBtn) => {
+        toggleBtn.addEventListener('click', () => {
+            const inputId = toggleBtn.getAttribute('data-target');
+            const targetInput = document.getElementById(inputId);
+            if (!targetInput) return;
+
+            const isHidden = targetInput.type === 'password';
+            targetInput.type = isHidden ? 'text' : 'password';
+            toggleBtn.classList.toggle('active', isHidden);
+            toggleBtn.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+            toggleBtn.setAttribute('aria-label', isHidden ? 'Скрыть пароль' : 'Показать пароль');
+        });
+    });
 
     // Form submission
     form.addEventListener('submit', async (e) => {
