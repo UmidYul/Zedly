@@ -1045,6 +1045,7 @@
             const div = document.createElement('div');
             div.className = 'teacher-assignment';
             div.dataset.id = id;
+            div._selectedClassIds = new Set((Array.isArray(classIds) ? classIds : []).map((value) => String(value)));
             div.innerHTML = `
                 <div class="assignment-row">
                     <div class="assignment-col">
@@ -1077,8 +1078,7 @@
             if (subjectSelect) {
                 if (subjectId) subjectSelect.value = subjectId;
                 subjectSelect.onchange = async () => {
-                    const selectedClassIds = Array.from(div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`)).map(cb => String(cb.value));
-                    await this.updateAssignmentClasses(div, subjectSelect.value, selectedClassIds, parallelSelect?.value || '');
+                    await this.updateAssignmentClasses(div, subjectSelect.value, null, parallelSelect?.value || '');
                 };
             }
             if (parallelSelect) {
@@ -1087,8 +1087,7 @@
                     parallelSelect.value = initialParallel;
                 }
                 parallelSelect.onchange = async () => {
-                    const selectedClassIds = Array.from(div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`)).map(cb => String(cb.value));
-                    await this.updateAssignmentClasses(div, subjectSelect?.value || '', selectedClassIds, parallelSelect.value);
+                    await this.updateAssignmentClasses(div, subjectSelect?.value || '', null, parallelSelect.value);
                 };
             }
 
@@ -1097,9 +1096,21 @@
             }
         },
 
-        updateAssignmentClasses: function (assignmentDiv, subjectId, preselected = [], parallel = '') {
+        updateAssignmentClasses: function (assignmentDiv, subjectId, preselected = null, parallel = '') {
             const classList = assignmentDiv.querySelector('.multi-choice-list');
             if (!classList) return;
+            const selectedClassIds = assignmentDiv._selectedClassIds instanceof Set
+                ? assignmentDiv._selectedClassIds
+                : new Set();
+            assignmentDiv._selectedClassIds = selectedClassIds;
+
+            if (Array.isArray(preselected)) {
+                selectedClassIds.clear();
+                preselected.forEach((value) => {
+                    const normalized = String(value || '').trim();
+                    if (normalized) selectedClassIds.add(normalized);
+                });
+            }
 
             classList.innerHTML = '';
 
@@ -1125,7 +1136,8 @@
 
             classList.innerHTML = filteredClasses.map(cls => {
                 const label = `${cls.name} (Grade ${cls.grade_level})`;
-                const checked = preselected.includes(String(cls.id)) ? 'checked' : '';
+                const classId = String(cls.id);
+                const checked = selectedClassIds.has(classId) ? 'checked' : '';
                 return `
                     <label class="multi-choice-option">
                         <input type="checkbox" name="classes_${id}" value="${cls.id}" ${checked}>
@@ -1133,6 +1145,18 @@
                     </label>
                 `;
             }).join('');
+
+            classList.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]`).forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    const classId = String(checkbox.value || '').trim();
+                    if (!classId) return;
+                    if (checkbox.checked) {
+                        selectedClassIds.add(classId);
+                    } else {
+                        selectedClassIds.delete(classId);
+                    }
+                });
+            });
         },
 
         getParallelOptions: function () {
@@ -1274,14 +1298,12 @@
 
                 if (subjectSelect) {
                     subjectSelect.onchange = async () => {
-                        const selectedClassIds = Array.from(div.querySelectorAll(`input[type="checkbox"][name="classes_${assignmentId}"]:checked`)).map(cb => String(cb.value));
-                        await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value, selectedClassIds, parallelSelect?.value || '');
+                        await window.UsersManager.updateAssignmentClasses(div, subjectSelect.value, null, parallelSelect?.value || '');
                     };
                 }
                 if (parallelSelect) {
                     parallelSelect.onchange = async () => {
-                        const selectedClassIds = Array.from(div.querySelectorAll(`input[type="checkbox"][name="classes_${assignmentId}"]:checked`)).map(cb => String(cb.value));
-                        await window.UsersManager.updateAssignmentClasses(div, subjectSelect?.value || '', selectedClassIds, parallelSelect.value);
+                        await window.UsersManager.updateAssignmentClasses(div, subjectSelect?.value || '', null, parallelSelect.value);
                     };
                 }
             });
@@ -1319,9 +1341,13 @@
             assignmentDivs.forEach(div => {
                 const id = div.dataset.id;
                 const subjectId = div.querySelector(`[name="subject_${id}"]`)?.value;
-                // For checkboxes, collect all checked values
+                const rememberedClassIds = div._selectedClassIds instanceof Set
+                    ? Array.from(div._selectedClassIds).map(String).filter(Boolean)
+                    : [];
                 const checkedBoxes = div.querySelectorAll(`input[type="checkbox"][name="classes_${id}"]:checked`);
-                const classIds = Array.from(checkedBoxes).map(cb => cb.value);
+                const classIds = rememberedClassIds.length > 0
+                    ? rememberedClassIds
+                    : Array.from(checkedBoxes).map(cb => String(cb.value));
 
                 if (subjectId && classIds.length > 0) {
                     assignments.push({
