@@ -23,6 +23,19 @@ function verifyCsrfToken(req, res, next) {
         return next();
     }
 
+    const path = String(req.path || '');
+    const isLegacyAuthRoute = path === '/auth/login' || path === '/auth/refresh';
+    if (isLegacyAuthRoute) {
+        return next();
+    }
+
+    // Backward compatibility for legacy Bearer-token frontend:
+    // custom Authorization header is not CSRFable in normal browser requests.
+    const authHeader = String(req.headers.authorization || '');
+    if (authHeader.startsWith('Bearer ')) {
+        return next();
+    }
+
     const cookieToken = getCookieValue(req, CSRF_COOKIE_NAME);
     const headerToken = String(req.headers['x-csrf-token'] || '').trim();
 
