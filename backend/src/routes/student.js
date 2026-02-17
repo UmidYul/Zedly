@@ -1340,7 +1340,7 @@ router.get('/progress/overview', async (req, res) => {
         const testsAssigned = parseInt(testsAssignedResult.rows[0]?.count || 0);
 
         const testsCompletedResult = await query(`
-            SELECT COUNT(DISTINCT att.id) as count
+            SELECT COUNT(DISTINCT att.assignment_id) as count
             FROM test_attempts att
             INNER JOIN test_assignments ta ON ta.id = att.assignment_id
             INNER JOIN class_students cs ON cs.class_id = ta.class_id
@@ -1386,7 +1386,7 @@ router.get('/progress/overview', async (req, res) => {
         `, [studentId]);
 
         const completionRate = testsAssigned > 0
-            ? Math.round((testsCompleted / testsAssigned) * 100)
+            ? Math.min(100, Math.round((testsCompleted / testsAssigned) * 100))
             : 0;
 
         res.json({

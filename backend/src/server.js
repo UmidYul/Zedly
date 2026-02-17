@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const morgan = require('morgan');
 const fs = require('fs');
@@ -15,6 +16,27 @@ const { ensureCsrfCookie, verifyCsrfToken } = require('./middleware/csrf');
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.set('trust proxy', 1);
+
+function parsePositiveInt(value, fallback) {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const apiRateLimitWindowMs = parsePositiveInt(process.env.API_RATE_LIMIT_WINDOW_MS, 60_000);
+const apiRateLimitMax = parsePositiveInt(process.env.API_RATE_LIMIT_MAX, 240);
+
+const apiRateLimiter = rateLimit({
+    windowMs: apiRateLimitWindowMs,
+    max: apiRateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.method === 'OPTIONS',
+    message: {
+        error: 'too_many_requests',
+        message: 'Too many API requests. Please try again later.'
+    }
+});
+
 const shouldServeCompiledFrontend = String(process.env.SERVE_COMPILED_FRONTEND || '').toLowerCase() === 'true';
 const compiledPublicDir = path.join(__dirname, '..', 'public-dist');
 const sourcePublicDir = path.join(__dirname, '..', 'public');
@@ -132,6 +154,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+app.use('/api', apiRateLimiter);
 app.use('/api', ensureCsrfCookie);
 app.use('/api', (req, res, next) => {
     if (req.path === '/health' || req.path.startsWith('/public/')) {
