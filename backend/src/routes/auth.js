@@ -5,9 +5,23 @@ const crypto = require('crypto');
 const { query } = require('../config/database');
 const { generateTokens, verifyRefreshToken, generateAccessToken } = require('../utils/jwt');
 const { authenticate } = require('../middleware/auth');
+const { issueCsrfToken } = require('../middleware/csrf');
+const {
+    REFRESH_COOKIE_NAME,
+    setAuthCookies,
+    setTempAuthCookie,
+    clearAuthCookies,
+    clearCsrfCookie,
+    getCookieValue
+} = require('../utils/cookies');
 const { sendVerificationCodeEmail, isEmailConfigured, sendEmail } = require('../utils/notifications');
 
 const router = express.Router();
+
+router.get('/csrf-token', (req, res) => {
+    const csrfToken = issueCsrfToken(req, res);
+    res.json({ csrf_token: csrfToken });
+});
 
 function getUserSettings(rawSettings) {
     if (!rawSettings) return {};
@@ -197,9 +211,10 @@ router.post('/login', loginLimiter, async (req, res) => {
                 temp: true
             });
 
+            clearAuthCookies(req, res);
+            setTempAuthCookie(req, res, tempToken);
             return res.status(200).json({
                 must_change_password: true,
-                temp_token: tempToken,
                 user: {
                     id: user.id,
                     username: user.username,
@@ -216,6 +231,11 @@ router.post('/login', loginLimiter, async (req, res) => {
             role: user.role,
             school_id: user.school_id,
             token_version: user.token_version
+        });
+        setAuthCookies(req, res, {
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            remember: !!remember
         });
 
         // Update last login
@@ -246,9 +266,7 @@ router.post('/login', loginLimiter, async (req, res) => {
                 role: user.role,
                 school_id: user.school_id,
                 full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
-            },
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token // Always send refresh token
+            }
         });
     } catch (error) {
         console.error('Login error:', error);
@@ -265,7 +283,7 @@ router.post('/login', loginLimiter, async (req, res) => {
  */
 router.post('/refresh', async (req, res) => {
     try {
-        const { refresh_token } = req.body;
+        const refresh_token = req.body?.refresh_token || getCookieValue(req, REFRESH_COOKIE_NAME);
 
         if (!refresh_token) {
             return res.status(400).json({
@@ -331,6 +349,11 @@ router.post('/refresh', async (req, res) => {
             school_id: user.school_id,
             token_version: user.token_version
         });
+        setAuthCookies(req, res, {
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            remember: true
+        });
 
         res.json({
             access_token
@@ -364,6 +387,8 @@ router.post('/logout', authenticate, async (req, res) => {
              VALUES ($1, $2, $3, $4)`,
             [req.user.id, 'logout', 'user', req.user.id]
         );
+        clearAuthCookies(req, res);
+        clearCsrfCookie(req, res);
 
         res.json({
             message: 'Logout successful'
@@ -483,11 +508,14 @@ router.post('/change-password', authenticate, async (req, res) => {
             school_id: updateResult.rows[0].school_id,
             token_version: updateResult.rows[0].token_version
         });
+        setAuthCookies(req, res, {
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            remember: true
+        });
 
         res.json({
-            message: 'Password changed successfully',
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token
+            message: 'Password changed successfully'
         });
     } catch (error) {
         console.error('Change password error:', error);
@@ -1005,4 +1033,3 @@ router.post('/profile/contact/test-email', authenticate, async (req, res) => {
 });
 
 module.exports = router;
-

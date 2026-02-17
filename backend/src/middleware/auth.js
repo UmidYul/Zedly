@@ -1,4 +1,5 @@
 const { verifyAccessToken } = require('../utils/jwt');
+const { ACCESS_COOKIE_NAME, TEMP_COOKIE_NAME, getCookieValue } = require('../utils/cookies');
 
 /**
  * Authentication middleware
@@ -6,26 +7,18 @@ const { verifyAccessToken } = require('../utils/jwt');
  */
 function authenticate(req, res, next) {
     try {
-        // Get token from Authorization header
         const authHeader = req.headers.authorization;
+        const headerHasBearer = typeof authHeader === 'string' && authHeader.startsWith('Bearer ');
+        const tokenFromHeader = headerHasBearer ? authHeader.substring(7).trim() : '';
+        const cookieToken = getCookieValue(req, ACCESS_COOKIE_NAME) || getCookieValue(req, TEMP_COOKIE_NAME);
+        const token = tokenFromHeader || cookieToken;
 
-        if (!authHeader) {
+        if (!token) {
             return res.status(401).json({
                 error: 'No token provided',
                 message: 'Authentication required'
             });
         }
-
-        // Check if header starts with 'Bearer '
-        if (!authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                error: 'Invalid token format',
-                message: 'Token must be in format: Bearer <token>'
-            });
-        }
-
-        // Extract token
-        const token = authHeader.substring(7);
 
         // Verify token
         const decoded = verifyAccessToken(token);

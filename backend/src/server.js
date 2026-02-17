@@ -10,9 +10,11 @@ const crypto = require('crypto');
 const { initErrorTracking, captureException, captureMessage } = require('./utils/errorTracking');
 const { query } = require('./config/database');
 const { sendEmail, isEmailConfigured } = require('./utils/notifications');
+const { ensureCsrfCookie, verifyCsrfToken } = require('./middleware/csrf');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+app.set('trust proxy', 1);
 const errorTrackingStatus = initErrorTracking();
 if (errorTrackingStatus.enabled) {
     console.log(`Error tracking enabled: ${errorTrackingStatus.provider}`);
@@ -114,6 +116,14 @@ app.get('/api/health', (req, res) => {
         message: 'ZEDLY API is running',
         timestamp: new Date().toISOString()
     });
+});
+
+app.use('/api', ensureCsrfCookie);
+app.use('/api', (req, res, next) => {
+    if (req.path === '/health' || req.path.startsWith('/public/')) {
+        return next();
+    }
+    return verifyCsrfToken(req, res, next);
 });
 
 let landingStatsCache = {

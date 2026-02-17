@@ -145,28 +145,13 @@
     // Initialize dashboard
     async function initDashboard() {
         console.log('рџ”ђ Checking authentication...');
-
-        // Check authentication
-        const token = localStorage.getItem('access_token');
-        console.log('Access token exists:', !!token);
-
-        if (!token) {
-            console.log('вќЊ No access token found, redirecting to login');
-            redirectToLogin();
-            refreshTranslations();
-            return;
-        }
         await loadDashboardContent();
 
         refreshTranslations();
         try {
             console.log('рџ“Ў Fetching user info from /api/auth/me');
             // Fetch current user info
-            const response = await fetch('/api/auth/me', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetch('/api/auth/me', { credentials: 'include' });
 
             console.log('Response status:', response.status);
 
@@ -2730,31 +2715,18 @@
 
     // Refresh token
     async function refreshToken() {
-        const refreshToken = localStorage.getItem('refresh_token');
         console.log('рџ”„ Attempting to refresh token...');
-        console.log('Refresh token exists:', !!refreshToken);
-
-        if (!refreshToken) {
-            console.log('вќЊ No refresh token, redirecting to login');
-            redirectToLogin();
-            return;
-        }
 
         try {
             console.log('рџ“Ў Calling /api/auth/refresh');
             const response = await fetch('/api/auth/refresh', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ refresh_token: refreshToken })
+                credentials: 'include'
             });
 
             console.log('Refresh response status:', response.status);
 
             if (response.ok) {
-                const data = await response.json();
-                localStorage.setItem('access_token', data.access_token);
                 console.log('вњ… Token refreshed successfully');
             } else {
                 const errorData = await response.json();
@@ -2769,22 +2741,21 @@
 
     // Logout
     async function logout() {
-        const token = localStorage.getItem('access_token');
-
         try {
             await fetch('/api/auth/logout', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                credentials: 'include'
             });
         } catch (error) {
             console.error('Logout error:', error);
         }
 
-        // Clear tokens
+        // Clear stale client-side auth data
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('temp_token');
         localStorage.removeItem('user');
 
         // Redirect to login
@@ -2861,5 +2832,4 @@
         console.log('Dashboard initialized вњ“');
     });
 })();
-
 

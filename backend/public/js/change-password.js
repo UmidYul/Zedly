@@ -9,14 +9,6 @@
     const errorMessage = document.getElementById('error-message');
     const submitBtn = document.getElementById('changePasswordBtn');
 
-    // Check if user has temp_token
-    const tempToken = localStorage.getItem('temp_token');
-    if (!tempToken) {
-        // If no temp token, redirect to login
-        window.location.href = '/login.html';
-        return;
-    }
-
     // Password validation requirements
     const requirements = {
         length: { element: document.getElementById('req-length'), test: (pwd) => pwd.length >= 8 },
@@ -107,9 +99,9 @@
         try {
             const response = await fetch('/api/auth/change-password', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${tempToken}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     old_password: oldPassword,
@@ -120,14 +112,6 @@
             const data = await response.json();
 
             if (response.ok) {
-                // Store new tokens
-                localStorage.setItem('access_token', data.access_token);
-                localStorage.setItem('refresh_token', data.refresh_token);
-                localStorage.removeItem('token');
-
-                // Remove temp token
-                localStorage.removeItem('temp_token');
-
                 // Show success message
                 showSuccess('Пароль успешно изменен! Перенаправление...');
 

@@ -1,169 +1,191 @@
-// Authentication Interceptor - Auto token refresh
+// Authentication + CSRF interceptor for cookie-based auth
 (function () {
     'use strict';
 
-    // Store original fetch
     const originalFetch = window.fetch;
+    const CSRF_COOKIE_NAME = 'zedly_csrf_token';
 
-    // Flag to prevent multiple refresh attempts
     let isRefreshing = false;
     let refreshPromise = null;
+    let csrfPromise = null;
 
-    function getAccessToken() {
-        return localStorage.getItem('access_token') || localStorage.getItem('accessToken');
-    }
-
-    function getRefreshToken() {
-        return localStorage.getItem('refresh_token') || localStorage.getItem('refreshToken');
-    }
-
-    function storeAccessToken(token) {
-        if (!token) return;
-        localStorage.setItem('access_token', token);
-        localStorage.setItem('accessToken', token);
-    }
-
-    function clearAuthStorage() {
+    function clearLegacyAuthStorage() {
         localStorage.removeItem('access_token');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
         localStorage.removeItem('temp_token');
+        localStorage.removeItem('token');
     }
 
-    /**
-     * Refresh access token using refresh token
-     */
-    async function refreshAccessToken() {
-        const refreshToken = getRefreshToken();
+    function getCookie(name) {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+        return match ? decodeURIComponent(match[1]) : '';
+    }
 
-        if (!refreshToken) {
-            throw new Error('No refresh token available');
+    function normalizeHeaders(headers) {
+        if (headers instanceof Headers) {
+            const normalized = {};
+            headers.forEach((value, key) => {
+                normalized[key] = value;
+            });
+            return normalized;
+        }
+        return { ...(headers || {}) };
+    }
+
+    function getHeader(headers, key) {
+        const target = String(key).toLowerCase();
+        for (const [headerKey, value] of Object.entries(headers || {})) {
+            if (String(headerKey).toLowerCase() === target) {
+                return value;
+            }
+        }
+        return undefined;
+    }
+
+    function setHeader(headers, key, value) {
+        const target = String(key).toLowerCase();
+        for (const headerKey of Object.keys(headers)) {
+            if (String(headerKey).toLowerCase() === target) {
+                delete headers[headerKey];
+            }
+        }
+        headers[key] = value;
+    }
+
+    function deleteHeader(headers, key) {
+        const target = String(key).toLowerCase();
+        for (const headerKey of Object.keys(headers)) {
+            if (String(headerKey).toLowerCase() === target) {
+                delete headers[headerKey];
+            }
+        }
+    }
+
+    function cleanupInvalidAuthorization(headers) {
+        const authHeader = String(getHeader(headers, 'authorization') || '');
+        const match = authHeader.match(/^Bearer\s+(.+)$/i);
+        if (!match) return;
+
+        const token = String(match[1] || '').trim();
+        if (!token || token === 'null' || token === 'undefined') {
+            deleteHeader(headers, 'authorization');
+        }
+    }
+
+    function isSafeMethod(method) {
+        const normalized = String(method || 'GET').toUpperCase();
+        return normalized === 'GET' || normalized === 'HEAD' || normalized === 'OPTIONS';
+    }
+
+    function shouldSkipAutoRefresh(url) {
+        return url.includes('/api/auth/login') ||
+            url.includes('/api/auth/refresh') ||
+            url.includes('/api/auth/csrf-token');
+    }
+
+    async function ensureCsrfToken() {
+        const existingToken = getCookie(CSRF_COOKIE_NAME);
+        if (existingToken) return existingToken;
+
+        if (!csrfPromise) {
+            csrfPromise = (async () => {
+                const response = await originalFetch('/api/auth/csrf-token', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch CSRF token');
+                }
+
+                const payload = await response.json().catch(() => ({}));
+                return payload.csrf_token || getCookie(CSRF_COOKIE_NAME);
+            })().finally(() => {
+                csrfPromise = null;
+            });
         }
 
+        return csrfPromise;
+    }
+
+    async function refreshAccessToken() {
+        const csrfToken = await ensureCsrfToken();
         const response = await originalFetch('/api/auth/refresh', {
             method: 'POST',
+            credentials: 'include',
             headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ refresh_token: refreshToken })
+                'X-CSRF-Token': csrfToken
+            }
         });
 
         if (!response.ok) {
-            // Refresh failed, clear tokens and redirect to login
-            clearAuthStorage();
+            clearLegacyAuthStorage();
             throw new Error('Token refresh failed');
         }
-
-        const data = await response.json();
-
-        // Store new access token
-        storeAccessToken(data.access_token);
-
-        return data.access_token;
     }
 
-    /**
-     * Override fetch to add automatic token refresh
-     */
-    window.fetch = async function (...args) {
-        let [url, options = {}] = args;
+    function withCredentials(options) {
+        return {
+            ...options,
+            credentials: 'include'
+        };
+    }
 
-        // Skip interceptor for login, refresh, and static resources
-        if (
-            url.includes('/api/auth/login') ||
-            url.includes('/api/auth/refresh') ||
-            !url.includes('/api/')
-        ) {
+    window.fetch = async function (...args) {
+        const [input, init = {}] = args;
+        const requestUrl = typeof input === 'string' ? input : String(input?.url || '');
+
+        if (!requestUrl.includes('/api/')) {
             return originalFetch.apply(this, args);
         }
 
-        try {
-            // Check if using temporary token (for password change)
-            const tempToken = localStorage.getItem('temp_token');
-            if (tempToken && url.includes('/api/auth/change-password')) {
-                options.headers = {
-                    ...options.headers,
-                    'Authorization': `Bearer ${tempToken}`
-                };
-                return originalFetch(url, options);
+        const method = String(init.method || (typeof input !== 'string' ? input.method : 'GET') || 'GET').toUpperCase();
+        const nextInit = withCredentials({ ...init });
+        const headers = normalizeHeaders(nextInit.headers);
+
+        cleanupInvalidAuthorization(headers);
+
+        if (!isSafeMethod(method)) {
+            const csrfToken = await ensureCsrfToken();
+            if (csrfToken) {
+                setHeader(headers, 'X-CSRF-Token', csrfToken);
             }
+        }
 
-            // Add access token to request if available
-            const accessToken = getAccessToken();
-            if (accessToken) {
-                options.headers = {
-                    ...options.headers,
-                    'Authorization': `Bearer ${accessToken}`
-                };
-            } else {
-                console.warn('⚠️ No access token found for API request:', url);
-            }
+        nextInit.headers = headers;
 
-            // Make the request
-            let response = await originalFetch(url, options);
+        let response = await originalFetch(input, nextInit);
 
-            // If 401, try to refresh token and retry
-            if (response.status === 401 && !url.includes('/api/auth/')) {
-                console.log('⚠️ Got 401, attempting token refresh...');
-                
-                try {
-                    // If already refreshing, wait for that to complete
-                    if (isRefreshing) {
-                        console.log('Already refreshing, waiting...');
-                        await refreshPromise;
-                    } else {
-                        // Start refresh process
-                        isRefreshing = true;
-                        refreshPromise = refreshAccessToken();
-                        await refreshPromise;
-                        isRefreshing = false;
-                        refreshPromise = null;
-                    }
+        if (response.status === 401 && !shouldSkipAutoRefresh(requestUrl)) {
+            try {
+                if (isRefreshing) {
+                    await refreshPromise;
+                } else {
+                    isRefreshing = true;
+                    refreshPromise = refreshAccessToken();
+                    await refreshPromise;
+                    isRefreshing = false;
+                    refreshPromise = null;
+                }
 
-                    // Get new access token
-                    const newAccessToken = getAccessToken();
+                response = await originalFetch(input, nextInit);
+            } catch (error) {
+                isRefreshing = false;
+                refreshPromise = null;
+                clearLegacyAuthStorage();
 
-                    if (!newAccessToken) {
-                        throw new Error('No access token after refresh');
-                    }
-
-                    // Retry original request with new token
-                    options.headers = {
-                        ...options.headers,
-                        'Authorization': `Bearer ${newAccessToken}`
-                    };
-
-                    console.log('🔄 Retrying request with new token...');
-                    response = await originalFetch(url, options);
-
-                } catch (error) {
-                    console.error('❌ Token refresh failed:', error);
-
-                    // Clear tokens
-                    clearAuthStorage();
-
-                    // Only redirect if not already on login or change-password page
-                    if (!window.location.pathname.includes('/login') && 
-                        !window.location.pathname.includes('/change-password')) {
-                        console.log('Redirecting to login page...');
-                        window.location.href = '/login';
-                    }
-
-                    // Return error response
-                    return response;
+                if (!window.location.pathname.includes('/login') &&
+                    !window.location.pathname.includes('/change-password')) {
+                    window.location.href = '/login';
                 }
             }
-
-            return response;
-
-        } catch (error) {
-            // Network error or other fetch error - just rethrow
-            console.error('Fetch error:', error);
-            throw error;
         }
+
+        return response;
     };
 
-    console.log('Auth interceptor initialized ✓');
+    console.log('Auth interceptor initialized (cookie + CSRF) ✓');
 })();
