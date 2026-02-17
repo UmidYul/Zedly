@@ -120,6 +120,20 @@ npm run dev
 
 Frontend встроен в backend и сервится через Express.
 
+### Production JS build (minify + obfuscate)
+
+```bash
+cd backend
+npm run build:frontend
+```
+
+Это создаёт `backend/public-dist/` с обфусцированными JS-файлами.
+Чтобы сервер отдавал именно собранный фронтенд, включите в `.env`:
+
+```env
+SERVE_COMPILED_FRONTEND=true
+```
+
 ## Безопасность
 
 - JWT access + refresh tokens

@@ -15,6 +15,20 @@ const { ensureCsrfCookie, verifyCsrfToken } = require('./middleware/csrf');
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.set('trust proxy', 1);
+const shouldServeCompiledFrontend = String(process.env.SERVE_COMPILED_FRONTEND || '').toLowerCase() === 'true';
+const compiledPublicDir = path.join(__dirname, '..', 'public-dist');
+const sourcePublicDir = path.join(__dirname, '..', 'public');
+const hasCompiledFrontend = fs.existsSync(compiledPublicDir);
+const publicRoot = (shouldServeCompiledFrontend && hasCompiledFrontend)
+    ? compiledPublicDir
+    : sourcePublicDir;
+
+if (shouldServeCompiledFrontend && !hasCompiledFrontend) {
+    console.warn('SERVE_COMPILED_FRONTEND=true but public-dist not found, falling back to public/');
+}
+if (shouldServeCompiledFrontend && hasCompiledFrontend) {
+    console.log('Serving compiled frontend from public-dist/');
+}
 const errorTrackingStatus = initErrorTracking();
 if (errorTrackingStatus.enabled) {
     console.log(`Error tracking enabled: ${errorTrackingStatus.provider}`);
@@ -417,7 +431,7 @@ try {
 // ==============================================
 
 // Serve static files (HTML, CSS, JS)
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(publicRoot));
 
 // ==============================================
 // Serve Frontend (HTML pages)
@@ -425,22 +439,22 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Landing page
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+    res.sendFile(path.join(publicRoot, 'index.html'));
 });
 
 // Login page
 app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
+    res.sendFile(path.join(publicRoot, 'login.html'));
 });
 
 // Dashboard pages (will redirect to appropriate role-based page)
 app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'));
+    res.sendFile(path.join(publicRoot, 'dashboard.html'));
 });
 
 // Catch-all route (404)
 app.use((req, res) => {
-    res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html'));
+    res.status(404).sendFile(path.join(publicRoot, '404.html'));
 });
 
 // ==============================================
@@ -502,7 +516,7 @@ app.get('/robots.txt', (req, res) => {
 });
 
 app.get('/sitemap.xml', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'sitemap.xml'));
+    res.sendFile(path.join(publicRoot, 'sitemap.xml'));
 });
 
 // ==============================================

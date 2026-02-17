@@ -18,6 +18,7 @@ yarn-error.log*
 # Build outputs
 dist/
 build/
+backend/public-dist/
 *.tsbuildinfo
 
 # Uploads
