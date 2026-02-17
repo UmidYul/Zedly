@@ -40,6 +40,7 @@
         classFilter: 'all',
         statusFilter: 'all',
         subjectClassesCache: {},
+        activeModalClassSelection: null,
 
         // Initialize assignments page
         init: function () {
@@ -511,6 +512,8 @@
                 const testSelect = document.querySelector('#assignmentForm select[name="test_id"]');
                 const classList = document.getElementById('assignmentClassList');
                 const selectAllClasses = document.getElementById('assignmentSelectAllClasses');
+                const selectedClassIds = new Set();
+                this.activeModalClassSelection = selectedClassIds;
 
                 const getCheckedClassIds = () => {
                     if (!classList) return [];
@@ -547,13 +550,19 @@
                         return;
                     }
 
-                    const wanted = preselected === null
-                        ? new Set(getCheckedClassIds())
-                        : new Set((Array.isArray(preselected) ? preselected : []).map(String));
+                    if (preselected !== null) {
+                        selectedClassIds.clear();
+                        (Array.isArray(preselected) ? preselected : []).forEach((id) => {
+                            const value = String(id || '').trim();
+                            if (value) selectedClassIds.add(value);
+                        });
+                    } else {
+                        getCheckedClassIds().forEach((id) => selectedClassIds.add(String(id)));
+                    }
 
                     classList.innerHTML = classes.map((cls) => {
                         const classId = String(cls.id);
-                        const checked = wanted.has(classId) ? 'checked' : '';
+                        const checked = selectedClassIds.has(classId) ? 'checked' : '';
                         return `
                             <label class="multi-choice-option">
                                 <input type="checkbox" name="class_ids" value="${classId}" ${checked} />
@@ -563,7 +572,17 @@
                     }).join('');
 
                     classList.querySelectorAll('input[name="class_ids"]').forEach((box) => {
-                        box.addEventListener('change', updateSelectAllState);
+                        box.addEventListener('change', () => {
+                            const classId = String(box.value || '').trim();
+                            if (classId) {
+                                if (box.checked) {
+                                    selectedClassIds.add(classId);
+                                } else {
+                                    selectedClassIds.delete(classId);
+                                }
+                            }
+                            updateSelectAllState();
+                        });
                     });
                     updateSelectAllState();
                 };
@@ -601,7 +620,7 @@
                 if (testSelect) {
                     testSelect.addEventListener('change', () => {
                         const subjectId = testSelect.options[testSelect.selectedIndex]?.dataset?.subjectId || '';
-                        loadClassesForSubject(subjectId, []);
+                        loadClassesForSubject(subjectId, null);
                     });
                 }
 
@@ -611,6 +630,13 @@
                         const boxes = classList.querySelectorAll('input[name="class_ids"]');
                         boxes.forEach((box) => {
                             box.checked = selectAllClasses.checked;
+                            const classId = String(box.value || '').trim();
+                            if (!classId) return;
+                            if (selectAllClasses.checked) {
+                                selectedClassIds.add(classId);
+                            } else {
+                                selectedClassIds.delete(classId);
+                            }
                         });
                         updateSelectAllState();
                     });
@@ -620,7 +646,7 @@
                 if (!initialSubjectId) {
                     setClassListMessage(t('assignments.selectTestFirst', 'Select test first'));
                 } else {
-                    loadClassesForSubject(initialSubjectId, []);
+                    loadClassesForSubject(initialSubjectId, null);
                 }
             }
 
@@ -652,6 +678,7 @@
             if (detailsModal) {
                 detailsModal.remove();
             }
+            this.activeModalClassSelection = null;
             document.removeEventListener('keydown', this.handleEscapeKey);
         },
 
@@ -675,10 +702,17 @@
 
             if (!resolvedAssignmentId) {
                 data.test_id = formData.get('test_id');
-                const classChecks = form.querySelectorAll('input[name="class_ids"]:checked');
-                data.class_ids = Array.from(classChecks)
-                    .map((input) => String(input.value))
-                    .filter(Boolean);
+                const rememberedClassIds = this.activeModalClassSelection instanceof Set
+                    ? Array.from(this.activeModalClassSelection).map(String).filter(Boolean)
+                    : [];
+                if (rememberedClassIds.length > 0) {
+                    data.class_ids = rememberedClassIds;
+                } else {
+                    const classChecks = form.querySelectorAll('input[name="class_ids"]:checked');
+                    data.class_ids = Array.from(classChecks)
+                        .map((input) => String(input.value))
+                        .filter(Boolean);
+                }
             }
 
             data.start_date = toIso(formData.get('start_date'));

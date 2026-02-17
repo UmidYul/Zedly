@@ -144,12 +144,12 @@
 
     // Initialize dashboard
     async function initDashboard() {
-        console.log('рџ”ђ Checking authentication...');
+        console.log('[auth] Checking authentication...');
         await loadDashboardContent();
 
         refreshTranslations();
         try {
-            console.log('рџ“Ў Fetching user info from /api/auth/me');
+            console.log('[auth] Fetching user info from /api/auth/me');
             // Fetch current user info
             const response = await fetch('/api/auth/me', { credentials: 'include' });
 
@@ -157,7 +157,7 @@
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log('вљ пёЏ Token expired, attempting refresh...');
+                    console.log('[warn] Token expired, attempting refresh...');
                     // Token expired, try to refresh
                     await refreshToken();
                     return initDashboard();
@@ -168,7 +168,7 @@
             }
 
             const data = await response.json();
-            console.log('вњ… User authenticated:', data.user);
+            console.log('[ok] User authenticated:', data.user);
             currentUser = data.user;
             const requestedPage = getRequestedPageFromUrl();
             if (requestedPage && isPageAvailableForCurrentUser(requestedPage)) {
@@ -177,26 +177,26 @@
 
             try {
                 // Update UI (with error handling for each step)
-                console.log('рџ“ќ Updating user info...');
+                console.log('[ui] Updating user info...');
                 if (currentUser.role === 'teacher') {
                     teacherHasHomeroom = await checkTeacherHomeroom();
                 }
                 updateUserInfo();
 
-                console.log('рџ§­ Rendering navigation...');
+                console.log('[ui] Rendering navigation...');
                 renderNavigation();
 
-                console.log('рџ“„ Loading dashboard content...');
+                console.log('[ui] Loading dashboard content...');
                 loadDashboardContent();
 
-                console.log('вњ… Dashboard fully loaded');
+                console.log('[ok] Dashboard fully loaded');
             } catch (uiError) {
-                console.error('вљ пёЏ UI update error (non-critical):', uiError);
+                console.error('[warn] UI update error (non-critical):', uiError);
                 // Don't redirect on UI errors, dashboard might still be usable
             }
 
         } catch (error) {
-            console.error('вќЊ Dashboard initialization error:', error);
+            console.error('[error] Dashboard initialization error:', error);
             console.log('Error stack:', error.stack);
             console.log('Redirecting to login...');
             redirectToLogin();
@@ -235,7 +235,7 @@
     function renderNavigation() {
         const sidebarNav = document.getElementById('sidebarNav');
         if (!sidebarNav || !currentUser || !navigationConfig[currentUser.role]) {
-            console.warn('вљ пёЏ Cannot render navigation: element or config missing');
+            console.warn('[warn] Cannot render navigation: element or config missing');
             return;
         }
 
@@ -381,7 +381,7 @@
     // Load dashboard content based on role
     function loadDashboardContent() {
         if (!currentUser) {
-            console.warn('вљ пёЏ No current user, skipping content load');
+            console.warn('[warn] No current user, skipping content load');
             return;
         }
 
@@ -400,7 +400,7 @@
         syncActiveNavItem(currentPageId);
 
         if (!content) {
-            console.warn('вљ пёЏ dashboardContent element not found');
+            console.warn('[warn] dashboardContent element not found');
             return;
         }
 
@@ -569,7 +569,7 @@
             const script = document.createElement('script');
             script.src = src;
             script.onload = () => {
-                console.log(`вњ“ Loaded: ${src}`);
+                console.log(`[ok] Loaded: ${src}`);
                 resolve();
             };
             script.onerror = () => {
@@ -1964,7 +1964,7 @@
                 <div class="page-toolbar">
                     <div class="search-box">
                         <select id="classAnalyticsSelect" class="select-input" style="width: 100%;">
-                            <option value="">${t('results.selectClass', 'Р’С‹Р±РµСЂРёС‚Рµ РєР»Р°СЃСЃ...')}</option>
+                            <option value="">${t('results.selectClass', 'Выберите класс...')}</option>
                         </select>
                     </div>
                     <div class="toolbar-right">
@@ -1974,7 +1974,7 @@
                 <div class="stats-grid" id="classAnalyticsStats"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('results.recentAssignments', 'РќРµРґР°РІРЅРёРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ')}</h2>
+                        <h2 class="section-title">${t('results.recentAssignments', 'Недавние назначения')}</h2>
                     </div>
                     <div id="classAnalyticsAssignments"></div>
                 </div>
@@ -2715,10 +2715,10 @@
 
     // Refresh token
     async function refreshToken() {
-        console.log('рџ”„ Attempting to refresh token...');
+        console.log('[auth] Attempting to refresh token...');
 
         try {
-            console.log('рџ“Ў Calling /api/auth/refresh');
+            console.log('[auth] Calling /api/auth/refresh');
             const response = await fetch('/api/auth/refresh', {
                 method: 'POST',
                 credentials: 'include'
@@ -2727,10 +2727,10 @@
             console.log('Refresh response status:', response.status);
 
             if (response.ok) {
-                console.log('вњ… Token refreshed successfully');
+                console.log('[ok] Token refreshed successfully');
             } else {
                 const errorData = await response.json();
-                console.error('вќЊ Refresh failed:', errorData);
+                console.error('[error] Refresh failed:', errorData);
                 redirectToLogin();
             }
         } catch (error) {
@@ -2829,7 +2829,8 @@
             });
         });
 
-        console.log('Dashboard initialized вњ“');
+        console.log('Dashboard initialized [ok]');
     });
 })();
+
 

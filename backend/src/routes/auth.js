@@ -7,6 +7,7 @@ const { generateTokens, verifyRefreshToken, generateAccessToken } = require('../
 const { authenticate } = require('../middleware/auth');
 const { issueCsrfToken } = require('../middleware/csrf');
 const {
+    CSRF_COOKIE_NAME,
     REFRESH_COOKIE_NAME,
     setAuthCookies,
     setTempAuthCookie,
@@ -19,7 +20,11 @@ const { sendVerificationCodeEmail, isEmailConfigured, sendEmail } = require('../
 const router = express.Router();
 
 router.get('/csrf-token', (req, res) => {
-    const csrfToken = issueCsrfToken(req, res);
+    const existingToken = getCookieValue(req, CSRF_COOKIE_NAME);
+    const csrfToken = existingToken || issueCsrfToken(req, res);
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.json({ csrf_token: csrfToken });
 });
 

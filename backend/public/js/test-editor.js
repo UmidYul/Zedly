@@ -332,6 +332,9 @@
                 `;
             }
 
+            const questionShortLabelRaw = String(t('testEditor.questionShort', 'Q') || '').trim();
+            const questionShortLabel = /[Рр][\u0400-\u04FF]?/.test(questionShortLabelRaw) ? '№' : questionShortLabelRaw || '№';
+
             return this.questions.map((q, index) => `
                 <div class="question-item" data-index="${index}" draggable="true">
                     <div class="question-header">
@@ -345,7 +348,7 @@
                                 <circle cx="4" cy="18" r="1"></circle>
                             </svg>
                         </div>
-                        <div class="question-number">${t('testEditor.questionShort', 'Р’')} ${index + 1}</div>
+                        <div class="question-number">${questionShortLabel} ${index + 1}</div>
                         <div class="question-type-badge">${Object.values(QUESTION_TYPES).find(t => t.id === q.question_type)?.name || q.question_type}</div>
                         <div class="question-marks">${q.marks || 1} ${t('testEditor.points', 'Р±Р°Р»Р»(РѕРІ)')}</div>
                         <div class="question-actions">

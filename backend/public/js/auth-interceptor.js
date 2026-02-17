@@ -127,6 +127,16 @@
         }
     }
 
+    async function isCsrfValidationFailed(response) {
+        if (!response || response.status !== 403) return false;
+        try {
+            const payload = await response.clone().json();
+            return payload?.error === 'csrf_validation_failed';
+        } catch (error) {
+            return false;
+        }
+    }
+
     function withCredentials(options) {
         return {
             ...options,
@@ -158,6 +168,15 @@
         nextInit.headers = headers;
 
         let response = await originalFetch(input, nextInit);
+
+        if (!isSafeMethod(method) && !shouldSkipAutoRefresh(requestUrl) && await isCsrfValidationFailed(response)) {
+            const freshToken = getCookie(CSRF_COOKIE_NAME) || await ensureCsrfToken();
+            if (freshToken) {
+                setHeader(headers, 'X-CSRF-Token', freshToken);
+                nextInit.headers = headers;
+                response = await originalFetch(input, nextInit);
+            }
+        }
 
         if (response.status === 401 && !shouldSkipAutoRefresh(requestUrl)) {
             try {
