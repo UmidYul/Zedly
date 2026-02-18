@@ -463,7 +463,7 @@
                     setTimeout(() => {
                         this.closeModal();
                         this.loadSchools();
-                    }, 1000);
+                    }, 120);
                 } else {
                     // Show error
                     formAlert.className = 'alert alert-error';
@@ -947,7 +947,7 @@
                             this.closeAdminModal();
                             this.closeAdminsModal();
                             this.manageAdmins(schoolId, schoolName);
-                        }, 1000);
+                        }, 120);
                     }
                 } else {
                     // Show error

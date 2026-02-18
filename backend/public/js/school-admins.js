@@ -643,7 +643,7 @@ const SchoolAdminsManager = (function () {
                     setTimeout(() => {
                         closeAddAdminModal();
                         loadAdmins();
-                    }, 1000);
+                    }, 120);
                 }
             } else {
                 // Show error

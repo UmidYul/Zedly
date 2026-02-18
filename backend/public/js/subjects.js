@@ -665,7 +665,7 @@
                     setTimeout(() => {
                         this.closeModal();
                         this.loadSubjects();
-                    }, 1000);
+                    }, 120);
                 } else {
                     // Show error
                     formAlert.className = 'alert alert-error';

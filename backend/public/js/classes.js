@@ -740,7 +740,7 @@
                     setTimeout(() => {
                         this.closeModal();
                         this.loadClasses();
-                    }, 1000);
+                    }, 120);
                 } else {
                     // Show error
                     formAlert.className = 'alert alert-error';

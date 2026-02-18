@@ -877,7 +877,7 @@
                         setTimeout(() => {
                             this.closeModal();
                             this.loadUsers();
-                        }, 1000);
+                        }, 120);
                     }
                 } else {
                     // Show error
