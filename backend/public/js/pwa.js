@@ -53,10 +53,15 @@
 
   function wireInstallPrompt() {
     window.addEventListener('beforeinstallprompt', (event) => {
+      const installBtn = document.getElementById('installAppBtn');
+      if (!installBtn) {
+        // Let browser show native install UI when no custom trigger exists.
+        return;
+      }
+
       event.preventDefault();
       deferredInstallPrompt = event;
-      const installBtn = document.getElementById('installAppBtn');
-      if (installBtn) installBtn.style.display = 'inline-flex';
+      installBtn.style.display = 'inline-flex';
     });
 
     window.addEventListener('appinstalled', () => {

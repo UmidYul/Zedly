@@ -8,7 +8,7 @@ if (typeof self !== 'undefined' && self.console) {
   self.console.debug = noop;
 }
 
-const CACHE_NAME = 'zedly-shell-v7';
+const CACHE_NAME = 'zedly-shell-v8';
 const APP_SHELL = [
   '/',
   '/css/landing.css',
