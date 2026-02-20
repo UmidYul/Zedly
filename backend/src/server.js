@@ -127,12 +127,56 @@ app.use((req, res, next) => {
 // SEO: index only the landing page, block private/app pages and API routes.
 app.use((req, res, next) => {
     const path = req.path || '/';
-    const indexablePaths = new Set(['/', '/index.html']);
+    const indexablePaths = new Set(['/']);
     const xRobotsTag = indexablePaths.has(path)
         ? 'index, follow'
         : 'noindex, nofollow, noarchive, nosnippet';
     res.setHeader('X-Robots-Tag', xRobotsTag);
     next();
+});
+
+// Canonical URL normalization for SEO.
+app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+        return next();
+    }
+
+    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL;
+    const rawPath = req.path || '/';
+    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+    const currentProtocol = forwardedProto || req.protocol;
+    const currentHost = req.get('host');
+
+    let redirectUrl = null;
+
+    if (rawPath === '/index.html') {
+        const targetPath = '/';
+        if (appUrl) {
+            const normalizedBase = appUrl.replace(/\/+$/, '').replace(/\/api$/i, '');
+            redirectUrl = `${normalizedBase}${targetPath}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`;
+        } else {
+            redirectUrl = `${targetPath}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`;
+        }
+    }
+
+    if (!redirectUrl && appUrl) {
+        try {
+            const canonical = new URL(appUrl.replace(/\/+$/, '').replace(/\/api$/i, ''));
+            const protocolMismatch = canonical.protocol.replace(':', '') !== currentProtocol;
+            const hostMismatch = canonical.host !== currentHost;
+            if (protocolMismatch || hostMismatch) {
+                redirectUrl = `${canonical.protocol}//${canonical.host}${req.originalUrl || req.url || '/'}`;
+            }
+        } catch (error) {
+            console.warn('Invalid APP_URL/FRONTEND_URL for canonical redirect:', error.message);
+        }
+    }
+
+    if (!redirectUrl) {
+        return next();
+    }
+
+    return res.redirect(301, redirectUrl);
 });
 
 // Logging
