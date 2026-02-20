@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const COLUMN_CACHE = {};
 
@@ -109,6 +109,47 @@ async function getAttemptExpressions(alias = 'ta') {
         completedFilter,
         passedCase
     };
+}
+
+function normalizeExportCellValue(value) {
+    if (value === null || value === undefined) return '';
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'object') return JSON.stringify(value);
+    return value;
+}
+
+function appendJsonWorksheet(workbook, name, rows) {
+    const worksheet = workbook.addWorksheet(name);
+    const safeRows = Array.isArray(rows) ? rows : [];
+
+    if (!safeRows.length) {
+        worksheet.addRow(['No data']);
+        return;
+    }
+
+    const headers = Array.from(
+        safeRows.reduce((set, row) => {
+            Object.keys(row || {}).forEach((key) => set.add(key));
+            return set;
+        }, new Set())
+    );
+
+    worksheet.columns = headers.map((header) => ({
+        header,
+        key: header,
+        width: Math.min(40, Math.max(12, String(header).length + 2))
+    }));
+
+    safeRows.forEach((row) => {
+        const item = {};
+        headers.forEach((header) => {
+            item[header] = normalizeExportCellValue(row?.[header]);
+        });
+        worksheet.addRow(item);
+    });
+
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
 }
 
 function buildTeacherClassScopeSql(teacherParamRef, classAlias = 'c') {
@@ -1349,22 +1390,16 @@ router.get('/export/school', authorize('school_admin', 'teacher', 'superadmin'),
         `, teacherScopeParams);
 
         // Create workbook
-        const workbook = XLSX.utils.book_new();
-
-        // Add students sheet
-        const studentsSheet = XLSX.utils.json_to_sheet(studentsData.rows);
-        XLSX.utils.book_append_sheet(workbook, studentsSheet, 'Students');
-
-        // Add classes sheet
-        const classesSheet = XLSX.utils.json_to_sheet(classesData.rows);
-        XLSX.utils.book_append_sheet(workbook, classesSheet, 'Classes');
-
-        // Add subjects sheet
-        const subjectsSheet = XLSX.utils.json_to_sheet(subjectsData.rows);
-        XLSX.utils.book_append_sheet(workbook, subjectsSheet, 'Subjects');
+        const workbook = new ExcelJS.Workbook();
+        appendJsonWorksheet(workbook, 'Students', studentsData.rows);
+        appendJsonWorksheet(workbook, 'Classes', classesData.rows);
+        appendJsonWorksheet(workbook, 'Subjects', subjectsData.rows);
 
         // Generate buffer
-        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        const workbookBuffer = await workbook.xlsx.writeBuffer();
+        const buffer = Buffer.isBuffer(workbookBuffer)
+            ? workbookBuffer
+            : Buffer.from(workbookBuffer);
 
         // Send file
         res.setHeader('Content-Disposition', `attachment; filename=school_analytics_${Date.now()}.xlsx`);

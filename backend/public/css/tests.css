@@ -438,7 +438,16 @@
 
 .status-draft {
     background: rgba(148, 163, 184, 0.16);
-    color: #64748b;
+    color: #334155;
+    border: 1px solid rgba(100, 116, 139, 0.28);
+}
+
+.tab:focus-visible,
+.filter-select:focus-visible,
+.test-card-footer .btn:focus-visible,
+.test-bulk-select input[type="checkbox"]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.28);
 }
 
 .empty-state {
@@ -490,6 +499,19 @@
     .subject-selection-actions {
         width: 100%;
         justify-content: space-between;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .test-card,
+    .subject-card,
+    .tab {
+        transition: none;
+    }
+
+    .test-card:hover,
+    .subject-card:hover {
+        transform: none;
     }
 }
 

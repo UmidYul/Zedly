@@ -4,7 +4,6 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const XLSX = require('xlsx');
 const ExcelJS = require('exceljs');
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
@@ -139,18 +138,26 @@ if (!fs.existsSync(questionUploadsDir)) {
     fs.mkdirSync(questionUploadsDir, { recursive: true });
 }
 
+const ALLOWED_QUESTION_IMAGE_TYPES = new Map([
+    ['image/png', '.png'],
+    ['image/jpeg', '.jpg'],
+    ['image/webp', '.webp'],
+    ['image/gif', '.gif']
+]);
+
 const questionImageUpload = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => cb(null, questionUploadsDir),
         filename: (req, file, cb) => {
-            const ext = path.extname(file.originalname || '').toLowerCase() || '.png';
+            const ext = ALLOWED_QUESTION_IMAGE_TYPES.get(String(file.mimetype || '').toLowerCase()) || '.png';
             cb(null, `question_${Date.now()}_${Math.round(Math.random() * 1e9)}${ext}`);
         }
     }),
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        if (!file.mimetype || !file.mimetype.startsWith('image/')) {
-            return cb(new Error('Only image files are allowed'));
+        const mimeType = String(file.mimetype || '').toLowerCase();
+        if (!ALLOWED_QUESTION_IMAGE_TYPES.has(mimeType)) {
+            return cb(new Error('Only PNG, JPG, WEBP, GIF images are allowed'));
         }
         cb(null, true);
     }
@@ -708,13 +715,11 @@ const questionExcelUpload = multer({
         const fileName = String(file.originalname || '').toLowerCase();
         const mime = String(file.mimetype || '').toLowerCase();
         const allowedMime = new Set([
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-excel',
-            'application/octet-stream'
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         ]);
-        const hasAllowedExt = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+        const hasAllowedExt = fileName.endsWith('.xlsx');
         if (!hasAllowedExt && !allowedMime.has(mime)) {
-            return cb(new Error('Only .xlsx/.xls files are allowed'));
+            return cb(new Error('Only .xlsx files are allowed'));
         }
         cb(null, true);
     }
@@ -747,6 +752,17 @@ const SHEET_TO_TYPE = {
     image: 'imagebased',
     photo: 'imagebased'
 };
+
+function isZipSignature(buffer) {
+    if (!Buffer.isBuffer(buffer) || buffer.length < 4) return false;
+    if (buffer[0] !== 0x50 || buffer[1] !== 0x4b) return false; // PK
+
+    return (
+        (buffer[2] === 0x03 && buffer[3] === 0x04) ||
+        (buffer[2] === 0x05 && buffer[3] === 0x06) ||
+        (buffer[2] === 0x07 && buffer[3] === 0x08)
+    );
+}
 
 function normalizeImportKey(value) {
     return String(value || '')
@@ -999,17 +1015,92 @@ function parseQuestionRow(questionType, rowMap) {
     return null;
 }
 
-function parseQuestionsFromWorkbook(workbook) {
+function normalizeWorksheetCellValue(value) {
+    if (value === null || value === undefined) return '';
+
+    if (value instanceof Date) {
+        return value.toISOString();
+    }
+
+    if (typeof value === 'object') {
+        if (Array.isArray(value.richText)) {
+            return value.richText.map((part) => String(part.text || '')).join('');
+        }
+        if (Object.prototype.hasOwnProperty.call(value, 'text')) {
+            return String(value.text || '');
+        }
+        if (Object.prototype.hasOwnProperty.call(value, 'hyperlink')) {
+            return String(value.text || value.hyperlink || '');
+        }
+        if (Object.prototype.hasOwnProperty.call(value, 'result')) {
+            return normalizeWorksheetCellValue(value.result);
+        }
+        if (Object.prototype.hasOwnProperty.call(value, 'formula')) {
+            return '';
+        }
+    }
+
+    return String(value);
+}
+
+function worksheetToImportRows(worksheet) {
+    const headerRow = worksheet.getRow(1);
+    const headers = [];
+    let maxColumn = 0;
+
+    headerRow.eachCell({ includeEmpty: true }, (cell, columnNumber) => {
+        const header = String(normalizeWorksheetCellValue(cell.value)).trim();
+        headers[columnNumber] = header;
+        if (header) {
+            maxColumn = Math.max(maxColumn, columnNumber);
+        }
+    });
+
+    if (maxColumn === 0) {
+        return [];
+    }
+
+    const rows = [];
+    for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+        const row = worksheet.getRow(rowNumber);
+        if (!row.hasValues) continue;
+
+        const item = {};
+        let hasAnyValue = false;
+
+        for (let columnNumber = 1; columnNumber <= maxColumn; columnNumber++) {
+            const header = headers[columnNumber];
+            if (!header) continue;
+
+            const normalized = normalizeWorksheetCellValue(row.getCell(columnNumber).value);
+            item[header] = normalized;
+            if (String(normalized || '').trim() !== '') {
+                hasAnyValue = true;
+            }
+        }
+
+        if (hasAnyValue) {
+            rows.push(item);
+        }
+    }
+
+    return rows;
+}
+
+async function parseQuestionsFromWorkbookBuffer(buffer) {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+
     const questions = [];
     const stats = { imported: 0, skipped: 0, sheets: [] };
 
-    (workbook.SheetNames || []).forEach((sheetName) => {
+    workbook.worksheets.forEach((worksheet) => {
+        const sheetName = worksheet.name;
         const normalizedSheet = normalizeImportKey(sheetName).replace(/_/g, '');
         const questionType = SHEET_TO_TYPE[normalizedSheet] || SHEET_TO_TYPE[normalizeImportKey(sheetName)];
         if (!questionType) return;
 
-        const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', blankrows: false });
+        const rows = worksheetToImportRows(worksheet);
         let imported = 0;
         let skipped = 0;
 
@@ -1836,8 +1927,14 @@ router.post('/tests/questions/import-excel', questionExcelUpload.single('file'),
             });
         }
 
-        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-        const { questions, stats } = parseQuestionsFromWorkbook(workbook);
+        if (!isZipSignature(req.file.buffer)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid XLSX file format'
+            });
+        }
+
+        const { questions, stats } = await parseQuestionsFromWorkbookBuffer(req.file.buffer);
         if (!questions.length) {
             return res.status(400).json({
                 error: 'validation_error',

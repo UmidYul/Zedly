@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const TelegramBot = require('node-telegram-bot-api');
+const TelegramClient = require('./telegram-client');
 const { query } = require('../config/database');
 
 function getAppUrl() {
@@ -99,7 +99,7 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
             && !useWebhook
             && (envPolling ? envPolling === 'true' : isPrimaryInstance);
 
-        telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: shouldPoll });
+        telegramBot = new TelegramClient(process.env.TELEGRAM_BOT_TOKEN, { polling: shouldPoll });
 
         if (!shouldPoll) {
             console.log('Telegram polling is disabled for this process.');
@@ -107,7 +107,12 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
 
         telegramBot.on('polling_error', async (error) => {
             const message = String(error?.message || '');
-            const isConflict = error?.code === 'ETELEGRAM' || message.includes('409 Conflict');
+            const statusCode = Number(
+                error?.response?.statusCode
+                || error?.response?.body?.error_code
+                || 0
+            );
+            const isConflict = statusCode === 409 || message.includes('409 Conflict');
 
             if (isConflict) {
                 console.warn('Telegram polling conflict detected (409). Another instance is already polling updates.');

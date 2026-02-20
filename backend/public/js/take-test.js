@@ -115,12 +115,7 @@
         // Load attempt and questions
         loadAttempt: async function () {
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch(`/api/student/attempts/${this.attemptId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await fetch(`/api/student/attempts/${this.attemptId}`);
 
                 if (!response.ok) {
                     throw new Error('Failed to load test');
@@ -462,11 +457,9 @@
         // Auto-save progress
         autoSaveProgress: async function () {
             try {
-                const token = localStorage.getItem('access_token');
                 const response = await fetch(`/api/student/attempts/${this.attemptId}/save`, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -558,15 +551,18 @@
             }
 
             const container = document.getElementById('questionContainer');
+            const safeQuestionText = this.escapeHtml(question.question_text || '');
+            const safeMediaUrl = this.sanitizeMediaUrl(question.media_url);
+            const questionMarks = Number.isFinite(Number(question.marks)) ? Number(question.marks) : 0;
 
             let html = `
                 <div class="question-card">
                     <div class="question-header-info">
                         <span class="question-number">Question ${this.currentQuestionIndex + 1} of ${this.questions.length}</span>
-                        <span class="question-marks">${question.marks} marks</span>
+                        <span class="question-marks">${questionMarks} marks</span>
                     </div>
-                    <div class="question-text">${question.question_text}</div>
-                    ${question.media_url ? `<img src="${question.media_url}" alt="Question media" class="question-media" />` : ''}
+                    <div class="question-text">${safeQuestionText}</div>
+                    ${safeMediaUrl ? `<img src="${this.escapeHtml(safeMediaUrl)}" alt="Question media" class="question-media" />` : ''}
                     <div class="answer-area">
                         ${this.renderAnswerInput(question)}
                     </div>
@@ -628,7 +624,7 @@
 
                 default:
                     console.error('Unsupported question type:', question.question_type);
-                    return `<p>Unsupported question type: ${question.question_type}</p>`;
+                    return `<p>Unsupported question type: ${this.escapeHtml(question.question_type || 'unknown')}</p>`;
             }
         },
 
@@ -642,6 +638,7 @@
             optionOrder.forEach((originalIndex) => {
                 const option = options[originalIndex];
                 const isChecked = selectedIndex === originalIndex;
+                const safeOption = this.escapeHtml(option ?? '');
                 html += `
                     <label class="option-label">
                         <input
@@ -650,7 +647,7 @@
                             value="${originalIndex}"
                             ${isChecked ? 'checked' : ''}
                         />
-                        <span>${option}</span>
+                        <span>${safeOption}</span>
                     </label>
                 `;
             });
@@ -673,6 +670,7 @@
             optionOrder.forEach((originalIndex) => {
                 const option = options[originalIndex];
                 const isChecked = selectedOptions.includes(originalIndex);
+                const safeOption = this.escapeHtml(option ?? '');
                 html += `
                     <label class="option-label">
                         <input
@@ -681,7 +679,7 @@
                             value="${originalIndex}"
                             ${isChecked ? 'checked' : ''}
                         />
-                        <span>${option}</span>
+                        <span>${safeOption}</span>
                     </label>
                 `;
             });
@@ -718,12 +716,13 @@
 
         // Render short answer
         renderShortAnswer: function (question, existingAnswer) {
+            const safeExistingAnswer = this.escapeHtml(existingAnswer || '');
             return `
                 <input
                     type="text"
                     class="answer-input"
                     id="answer_${question.id}"
-                    value="${existingAnswer || ''}"
+                    value="${safeExistingAnswer}"
                     placeholder="Type your answer here..."
                 />
             `;
@@ -789,6 +788,26 @@
             return String(text).replace(/[&<>"']/g, m => map[m]);
         },
 
+        sanitizeMediaUrl: function (rawUrl) {
+            const value = String(rawUrl || '').trim();
+            if (!value) return '';
+
+            // Allow same-origin relative paths for uploaded media.
+            if (value.startsWith('/')) {
+                return value;
+            }
+
+            try {
+                const parsed = new URL(value, window.location.origin);
+                if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                    return '';
+                }
+                return parsed.href;
+            } catch (_) {
+                return '';
+            }
+        },
+
         // Render ordering
         renderOrdering: function (question, existingAnswer) {
             const items = question.options || [];
@@ -801,11 +820,12 @@
             let html = '<div class="ordering-list" id="orderingList">';
 
             orderedItems.forEach((itemIndex, position) => {
+                const safeItemText = this.escapeHtml(items[itemIndex] ?? '');
                 html += `
                     <div class="ordering-item" data-item-index="${itemIndex}" draggable="true">
                         <span class="drag-handle">&#8942;&#8942;</span>
                         <span class="item-number">${position + 1}.</span>
-                        <span class="item-text">${items[itemIndex]}</span>
+                        <span class="item-text">${safeItemText}</span>
                     </div>
                 `;
             });
@@ -1196,11 +1216,9 @@
                     nextBtn.innerHTML = '<span class="spinner"></span> РћС‚РїСЂР°РІРєР°...';
                 }
 
-                const token = localStorage.getItem('access_token');
                 const response = await fetch(`/api/student/attempts/${this.attemptId}/submit`, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -1244,4 +1262,3 @@
         TestTaker.init();
     });
 })();
-

@@ -18,7 +18,7 @@ const { getGlobalCareerStats } = require('./careerHandlers');
  * GET /api/superadmin/career/analytics
  * Global career analytics for SuperAdmin
  */
-router.get('/career/analytics', async (req, res) => {
+router.get('/career/analytics', authenticate, authorize('superadmin'), async (req, res) => {
     // Optionally, you can add more advanced analytics here later
     return getGlobalCareerStats(req, res);
 });

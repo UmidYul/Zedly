@@ -65,14 +65,11 @@
     }
 
     function cleanupInvalidAuthorization(headers) {
-        const authHeader = String(getHeader(headers, 'authorization') || '');
-        const match = authHeader.match(/^Bearer\s+(.+)$/i);
-        if (!match) return;
+        const authHeader = getHeader(headers, 'authorization');
+        if (authHeader === undefined) return;
 
-        const token = String(match[1] || '').trim();
-        if (!token || token === 'null' || token === 'undefined') {
-            deleteHeader(headers, 'authorization');
-        }
+        // Browser auth is cookie-based; ignore legacy bearer headers from localStorage code.
+        deleteHeader(headers, 'authorization');
     }
 
     function isSafeMethod(method) {

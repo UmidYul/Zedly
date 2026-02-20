@@ -22,8 +22,75 @@ function parsePositiveInt(value, fallback) {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function normalizeOrigin(rawOrigin) {
+    const value = String(rawOrigin || '').trim();
+    if (!value) return '';
+
+    try {
+        return new URL(value).origin;
+    } catch (error) {
+        return '';
+    }
+}
+
+function buildAllowedCorsOrigins() {
+    const entries = [];
+
+    [process.env.FRONTEND_URL, process.env.APP_URL].forEach((value) => {
+        if (value) entries.push(value);
+    });
+
+    const extraOrigins = String(process.env.CORS_ALLOWED_ORIGINS || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    entries.push(...extraOrigins);
+
+    const allowed = new Set();
+    entries.forEach((entry) => {
+        const normalized = normalizeOrigin(entry);
+        if (normalized) {
+            allowed.add(normalized);
+        }
+    });
+
+    if (allowed.size === 0 && process.env.NODE_ENV !== 'production') {
+        [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:5000',
+            'http://127.0.0.1:5000'
+        ].forEach((origin) => allowed.add(origin));
+    }
+
+    return allowed;
+}
+
+function buildCspDirectives(allowedOrigins) {
+    const connectSrc = new Set(["'self'", 'https:', 'wss:']);
+    allowedOrigins.forEach((origin) => {
+        connectSrc.add(origin);
+    });
+
+    return {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        fontSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: Array.from(connectSrc),
+        // Keep local HTTP development stable and avoid forced upgrade loops behind proxies.
+        'upgrade-insecure-requests': null
+    };
+}
+
 const apiRateLimitWindowMs = parsePositiveInt(process.env.API_RATE_LIMIT_WINDOW_MS, 60_000);
 const apiRateLimitMax = parsePositiveInt(process.env.API_RATE_LIMIT_MAX, 240);
+const allowedCorsOrigins = buildAllowedCorsOrigins();
 
 const apiRateLimiter = rateLimit({
     windowMs: apiRateLimitWindowMs,
@@ -61,20 +128,24 @@ if (errorTrackingStatus.enabled) {
 // ==============================================
 // Environment Variables Check
 // ==============================================
-console.log('\n=== Environment Check ===');
-console.log('NODE_ENV:', process.env.NODE_ENV || 'not set');
-console.log('PORT:', process.env.PORT || 'default 5000');
-console.log('DB_HOST:', process.env.DB_HOST || 'not set');
-console.log('DB_NAME:', process.env.DB_NAME || 'not set');
-console.log('DB_USER:', process.env.DB_USER || 'not set');
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***SET***' : 'NOT SET');
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? '***SET***' : 'NOT SET');
-
-// Check .env file exists
 const envPath = path.join(__dirname, '..', '.env');
 const envExists = fs.existsSync(envPath);
-console.log('\n.env file exists:', envExists);
-console.log('.env path:', envPath);
+const shouldLogEnvDiagnostics = process.env.NODE_ENV !== 'production'
+    || String(process.env.LOG_ENV_DIAGNOSTICS || '').toLowerCase() === 'true';
+
+if (shouldLogEnvDiagnostics) {
+    console.log('\n=== Environment Check ===');
+    console.log('NODE_ENV:', process.env.NODE_ENV || 'not set');
+    console.log('PORT:', process.env.PORT || 'default 5000');
+    console.log('DB_HOST:', process.env.DB_HOST || 'not set');
+    console.log('DB_NAME:', process.env.DB_NAME || 'not set');
+    console.log('DB_USER:', process.env.DB_USER || 'not set');
+    console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***SET***' : 'NOT SET');
+    console.log('JWT_SECRET:', process.env.JWT_SECRET ? '***SET***' : 'NOT SET');
+    console.log('\n.env file exists:', envExists);
+    console.log('.env path:', envPath);
+    console.log('========================\n');
+}
 
 if (!envExists) {
     console.warn('\n⚠️  WARNING: .env file not found!');
@@ -90,20 +161,35 @@ if (!process.env.DB_PASSWORD) {
     console.warn('\n⚠️  WARNING: DB_PASSWORD not set in .env!');
 }
 
-console.log('========================\n');
-
 // ==============================================
 // Middleware
 // ==============================================
 
 // Security
+const disableCsp = String(process.env.DISABLE_CSP || '').toLowerCase() === 'true';
+const cspDirectives = buildCspDirectives(allowedCorsOrigins);
 app.use(helmet({
-    contentSecurityPolicy: false, // Настроим позже
+    contentSecurityPolicy: disableCsp ? false : {
+        useDefaults: false,
+        directives: cspDirectives
+    },
+    crossOriginEmbedderPolicy: false
 }));
 
 // CORS
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: (origin, callback) => {
+        if (!origin) {
+            return callback(null, true);
+        }
+
+        const normalized = normalizeOrigin(origin);
+        if (normalized && allowedCorsOrigins.has(normalized)) {
+            return callback(null, true);
+        }
+
+        return callback(null, false);
+    },
     credentials: true
 }));
 

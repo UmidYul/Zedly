@@ -17,6 +17,23 @@
         return translated;
     }
 
+    function escapeHtml(value) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(value ?? '').replace(/[&<>"']/g, (char) => map[char]);
+    }
+
+    function toPositiveInt(value, fallback = 0) {
+        const parsed = Number.parseInt(String(value ?? ''), 10);
+        if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+        return parsed;
+    }
+
     function normalizeHexColor(input, fallback = '#2563EB') {
         const value = String(input || '').trim();
         const fullHexMatch = value.match(/^#([0-9a-fA-F]{6})$/);
@@ -148,10 +165,7 @@
         // Load subjects for filter
         loadSubjects: async function () {
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/teacher/subjects', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch('/api/teacher/subjects');
 
                 if (response.ok) {
                     const data = await response.json();
@@ -230,7 +244,6 @@
             `;
 
             try {
-                const token = localStorage.getItem('access_token');
                 const params = new URLSearchParams({
                     page: this.currentPage,
                     limit: this.limit,
@@ -239,9 +252,7 @@
                     status: this.statusFilter
                 });
 
-                const response = await fetch(`/api/teacher/tests?${params}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch(`/api/teacher/tests?${params}`);
 
                 if (!response.ok) throw new Error(t('tests.failedLoadTests', 'Не удалось загрузить тесты'));
 
@@ -261,9 +272,9 @@
         renderTests: function (tests, pagination) {
             const container = document.getElementById('testsContainer');
             if (!container) return;
-            this.lastRenderedTests = tests;
+            this.lastRenderedTests = Array.isArray(tests) ? tests : [];
 
-            if (tests.length === 0) {
+            if (this.lastRenderedTests.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: var(--spacing-3xl);">
                         <p style="color: var(--text-secondary);">${t('tests.noTestsFound', 'Тесты не найдены. Создайте первый тест!')}</p>
@@ -296,76 +307,85 @@
                 <div class="tests-grid">
             `;
 
-            tests.forEach(test => {
+            this.lastRenderedTests.forEach(test => {
+                const testId = String(test?.id ?? '').trim();
+                if (!testId) return;
+
+                const encodedId = encodeURIComponent(testId);
                 const statusClass = test.is_active ? 'status-active' : 'status-draft';
                 const statusText = test.is_active
                     ? t('tests.statusActive', 'Активный')
                     : t('tests.statusDraft', 'Черновик');
                 const subjectBadgeStyle = buildSubjectBadgeStyle(test.subject_color);
-                const safeTitle = (test.title || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const isSelected = this.selectedIds.has(test.id);
-                const selectLabelName = test.title || t('tests.testFallbackName', 'тест');
+                const isSelected = this.selectedIds.has(testId);
+                const selectLabelName = escapeHtml(test.title || t('tests.testFallbackName', 'тест'));
+                const subjectName = escapeHtml(test.subject_name || t('tests.noSubject', 'Без предмета'));
+                const testTitle = escapeHtml(test.title || t('tests.testFallbackName', 'Без названия'));
+                const description = escapeHtml(test.description || t('tests.noDescription', 'Без описания'));
+                const durationMinutes = toPositiveInt(test.duration_minutes, 0);
+                const questionCount = toPositiveInt(test.question_count, 0);
+                const maxAttempts = Math.max(1, toPositiveInt(test.max_attempts, 1));
 
                 html += `
-                    <div class="test-card ${isSelected ? 'bulk-card-selected' : ''}" data-test-id="${test.id}">
+                    <div class="test-card ${isSelected ? 'bulk-card-selected' : ''}" data-test-id="${escapeHtml(testId)}">
                         <label class="test-bulk-select">
                             <input
                                 type="checkbox"
                                 class="bulk-row-checkbox"
                                 ${isSelected ? 'checked' : ''}
-                                onchange="TestsManager.toggleSelectTest('${test.id}')"
+                                onchange="TestsManager.toggleSelectTest(decodeURIComponent('${encodedId}'))"
                                 aria-label="${t('tests.selectTestAria', 'Выбрать тест')}: ${selectLabelName}"
                             >
                         </label>
                         <div class="test-card-header">
                             <div class="test-subject" style="${subjectBadgeStyle}">
-                                ${test.subject_name || t('tests.noSubject', 'Без предмета')}
+                                ${subjectName}
                             </div>
-                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            <span class="status-badge ${statusClass}">${escapeHtml(statusText)}</span>
                         </div>
                         <div class="test-card-body">
-                            <h3 class="test-title">${test.title}</h3>
-                            <p class="test-description">${test.description || t('tests.noDescription', 'Без описания')}</p>
+                            <h3 class="test-title">${testTitle}</h3>
+                            <p class="test-description">${description}</p>
                             <div class="test-stats">
                                 <div class="stat">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
-                                    <span>${test.duration_minutes} ${t('tests.minShort', 'мин')}</span>
+                                    <span>${durationMinutes} ${t('tests.minShort', 'мин')}</span>
                                 </div>
                                 <div class="stat">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M9 11l3 3L22 4"></path>
                                         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                                     </svg>
-                                    <span>${test.question_count} ${t('tests.questionsShort', 'вопр.')}</span>
+                                    <span>${questionCount} ${t('tests.questionsShort', 'вопр.')}</span>
                                 </div>
                                 <div class="stat">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                         <circle cx="12" cy="7" r="4"></circle>
                                     </svg>
-                                    <span>${test.max_attempts || 1} ${t('tests.attempts', 'попыток')}</span>
+                                    <span>${maxAttempts} ${t('tests.attempts', 'попыток')}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="test-card-footer">
-                            <button class="btn btn-sm btn-outline" onclick="TestsManager.viewTest('${test.id}')">
+                            <button class="btn btn-sm btn-outline" onclick="TestsManager.viewTest(decodeURIComponent('${encodedId}'))">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
                                 </svg>
                                 ${t('tests.view', 'Просмотр')}
                             </button>
-                            <button class="btn btn-sm btn-primary" onclick="TestsManager.editTest('${test.id}')">
+                            <button class="btn btn-sm btn-primary" onclick="TestsManager.editTest(decodeURIComponent('${encodedId}'))">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                                 ${t('tests.edit', 'Редактировать')}
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="TestsManager.deleteTest('${test.id}', '${safeTitle}')">
+                            <button class="btn btn-sm btn-danger" onclick="TestsManager.deleteTest(decodeURIComponent('${encodedId}'))">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -389,16 +409,21 @@
         },
 
         toggleSelectTest: function (testId) {
-            if (this.selectedIds.has(testId)) {
-                this.selectedIds.delete(testId);
+            const normalizedId = String(testId || '').trim();
+            if (!normalizedId) return;
+
+            if (this.selectedIds.has(normalizedId)) {
+                this.selectedIds.delete(normalizedId);
             } else {
-                this.selectedIds.add(testId);
+                this.selectedIds.add(normalizedId);
             }
             this.syncSelectionUi();
         },
 
         toggleSelectAllTests: function (checked) {
-            const currentIds = this.lastRenderedTests.map(test => test.id);
+            const currentIds = this.lastRenderedTests
+                .map(test => String(test.id || '').trim())
+                .filter(Boolean);
             if (checked) {
                 currentIds.forEach(id => this.selectedIds.add(id));
             } else {
@@ -431,7 +456,9 @@
 
             const selectAllEl = document.getElementById('testsSelectAll');
             if (selectAllEl) {
-                const currentIds = this.lastRenderedTests.map(test => test.id);
+                const currentIds = this.lastRenderedTests
+                    .map(test => String(test.id || '').trim())
+                    .filter(Boolean);
                 const selectedOnPage = currentIds.filter(id => this.selectedIds.has(id)).length;
                 selectAllEl.checked = currentIds.length > 0 && selectedOnPage === currentIds.length;
                 selectAllEl.indeterminate = selectedOnPage > 0 && selectedOnPage < currentIds.length;
@@ -452,7 +479,6 @@
             );
             if (!confirmed) return;
 
-            const token = localStorage.getItem('access_token');
             let failed = 0;
             let done = 0;
             showBulkProgress(ids.length);
@@ -461,8 +487,7 @@
                 for (const id of ids) {
                     try {
                         const response = await fetch(`/api/teacher/tests/${id}`, {
-                            method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}` }
+                            method: 'DELETE'
                         });
                         if (!response.ok) failed += 1;
                     } catch (_) {
@@ -540,10 +565,8 @@
 
         showTestPreview: async function (testId) {
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch(`/api/teacher/tests/${testId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const normalizedId = encodeURIComponent(String(testId || '').trim());
+                const response = await fetch(`/api/teacher/tests/${normalizedId}`);
 
                 if (!response.ok) {
                     throw new Error(t('tests.failedLoadTest', 'Не удалось загрузить тест'));
@@ -558,11 +581,17 @@
         },
 
         renderTestPreviewModal: function (test, questions) {
+            const testTitle = escapeHtml(test?.title || t('tests.testFallbackName', 'Без названия'));
+            const subjectName = escapeHtml(test?.subject_name || '-');
+            const durationMinutes = toPositiveInt(test?.duration_minutes, 0);
+            const passingScore = toPositiveInt(test?.passing_score, 0);
+            const safeDescription = String(test?.description || '').trim();
+            const safeQuestions = Array.isArray(questions) ? questions : [];
             const modalHtml = `
                 <div class="modal-overlay" id="testPreviewModal">
                     <div class="modal modal-large">
                         <div class="modal-header">
-                            <h2 class="modal-title">${test.title}</h2>
+                            <h2 class="modal-title">${testTitle}</h2>
                             <button class="modal-close" onclick="TestsManager.closeTestPreview()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -575,26 +604,26 @@
                                 <div class="detail-grid">
                                     <div class="detail-item">
                                         <label>${t('tests.subjectLabel', 'Предмет')}:</label>
-                                        <span>${test.subject_name || '-'}</span>
+                                        <span>${subjectName}</span>
                                     </div>
                                     <div class="detail-item">
                                         <label>${t('tests.durationLabel', 'Длительность')}:</label>
-                                        <span>${test.duration_minutes || '-'} ${t('tests.minutes', 'минут')}</span>
+                                        <span>${durationMinutes || '-'} ${t('tests.minutes', 'минут')}</span>
                                     </div>
                                     <div class="detail-item">
                                         <label>${t('tests.passingScoreLabel', 'Проходной балл')}:</label>
-                                        <span>${test.passing_score || 0}%</span>
+                                        <span>${passingScore}%</span>
                                     </div>
                                     <div class="detail-item">
                                         <label>${t('tests.questionsLabel', 'Вопросы')}:</label>
-                                        <span>${questions.length}</span>
+                                        <span>${safeQuestions.length}</span>
                                     </div>
                                 </div>
-                                ${test.description ? `<p style="margin-top: 12px; color: var(--text-secondary);">${test.description}</p>` : ''}
+                                ${safeDescription ? `<p style="margin-top: 12px; color: var(--text-secondary);">${escapeHtml(safeDescription)}</p>` : ''}
                             </div>
                             <div class="detail-section">
                                 <h3>${t('tests.questionsLabel', 'Вопросы')}</h3>
-                                ${questions.length === 0 ? `<p style="color: var(--text-secondary);">${t('tests.noQuestionsFound', 'Вопросы не найдены.')}</p>` : `
+                                ${safeQuestions.length === 0 ? `<p style="color: var(--text-secondary);">${t('tests.noQuestionsFound', 'Вопросы не найдены.')}</p>` : `
                                     <div class="table-responsive">
                                         <table class="data-table">
                                             <thead>
@@ -606,12 +635,12 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                ${questions.map((q, index) => `
+                                                ${safeQuestions.map((q, index) => `
                                                     <tr>
                                                         <td>${index + 1}</td>
-                                                        <td>${getQuestionTypeLabel(q.question_type)}</td>
-                                                        <td>${q.question_text}</td>
-                                                        <td>${q.marks}</td>
+                                                        <td>${escapeHtml(getQuestionTypeLabel(q.question_type))}</td>
+                                                        <td>${escapeHtml(q.question_text || '')}</td>
+                                                        <td>${toPositiveInt(q.marks, 0)}</td>
                                                     </tr>
                                                 `).join('')}
                                             </tbody>
@@ -648,7 +677,12 @@
         },
 
         // Delete test
-        deleteTest: async function (testId, testTitle) {
+        deleteTest: async function (testId) {
+            const normalizedId = String(testId || '').trim();
+            if (!normalizedId) return;
+
+            const currentTest = this.lastRenderedTests.find((item) => String(item.id || '').trim() === normalizedId);
+            const testTitle = currentTest?.title || t('tests.testFallbackName', 'тест');
             const confirmed = await showConfirm(
                 t('tests.deleteConfirmSingle', 'Вы уверены, что хотите безвозвратно удалить "{title}"?')
                     .replace('{title}', testTitle)
@@ -658,14 +692,12 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch(`/api/teacher/tests/${testId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const response = await fetch(`/api/teacher/tests/${encodeURIComponent(normalizedId)}`, {
+                    method: 'DELETE'
                 });
 
                 if (response.ok) {
-                    this.selectedIds.delete(testId);
+                    this.selectedIds.delete(normalizedId);
                     this.loadTests();
                 } else {
                     showAlert(t('tests.failedDeleteTest', 'Не удалось удалить тест'));
@@ -677,4 +709,3 @@
         }
     };
 })();
-

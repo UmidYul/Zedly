@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const multer = require('multer');
-const XLSX = require('xlsx');
 const ExcelJS = require('exceljs');
 const { query, getClient } = require('../config/database');
 const { authenticate, authorize, enforceSchoolIsolation } = require('../middleware/auth');
@@ -81,6 +80,17 @@ async function generateUniqueSubjectCode(schoolId, nameRu, nameUz, name) {
     }
 }
 
+function isZipSignature(buffer) {
+    if (!Buffer.isBuffer(buffer) || buffer.length < 4) return false;
+    if (buffer[0] !== 0x50 || buffer[1] !== 0x4b) return false; // PK
+
+    return (
+        (buffer[2] === 0x03 && buffer[3] === 0x04) ||
+        (buffer[2] === 0x05 && buffer[3] === 0x06) ||
+        (buffer[2] === 0x07 && buffer[3] === 0x08)
+    );
+}
+
 // Configure multer for file uploads
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -89,19 +99,18 @@ const upload = multer({
     },
     fileFilter: (req, file, cb) => {
         const fileName = String(file.originalname || '').toLowerCase();
+        const mime = String(file.mimetype || '').toLowerCase();
         const allowedMimeTypes = new Set([
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-excel',
-            'text/csv',
-            'application/csv',
-            'text/plain'
+            'application/octet-stream'
         ]);
-        const hasAllowedExtension = fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv');
+        const hasAllowedExtension = fileName.endsWith('.xlsx');
+        const hasAllowedMime = !mime || allowedMimeTypes.has(mime);
 
-        if (allowedMimeTypes.has(file.mimetype) || hasAllowedExtension) {
+        if (hasAllowedExtension && hasAllowedMime) {
             cb(null, true);
         } else {
-            cb(new Error('Only Excel/CSV files are allowed'));
+            cb(new Error('Only .xlsx files are allowed'));
         }
     }
 });
@@ -1207,12 +1216,17 @@ router.post('/import/users', upload.single('file'), async (req, res) => {
             });
         }
 
+        if (!isZipSignature(req.file.buffer)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid XLSX file format'
+            });
+        }
+
         const schoolId = req.user.school_id;
         const importType = normalizeImportType(req.body.import_type);
-        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const parsedRows = parseImportRows(sheet, importType);
+        const worksheet = await loadWorkbookFirstWorksheet(req.file.buffer);
+        const parsedRows = parseImportRows(worksheet, importType);
 
         const results = {
             total_rows: parsedRows.length,
@@ -1463,11 +1477,16 @@ router.post('/import/teaching-assignments', upload.single('file'), async (req, r
             });
         }
 
+        if (!isZipSignature(req.file.buffer)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Invalid XLSX file format'
+            });
+        }
+
         const schoolId = req.user.school_id;
-        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const parsed = parseTeachingAssignmentsMatrix(sheet);
+        const worksheet = await loadWorkbookFirstWorksheet(req.file.buffer);
+        const parsed = parseTeachingAssignmentsMatrix(worksheet);
 
         const results = {
             total_rows: parsed.totalRows,
@@ -3140,8 +3159,100 @@ function buildImportedUserSettings(row) {
     return { profile_settings: profileSettings };
 }
 
-function parseImportRows(sheet, importType = 'student') {
-    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
+function normalizeWorksheetCellValue(value) {
+    if (value === null || value === undefined) return '';
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+
+    if (typeof value === 'object') {
+        if (Array.isArray(value.richText)) {
+            return value.richText.map((part) => String(part.text || '')).join('');
+        }
+        if (Object.prototype.hasOwnProperty.call(value, 'text')) {
+            return String(value.text || '');
+        }
+        if (Object.prototype.hasOwnProperty.call(value, 'hyperlink')) {
+            return String(value.text || value.hyperlink || '');
+        }
+        if (Object.prototype.hasOwnProperty.call(value, 'result')) {
+            return normalizeWorksheetCellValue(value.result);
+        }
+        if (Object.prototype.hasOwnProperty.call(value, 'formula')) {
+            return '';
+        }
+    }
+
+    return String(value);
+}
+
+function worksheetToMatrix(worksheet) {
+    if (!worksheet) return [];
+
+    const matrix = [];
+    const maxColumns = Math.max(worksheet.columnCount || 0, worksheet.actualColumnCount || 0);
+
+    for (let rowNumber = 1; rowNumber <= worksheet.rowCount; rowNumber++) {
+        const row = worksheet.getRow(rowNumber);
+        if (!row.hasValues) continue;
+
+        const values = [];
+        let lastFilledColumn = 0;
+        for (let columnNumber = 1; columnNumber <= maxColumns; columnNumber++) {
+            const cellValue = normalizeWorksheetCellValue(row.getCell(columnNumber).value);
+            values[columnNumber - 1] = cellValue;
+            if (String(cellValue || '').trim() !== '') {
+                lastFilledColumn = columnNumber;
+            }
+        }
+
+        if (lastFilledColumn === 0) continue;
+        matrix.push(values.slice(0, lastFilledColumn));
+    }
+
+    return matrix;
+}
+
+function matrixToObjectRows(matrix) {
+    if (!Array.isArray(matrix) || matrix.length === 0) return [];
+
+    const headers = (matrix[0] || []).map((value) => String(value || '').trim());
+    const rows = [];
+
+    for (let i = 1; i < matrix.length; i++) {
+        const sourceRow = matrix[i] || [];
+        const mapped = {};
+        let hasValues = false;
+
+        for (let column = 0; column < headers.length; column++) {
+            const header = headers[column];
+            if (!header) continue;
+
+            const value = sourceRow[column] ?? '';
+            mapped[header] = value;
+            if (String(value || '').trim() !== '') {
+                hasValues = true;
+            }
+        }
+
+        if (hasValues) {
+            rows.push(mapped);
+        }
+    }
+
+    return rows;
+}
+
+async function loadWorkbookFirstWorksheet(buffer) {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+        throw new Error('Workbook has no worksheets');
+    }
+    return worksheet;
+}
+
+function parseImportRows(worksheet, importType = 'student') {
+    const matrix = worksheetToMatrix(worksheet);
     const normalizedMatrix = matrix.map((row) => row.map((cell) => normalizeHeader(cell)));
     const hasToken = (value, token) => String(value || '').includes(token);
 
@@ -3225,7 +3336,7 @@ function parseImportRows(sheet, importType = 'student') {
         const dobIdx = findColumn((cell) => hasToken(cell, 'датарожд'));
 
         if (studentIdx < 0 || classIdx < 0) {
-            return XLSX.utils.sheet_to_json(sheet, { defval: '' }).map((row, index) => ({
+            return matrixToObjectRows(matrix).map((row, index) => ({
                 row,
                 rowNumber: index + 2
             }));
@@ -3261,7 +3372,7 @@ function parseImportRows(sheet, importType = 'student') {
         }
     }
 
-    const fallbackRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    const fallbackRows = matrixToObjectRows(matrix);
     return fallbackRows.map((row, index) => ({
         row,
         rowNumber: index + 2
@@ -3675,8 +3786,8 @@ function parseTeachingCellValue(rawValue) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function parseTeachingAssignmentsMatrix(sheet) {
-    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
+function parseTeachingAssignmentsMatrix(worksheet) {
+    const matrix = worksheetToMatrix(worksheet);
     const normalizedMatrix = matrix.map((row) => row.map((cell) => normalizeHeader(cell)));
 
     const isTeacherHeader = (cell) => {
@@ -4044,5 +4155,3 @@ router.get('/notifications/logs', async (req, res) => {
 });
 
 module.exports = router;
-
-
