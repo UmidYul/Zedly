@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 set -eu
 
 DB_NAME="${POSTGRES_DB:-postgres}"
