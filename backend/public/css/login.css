@@ -229,9 +229,7 @@
     height: 0;
 }
 
-#password::-webkit-credentials-auto-fill-button,
-#password::-webkit-textfield-decoration-container {
-    display: none !important;
+#password::-webkit-credentials-auto-fill-button {
     visibility: hidden;
     pointer-events: none;
 }
