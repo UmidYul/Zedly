@@ -144,7 +144,7 @@
             `;
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const params = new URLSearchParams({
                     page: this.currentPage,
                     limit: this.limit,
@@ -359,7 +359,7 @@
             );
             if (!confirmed) return;
 
-            const token = localStorage.getItem('access_token');
+            const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
             let failed = 0;
             let done = 0;
             showBulkProgress(ids.length);
@@ -452,7 +452,7 @@
             // Load subject data if editing
             if (isEdit) {
                 try {
-                    const token = localStorage.getItem('access_token');
+                    const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                     const response = await fetch(`/api/admin/subjects/${subjectId}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -640,7 +640,7 @@
             formAlert.className = 'hidden';
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const url = subjectId
                     ? `/api/admin/subjects/${subjectId}`
                     : '/api/admin/subjects';
@@ -696,7 +696,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/admin/subjects/${subjectId}`, {
                     method: 'DELETE',
                     headers: {

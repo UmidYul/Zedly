@@ -39,7 +39,7 @@
             return;
         }
 
-        const token = localStorage.getItem('access_token');
+        const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
         let userRole = 'teacher';
         let currentUserId = '';
 

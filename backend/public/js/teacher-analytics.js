@@ -56,7 +56,7 @@
             select.innerHTML = `<option value="">${t('results.loadingClasses', 'Загрузка классов...')}</option>`;
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch('/api/teacher/classes?limit=100', {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -101,7 +101,7 @@
             this.renderLoading();
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/teacher/classes/${this.selectedClassId}/analytics`, {
                     headers: {
                         'Authorization': `Bearer ${token}`

@@ -66,7 +66,7 @@ const SchoolComparisonManager = (function () {
 
             const response = await fetch(`/api/superadmin/comparison?${params}`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 

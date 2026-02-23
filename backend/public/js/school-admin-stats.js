@@ -58,7 +58,7 @@
 
         loadStats: async function () {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 if (!token) {
                     this.renderError(t('dashboard.statistics.errorMissingToken', 'Missing access token. Please log in again.'));
                     return;

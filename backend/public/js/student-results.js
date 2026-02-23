@@ -64,7 +64,7 @@
             this.renderLoading();
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch('/api/student/results', {
                     headers: {
                         'Authorization': `Bearer ${token}`

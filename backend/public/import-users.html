@@ -427,9 +427,8 @@
         downloadTemplateBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             try {
-                const token = localStorage.getItem('access_token');
                 const response = await fetch(`${API_URL}/admin/users/template`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
 
                 if (!response.ok) throw new Error('Failed to download template');
@@ -515,10 +514,9 @@
                     }
                 }, 200);
 
-                const token = localStorage.getItem('access_token');
                 const response = await fetch(`${API_URL}/admin/users/import?lang=${lang}`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include',
                     body: formData
                 });
 

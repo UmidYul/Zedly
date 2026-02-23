@@ -180,7 +180,7 @@
             `;
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const params = new URLSearchParams({
                     page: this.currentPage,
                     limit: this.limit,
@@ -417,7 +417,7 @@
             const confirmed = await showConfirm(`Are you sure you want to delete ${ids.length} selected classes permanently?`);
             if (!confirmed) return;
 
-            const token = localStorage.getItem('access_token');
+            const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
             let failed = 0;
             let done = 0;
             showBulkProgress(ids.length);
@@ -507,7 +507,7 @@
             // Load class data if editing
             if (isEdit) {
                 try {
-                    const token = localStorage.getItem('access_token');
+                    const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                     const response = await fetch(`${this.getApiBasePath()}/classes/${classId}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -532,7 +532,7 @@
             let teachersList = [];
             if (this.userRole === 'school_admin') {
                 try {
-                    const token = localStorage.getItem('access_token');
+                    const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                     const response = await fetch(`${this.getApiBasePath()}/teachers`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -715,7 +715,7 @@
             formAlert.className = 'hidden';
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const url = classId
                     ? `${this.getApiBasePath()}/classes/${classId}`
                     : `${this.getApiBasePath()}/classes`;
@@ -770,7 +770,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`${this.getApiBasePath()}/classes/${classId}`, {
                     method: 'DELETE',
                     headers: {

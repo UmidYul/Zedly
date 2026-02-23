@@ -222,7 +222,14 @@ app.use((req, res, next) => {
 });
 
 // Canonical URL normalization for SEO.
+const canonicalRedirectEnabled = String(process.env.ENABLE_CANONICAL_REDIRECT || '').toLowerCase() === 'true'
+    || process.env.NODE_ENV === 'production';
+
 app.use((req, res, next) => {
+    if (!canonicalRedirectEnabled) {
+        return next();
+    }
+
     if (req.method !== 'GET' && req.method !== 'HEAD') {
         return next();
     }

@@ -49,7 +49,7 @@ const SchoolAdminsManager = (function () {
         try {
             const response = await fetch('/api/superadmin/schools?limit=1000', {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 
@@ -98,7 +98,7 @@ const SchoolAdminsManager = (function () {
 
             const response = await fetch(`/api/superadmin/admins?${params}`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 
@@ -302,7 +302,7 @@ const SchoolAdminsManager = (function () {
             const response = await fetch(`/api/superadmin/schools/${schoolId}/admins/${adminId}/reset-password`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -338,7 +338,7 @@ const SchoolAdminsManager = (function () {
             const response = await fetch(`/api/superadmin/schools/${schoolId}/admins/${adminId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 
@@ -364,7 +364,7 @@ const SchoolAdminsManager = (function () {
 
             const response = await fetch(`/api/superadmin/admins?${params}`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 
@@ -607,7 +607,7 @@ const SchoolAdminsManager = (function () {
         formAlert.className = 'hidden';
 
         try {
-            const token = localStorage.getItem('access_token');
+            const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
             const response = await fetch(`/api/superadmin/schools/${schoolId}/admins`, {
                 method: 'POST',
                 headers: {

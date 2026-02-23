@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "build:frontend": "node scripts/build-frontend.js",
     "db:migrate": "node scripts/migrate.js",
+    "db:migrate:school-geo": "node scripts/migrate-school-geo-profile.js",
     "db:seed": "node scripts/seed.js",
     "db:backup": "node scripts/backup.js",
     "test": "jest --coverage",

@@ -114,7 +114,7 @@
             `;
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const headers = { Authorization: `Bearer ${token}` };
 
                 const [subjectsResponse, assignmentsResponse] = await Promise.all([
@@ -481,7 +481,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch('/api/student/attempts', {
                     method: 'POST',
                     headers: {
@@ -527,7 +527,7 @@
             `;
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch('/api/student/results', {
                     headers: {
                         'Authorization': `Bearer ${token}`

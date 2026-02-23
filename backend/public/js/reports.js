@@ -8,8 +8,14 @@
         role: '',
         period: 30,
         metric: 'avg_score',
+        dimension: 'school',
+        region_code: '',
+        city_code: '',
+        locations: { regions: [] },
         overview: null,
         comparison: null,
+        geoOverview: null,
+        geoTrends: null,
         risk: null,
         riskStudents: [],
         riskPagination: { page: 1, limit: 20, total: 0, has_more: false },
@@ -27,7 +33,7 @@
     };
 
     function getToken() {
-        return localStorage.getItem('access_token') || '';
+        return window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
     }
 
     function t(key, fallback, params) {
@@ -58,6 +64,60 @@
         return response.json();
     }
 
+    function normalizeCode(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    async function loadLocationsReference() {
+        if (state.role !== 'superadmin') return;
+        const payload = await apiGet(`${API}/superadmin/reference/locations`);
+        state.locations = payload && Array.isArray(payload.regions) ? payload : { regions: [] };
+    }
+
+    function getRegionName(code) {
+        if (!code || code === 'unknown') return t('schools.unknownLocation', 'Не указано');
+        const region = (state.locations.regions || []).find((entry) => entry.code === code);
+        return region?.name_ru || region?.name_uz || code;
+    }
+
+    function getCityName(regionCode, cityCode) {
+        if (!cityCode || cityCode === 'unknown') return t('schools.unknownLocation', 'Не указано');
+        const region = (state.locations.regions || []).find((entry) => entry.code === regionCode);
+        const city = region?.cities?.find((entry) => entry.code === cityCode);
+        return city?.name_ru || city?.name_uz || cityCode;
+    }
+
+    function populateRegionFilter() {
+        const select = document.getElementById('reportsRegionFilter');
+        if (!select) return;
+
+        const options = [`<option value="">${t('reports.allRegions', 'Все области')}</option>`];
+        (state.locations.regions || []).forEach((region) => {
+            const selected = state.region_code === region.code ? 'selected' : '';
+            options.push(`<option value="${region.code}" ${selected}>${region.name_ru || region.name_uz || region.code}</option>`);
+        });
+        select.innerHTML = options.join('');
+    }
+
+    function populateCityFilter() {
+        const select = document.getElementById('reportsCityFilter');
+        if (!select) return;
+
+        let cities = [];
+        if (state.region_code) {
+            const region = (state.locations.regions || []).find((entry) => entry.code === state.region_code);
+            cities = Array.isArray(region?.cities) ? region.cities : [];
+        }
+
+        const options = [`<option value="">${t('reports.allCities', 'Все города/районы')}</option>`];
+        cities.forEach((city) => {
+            const selected = state.city_code === city.code ? 'selected' : '';
+            options.push(`<option value="${city.code}" ${selected}>${city.name_ru || city.name_uz || city.code}</option>`);
+        });
+        select.innerHTML = options.join('');
+        select.disabled = !state.region_code;
+    }
+
     function fmtInt(value) {
         const n = Number(value);
         return Number.isFinite(n) ? n.toLocaleString('ru-RU') : '0';
@@ -85,23 +145,42 @@
     function applyFilters(filters) {
         state.period = Number(filters?.period) || 30;
         state.metric = filters?.metric || 'avg_score';
+        state.dimension = filters?.dimension || 'school';
         const period = document.getElementById('reportsPeriodFilter');
         const metric = document.getElementById('reportsMetricFilter');
+        const dimension = document.getElementById('reportsDimensionFilter');
         if (period) period.value = String(state.period);
         if (metric) metric.value = state.metric;
+        if (dimension) dimension.value = state.dimension;
+    }
+
+    function getDimensionLabel(dimension) {
+        const map = {
+            school: t('reports.dimension.school', 'Школа'),
+            region: t('reports.dimension.region', 'Область'),
+            city: t('reports.dimension.city', 'Город / район'),
+            school_type: t('reports.dimension.schoolType', 'Тип школы'),
+            ownership: t('reports.dimension.ownership', 'Собственность'),
+            language_model: t('reports.dimension.languageModel', 'Языковая модель'),
+            study_shift: t('reports.dimension.studyShift', 'Сменность')
+        };
+        return map[dimension] || t('reports.name', 'Название');
     }
 
     function renderSummary() {
         const role = state.role;
         if (role === 'superadmin') {
             const s = state.overview?.stats || {};
+            const geoCoverage = state.geoOverview?.coverage || {};
             setHtml('reportsSummaryGrid', [
                 buildKpiCard(t('reports.schools', 'РЁРєРѕР»С‹'), fmtInt(s.schools), 'tone-blue'),
                 buildKpiCard(t('reports.students', 'РЈС‡РµРЅРёРєРё'), fmtInt(s.students), 'tone-green'),
                 buildKpiCard(t('reports.teachers', 'РЈС‡РёС‚РµР»СЏ'), fmtInt(s.teachers), 'tone-cyan'),
                 buildKpiCard(t('reports.tests', 'РўРµСЃС‚С‹'), fmtInt(s.tests), 'tone-orange'),
                 buildKpiCard(t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»'), fmtPct(s.avg_score), 'tone-violet'),
-                buildKpiCard(t('reports.careerTests', 'РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРѕРЅРЅС‹Рµ С‚РµСЃС‚С‹'), fmtInt(s.career_tests_completed), 'tone-rose')
+                buildKpiCard(t('reports.careerTests', 'РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРѕРЅРЅС‹Рµ С‚РµСЃС‚С‹'), fmtInt(s.career_tests_completed), 'tone-rose'),
+                buildKpiCard(t('statistics.geoCoverage', 'Geo coverage'), fmtPct(geoCoverage.geo_fill_rate), 'tone-green'),
+                buildKpiCard(t('statistics.profileCoverage', 'Profile coverage'), fmtPct(geoCoverage.profile_fill_rate), 'tone-cyan')
             ].join(''));
             return;
         }
@@ -202,13 +281,17 @@
         const first = rows[0] || {};
         const keyValue = Object.prototype.hasOwnProperty.call(first, 'value') ? 'value' : 'avg_score';
         const keyName = Object.prototype.hasOwnProperty.call(first, 'name') ? 'name' : (first.class_name ? 'class_name' : 'name');
+        const isPercentMetric = ['avg_score', 'test_completion'].includes(state.metric);
+        const nameHeader = state.role === 'superadmin'
+            ? getDimensionLabel(state.dimension)
+            : t('reports.name', 'РќР°Р·РІР°РЅРёРµ');
 
         setHtml('reportsCompareTable', `
             <div class="table-responsive">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>${t('reports.name', 'РќР°Р·РІР°РЅРёРµ')}</th>
+                            <th>${nameHeader}</th>
                             <th>${t('reports.mainMetric', 'РћСЃРЅРѕРІРЅР°СЏ РјРµС‚СЂРёРєР°')}</th>
                             <th>${t('common.details', 'Р”РµС‚Р°Р»Рё')}</th>
                         </tr>
@@ -216,8 +299,8 @@
                     <tbody>
                         ${rows.slice(0, 50).map((row) => `
                             <tr>
-                                <td data-label="${t('reports.name', 'РќР°Р·РІР°РЅРёРµ')}">${escapeHtml(row[keyName] || row.name_ru || row.subject || '-')}</td>
-                                <td data-label="${t('reports.mainMetric', 'РћСЃРЅРѕРІРЅР°СЏ РјРµС‚СЂРёРєР°')}">${typeof row[keyValue] === 'number' ? fmtPct(row[keyValue]) : escapeHtml(String(row[keyValue] ?? '-'))}</td>
+                                <td data-label="${nameHeader}">${escapeHtml(row.dimension_name_ru || row.dimension_name_uz || row[keyName] || row.name_ru || row.subject || '-')}</td>
+                                <td data-label="${t('reports.mainMetric', 'РћСЃРЅРѕРІРЅР°СЏ РјРµС‚СЂРёРєР°')}">${typeof row[keyValue] === 'number' ? (isPercentMetric ? fmtPct(row[keyValue]) : fmtInt(row[keyValue])) : escapeHtml(String(row[keyValue] ?? '-'))}</td>
                                 <td data-label="${t('common.details', 'Р”РµС‚Р°Р»Рё')}">${escapeHtml(buildRowDetails(row))}</td>
                             </tr>
                         `).join('')}
@@ -465,22 +548,31 @@
 
     function buildRowDetails(row) {
         const parts = [];
+        if (row.region_code) parts.push(`${t('schools.region', 'Область')}: ${getRegionName(row.region_code)}`);
+        if (row.city_code) parts.push(`${t('schools.city', 'Город / район')}: ${getCityName(row.region_code, row.city_code)}`);
         if (row.attempts !== undefined) parts.push(`${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}: ${fmtInt(row.attempts)}`);
         if (row.total_attempts !== undefined) parts.push(`${t('common.total', 'Р’СЃРµРіРѕ')}: ${fmtInt(row.total_attempts)}`);
         if (row.student_count !== undefined) parts.push(`${t('reports.students', 'РЈС‡РµРЅРёРєРё')}: ${fmtInt(row.student_count)}`);
         if (row.attempt_count !== undefined) parts.push(`${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}: ${fmtInt(row.attempt_count)}`);
         if (row.test_count !== undefined) parts.push(`${t('reports.tests', 'РўРµСЃС‚С‹')}: ${fmtInt(row.test_count)}`);
         if (row.completed !== undefined) parts.push(`${t('dashboard.stats.testsCompleted', 'Р—Р°РІРµСЂС€РµРЅРѕ')}: ${fmtInt(row.completed)}`);
-        return parts.length ? parts.join(' В· ') : '-';
+        return parts.length ? parts.join(' • ') : '-';
     }
 
     function renderInsights() {
         const insights = [];
         if (state.role === 'superadmin') {
             const summary = state.comparison?.summary || {};
+            const geo = state.geoOverview?.coverage || {};
+            const topRegion = (state.geoOverview?.by_region || [])[0];
             insights.push(`${t('reports.insights.topPerformer', 'Р›СѓС‡С€РёР№ СЂРµР·СѓР»СЊС‚Р°С‚')}: ${summary.top_performer || 'N/A'}`);
             if (summary.average !== undefined) insights.push(`${t('reports.insights.networkAverage', 'РЎСЂРµРґРЅРµРµ РїРѕ СЃРµС‚Рё')}: ${summary.average}`);
             if (summary.total_attempts !== undefined) insights.push(`${t('reports.insights.totalAttempts', 'Р’СЃРµРіРѕ РїРѕРїС‹С‚РѕРє')}: ${fmtInt(summary.total_attempts)}`);
+            if (geo.geo_fill_rate !== undefined) insights.push(`${t('statistics.geoCoverage', 'Geo coverage')}: ${fmtPct(geo.geo_fill_rate)}`);
+            if (geo.profile_fill_rate !== undefined) insights.push(`${t('statistics.profileCoverage', 'Profile coverage')}: ${fmtPct(geo.profile_fill_rate)}`);
+            if (topRegion) {
+                insights.push(`${t('statistics.topRegion', 'Топ регион')}: ${topRegion.region_name_ru || topRegion.region_name_uz || topRegion.region_code} (${fmtPct(topRegion.avg_score)})`);
+            }
         } else {
             const subjects = state.overview?.subject_performance || [];
             if (subjects.length) {
@@ -568,20 +660,37 @@
 
     function buildTrendSeries() {
         if (state.role === 'superadmin') {
-            const activity = state.overview?.recent_activity || [];
             const map = new Map();
-            activity.forEach((item) => {
-                const key = formatDateOnly(item.date);
-                const prev = map.get(key) || { count: 0, scoreSum: 0, scoreCount: 0 };
-                prev.count += 1;
-                if (Number.isFinite(Number(item.percentage))) {
-                    prev.scoreSum += Number(item.percentage);
-                    prev.scoreCount += 1;
-                }
-                map.set(key, prev);
+            const trendSeries = Array.isArray(state.geoTrends?.series) ? state.geoTrends.series : [];
+            trendSeries.forEach((series) => {
+                (series.points || []).forEach((point) => {
+                    const key = formatDateOnly(point.date);
+                    const prev = map.get(key) || { attempts: 0, scoreSum: 0, scoreCount: 0 };
+                    prev.attempts += Number(point.completed_attempts || point.value || 0);
+                    if (Number.isFinite(Number(point.value))) {
+                        prev.scoreSum += Number(point.value);
+                        prev.scoreCount += 1;
+                    }
+                    map.set(key, prev);
+                });
             });
+
+            if (!map.size) {
+                const activity = state.overview?.recent_activity || [];
+                activity.forEach((item) => {
+                    const key = formatDateOnly(item.date);
+                    const prev = map.get(key) || { attempts: 0, scoreSum: 0, scoreCount: 0 };
+                    prev.attempts += 1;
+                    if (Number.isFinite(Number(item.percentage))) {
+                        prev.scoreSum += Number(item.percentage);
+                        prev.scoreCount += 1;
+                    }
+                    map.set(key, prev);
+                });
+            }
+
             const labels = Array.from(map.keys()).sort((a, b) => new Date(a) - new Date(b));
-            const attemptsSeries = labels.map((label) => map.get(label).count);
+            const attemptsSeries = labels.map((label) => map.get(label).attempts);
             const scoreSeries = labels.map((label) => {
                 const m = map.get(label);
                 return m.scoreCount ? Number((m.scoreSum / m.scoreCount).toFixed(2)) : null;
@@ -647,12 +756,32 @@
         if (state.role === 'superadmin') {
             const periodMap = { 7: 'week', 30: 'month', 90: 'quarter', 365: 'year' };
             const periodKey = periodMap[period] || 'month';
-            const [overview, comparison] = await Promise.all([
+            const geoParams = new URLSearchParams();
+            geoParams.set('period', String(period));
+            if (state.region_code) geoParams.set('region_code', state.region_code);
+            if (state.city_code) geoParams.set('city_code', state.city_code);
+
+            const comparisonParams = new URLSearchParams();
+            comparisonParams.set('metric', state.metric);
+            comparisonParams.set('period', periodKey);
+            comparisonParams.set('dimension', state.dimension || 'school');
+            if (state.region_code) comparisonParams.set('region_code', state.region_code);
+            if (state.city_code) comparisonParams.set('city_code', state.city_code);
+
+            const trendsParams = new URLSearchParams(geoParams);
+            trendsParams.set('metric', 'avg_score');
+            trendsParams.set('group_by', state.dimension === 'city' ? 'city' : 'region');
+
+            const [overview, comparison, geoOverview, geoTrends] = await Promise.all([
                 apiGet(`${API}/superadmin/dashboard/overview`),
-                apiGet(`${API}/superadmin/comparison?metric=${encodeURIComponent(state.metric)}&period=${encodeURIComponent(periodKey)}`)
+                apiGet(`${API}/superadmin/comparison?${comparisonParams.toString()}`),
+                apiGet(`${API}/superadmin/analytics/geo/overview?${geoParams.toString()}`),
+                apiGet(`${API}/superadmin/analytics/geo/trends?${trendsParams.toString()}`)
             ]);
             state.overview = overview;
             state.comparison = comparison;
+            state.geoOverview = geoOverview;
+            state.geoTrends = geoTrends;
             state.risk = null;
             state.riskStudents = [];
             state.riskPagination = { page: 1, limit: 20, total: 0, has_more: false };
@@ -666,6 +795,8 @@
         ]);
         state.overview = overview;
         state.comparison = comparison;
+        state.geoOverview = null;
+        state.geoTrends = null;
         await loadRiskPage(1, false);
         await loadNotificationLogs(1);
     }
@@ -711,11 +842,30 @@
     async function handleDataExport() {
         if (state.role === 'superadmin') {
             const rows = state.comparison?.schools || [];
-            const header = ['name', 'value'];
+            const header = [
+                'dimension',
+                'dimension_code',
+                'name',
+                'metric_value',
+                'attempts',
+                'total',
+                'completed',
+                'region_code',
+                'city_code'
+            ];
             const csv = [header.join(',')].concat(rows.map((row) => {
-                const name = `"${String(row.name || '').replace(/"/g, '""')}"`;
-                const value = row.value ?? '';
-                return `${name},${value}`;
+                const val = (input) => `"${String(input ?? '').replace(/"/g, '""')}"`;
+                return [
+                    val(row.dimension || state.dimension || 'school'),
+                    val(row.dimension_code || row.id || ''),
+                    val(row.dimension_name_ru || row.name || ''),
+                    val(row.value ?? ''),
+                    val(row.attempts ?? ''),
+                    val(row.total ?? row.total_attempts ?? ''),
+                    val(row.completed ?? ''),
+                    val(row.region_code ?? ''),
+                    val(row.city_code ?? '')
+                ].join(',');
             })).join('\n');
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             downloadBlob(blob, `superadmin_reports_${Date.now()}.csv`);
@@ -831,6 +981,9 @@
     function bindEvents() {
         const period = document.getElementById('reportsPeriodFilter');
         const metric = document.getElementById('reportsMetricFilter');
+        const dimension = document.getElementById('reportsDimensionFilter');
+        const region = document.getElementById('reportsRegionFilter');
+        const city = document.getElementById('reportsCityFilter');
         const refresh = document.getElementById('reportsRefreshBtn');
         const exportBtn = document.getElementById('reportsExportBtn');
         const pdfBtn = document.getElementById('reportsPdfBtn');
@@ -850,6 +1003,26 @@
         if (metric) {
             metric.addEventListener('change', () => {
                 state.metric = metric.value || 'avg_score';
+                refreshView();
+            });
+        }
+        if (dimension) {
+            dimension.addEventListener('change', () => {
+                state.dimension = dimension.value || 'school';
+                refreshView();
+            });
+        }
+        if (region) {
+            region.addEventListener('change', () => {
+                state.region_code = normalizeCode(region.value || '');
+                state.city_code = '';
+                populateCityFilter();
+                refreshView();
+            });
+        }
+        if (city) {
+            city.addEventListener('change', () => {
+                state.city_code = normalizeCode(city.value || '');
                 refreshView();
             });
         }
@@ -943,14 +1116,26 @@
             .replace(/'/g, '&#39;');
     }
 
-    function init() {
+    async function init() {
         if (!document.getElementById('reportsSummaryGrid')) return;
         state.role = getUserRole();
         const metricWrap = document.getElementById('reportsMetricWrap');
+        const dimensionWrap = document.getElementById('reportsDimensionWrap');
+        const regionWrap = document.getElementById('reportsRegionWrap');
+        const cityWrap = document.getElementById('reportsCityWrap');
         const notificationsCard = document.getElementById('reportsNotificationsCard');
         const notificationsLimit = document.getElementById('reportsNotificationLimit');
         if (metricWrap) {
             metricWrap.style.display = state.role === 'superadmin' ? 'block' : 'none';
+        }
+        if (dimensionWrap) {
+            dimensionWrap.style.display = state.role === 'superadmin' ? 'block' : 'none';
+        }
+        if (regionWrap) {
+            regionWrap.style.display = state.role === 'superadmin' ? 'block' : 'none';
+        }
+        if (cityWrap) {
+            cityWrap.style.display = state.role === 'superadmin' ? 'block' : 'none';
         }
         if (notificationsCard) {
             notificationsCard.style.display = isNotificationsDiagnosticsEnabled() ? '' : 'none';
@@ -958,8 +1143,17 @@
         if (notificationsLimit) {
             notificationsLimit.value = String(state.notificationsPagination.limit || 20);
         }
+        if (state.role === 'superadmin') {
+            try {
+                await loadLocationsReference();
+            } catch (error) {
+                console.error('Failed to load reports locations reference:', error);
+            }
+            populateRegionFilter();
+            populateCityFilter();
+        }
         bindEvents();
-        applyFilters({ period: 30, metric: 'avg_score' });
+        applyFilters({ period: 30, metric: 'avg_score', dimension: 'school' });
         refreshView();
     }
 

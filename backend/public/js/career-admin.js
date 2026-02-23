@@ -32,7 +32,7 @@ const CareerAdminManager = {
         table.innerHTML = '<div class="spinner"></div>';
         try {
             const res = await fetch('/api/admin/career/tests', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                headers: { 'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}` }
             });
             if (!res.ok) throw new Error('Failed to load tests');
             const data = await res.json();
@@ -90,7 +90,7 @@ const CareerAdminManager = {
         analytics.innerHTML = '<div class="spinner"></div>';
         try {
             const res = await fetch('/api/admin/career/analytics', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                headers: { 'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}` }
             });
             if (!res.ok) throw new Error('Failed to load analytics');
             const data = await res.json();

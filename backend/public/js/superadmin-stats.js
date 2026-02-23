@@ -1,215 +1,403 @@
-// SuperAdmin Global Statistics
+// SuperAdmin Geo-first Statistics
 (function () {
     'use strict';
 
-    const t = (key, fallback) => window.ZedlyI18n?.translate(key) || fallback || key;
+    const API = '/api';
 
-    const ICONS = {
-        schools: '<path d="M3 21h18M3 7v14M21 7v14M9 7v14M15 7v14M3 7h18M9 3v4M15 3v4"/>',
-        users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
-        tests: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
-        attempts: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'
+    const state = {
+        period: 30,
+        region_code: '',
+        city_code: '',
+        locations: { regions: [] },
+        overview: null,
+        charts: {
+            region: null,
+            schoolType: null,
+            coverage: null
+        }
     };
 
-    window.SuperadminStats = {
-        init: async function () {
-            this.renderLoading();
-            await this.loadStats();
-        },
+    function t(key, fallback, params) {
+        const tr = window.ZedlyI18n?.translate?.(key, params);
+        return tr && tr !== key ? tr : (fallback || key);
+    }
 
-        renderLoading: function () {
-            const cards = document.getElementById('superadminStatsCards');
-            const breakdown = document.getElementById('superadminStatsBreakdown');
-            const note = document.getElementById('superadminStatsNote');
+    function getToken() {
+        return window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
+    }
 
-            if (cards) {
-                cards.innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-content">
-                            <div class="stat-label">${t('common.loading', 'Loading...')}</div>
-                            <div class="stat-value">--</div>
-                        </div>
-                    </div>
-                `;
+    async function apiGet(url) {
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${getToken()}`
             }
+        });
 
-            if (breakdown) {
-                breakdown.innerHTML = `<p style="color: var(--text-secondary);">${t('dashboard.statistics.loading', 'Loading statistics...')}</p>`;
-            }
-
-            if (note) {
-                note.innerHTML = `<p style="color: var(--text-secondary);">${t('dashboard.statistics.loadingNote', 'Fetching latest global metrics.')}</p>`;
-            }
-        },
-
-        loadStats: async function () {
-            try {
-                const token = localStorage.getItem('access_token');
-                if (!token) {
-                    this.renderError(t('dashboard.statistics.errorMissingToken', 'Missing access token. Please log in again.'));
-                    return;
-                }
-
-                const response = await fetch('/api/superadmin/dashboard/stats', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(t('dashboard.statistics.errorFailedLoad', 'Failed to load global statistics'));
-                }
-
-                const data = await response.json();
-                this.renderStats(data.stats || {});
-            } catch (error) {
-                console.error('Load global statistics error:', error);
-                this.renderError(error.message || t('dashboard.statistics.errorUnableLoad', 'Unable to load statistics'));
-            }
-        },
-
-        renderStats: function (stats) {
-            const cards = document.getElementById('superadminStatsCards');
-            const breakdown = document.getElementById('superadminStatsBreakdown');
-            const note = document.getElementById('superadminStatsNote');
-
-            const schoolsTotal = stats.schools?.total ?? 0;
-            const schoolsActive = stats.schools?.active ?? 0;
-            const usersTotal = stats.users?.total ?? 0;
-            const usersAdmins = stats.users?.school_admins ?? 0;
-            const usersTeachers = stats.users?.teachers ?? 0;
-            const usersStudents = stats.users?.students ?? 0;
-            const testsTotal = stats.tests?.total ?? 0;
-            const attemptsTotal = stats.attempts?.total ?? 0;
-
-            if (cards) {
-                cards.innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-icon blue">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                ${ICONS.schools}
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">${t('dashboard.stats.schools', 'Schools')}</div>
-                            <div class="stat-value">${schoolsTotal}</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                ${ICONS.users}
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">${t('dashboard.stats.users', 'Users')}</div>
-                            <div class="stat-value">${usersTotal}</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                ${ICONS.tests}
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">${t('dashboard.stats.tests', 'Tests')}</div>
-                            <div class="stat-value">${testsTotal}</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon purple">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                ${ICONS.attempts}
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">${t('dashboard.stats.completedAttempts', 'Completed Attempts')}</div>
-                            <div class="stat-value">${attemptsTotal}</div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (breakdown) {
-                breakdown.innerHTML = `
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>${t('dashboard.statistics.metric', 'Metric')}</th>
-                                    <th>${t('dashboard.statistics.total', 'Total')}</th>
-                                    <th>${t('dashboard.statistics.activeCompleted', 'Active / Completed')}</th>
-                                    <th>${t('dashboard.statistics.details', 'Details')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>${t('dashboard.stats.schools', 'Schools')}</td>
-                                    <td>${schoolsTotal}</td>
-                                    <td>${schoolsActive}</td>
-                                    <td>${t('dashboard.statistics.activeSchools', `${schoolsActive} active schools`).replace('{count}', schoolsActive)}</td>
-                                </tr>
-                                <tr>
-                                    <td>${t('dashboard.stats.users', 'Users')}</td>
-                                    <td>${usersTotal}</td>
-                                    <td>-</td>
-                                    <td>${t('dashboard.statistics.userBreakdown', `${usersAdmins} admins, ${usersTeachers} teachers, ${usersStudents} students`)
-                        .replace('{admins}', usersAdmins)
-                        .replace('{teachers}', usersTeachers)
-                        .replace('{students}', usersStudents)}</td>
-                                </tr>
-                                <tr>
-                                    <td>${t('dashboard.stats.tests', 'Tests')}</td>
-                                    <td>${testsTotal}</td>
-                                    <td>-</td>
-                                    <td>${t('dashboard.statistics.allCreatedTests', 'All created tests')}</td>
-                                </tr>
-                                <tr>
-                                    <td>${t('dashboard.stats.attempts', 'Attempts')}</td>
-                                    <td>${attemptsTotal}</td>
-                                    <td>${attemptsTotal}</td>
-                                    <td>${t('dashboard.stats.completedAttempts', 'Completed Attempts')}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
-
-            if (note) {
-                note.innerHTML = `
-                    <div class="section-header">
-                        <h2 class="section-title">${t('dashboard.statistics.notes', 'Notes')}</h2>
-                    </div>
-                    <p style="color: var(--text-secondary);">${t('dashboard.statistics.aggregatedNote', 'Statistics are aggregated across all schools. Use the Schools page to drill down.')}</p>
-                `;
-            }
-        },
-
-        renderError: function (message) {
-            const cards = document.getElementById('superadminStatsCards');
-            const breakdown = document.getElementById('superadminStatsBreakdown');
-            const note = document.getElementById('superadminStatsNote');
-
-            if (cards) {
-                cards.innerHTML = `
-                    <div class="dashboard-section">
-                        <div class="section-header">
-                            <h2 class="section-title">${t('dashboard.statistics.title', 'Statistics')}</h2>
-                        </div>
-                        <p style="color: var(--text-secondary);">${message}</p>
-                    </div>
-                `;
-            }
-
-            if (breakdown) {
-                breakdown.innerHTML = '';
-            }
-
-            if (note) {
-                note.innerHTML = '';
-            }
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
         }
+        return response.json();
+    }
+
+    function fmtInt(value) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n.toLocaleString('ru-RU') : '0';
+    }
+
+    function fmtPct(value) {
+        const n = Number(value);
+        return Number.isFinite(n) ? `${n.toFixed(1)}%` : '0.0%';
+    }
+
+    function setHtml(id, html) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    }
+
+    function buildGeoQuery() {
+        const params = new URLSearchParams();
+        params.set('period', String(state.period));
+        if (state.region_code) params.set('region_code', state.region_code);
+        if (state.city_code) params.set('city_code', state.city_code);
+        return params.toString();
+    }
+
+    function getRegionLabel(code) {
+        const region = (state.locations?.regions || []).find((entry) => entry.code === code);
+        return region?.name_ru || region?.name_uz || code || t('schools.unknownLocation', 'Не указано');
+    }
+
+    function getCityLabel(regionCode, cityCode) {
+        const region = (state.locations?.regions || []).find((entry) => entry.code === regionCode);
+        const city = region?.cities?.find((entry) => entry.code === cityCode);
+        if (city) return city.name_ru || city.name_uz || city.code;
+        return cityCode || t('schools.unknownLocation', 'Не указано');
+    }
+
+    async function ensureChartLib() {
+        if (window.Chart) return;
+
+        await new Promise((resolve, reject) => {
+            const existing = document.querySelector('script[data-chartjs="superadmin-geo"]');
+            if (existing) {
+                existing.addEventListener('load', () => resolve(), { once: true });
+                existing.addEventListener('error', () => reject(new Error('Failed to load Chart.js')), { once: true });
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+            script.async = true;
+            script.dataset.chartjs = 'superadmin-geo';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load Chart.js'));
+            document.head.appendChild(script);
+        });
+    }
+
+    function destroyCharts() {
+        Object.keys(state.charts).forEach((key) => {
+            if (state.charts[key]) {
+                state.charts[key].destroy();
+                state.charts[key] = null;
+            }
+        });
+    }
+
+    function renderLoading() {
+        setHtml('superadminStatsCards', `
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-label">${t('dashboard.statistics.loading', 'Loading statistics...')}</div>
+                    <div class="stat-value">--</div>
+                </div>
+            </div>
+        `);
+        setHtml('superadminStatsBreakdown', `<p class="text-secondary">${t('dashboard.statistics.loading', 'Loading statistics...')}</p>`);
+        setHtml('superadminStatsCoverage', `<p class="text-secondary">${t('dashboard.statistics.loading', 'Loading statistics...')}</p>`);
+    }
+
+    async function loadLocations() {
+        const payload = await apiGet(`${API}/superadmin/reference/locations`);
+        if (!payload || !Array.isArray(payload.regions)) {
+            state.locations = { regions: [] };
+            return;
+        }
+        state.locations = payload;
+    }
+
+    function populateRegionSelect() {
+        const regionSelect = document.getElementById('superadminStatsRegion');
+        if (!regionSelect) return;
+
+        const options = [`<option value="">${t('reports.allRegions', 'Все области')}</option>`];
+        (state.locations.regions || []).forEach((region) => {
+            const selected = state.region_code === region.code ? 'selected' : '';
+            const label = region.name_ru || region.name_uz || region.code;
+            options.push(`<option value="${region.code}" ${selected}>${label}</option>`);
+        });
+        regionSelect.innerHTML = options.join('');
+    }
+
+    function populateCitySelect() {
+        const citySelect = document.getElementById('superadminStatsCity');
+        if (!citySelect) return;
+
+        let cities = [];
+        if (state.region_code) {
+            const region = (state.locations.regions || []).find((entry) => entry.code === state.region_code);
+            cities = Array.isArray(region?.cities) ? region.cities : [];
+        }
+
+        const options = [`<option value="">${t('reports.allCities', 'Все города/районы')}</option>`];
+        cities.forEach((city) => {
+            const selected = state.city_code === city.code ? 'selected' : '';
+            const label = city.name_ru || city.name_uz || city.code;
+            options.push(`<option value="${city.code}" ${selected}>${label}</option>`);
+        });
+
+        citySelect.innerHTML = options.join('');
+        citySelect.disabled = !state.region_code;
+    }
+
+    async function loadOverview() {
+        const data = await apiGet(`${API}/superadmin/analytics/geo/overview?${buildGeoQuery()}`);
+        state.overview = data;
+    }
+
+    function renderCards() {
+        const cardsEl = document.getElementById('superadminStatsCards');
+        if (!cardsEl) return;
+
+        const kpis = state.overview?.kpis || {};
+        const coverage = state.overview?.coverage || {};
+
+        cardsEl.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-label">${t('dashboard.stats.schools', 'Schools')}</div>
+                    <div class="stat-value">${fmtInt(kpis.schools)}</div>
+                    <div class="stat-change positive">${fmtPct(coverage.geo_fill_rate || 0)} ${t('statistics.geoCoverage', 'geo coverage')}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-label">${t('dashboard.stats.users', 'Users')}</div>
+                    <div class="stat-value">${fmtInt(kpis.users)}</div>
+                    <div class="stat-change">${t('dashboard.stats.students', 'Students')} / ${t('dashboard.stats.teachers', 'Teachers')}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-label">${t('dashboard.stats.completedAttempts', 'Completed Attempts')}</div>
+                    <div class="stat-value">${fmtInt(kpis.completed_attempts)}</div>
+                    <div class="stat-change">${t('dashboard.stats.attempts', 'Attempts')}: ${fmtInt(kpis.attempts)}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-label">${t('dashboard.stats.avgScore', 'Average Score')}</div>
+                    <div class="stat-value">${fmtPct(kpis.avg_score)}</div>
+                    <div class="stat-change">${t('reports.completionRate', 'Completion Rate')}: ${fmtPct(kpis.completion_rate)}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCoverageBlock() {
+        const coverage = state.overview?.coverage || {};
+        setHtml('superadminStatsCoverage', `
+            <div class="superadmin-coverage-grid">
+                <div class="report-kpi tone-blue">
+                    <span>${t('statistics.totalSchools', 'Total schools')}</span>
+                    <strong>${fmtInt(coverage.total_schools)}</strong>
+                </div>
+                <div class="report-kpi tone-green">
+                    <span>${t('statistics.geoFilled', 'Geo filled')}</span>
+                    <strong>${fmtInt(coverage.geo_filled)}</strong>
+                </div>
+                <div class="report-kpi tone-orange">
+                    <span>${t('statistics.profileFilled', 'Profile filled')}</span>
+                    <strong>${fmtInt(coverage.profile_filled)}</strong>
+                </div>
+                <div class="report-kpi tone-rose">
+                    <span>${t('statistics.geoUnknown', 'Unknown geo')}</span>
+                    <strong>${fmtInt(coverage.geo_unknown)}</strong>
+                </div>
+            </div>
+        `);
+    }
+
+    function renderRegionTable() {
+        const rows = Array.isArray(state.overview?.by_region) ? state.overview.by_region : [];
+        if (!rows.length) {
+            setHtml('superadminStatsBreakdown', `<p class="text-secondary">${t('reports.noData', 'Нет данных')}</p>`);
+            return;
+        }
+
+        setHtml('superadminStatsBreakdown', `
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>${t('schools.region', 'Область')}</th>
+                            <th>${t('dashboard.stats.schools', 'Schools')}</th>
+                            <th>${t('dashboard.stats.users', 'Users')}</th>
+                            <th>${t('dashboard.stats.completedAttempts', 'Completed Attempts')}</th>
+                            <th>${t('dashboard.stats.avgScore', 'Average Score')}</th>
+                            <th>${t('reports.completionRate', 'Completion Rate')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map((row) => `
+                            <tr>
+                                <td data-label="${t('schools.region', 'Область')}">${row.region_name_ru || row.region_name_uz || getRegionLabel(row.region_code)}</td>
+                                <td data-label="${t('dashboard.stats.schools', 'Schools')}">${fmtInt(row.schools_count)}</td>
+                                <td data-label="${t('dashboard.stats.users', 'Users')}">${fmtInt(row.users_total)}</td>
+                                <td data-label="${t('dashboard.stats.completedAttempts', 'Completed Attempts')}">${fmtInt(row.completed_attempts)}</td>
+                                <td data-label="${t('dashboard.stats.avgScore', 'Average Score')}">${fmtPct(row.avg_score)}</td>
+                                <td data-label="${t('reports.completionRate', 'Completion Rate')}">${fmtPct(row.completion_rate)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `);
+    }
+
+    async function renderCharts() {
+        await ensureChartLib();
+        destroyCharts();
+
+        const regionRows = Array.isArray(state.overview?.by_region) ? state.overview.by_region.slice(0, 10) : [];
+        const schoolTypeRows = Array.isArray(state.overview?.distributions?.school_type)
+            ? state.overview.distributions.school_type
+            : [];
+        const coverage = state.overview?.coverage || {};
+
+        const regionCanvas = document.getElementById('superadminRegionChart');
+        if (regionCanvas && regionRows.length) {
+            state.charts.region = new window.Chart(regionCanvas, {
+                type: 'bar',
+                data: {
+                    labels: regionRows.map((row) => row.region_name_ru || row.region_name_uz || getRegionLabel(row.region_code)),
+                    datasets: [{
+                        label: t('dashboard.stats.avgScore', 'Average Score'),
+                        data: regionRows.map((row) => Number(row.avg_score) || 0),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        const schoolTypeCanvas = document.getElementById('superadminSchoolTypeChart');
+        if (schoolTypeCanvas && schoolTypeRows.length) {
+            state.charts.schoolType = new window.Chart(schoolTypeCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: schoolTypeRows.map((row) => row.value_name_ru || row.value_name_uz || row.value_code),
+                    datasets: [{
+                        data: schoolTypeRows.map((row) => Number(row.schools_count) || 0)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        const coverageCanvas = document.getElementById('superadminCoverageChart');
+        if (coverageCanvas) {
+            state.charts.coverage = new window.Chart(coverageCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        t('statistics.geoFilled', 'Geo filled'),
+                        t('statistics.geoUnknown', 'Unknown geo')
+                    ],
+                    datasets: [{
+                        data: [
+                            Number(coverage.geo_filled) || 0,
+                            Number(coverage.geo_unknown) || 0
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+    }
+
+    async function refresh() {
+        renderLoading();
+        await loadOverview();
+        renderCards();
+        renderCoverageBlock();
+        renderRegionTable();
+        await renderCharts();
+    }
+
+    function bindFilters() {
+        const periodEl = document.getElementById('superadminStatsPeriod');
+        const regionEl = document.getElementById('superadminStatsRegion');
+        const cityEl = document.getElementById('superadminStatsCity');
+
+        if (periodEl) {
+            periodEl.addEventListener('change', async () => {
+                const parsed = Number.parseInt(String(periodEl.value || '30'), 10);
+                state.period = [7, 30, 90, 365].includes(parsed) ? parsed : 30;
+                await refresh();
+            });
+        }
+
+        if (regionEl) {
+            regionEl.addEventListener('change', async () => {
+                state.region_code = regionEl.value || '';
+                state.city_code = '';
+                populateCitySelect();
+                await refresh();
+            });
+        }
+
+        if (cityEl) {
+            cityEl.addEventListener('change', async () => {
+                state.city_code = cityEl.value || '';
+                await refresh();
+            });
+        }
+    }
+
+    async function init() {
+        if (!document.getElementById('superadminStatsCards')) return;
+
+        try {
+            bindFilters();
+            await loadLocations();
+            populateRegionSelect();
+            populateCitySelect();
+            await refresh();
+        } catch (error) {
+            console.error('Superadmin stats init error:', error);
+            setHtml('superadminStatsCards', `<p class="text-secondary">${t('dashboard.statistics.errorUnableLoad', 'Unable to load statistics')}</p>`);
+            setHtml('superadminStatsBreakdown', '');
+            setHtml('superadminStatsCoverage', '');
+        }
+    }
+
+    window.SuperadminStats = {
+        init
     };
 })();

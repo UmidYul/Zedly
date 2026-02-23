@@ -56,7 +56,7 @@
     async function fetchCurrentUser() {
         const response = await fetch(`${API_URL}/auth/me`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
             }
         });
 
@@ -110,7 +110,7 @@
         try {
             const response = await fetch(`${API_URL}/teacher/classes`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 
@@ -142,7 +142,7 @@
         try {
             const response = await fetch(`${API_URL}/teacher/subjects`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 
@@ -203,7 +203,7 @@
 
             const response = await fetch(`${API_URL}/teacher/classes/${selectedClassId}/analytics?${params.toString()}`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 

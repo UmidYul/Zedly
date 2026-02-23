@@ -22,7 +22,7 @@
     };
 
     function token() {
-        return localStorage.getItem('access_token') || '';
+        return window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
     }
 
     function t(key, fallback, params) {

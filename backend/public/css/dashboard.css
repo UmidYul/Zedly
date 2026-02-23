@@ -961,6 +961,28 @@
     width: 100%;
 }
 
+.superadmin-geo-charts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-md);
+}
+
+.superadmin-chart-wrap {
+    position: relative;
+    min-height: 300px;
+}
+
+.superadmin-chart-wrap canvas {
+    width: 100% !important;
+    height: 300px !important;
+}
+
+.superadmin-coverage-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+}
+
 .reports-grid-kpi {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -2867,6 +2889,7 @@
 
     .reports-grid-main,
     .reports-risk-grid,
+    .superadmin-geo-charts,
     .settings-role-grid,
     .audit-toolbar .toolbar-filters,
     .stats-grid {
@@ -2874,6 +2897,7 @@
     }
 
     .reports-grid-kpi,
+    .superadmin-coverage-grid,
     .reports-risk-kpi-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -3021,6 +3045,7 @@
     }
 
     .reports-grid-kpi,
+    .superadmin-coverage-grid,
     .reports-risk-kpi-grid {
         grid-template-columns: 1fr;
     }
@@ -3065,6 +3090,14 @@
 
     .reports-page .section-header {
         align-items: flex-start;
+    }
+
+    .superadmin-chart-wrap {
+        min-height: 240px;
+    }
+
+    .superadmin-chart-wrap canvas {
+        height: 240px !important;
     }
 
     .reports-activity-item {

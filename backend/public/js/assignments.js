@@ -52,7 +52,7 @@
         // Load classes for filter dropdown
         loadClasses: async function () {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch('/api/teacher/classes?limit=100', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -127,7 +127,7 @@
             `;
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const params = new URLSearchParams({
                     page: this.currentPage,
                     limit: this.limit,
@@ -348,7 +348,7 @@
             // Load assignment data if editing
             if (isEdit) {
                 try {
-                    const token = localStorage.getItem('access_token');
+                    const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                     const response = await fetch(`/api/teacher/assignments/${assignmentId}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -373,7 +373,7 @@
             let testsList = [];
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
 
                 // Load published tests
                 const testsResponse = await fetch('/api/teacher/tests?status=active&limit=100', {
@@ -599,7 +599,7 @@
                     }
 
                     try {
-                        const token = localStorage.getItem('access_token');
+                        const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                         const response = await fetch(`/api/teacher/classes-by-subject?subject_id=${encodeURIComponent(subjectId)}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
@@ -747,7 +747,7 @@
             formAlert.className = 'hidden';
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const url = resolvedAssignmentId
                     ? `/api/teacher/assignments/${resolvedAssignmentId}`
                     : '/api/teacher/assignments';
@@ -796,7 +796,7 @@
         // View assignment details and student progress
         viewDetails: async function (assignmentId) {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/teacher/assignments/${assignmentId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -956,7 +956,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/teacher/assignments/${assignmentId}`, {
                     method: 'DELETE',
                     headers: {

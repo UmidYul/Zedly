@@ -234,7 +234,7 @@
 
         loadResults: async function () {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const url = this.attemptId
                     ? `/api/student/attempts/${this.attemptId}`
                     : `/api/student/assignments/${this.assignmentId}`;

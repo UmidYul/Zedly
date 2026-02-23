@@ -44,7 +44,7 @@
 
     async function loadHomeroomClasses() {
         const response = await fetch('/api/teacher/homeroom-classes', {
-            headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
+            headers: { Authorization: `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}` }
         });
 
         if (!response.ok) {
@@ -57,7 +57,7 @@
 
     async function loadAnalytics(classId) {
         const response = await fetch(`/api/teacher/classes/${classId}/analytics`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
+            headers: { Authorization: `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}` }
         });
 
         if (!response.ok) {
@@ -245,7 +245,7 @@
 
         const response = await fetch(`/api/teacher/students/${studentId}/reset-password`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
+            headers: { Authorization: `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}` }
         });
 
         if (!response.ok) {

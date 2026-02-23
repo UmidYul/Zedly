@@ -5,6 +5,13 @@
     const originalFetch = window.fetch;
     const CSRF_COOKIE_NAME = 'zedly_csrf_token';
 
+    // Compatibility helper for legacy modules that still build Bearer headers.
+    // Real auth is cookie-based; this placeholder is stripped in cleanupInvalidAuthorization().
+    window.ZedlyAuth = window.ZedlyAuth || {};
+    window.ZedlyAuth.getAuthToken = function () {
+        return 'cookie-session';
+    };
+
     let isRefreshing = false;
     let refreshPromise = null;
     let csrfPromise = null;

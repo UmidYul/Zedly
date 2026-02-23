@@ -116,7 +116,7 @@
 
         loadAttempt: async function () {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/teacher/attempts/${this.attemptId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

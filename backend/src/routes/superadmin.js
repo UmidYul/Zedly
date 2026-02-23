@@ -10,6 +10,14 @@ const {
     invalidateNotificationDefaultsCache
 } = require('../utils/notifications');
 const { getTableColumns, pickColumn, getSchoolNameExpr } = require('../utils/db');
+const {
+    UNKNOWN_CODE,
+    getLocationsReference,
+    normalizeAndValidateSchoolProfile,
+    enrichSchoolLocationNames,
+    resolveDimensionName,
+    normalizeGeoCode
+} = require('../utils/school-profile');
 const { getGlobalCareerStats } = require('./careerHandlers');
 
 // All routes require superadmin role
@@ -55,6 +63,174 @@ function parsePositiveInt(value, fallback, min = 1, max = 100) {
     const parsed = parseInt(value, 10);
     if (!Number.isFinite(parsed)) return fallback;
     return Math.min(Math.max(parsed, min), max);
+}
+
+function parsePeriodToStartDate(period = 'month') {
+    const normalized = String(period || 'month').trim().toLowerCase();
+    const now = Date.now();
+    const windowsMs = {
+        week: 7 * 24 * 60 * 60 * 1000,
+        month: 30 * 24 * 60 * 60 * 1000,
+        quarter: 90 * 24 * 60 * 60 * 1000,
+        year: 365 * 24 * 60 * 60 * 1000
+    };
+    const key = windowsMs[normalized] ? normalized : 'month';
+    return {
+        key,
+        startDate: new Date(now - windowsMs[key])
+    };
+}
+
+function parseGeoPeriodDays(value, fallback = 30) {
+    const parsed = parseInt(value, 10);
+    if (![7, 30, 90, 365].includes(parsed)) return fallback;
+    return parsed;
+}
+
+function toNullableCode(value) {
+    const normalized = normalizeGeoCode(value);
+    return normalized || null;
+}
+
+async function buildSchoolSelectFragments({ includeSettings = false, alias = 'schools' } = {}) {
+    const schoolColumns = await getTableColumns('schools');
+    const fragments = [
+        `${alias}.id`,
+        `${alias}.name`,
+        `${alias}.address`,
+        `${alias}.phone`,
+        `${alias}.email`
+    ];
+
+    if (includeSettings && schoolColumns.has('settings')) {
+        fragments.push(`${alias}.settings`);
+    }
+
+    [
+        'region_code',
+        'city_code',
+        'school_type',
+        'ownership',
+        'language_model',
+        'study_shift',
+        'capacity',
+        'opened_year'
+    ].forEach((columnName) => {
+        if (schoolColumns.has(columnName)) {
+            fragments.push(`${alias}.${columnName}`);
+        }
+    });
+
+    fragments.push(`${alias}.is_active`, `${alias}.created_at`, `${alias}.updated_at`);
+    return fragments;
+}
+
+async function getAttemptSqlMeta(alias = 'ta') {
+    const attemptColumns = await getTableColumns('test_attempts');
+
+    const scoreExpr = attemptColumns.has('percentage')
+        ? `${alias}.percentage`
+        : attemptColumns.has('score') && attemptColumns.has('max_score')
+            ? `(${alias}.score::float / NULLIF(${alias}.max_score, 0) * 100)`
+            : 'NULL';
+
+    const completedFilter = attemptColumns.has('status')
+        ? `${alias}.status = 'completed'`
+        : attemptColumns.has('is_completed')
+            ? `${alias}.is_completed = true`
+            : attemptColumns.has('submitted_at')
+                ? `${alias}.submitted_at IS NOT NULL`
+                : 'true';
+
+    const dateColumn = attemptColumns.has('submitted_at')
+        ? `${alias}.submitted_at`
+        : attemptColumns.has('completed_at')
+            ? `${alias}.completed_at`
+            : `${alias}.created_at`;
+
+    return {
+        scoreExpr,
+        completedFilter,
+        dateColumn,
+        hasScore: scoreExpr !== 'NULL'
+    };
+}
+
+function getDimensionSqlConfig(dimension, schoolNameExpr, schoolColumns = new Set()) {
+    const normalized = String(dimension || 'school').trim().toLowerCase();
+    const hasColumn = (columnName) => schoolColumns && typeof schoolColumns.has === 'function' && schoolColumns.has(columnName);
+    const fallback = {
+        dimension: 'school',
+        keyExpr: 's.id::text',
+        nameExpr: `${schoolNameExpr}`,
+        codeField: 'school_id'
+    };
+
+    const configs = {
+        school: fallback,
+        region: {
+            dimension: 'region',
+            keyExpr: hasColumn('region_code')
+                ? `COALESCE(NULLIF(s.region_code, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            nameExpr: hasColumn('region_code')
+                ? `COALESCE(NULLIF(s.region_code, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            codeField: 'region_code'
+        },
+        city: {
+            dimension: 'city',
+            keyExpr: hasColumn('city_code')
+                ? `COALESCE(NULLIF(s.city_code, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            nameExpr: hasColumn('city_code')
+                ? `COALESCE(NULLIF(s.city_code, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            codeField: 'city_code'
+        },
+        school_type: {
+            dimension: 'school_type',
+            keyExpr: hasColumn('school_type')
+                ? `COALESCE(NULLIF(s.school_type, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            nameExpr: hasColumn('school_type')
+                ? `COALESCE(NULLIF(s.school_type, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            codeField: 'school_type'
+        },
+        ownership: {
+            dimension: 'ownership',
+            keyExpr: hasColumn('ownership')
+                ? `COALESCE(NULLIF(s.ownership, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            nameExpr: hasColumn('ownership')
+                ? `COALESCE(NULLIF(s.ownership, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            codeField: 'ownership'
+        },
+        language_model: {
+            dimension: 'language_model',
+            keyExpr: hasColumn('language_model')
+                ? `COALESCE(NULLIF(s.language_model, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            nameExpr: hasColumn('language_model')
+                ? `COALESCE(NULLIF(s.language_model, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            codeField: 'language_model'
+        },
+        study_shift: {
+            dimension: 'study_shift',
+            keyExpr: hasColumn('study_shift')
+                ? `COALESCE(NULLIF(s.study_shift, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            nameExpr: hasColumn('study_shift')
+                ? `COALESCE(NULLIF(s.study_shift, ''), '${UNKNOWN_CODE}')`
+                : `'${UNKNOWN_CODE}'`,
+            codeField: 'study_shift'
+        }
+    };
+
+    return configs[normalized] || fallback;
 }
 
 function buildAuditFilters(queryInput = {}) {
@@ -127,7 +303,10 @@ function buildAuditFilters(queryInput = {}) {
 router.get('/schools', async (req, res) => {
     try {
         const { page = 1, limit = 10, search = '', status = 'all' } = req.query;
-        const offset = (page - 1) * limit;
+        const pageNumber = parsePositiveInt(page, 1, 1, 10000);
+        const limitNumber = parsePositiveInt(limit, 10, 1, 200);
+        const offset = (pageNumber - 1) * limitNumber;
+        const selectFragments = await buildSchoolSelectFragments({ includeSettings: false, alias: 'schools' });
 
         // Build WHERE clause
         let whereClause = 'WHERE 1=1';
@@ -135,12 +314,12 @@ router.get('/schools', async (req, res) => {
 
         if (search) {
             params.push(`%${search}%`);
-            whereClause += ` AND name ILIKE $${params.length}`;
+            whereClause += ` AND schools.name ILIKE $${params.length}`;
         }
 
         if (status !== 'all') {
             params.push(status === 'active');
-            whereClause += ` AND is_active = $${params.length}`;
+            whereClause += ` AND schools.is_active = $${params.length}`;
         }
 
         // Get total count
@@ -148,30 +327,30 @@ router.get('/schools', async (req, res) => {
             `SELECT COUNT(*) FROM schools ${whereClause}`,
             params
         );
-        const total = parseInt(countResult.rows[0].count);
+        const total = parseInt(countResult.rows[0].count, 10);
 
         // Get schools
-        params.push(limit, offset);
+        params.push(limitNumber, offset);
         const result = await query(
             `SELECT
-                id, name, address, phone, email,
-                is_active, created_at, updated_at,
+                ${selectFragments.join(',\n                ')},
                 (SELECT COUNT(*) FROM users WHERE school_id = schools.id) as user_count,
                 (SELECT COUNT(*) FROM classes WHERE school_id = schools.id) as class_count
              FROM schools
              ${whereClause}
-             ORDER BY created_at DESC
+             ORDER BY schools.created_at DESC
              LIMIT $${params.length - 1} OFFSET $${params.length}`,
             params
         );
 
+        const schools = result.rows.map((row) => enrichSchoolLocationNames(row));
         res.json({
-            schools: result.rows,
+            schools,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                pages: Math.ceil(total / limit)
+                page: pageNumber,
+                limit: limitNumber,
+                pages: Math.ceil(total / limitNumber)
             }
         });
     } catch (error) {
@@ -190,16 +369,16 @@ router.get('/schools', async (req, res) => {
 router.get('/schools/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const selectFragments = await buildSchoolSelectFragments({ includeSettings: true, alias: 'schools' });
 
         const result = await query(
             `SELECT
-                id, name, address, phone, email, settings,
-                is_active, created_at, updated_at,
+                ${selectFragments.join(',\n                ')},
                 (SELECT COUNT(*) FROM users WHERE school_id = schools.id) as user_count,
                 (SELECT COUNT(*) FROM classes WHERE school_id = schools.id) as class_count,
                 (SELECT COUNT(*) FROM subjects WHERE school_id = schools.id) as subject_count
              FROM schools
-             WHERE id = $1`,
+             WHERE schools.id = $1`,
             [id]
         );
 
@@ -210,7 +389,7 @@ router.get('/schools/:id', async (req, res) => {
             });
         }
 
-        res.json({ school: result.rows[0] });
+        res.json({ school: enrichSchoolLocationNames(result.rows[0]) });
     } catch (error) {
         console.error('Get school error:', error);
         res.status(500).json({
@@ -227,6 +406,22 @@ router.get('/schools/:id', async (req, res) => {
 router.post('/schools', async (req, res) => {
     try {
         const { name, address, phone, email, settings } = req.body;
+        const schoolColumns = await getTableColumns('schools');
+        if (!schoolColumns.has('region_code') || !schoolColumns.has('city_code')) {
+            return res.status(400).json({
+                error: 'migration_required',
+                message: 'School geo columns are missing. Run migration: npm run db:migrate:school-geo'
+            });
+        }
+
+        const validation = normalizeAndValidateSchoolProfile(req.body || {}, { mode: 'create' });
+        if (validation.errors.length > 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: validation.errors[0].message,
+                details: validation.errors
+            });
+        }
 
         // Validation
         if (!name || name.trim().length === 0) {
@@ -250,18 +445,47 @@ router.post('/schools', async (req, res) => {
         }
 
         // Create school
+        const insertColumns = ['name', 'address', 'phone', 'email', 'is_active'];
+        const insertValues = [
+            name.trim(),
+            address || null,
+            phone || null,
+            email || null,
+            true
+        ];
+
+        if (schoolColumns.has('settings')) {
+            insertColumns.push('settings');
+            insertValues.push(settings || {});
+        }
+
+        [
+            'region_code',
+            'city_code',
+            'school_type',
+            'ownership',
+            'language_model',
+            'study_shift',
+            'capacity',
+            'opened_year'
+        ].forEach((field) => {
+            if (schoolColumns.has(field)) {
+                insertColumns.push(field);
+                insertValues.push(validation.values[field] ?? null);
+            }
+        });
+
+        const returningFragments = (await buildSchoolSelectFragments({ includeSettings: true, alias: 'schools' }))
+            .map((fragment) => fragment.replace(/^schools\./, ''));
+        const placeholders = insertValues.map((_, index) => `$${index + 1}`).join(', ');
+
         const result = await query(
-            `INSERT INTO schools (name, address, phone, email, settings, is_active)
-             VALUES ($1, $2, $3, $4, $5, true)
-             RETURNING id, name, address, phone, email, settings, is_active, created_at`,
-            [
-                name.trim(),
-                address || null,
-                phone || null,
-                email || null,
-                settings || {}
-            ]
+            `INSERT INTO schools (${insertColumns.join(', ')})
+             VALUES (${placeholders})
+             RETURNING ${returningFragments.join(', ')}`,
+            insertValues
         );
+        const createdSchool = enrichSchoolLocationNames(result.rows[0]);
 
         // Log action
         await query(
@@ -271,14 +495,18 @@ router.post('/schools', async (req, res) => {
                 req.user.id,
                 'create',
                 'school',
-                result.rows[0].id,
-                { name: name.trim() }
+                createdSchool.id,
+                {
+                    name: name.trim(),
+                    region_code: createdSchool.region_code,
+                    city_code: createdSchool.city_code
+                }
             ]
         );
 
         res.status(201).json({
             message: 'School created successfully',
-            school: result.rows[0]
+            school: createdSchool
         });
 
         try {
@@ -286,8 +514,8 @@ router.post('/schools', async (req, res) => {
                 actor: req.user.username,
                 action: 'create',
                 entityType: 'school',
-                entityName: result.rows[0].name,
-                details: `id=${result.rows[0].id}`
+                entityName: createdSchool.name,
+                details: `id=${createdSchool.id}`
             });
         } catch (notifyError) {
             console.error('System telegram notification error:', notifyError);
@@ -309,10 +537,13 @@ router.put('/schools/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { name, address, phone, email, settings, is_active } = req.body;
+        const schoolColumns = await getTableColumns('schools');
 
         // Check if school exists
         const existingSchool = await query(
-            'SELECT id FROM schools WHERE id = $1',
+            `SELECT id
+             FROM schools
+             WHERE id = $1`,
             [id]
         );
 
@@ -346,6 +577,36 @@ router.put('/schools/:id', async (req, res) => {
             }
         }
 
+        const hasSchoolProfileInput = [
+            'region_code',
+            'city_code',
+            'school_type',
+            'ownership',
+            'language_model',
+            'study_shift',
+            'capacity',
+            'opened_year'
+        ].some((field) => Object.prototype.hasOwnProperty.call(req.body, field));
+
+        if (hasSchoolProfileInput && (!schoolColumns.has('region_code') || !schoolColumns.has('city_code'))) {
+            return res.status(400).json({
+                error: 'migration_required',
+                message: 'School geo columns are missing. Run migration: npm run db:migrate:school-geo'
+            });
+        }
+
+        const profileValidation = hasSchoolProfileInput
+            ? normalizeAndValidateSchoolProfile(req.body || {}, { mode: 'update' })
+            : { errors: [], values: {} };
+
+        if (profileValidation.errors.length > 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: profileValidation.errors[0].message,
+                details: profileValidation.errors
+            });
+        }
+
         // Build update query
         const updates = [];
         const params = [];
@@ -367,7 +628,7 @@ router.put('/schools/:id', async (req, res) => {
             params.push(email);
             updates.push(`email = $${paramCount++}`);
         }
-        if (settings !== undefined) {
+        if (settings !== undefined && schoolColumns.has('settings')) {
             params.push(settings);
             updates.push(`settings = $${paramCount++}`);
         }
@@ -376,17 +637,37 @@ router.put('/schools/:id', async (req, res) => {
             updates.push(`is_active = $${paramCount++}`);
         }
 
+        [
+            'region_code',
+            'city_code',
+            'school_type',
+            'ownership',
+            'language_model',
+            'study_shift',
+            'capacity',
+            'opened_year'
+        ].forEach((field) => {
+            if (!schoolColumns.has(field)) return;
+            if (!Object.prototype.hasOwnProperty.call(req.body, field)) return;
+
+            params.push(profileValidation.values[field] ?? null);
+            updates.push(`${field} = $${paramCount++}`);
+        });
+
         updates.push(`updated_at = CURRENT_TIMESTAMP`);
         params.push(id);
 
         // Update school
+        const returningFragments = (await buildSchoolSelectFragments({ includeSettings: true, alias: 'schools' }))
+            .map((fragment) => fragment.replace(/^schools\./, ''));
         const result = await query(
             `UPDATE schools
              SET ${updates.join(', ')}
              WHERE id = $${paramCount}
-             RETURNING id, name, address, phone, email, settings, is_active, updated_at`,
+             RETURNING ${returningFragments.join(', ')}`,
             params
         );
+        const updatedSchool = enrichSchoolLocationNames(result.rows[0]);
 
         // Log action
         await query(
@@ -397,7 +678,7 @@ router.put('/schools/:id', async (req, res) => {
 
         res.json({
             message: 'School updated successfully',
-            school: result.rows[0]
+            school: updatedSchool
         });
 
         try {
@@ -405,7 +686,7 @@ router.put('/schools/:id', async (req, res) => {
                 actor: req.user.username,
                 action: 'update',
                 entityType: 'school',
-                entityName: result.rows[0].name,
+                entityName: updatedSchool.name,
                 details: `id=${id}`
             });
         } catch (notifyError) {
@@ -515,6 +796,486 @@ router.delete('/schools/:id', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to delete school'
+        });
+    }
+});
+
+/**
+ * GET /api/superadmin/reference/locations
+ * Reference list for region/city selectors
+ */
+router.get('/reference/locations', async (req, res) => {
+    try {
+        res.json(getLocationsReference());
+    } catch (error) {
+        console.error('Get locations reference error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch locations reference'
+        });
+    }
+});
+
+/**
+ * GET /api/superadmin/analytics/geo/overview
+ * Geo-first analytics overview
+ */
+router.get('/analytics/geo/overview', async (req, res) => {
+    try {
+        const schoolColumns = await getTableColumns('schools');
+        const hasRegionCode = schoolColumns.has('region_code');
+        const hasCityCode = schoolColumns.has('city_code');
+        const geoSchemaApplied = hasRegionCode && hasCityCode;
+
+        const geoWhereByParams12 = geoSchemaApplied
+            ? '($1::text IS NULL OR s.region_code = $1) AND ($2::text IS NULL OR s.city_code = $2)'
+            : `($1::text IS NULL OR $1 = '${UNKNOWN_CODE}') AND ($2::text IS NULL OR $2 = '${UNKNOWN_CODE}')`;
+        const geoWhereByParams23 = geoSchemaApplied
+            ? '($2::text IS NULL OR s.region_code = $2) AND ($3::text IS NULL OR s.city_code = $3)'
+            : `($2::text IS NULL OR $2 = '${UNKNOWN_CODE}') AND ($3::text IS NULL OR $3 = '${UNKNOWN_CODE}')`;
+
+        const regionValueExpr = geoSchemaApplied
+            ? `COALESCE(NULLIF(s.region_code, ''), '${UNKNOWN_CODE}')`
+            : `'${UNKNOWN_CODE}'`;
+        const cityValueExpr = geoSchemaApplied
+            ? `COALESCE(NULLIF(s.city_code, ''), '${UNKNOWN_CODE}')`
+            : `'${UNKNOWN_CODE}'`;
+
+        const period = parseGeoPeriodDays(req.query.period, 30);
+        const regionCode = toNullableCode(req.query.region_code);
+        const cityCode = toNullableCode(req.query.city_code);
+        const startDate = new Date(Date.now() - (period * 24 * 60 * 60 * 1000));
+        const attemptMeta = await getAttemptSqlMeta('ta');
+
+        const profileCoverageExpr = [
+            'school_type',
+            'ownership',
+            'language_model',
+            'study_shift'
+        ].every((columnName) => schoolColumns.has(columnName))
+            ? `COUNT(*) FILTER (
+                    WHERE NULLIF(s.school_type, '') IS NOT NULL
+                      AND NULLIF(s.ownership, '') IS NOT NULL
+                      AND NULLIF(s.language_model, '') IS NOT NULL
+                      AND NULLIF(s.study_shift, '') IS NOT NULL
+                )::int`
+            : '0::int';
+        const geoFilledExpr = geoSchemaApplied
+            ? `COUNT(*) FILTER (
+                    WHERE NULLIF(s.region_code, '') IS NOT NULL
+                      AND NULLIF(s.city_code, '') IS NOT NULL
+                )::int`
+            : '0::int';
+        const geoUnknownExpr = geoSchemaApplied
+            ? `COUNT(*) FILTER (
+                    WHERE NULLIF(s.region_code, '') IS NULL
+                       OR NULLIF(s.city_code, '') IS NULL
+                )::int`
+            : 'COUNT(*)::int';
+
+        const coverageResult = await query(
+            `SELECT
+                COUNT(*)::int AS total_schools,
+                ${geoFilledExpr} AS geo_filled,
+                ${geoUnknownExpr} AS geo_unknown,
+                ${profileCoverageExpr} AS profile_filled
+             FROM schools s
+             WHERE ${geoWhereByParams12}`,
+            [regionCode, cityCode]
+        );
+
+        const kpiResult = await query(
+            `WITH filtered_schools AS (
+                SELECT s.id
+                FROM schools s
+                WHERE ${geoWhereByParams23}
+            ),
+            attempts AS (
+                SELECT
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1)::int AS total_attempts,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter})::int AS completed_attempts,
+                    ${attemptMeta.hasScore
+                ? `AVG(CASE WHEN ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter} THEN ${attemptMeta.scoreExpr} END)`
+                : 'NULL'} AS avg_score
+                FROM filtered_schools fs
+                LEFT JOIN tests t ON t.school_id = fs.id
+                LEFT JOIN test_assignments tas ON tas.test_id = t.id
+                LEFT JOIN test_attempts ta ON ta.assignment_id = tas.id
+            )
+            SELECT
+                (SELECT COUNT(*)::int FROM filtered_schools) AS schools,
+                (SELECT COUNT(*)::int FROM users u JOIN filtered_schools fs ON fs.id = u.school_id WHERE u.role != 'superadmin') AS users,
+                (SELECT COUNT(*)::int FROM tests t JOIN filtered_schools fs ON fs.id = t.school_id) AS tests,
+                COALESCE(attempts.total_attempts, 0)::int AS attempts,
+                COALESCE(attempts.completed_attempts, 0)::int AS completed_attempts,
+                COALESCE(ROUND(attempts.avg_score::numeric, 2), 0) AS avg_score,
+                COALESCE(
+                    CASE
+                        WHEN attempts.total_attempts > 0
+                            THEN ROUND((attempts.completed_attempts::numeric / attempts.total_attempts::numeric) * 100, 2)
+                        ELSE 0
+                    END,
+                    0
+                ) AS completion_rate
+            FROM attempts`,
+            [startDate, regionCode, cityCode]
+        );
+
+        const byRegionResult = await query(
+            `WITH filtered_schools AS (
+                SELECT
+                    s.id,
+                    ${regionValueExpr} AS region_code
+                FROM schools s
+                WHERE ${geoWhereByParams23}
+            ),
+            school_stats AS (
+                SELECT region_code, COUNT(*)::int AS schools_count
+                FROM filtered_schools
+                GROUP BY region_code
+            ),
+            user_stats AS (
+                SELECT
+                    fs.region_code,
+                    COUNT(*) FILTER (WHERE u.role != 'superadmin')::int AS users_total,
+                    COUNT(*) FILTER (WHERE u.role = 'student')::int AS students_total,
+                    COUNT(*) FILTER (WHERE u.role = 'teacher')::int AS teachers_total
+                FROM filtered_schools fs
+                LEFT JOIN users u ON u.school_id = fs.id
+                GROUP BY fs.region_code
+            ),
+            attempt_stats AS (
+                SELECT
+                    fs.region_code,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1)::int AS attempts_total,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter})::int AS completed_attempts,
+                    COUNT(DISTINCT CASE WHEN ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter} THEN fs.id END)::int AS active_schools,
+                    ${attemptMeta.hasScore
+                ? `AVG(CASE WHEN ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter} THEN ${attemptMeta.scoreExpr} END)`
+                : 'NULL'} AS avg_score
+                FROM filtered_schools fs
+                LEFT JOIN tests t ON t.school_id = fs.id
+                LEFT JOIN test_assignments tas ON tas.test_id = t.id
+                LEFT JOIN test_attempts ta ON ta.assignment_id = tas.id
+                GROUP BY fs.region_code
+            )
+            SELECT
+                s.region_code,
+                s.schools_count,
+                COALESCE(u.users_total, 0)::int AS users_total,
+                COALESCE(u.students_total, 0)::int AS students_total,
+                COALESCE(u.teachers_total, 0)::int AS teachers_total,
+                COALESCE(a.active_schools, 0)::int AS active_schools,
+                COALESCE(a.attempts_total, 0)::int AS attempts_total,
+                COALESCE(a.completed_attempts, 0)::int AS completed_attempts,
+                COALESCE(ROUND(a.avg_score::numeric, 2), 0) AS avg_score
+            FROM school_stats s
+            LEFT JOIN user_stats u ON u.region_code = s.region_code
+            LEFT JOIN attempt_stats a ON a.region_code = s.region_code
+            ORDER BY s.schools_count DESC, s.region_code ASC`,
+            [startDate, regionCode, cityCode]
+        );
+
+        const byCityResult = await query(
+            `WITH filtered_schools AS (
+                SELECT
+                    s.id,
+                    ${regionValueExpr} AS region_code,
+                    ${cityValueExpr} AS city_code
+                FROM schools s
+                WHERE ${geoWhereByParams23}
+            ),
+            school_stats AS (
+                SELECT region_code, city_code, COUNT(*)::int AS schools_count
+                FROM filtered_schools
+                GROUP BY region_code, city_code
+            ),
+            user_stats AS (
+                SELECT
+                    fs.region_code,
+                    fs.city_code,
+                    COUNT(*) FILTER (WHERE u.role != 'superadmin')::int AS users_total
+                FROM filtered_schools fs
+                LEFT JOIN users u ON u.school_id = fs.id
+                GROUP BY fs.region_code, fs.city_code
+            ),
+            attempt_stats AS (
+                SELECT
+                    fs.region_code,
+                    fs.city_code,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1)::int AS attempts_total,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter})::int AS completed_attempts,
+                    ${attemptMeta.hasScore
+                ? `AVG(CASE WHEN ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter} THEN ${attemptMeta.scoreExpr} END)`
+                : 'NULL'} AS avg_score
+                FROM filtered_schools fs
+                LEFT JOIN tests t ON t.school_id = fs.id
+                LEFT JOIN test_assignments tas ON tas.test_id = t.id
+                LEFT JOIN test_attempts ta ON ta.assignment_id = tas.id
+                GROUP BY fs.region_code, fs.city_code
+            )
+            SELECT
+                s.region_code,
+                s.city_code,
+                s.schools_count,
+                COALESCE(u.users_total, 0)::int AS users_total,
+                COALESCE(a.attempts_total, 0)::int AS attempts_total,
+                COALESCE(a.completed_attempts, 0)::int AS completed_attempts,
+                COALESCE(ROUND(a.avg_score::numeric, 2), 0) AS avg_score
+            FROM school_stats s
+            LEFT JOIN user_stats u ON u.region_code = s.region_code AND u.city_code = s.city_code
+            LEFT JOIN attempt_stats a ON a.region_code = s.region_code AND a.city_code = s.city_code
+            ORDER BY s.schools_count DESC, s.city_code ASC`,
+            [startDate, regionCode, cityCode]
+        );
+
+        const distributionFields = ['school_type', 'ownership', 'language_model', 'study_shift']
+            .filter((field) => schoolColumns.has(field));
+        const distributions = {};
+        const geoWhereByParams12ForDist = geoSchemaApplied
+            ? '($1::text IS NULL OR s.region_code = $1) AND ($2::text IS NULL OR s.city_code = $2)'
+            : `($1::text IS NULL OR $1 = '${UNKNOWN_CODE}') AND ($2::text IS NULL OR $2 = '${UNKNOWN_CODE}')`;
+
+        for (const field of distributionFields) {
+            const distResult = await query(
+                `SELECT
+                    COALESCE(NULLIF(s.${field}, ''), '${UNKNOWN_CODE}') AS value_code,
+                    COUNT(*)::int AS schools_count
+                 FROM schools s
+                 WHERE ${geoWhereByParams12ForDist}
+                 GROUP BY value_code
+                 ORDER BY schools_count DESC, value_code ASC`,
+                [regionCode, cityCode]
+            );
+
+            distributions[field] = distResult.rows.map((row) => ({
+                value_code: row.value_code,
+                value_name_ru: resolveDimensionName(field, row.value_code, 'ru'),
+                value_name_uz: resolveDimensionName(field, row.value_code, 'uz'),
+                schools_count: parseInt(row.schools_count, 10) || 0
+            }));
+        }
+
+        const coverageRow = coverageResult.rows[0] || {};
+        const kpisRow = kpiResult.rows[0] || {};
+
+        const totalSchools = parseInt(coverageRow.total_schools, 10) || 0;
+        const geoFilled = parseInt(coverageRow.geo_filled, 10) || 0;
+        const geoUnknown = parseInt(coverageRow.geo_unknown, 10) || 0;
+        const profileFilled = parseInt(coverageRow.profile_filled, 10) || 0;
+
+        const byRegion = byRegionResult.rows.map((row) => {
+            const attemptsTotal = parseInt(row.attempts_total, 10) || 0;
+            const completedAttempts = parseInt(row.completed_attempts, 10) || 0;
+            return {
+                region_code: row.region_code,
+                region_name_ru: resolveDimensionName('region', row.region_code, 'ru'),
+                region_name_uz: resolveDimensionName('region', row.region_code, 'uz'),
+                schools_count: parseInt(row.schools_count, 10) || 0,
+                active_schools: parseInt(row.active_schools, 10) || 0,
+                users_total: parseInt(row.users_total, 10) || 0,
+                students_total: parseInt(row.students_total, 10) || 0,
+                teachers_total: parseInt(row.teachers_total, 10) || 0,
+                attempts_total: attemptsTotal,
+                completed_attempts: completedAttempts,
+                avg_score: Number(row.avg_score) || 0,
+                completion_rate: attemptsTotal > 0
+                    ? Number(((completedAttempts / attemptsTotal) * 100).toFixed(2))
+                    : 0
+            };
+        });
+
+        const byCity = byCityResult.rows.map((row) => {
+            const attemptsTotal = parseInt(row.attempts_total, 10) || 0;
+            const completedAttempts = parseInt(row.completed_attempts, 10) || 0;
+            return {
+                region_code: row.region_code,
+                region_name_ru: resolveDimensionName('region', row.region_code, 'ru'),
+                region_name_uz: resolveDimensionName('region', row.region_code, 'uz'),
+                city_code: row.city_code,
+                city_name_ru: resolveDimensionName('city', row.city_code, 'ru'),
+                city_name_uz: resolveDimensionName('city', row.city_code, 'uz'),
+                schools_count: parseInt(row.schools_count, 10) || 0,
+                users_total: parseInt(row.users_total, 10) || 0,
+                attempts_total: attemptsTotal,
+                completed_attempts: completedAttempts,
+                avg_score: Number(row.avg_score) || 0,
+                completion_rate: attemptsTotal > 0
+                    ? Number(((completedAttempts / attemptsTotal) * 100).toFixed(2))
+                    : 0
+            };
+        });
+
+        res.json({
+            period,
+            geo_schema_applied: geoSchemaApplied,
+            filters: {
+                region_code: regionCode,
+                city_code: cityCode
+            },
+            coverage: {
+                total_schools: totalSchools,
+                geo_filled: geoFilled,
+                geo_unknown: geoUnknown,
+                geo_fill_rate: totalSchools > 0 ? Number(((geoFilled / totalSchools) * 100).toFixed(2)) : 0,
+                profile_filled: profileFilled,
+                profile_fill_rate: totalSchools > 0 ? Number(((profileFilled / totalSchools) * 100).toFixed(2)) : 0
+            },
+            kpis: {
+                schools: parseInt(kpisRow.schools, 10) || 0,
+                users: parseInt(kpisRow.users, 10) || 0,
+                tests: parseInt(kpisRow.tests, 10) || 0,
+                attempts: parseInt(kpisRow.attempts, 10) || 0,
+                completed_attempts: parseInt(kpisRow.completed_attempts, 10) || 0,
+                avg_score: Number(kpisRow.avg_score) || 0,
+                completion_rate: Number(kpisRow.completion_rate) || 0
+            },
+            by_region: byRegion,
+            by_city: byCity,
+            distributions
+        });
+    } catch (error) {
+        console.error('Geo overview analytics error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch geo analytics overview'
+        });
+    }
+});
+
+/**
+ * GET /api/superadmin/analytics/geo/trends
+ * Geo trends time-series
+ */
+router.get('/analytics/geo/trends', async (req, res) => {
+    try {
+        const schoolColumns = await getTableColumns('schools');
+        const hasRegionCode = schoolColumns.has('region_code');
+        const hasCityCode = schoolColumns.has('city_code');
+        const geoSchemaApplied = hasRegionCode && hasCityCode;
+
+        const period = parseGeoPeriodDays(req.query.period, 90);
+        const metric = ['avg_score', 'attempts', 'new_schools'].includes(String(req.query.metric || 'avg_score'))
+            ? String(req.query.metric || 'avg_score')
+            : 'avg_score';
+        const groupBy = String(req.query.group_by || 'region').trim().toLowerCase() === 'city'
+            ? 'city'
+            : 'region';
+        const regionCode = toNullableCode(req.query.region_code);
+        const cityCode = toNullableCode(req.query.city_code);
+        const startDate = new Date(Date.now() - (period * 24 * 60 * 60 * 1000));
+
+        const regionExpr = hasRegionCode
+            ? `COALESCE(NULLIF(s.region_code, ''), '${UNKNOWN_CODE}')`
+            : `'${UNKNOWN_CODE}'`;
+        const cityExpr = hasCityCode
+            ? `COALESCE(NULLIF(s.city_code, ''), '${UNKNOWN_CODE}')`
+            : `'${UNKNOWN_CODE}'`;
+        const groupExpr = groupBy === 'city' ? cityExpr : regionExpr;
+        const geoWhereByParams23 = geoSchemaApplied
+            ? '($2::text IS NULL OR s.region_code = $2) AND ($3::text IS NULL OR s.city_code = $3)'
+            : `($2::text IS NULL OR $2 = '${UNKNOWN_CODE}') AND ($3::text IS NULL OR $3 = '${UNKNOWN_CODE}')`;
+
+        let rows = [];
+        if (metric === 'new_schools') {
+            const result = await query(
+                `SELECT
+                    DATE_TRUNC('day', s.created_at)::date AS bucket_date,
+                    ${groupExpr} AS group_code,
+                    COUNT(*)::int AS metric_value
+                 FROM schools s
+                 WHERE s.created_at >= $1
+                   AND ${geoWhereByParams23}
+                 GROUP BY bucket_date, group_code
+                 ORDER BY bucket_date ASC, group_code ASC`,
+                [startDate, regionCode, cityCode]
+            );
+            rows = result.rows;
+        } else {
+            const attemptMeta = await getAttemptSqlMeta('ta');
+            const result = await query(
+                `SELECT
+                    DATE_TRUNC('day', ${attemptMeta.dateColumn})::date AS bucket_date,
+                    ${groupExpr} AS group_code,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1)::int AS attempts_total,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter})::int AS completed_attempts,
+                    ${attemptMeta.hasScore
+                ? `AVG(CASE WHEN ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter} THEN ${attemptMeta.scoreExpr} END)`
+                : 'NULL'} AS avg_score
+                 FROM schools s
+                 LEFT JOIN tests t ON t.school_id = s.id
+                 LEFT JOIN test_assignments tas ON tas.test_id = t.id
+                 LEFT JOIN test_attempts ta ON ta.assignment_id = tas.id
+                 WHERE ${attemptMeta.dateColumn} >= $1
+                   AND ${geoWhereByParams23}
+                 GROUP BY bucket_date, group_code
+                 ORDER BY bucket_date ASC, group_code ASC`,
+                [startDate, regionCode, cityCode]
+            );
+            rows = result.rows.map((row) => {
+                const attemptsTotal = parseInt(row.attempts_total, 10) || 0;
+                const completedAttempts = parseInt(row.completed_attempts, 10) || 0;
+                return {
+                    bucket_date: row.bucket_date,
+                    group_code: row.group_code,
+                    attempts_total: attemptsTotal,
+                    completed_attempts: completedAttempts,
+                    avg_score: Number(row.avg_score) || 0,
+                    metric_value: metric === 'avg_score'
+                        ? Number(row.avg_score) || 0
+                        : completedAttempts
+                };
+            });
+        }
+
+        const seriesMap = new Map();
+        rows.forEach((row) => {
+            const code = row.group_code || UNKNOWN_CODE;
+            if (!seriesMap.has(code)) {
+                seriesMap.set(code, {
+                    group_code: code,
+                    group_name_ru: resolveDimensionName(groupBy, code, 'ru'),
+                    group_name_uz: resolveDimensionName(groupBy, code, 'uz'),
+                    points: []
+                });
+            }
+
+            seriesMap.get(code).points.push({
+                date: row.bucket_date,
+                value: Number(row.metric_value) || 0,
+                attempts_total: parseInt(row.attempts_total, 10) || 0,
+                completed_attempts: parseInt(row.completed_attempts, 10) || 0,
+                avg_score: Number(row.avg_score) || 0
+            });
+        });
+
+        const series = Array.from(seriesMap.values())
+            .map((item) => ({
+                ...item,
+                points: item.points.sort((a, b) => new Date(a.date) - new Date(b.date))
+            }))
+            .sort((a, b) => {
+                const sumA = a.points.reduce((sum, point) => sum + (Number(point.value) || 0), 0);
+                const sumB = b.points.reduce((sum, point) => sum + (Number(point.value) || 0), 0);
+                return sumB - sumA;
+            });
+
+        res.json({
+            period,
+            metric,
+            group_by: groupBy,
+            geo_schema_applied: geoSchemaApplied,
+            filters: {
+                region_code: regionCode,
+                city_code: cityCode
+            },
+            series
+        });
+    } catch (error) {
+        console.error('Geo trends analytics error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch geo analytics trends'
         });
     }
 });
@@ -1216,180 +1977,198 @@ router.get('/dashboard/overview', async (req, res) => {
  */
 router.get('/comparison', async (req, res) => {
     try {
-        const { metric = 'avg_score', period = 'month' } = req.query;
+        const schoolColumns = await getTableColumns('schools');
+        const hasRegionCode = schoolColumns.has('region_code');
+        const hasCityCode = schoolColumns.has('city_code');
+        const geoSchemaApplied = hasRegionCode && hasCityCode;
 
-        // Calculate date range based on period
-        let dateFilter = '';
-        const now = new Date();
-        let startDate;
-        switch (period) {
-            case 'week':
-                startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                break;
-            case 'month':
-                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                break;
-            case 'quarter':
-                startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-                break;
-            case 'year':
-                startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-                break;
-            default:
-                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        }
-
+        const metric = ['avg_score', 'test_completion', 'student_count', 'teacher_count']
+            .includes(String(req.query.metric || 'avg_score'))
+            ? String(req.query.metric || 'avg_score')
+            : 'avg_score';
+        const { key: period, startDate } = parsePeriodToStartDate(req.query.period || 'month');
         const schoolNameExpr = await getSchoolNameExpr();
-        const testColumns = await getTableColumns('tests');
-        const attemptColumns = await getTableColumns('test_attempts');
+        const dimensionCfg = getDimensionSqlConfig(req.query.dimension, schoolNameExpr, schoolColumns);
+        const regionCode = toNullableCode(req.query.region_code);
+        const cityCode = toNullableCode(req.query.city_code);
+        const attemptMeta = await getAttemptSqlMeta('ta');
+        const geoWhereByParams23 = geoSchemaApplied
+            ? '($2::text IS NULL OR s.region_code = $2) AND ($3::text IS NULL OR s.city_code = $3)'
+            : `($2::text IS NULL OR $2 = '${UNKNOWN_CODE}') AND ($3::text IS NULL OR $3 = '${UNKNOWN_CODE}')`;
+        const regionValueExpr = hasRegionCode
+            ? `COALESCE(NULLIF(s.region_code, ''), '${UNKNOWN_CODE}')`
+            : `'${UNKNOWN_CODE}'`;
+        const cityValueExpr = hasCityCode
+            ? `COALESCE(NULLIF(s.city_code, ''), '${UNKNOWN_CODE}')`
+            : `'${UNKNOWN_CODE}'`;
 
-        // Determine score expression
-        let scoreExpr = attemptColumns.has('percentage') ? 'ta.percentage'
-            : attemptColumns.has('score') && attemptColumns.has('max_score')
-                ? '(ta.score::float / NULLIF(ta.max_score, 0) * 100)'
-                : 'NULL';
-
-        // Determine completion filter
-        let completedFilter = 'true';
-        if (attemptColumns.has('status')) completedFilter = "ta.status = 'completed'";
-        else if (attemptColumns.has('is_completed')) completedFilter = 'ta.is_completed = true';
-        else if (attemptColumns.has('submitted_at')) completedFilter = 'ta.submitted_at IS NOT NULL';
-
-        // Date column for filtering
-        let dateColumn = attemptColumns.has('submitted_at') ? 'ta.submitted_at'
-            : attemptColumns.has('completed_at') ? 'ta.completed_at'
-                : 'ta.created_at';
-
-        let schools = [];
+        let rows = [];
         let summary = {};
 
         if (metric === 'avg_score') {
-            // Average score comparison - only if we have score data
-            if (scoreExpr !== 'NULL') {
-                const result = await query(`
-                    SELECT 
-                        s.id,
-                        ${schoolNameExpr} as name,
-                        COUNT(DISTINCT ta.id) as total_attempts,
-                        COUNT(DISTINCT CASE WHEN ${completedFilter} THEN ta.id END) as completed_attempts,
-                        AVG(CASE WHEN ${completedFilter} THEN ${scoreExpr} END)::numeric(5,2) as avg_score
-                    FROM schools s
-                    LEFT JOIN tests t ON t.school_id = s.id
-                    LEFT JOIN test_assignments tass ON tass.test_id = t.id
-                    LEFT JOIN test_attempts ta ON ta.assignment_id = tass.id
-                        AND ${dateColumn} >= $1
-                    WHERE s.is_active = true
-                    GROUP BY s.id, ${schoolNameExpr}
-                    ORDER BY avg_score DESC NULLS LAST
-                `, [startDate]);
+            if (attemptMeta.hasScore) {
+                const result = await query(
+                    `SELECT
+                        ${dimensionCfg.keyExpr} AS dimension_code,
+                        ${dimensionCfg.nameExpr} AS raw_name,
+                        MIN(${regionValueExpr}) AS region_code,
+                        MIN(${cityValueExpr}) AS city_code,
+                        COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1)::int AS total_attempts,
+                        COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter})::int AS completed_attempts,
+                        AVG(CASE WHEN ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter} THEN ${attemptMeta.scoreExpr} END)::numeric(8,2) AS avg_score
+                     FROM schools s
+                     LEFT JOIN tests t ON t.school_id = s.id
+                     LEFT JOIN test_assignments tas ON tas.test_id = t.id
+                     LEFT JOIN test_attempts ta ON ta.assignment_id = tas.id
+                     WHERE s.is_active = true
+                       AND ${geoWhereByParams23}
+                     GROUP BY ${dimensionCfg.keyExpr}, ${dimensionCfg.nameExpr}
+                     ORDER BY avg_score DESC NULLS LAST, raw_name ASC`,
+                    [startDate, regionCode, cityCode]
+                );
 
-                schools = result.rows.map(row => ({
-                    id: row.id,
-                    name: row.name,
-                    value: parseFloat(row.avg_score) || 0,
-                    attempts: parseInt(row.completed_attempts) || 0
-                }));
+                rows = result.rows.map((row) => {
+                    const dimensionCode = row.dimension_code || UNKNOWN_CODE;
+                    const displayName = dimensionCfg.dimension === 'school'
+                        ? row.raw_name
+                        : resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'ru');
 
-                const totalScore = schools.reduce((sum, s) => sum + s.value, 0);
+                    return {
+                        id: dimensionCode,
+                        name: displayName || 'N/A',
+                        dimension: dimensionCfg.dimension,
+                        dimension_code: dimensionCode,
+                        dimension_name_ru: resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'ru'),
+                        dimension_name_uz: resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'uz'),
+                        region_code: row.region_code || UNKNOWN_CODE,
+                        city_code: row.city_code || UNKNOWN_CODE,
+                        value: parseFloat(row.avg_score) || 0,
+                        attempts: parseInt(row.completed_attempts, 10) || 0,
+                        total_attempts: parseInt(row.total_attempts, 10) || 0
+                    };
+                });
+
+                const totalScore = rows.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
                 summary = {
-                    top_performer: schools[0]?.name || 'N/A',
-                    average: schools.length > 0 ? (totalScore / schools.length).toFixed(2) : 0,
-                    total_attempts: schools.reduce((sum, s) => sum + s.attempts, 0)
+                    top_performer: rows[0]?.name || 'N/A',
+                    average: rows.length > 0 ? (totalScore / rows.length).toFixed(2) : 0,
+                    total_attempts: rows.reduce((sum, item) => sum + (Number(item.attempts) || 0), 0)
                 };
             }
         } else if (metric === 'test_completion') {
-            // Test completion rate
-            const result = await query(`
-                SELECT 
-                    s.id,
-                    ${schoolNameExpr} as name,
-                    COUNT(DISTINCT ta.id) as total_attempts,
-                    COUNT(DISTINCT CASE WHEN ${completedFilter} THEN ta.id END) as completed_attempts,
-                    CASE 
-                        WHEN COUNT(DISTINCT ta.id) > 0 
-                        THEN (COUNT(DISTINCT CASE WHEN ${completedFilter} THEN ta.id END)::float / COUNT(DISTINCT ta.id) * 100)
-                        ELSE 0 
-                    END::numeric(5,2) as completion_rate
-                FROM schools s
-                LEFT JOIN tests t ON t.school_id = s.id
-                LEFT JOIN test_assignments tass ON tass.test_id = t.id
-                LEFT JOIN test_attempts ta ON ta.assignment_id = tass.id
-                    AND ${dateColumn} >= $1
-                WHERE s.is_active = true
-                GROUP BY s.id, ${schoolNameExpr}
-                ORDER BY completion_rate DESC
-            `, [startDate]);
+            const result = await query(
+                `SELECT
+                    ${dimensionCfg.keyExpr} AS dimension_code,
+                    ${dimensionCfg.nameExpr} AS raw_name,
+                    MIN(${regionValueExpr}) AS region_code,
+                    MIN(${cityValueExpr}) AS city_code,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1)::int AS total_attempts,
+                    COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter})::int AS completed_attempts
+                 FROM schools s
+                 LEFT JOIN tests t ON t.school_id = s.id
+                 LEFT JOIN test_assignments tas ON tas.test_id = t.id
+                 LEFT JOIN test_attempts ta ON ta.assignment_id = tas.id
+                 WHERE s.is_active = true
+                   AND ${geoWhereByParams23}
+                 GROUP BY ${dimensionCfg.keyExpr}, ${dimensionCfg.nameExpr}
+                 ORDER BY
+                    CASE
+                        WHEN COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1) > 0
+                            THEN (COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1 AND ${attemptMeta.completedFilter})::numeric
+                                / NULLIF(COUNT(ta.id) FILTER (WHERE ${attemptMeta.dateColumn} >= $1), 0)::numeric) * 100
+                        ELSE 0
+                    END DESC,
+                    raw_name ASC`,
+                [startDate, regionCode, cityCode]
+            );
 
-            schools = result.rows.map(row => ({
-                id: row.id,
-                name: row.name,
-                value: parseFloat(row.completion_rate) || 0,
-                total: parseInt(row.total_attempts) || 0,
-                completed: parseInt(row.completed_attempts) || 0
-            }));
+            rows = result.rows.map((row) => {
+                const totalAttempts = parseInt(row.total_attempts, 10) || 0;
+                const completedAttempts = parseInt(row.completed_attempts, 10) || 0;
+                const completionRate = totalAttempts > 0
+                    ? Number(((completedAttempts / totalAttempts) * 100).toFixed(2))
+                    : 0;
+                const dimensionCode = row.dimension_code || UNKNOWN_CODE;
+                const displayName = dimensionCfg.dimension === 'school'
+                    ? row.raw_name
+                    : resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'ru');
 
-            const totalRate = schools.reduce((sum, s) => sum + s.value, 0);
+                return {
+                    id: dimensionCode,
+                    name: displayName || 'N/A',
+                    dimension: dimensionCfg.dimension,
+                    dimension_code: dimensionCode,
+                    dimension_name_ru: resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'ru'),
+                    dimension_name_uz: resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'uz'),
+                    region_code: row.region_code || UNKNOWN_CODE,
+                    city_code: row.city_code || UNKNOWN_CODE,
+                    value: completionRate,
+                    total: totalAttempts,
+                    completed: completedAttempts
+                };
+            });
+
+            const totalRate = rows.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
             summary = {
-                top_performer: schools[0]?.name || 'N/A',
-                average: schools.length > 0 ? (totalRate / schools.length).toFixed(2) : 0,
-                total_tests: schools.reduce((sum, s) => sum + s.total, 0)
+                top_performer: rows[0]?.name || 'N/A',
+                average: rows.length > 0 ? (totalRate / rows.length).toFixed(2) : 0,
+                total_tests: rows.reduce((sum, item) => sum + (Number(item.total) || 0), 0)
             };
-        } else if (metric === 'student_count') {
-            // Student count
-            const result = await query(`
-                SELECT 
-                    s.id,
-                    ${schoolNameExpr} as name,
-                    COUNT(DISTINCT u.id) as student_count
-                FROM schools s
-                LEFT JOIN users u ON u.school_id = s.id AND u.role = 'student'
-                WHERE s.is_active = true
-                GROUP BY s.id, ${schoolNameExpr}
-                ORDER BY student_count DESC
-            `);
+        } else {
+            const roleFilter = metric === 'student_count' ? 'student' : 'teacher';
+            const result = await query(
+                `SELECT
+                    ${dimensionCfg.keyExpr} AS dimension_code,
+                    ${dimensionCfg.nameExpr} AS raw_name,
+                    MIN(${regionValueExpr}) AS region_code,
+                    MIN(${cityValueExpr}) AS city_code,
+                    COUNT(DISTINCT u.id)::int AS role_count
+                 FROM schools s
+                 LEFT JOIN users u ON u.school_id = s.id AND u.role = $1
+                 WHERE s.is_active = true
+                   AND ${geoWhereByParams23}
+                 GROUP BY ${dimensionCfg.keyExpr}, ${dimensionCfg.nameExpr}
+                 ORDER BY role_count DESC, raw_name ASC`,
+                [roleFilter, regionCode, cityCode]
+            );
 
-            schools = result.rows.map(row => ({
-                id: row.id,
-                name: row.name,
-                value: parseInt(row.student_count) || 0
-            }));
+            rows = result.rows.map((row) => {
+                const dimensionCode = row.dimension_code || UNKNOWN_CODE;
+                const displayName = dimensionCfg.dimension === 'school'
+                    ? row.raw_name
+                    : resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'ru');
 
+                return {
+                    id: dimensionCode,
+                    name: displayName || 'N/A',
+                    dimension: dimensionCfg.dimension,
+                    dimension_code: dimensionCode,
+                    dimension_name_ru: resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'ru'),
+                    dimension_name_uz: resolveDimensionName(dimensionCfg.dimension, dimensionCode, 'uz'),
+                    region_code: row.region_code || UNKNOWN_CODE,
+                    city_code: row.city_code || UNKNOWN_CODE,
+                    value: parseInt(row.role_count, 10) || 0
+                };
+            });
+
+            const totalValue = rows.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
             summary = {
-                top_performer: schools[0]?.name || 'N/A',
-                total: schools.reduce((sum, s) => sum + s.value, 0),
-                average: schools.length > 0 ? Math.round(schools.reduce((sum, s) => sum + s.value, 0) / schools.length) : 0
-            };
-        } else if (metric === 'teacher_count') {
-            // Teacher count
-            const result = await query(`
-                SELECT 
-                    s.id,
-                    ${schoolNameExpr} as name,
-                    COUNT(DISTINCT u.id) as teacher_count
-                FROM schools s
-                LEFT JOIN users u ON u.school_id = s.id AND u.role = 'teacher'
-                WHERE s.is_active = true
-                GROUP BY s.id, ${schoolNameExpr}
-                ORDER BY teacher_count DESC
-            `);
-
-            schools = result.rows.map(row => ({
-                id: row.id,
-                name: row.name,
-                value: parseInt(row.teacher_count) || 0
-            }));
-
-            summary = {
-                top_performer: schools[0]?.name || 'N/A',
-                total: schools.reduce((sum, s) => sum + s.value, 0),
-                average: schools.length > 0 ? Math.round(schools.reduce((sum, s) => sum + s.value, 0) / schools.length) : 0
+                top_performer: rows[0]?.name || 'N/A',
+                total: totalValue,
+                average: rows.length > 0 ? Math.round(totalValue / rows.length) : 0
             };
         }
 
         res.json({
             metric,
             period,
-            schools,
+            dimension: dimensionCfg.dimension,
+            filters: {
+                region_code: regionCode,
+                city_code: cityCode
+            },
+            schools: rows,
+            data: rows,
             summary
         });
     } catch (error) {

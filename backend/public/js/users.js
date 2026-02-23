@@ -195,7 +195,7 @@
             `;
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const params = new URLSearchParams({
                     page: this.currentPage,
                     limit: this.limit,
@@ -420,7 +420,7 @@
             const confirmed = await this.confirmAction(this.t('users.bulkDeleteConfirm', undefined, { count: ids.length }));
             if (!confirmed) return;
 
-            const token = localStorage.getItem('access_token');
+            const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
             this.bulkDeleteInProgress = true;
             let failed = 0;
             let done = 0;
@@ -527,7 +527,7 @@
             // Load user data if editing
             if (isEdit) {
                 try {
-                    const token = localStorage.getItem('access_token');
+                    const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                     const response = await fetch(`/api/admin/users/${userId}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -849,7 +849,7 @@
             formAlert.className = 'hidden';
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const url = userId
                     ? `/api/admin/users/${userId}`
                     : '/api/admin/users';
@@ -909,7 +909,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/admin/users/${userId}`, {
                     method: 'DELETE',
                     headers: {
@@ -937,7 +937,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
                     method: 'POST',
                     headers: {
@@ -1243,7 +1243,7 @@
         // Load subjects and classes
         loadSubjectsAndClasses: async function () {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const role = this.getCurrentRole();
                 const isTeacher = role === 'teacher';
 

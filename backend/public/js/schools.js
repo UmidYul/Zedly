@@ -7,11 +7,28 @@
         limit: 10,
         searchTerm: '',
         statusFilter: 'all',
+        locations: { regions: [] },
+        referenceLoadPromise: null,
+        profileOptions: {
+            school_type: ['general', 'specialized', 'private_school', 'presidential', 'vocational', 'academic_lyceum', 'other'],
+            ownership: ['state', 'private', 'public_private', 'other'],
+            language_model: ['uzbek', 'russian', 'karakalpak', 'tajik', 'kazakh', 'mixed', 'other'],
+            study_shift: ['single', 'double', 'triple', 'flexible', 'other']
+        },
 
         // Initialize schools page
         init: function () {
-            this.loadSchools();
+            this.loadReferenceData()
+                .catch((error) => {
+                    console.error('Load locations reference error:', error);
+                })
+                .finally(() => this.loadSchools());
             this.setupEventListeners();
+        },
+
+        t: function (key, fallback, params) {
+            const tr = window.ZedlyI18n?.translate?.(key, params);
+            return tr && tr !== key ? tr : (fallback || key);
         },
 
         confirmAction: async function (message, title = 'Подтверждение') {
@@ -42,6 +59,54 @@
         },
         copyTempPassword: async function () {
             return Promise.resolve();
+        },
+
+        loadReferenceData: async function () {
+            if (this.referenceLoadPromise) {
+                return this.referenceLoadPromise;
+            }
+
+            this.referenceLoadPromise = (async () => {
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
+                const headers = {};
+                if (token) {
+                    headers.Authorization = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/api/superadmin/reference/locations', { headers });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load locations reference');
+                }
+
+                const payload = await response.json();
+                if (payload && Array.isArray(payload.regions)) {
+                    this.locations = payload;
+                }
+            })().finally(() => {
+                this.referenceLoadPromise = null;
+            });
+
+            return this.referenceLoadPromise;
+        },
+
+        getUnknownLocationText: function () {
+            return this.t('schools.unknownLocation', 'Не указано');
+        },
+
+        getLocationDisplay: function (school) {
+            const region = school.region_name_ru || school.region_name_uz || school.region_code || '';
+            const city = school.city_name_ru || school.city_name_uz || school.city_code || '';
+
+            if (!region && !city) return this.getUnknownLocationText();
+            if (!region) return city;
+            if (!city) return region;
+            return `${region}, ${city}`;
+        },
+
+        getProfileLabel: function (field, value) {
+            if (!value) return this.getUnknownLocationText();
+            return this.t(`schools.${field}.${value}`, value);
         },
 
         // Setup event listeners
@@ -87,7 +152,7 @@
             `;
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const params = new URLSearchParams({
                     page: this.currentPage,
                     limit: this.limit,
@@ -137,7 +202,8 @@
                         <thead>
                             <tr>
                                 <th>School Name</th>
-                                <th>Address</th>
+                                <th>Region / City</th>
+                                <th>School Type</th>
                                 <th>Contact</th>
                                 <th>Users</th>
                                 <th>Classes</th>
@@ -158,8 +224,14 @@
                     <tr>
                         <td data-label="School Name">
                             <div class="school-name">${school.name}</div>
+                            <div class="text-secondary" style="font-size: 12px; margin-top: 4px;">${school.address || '-'}</div>
                         </td>
-                        <td data-label="Address">${school.address || '-'}</td>
+                        <td data-label="Region / City">
+                            ${this.getLocationDisplay(school)}
+                        </td>
+                        <td data-label="School Type">
+                            ${this.getProfileLabel('school_type', school.school_type)}
+                        </td>
                         <td data-label="Contact">
                             ${school.phone ? `<div>${school.phone}</div>` : ''}
                             ${school.email ? `<div class="text-secondary">${school.email}</div>` : ''}
@@ -241,15 +313,94 @@
             this.loadSchools();
         },
 
+        getRegionsOptionsHtml: function (selectedCode = '') {
+            const regions = Array.isArray(this.locations?.regions) ? this.locations.regions : [];
+            const firstOption = `<option value="">${this.t('schools.selectRegion', 'Выберите область')}</option>`;
+            const rows = regions.map((region) => {
+                const selected = region.code === selectedCode ? 'selected' : '';
+                const label = region.name_ru || region.name_uz || region.code;
+                return `<option value="${region.code}" ${selected}>${label}</option>`;
+            });
+            return [firstOption, ...rows].join('');
+        },
+
+        getCitiesByRegionCode: function (regionCode) {
+            if (!regionCode) return [];
+            const regions = Array.isArray(this.locations?.regions) ? this.locations.regions : [];
+            const region = regions.find((entry) => entry.code === regionCode);
+            return Array.isArray(region?.cities) ? region.cities : [];
+        },
+
+        getCitiesOptionsHtml: function (regionCode = '', selectedCode = '') {
+            const cities = this.getCitiesByRegionCode(regionCode);
+            const firstOption = `<option value="">${this.t('schools.selectCity', 'Выберите город / район')}</option>`;
+            const rows = cities.map((city) => {
+                const selected = city.code === selectedCode ? 'selected' : '';
+                const label = city.name_ru || city.name_uz || city.code;
+                return `<option value="${city.code}" ${selected}>${label}</option>`;
+            });
+            return [firstOption, ...rows].join('');
+        },
+
+        bindLocationSelects: function (preset = {}) {
+            const regionSelect = document.getElementById('schoolRegion');
+            const citySelect = document.getElementById('schoolCity');
+            if (!regionSelect || !citySelect) return;
+
+            const regions = Array.isArray(this.locations?.regions) ? this.locations.regions : [];
+            if (regions.length === 0) {
+                regionSelect.innerHTML = `<option value="">${this.t('schools.locationsUnavailable', 'Список областей пока не загружен')}</option>`;
+                citySelect.innerHTML = `<option value="">${this.t('schools.selectCity', 'Выберите город / район')}</option>`;
+                regionSelect.disabled = true;
+                citySelect.disabled = true;
+                return;
+            }
+
+            const regionCode = preset.region_code || '';
+            const cityCode = preset.city_code || '';
+
+            regionSelect.innerHTML = this.getRegionsOptionsHtml(regionCode);
+            citySelect.innerHTML = this.getCitiesOptionsHtml(regionCode, cityCode);
+            regionSelect.disabled = false;
+            citySelect.disabled = !regionCode;
+
+            regionSelect.addEventListener('change', () => {
+                const selectedRegion = regionSelect.value;
+                citySelect.innerHTML = this.getCitiesOptionsHtml(selectedRegion, '');
+                citySelect.disabled = !selectedRegion;
+            });
+        },
+
+        getProfileOptionsHtml: function (field, selectedValue = '') {
+            const options = Array.isArray(this.profileOptions?.[field]) ? this.profileOptions[field] : [];
+            const rows = options.map((value) => {
+                const selected = value === selectedValue ? 'selected' : '';
+                const label = this.getProfileLabel(field, value);
+                return `<option value="${value}" ${selected}>${label}</option>`;
+            });
+            return [
+                `<option value="">${this.t('schools.notSpecified', 'Не указано')}</option>`,
+                ...rows
+            ].join('');
+        },
+
         // Show school modal (create/edit)
         showSchoolModal: async function (schoolId = null) {
             const isEdit = schoolId !== null;
             let school = null;
 
+            if (!Array.isArray(this.locations?.regions) || this.locations.regions.length === 0) {
+                try {
+                    await this.loadReferenceData();
+                } catch (error) {
+                    console.error('Load locations reference before modal error:', error);
+                }
+            }
+
             // Load school data if editing
             if (isEdit) {
                 try {
-                    const token = localStorage.getItem('access_token');
+                    const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                     const response = await fetch(`/api/superadmin/schools/${schoolId}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -284,10 +435,10 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <form id="schoolForm" onsubmit="SchoolsManager.submitSchool(event, ${schoolId})">
+                            <form id="schoolForm">
                                 <div class="form-group">
                                     <label class="form-label">
-                                        School Name <span class="required">*</span>
+                                        ${this.t('schools.schoolName', 'School Name')} <span class="required">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -296,24 +447,41 @@
                                         name="name"
                                         value="${school?.name || ''}"
                                         required
-                                        placeholder="Enter school name"
+                                        placeholder="${this.t('schools.namePlaceholder', 'Enter school name')}"
                                     />
                                     <span class="form-error hidden" id="nameError"></span>
                                 </div>
 
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            ${this.t('schools.region', 'Region')} <span class="required">*</span>
+                                        </label>
+                                        <select class="form-input" id="schoolRegion" name="region_code" required></select>
+                                        <span class="form-error hidden" id="regionError"></span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            ${this.t('schools.city', 'City / District')} <span class="required">*</span>
+                                        </label>
+                                        <select class="form-input" id="schoolCity" name="city_code" required></select>
+                                        <span class="form-error hidden" id="cityError"></span>
+                                    </div>
+                                </div>
+
                                 <div class="form-group">
-                                    <label class="form-label">Address</label>
+                                    <label class="form-label">${this.t('schools.address', 'Address')}</label>
                                     <textarea
                                         class="form-textarea"
                                         id="schoolAddress"
                                         name="address"
-                                        placeholder="Enter school address"
+                                        placeholder="${this.t('schools.addressPlaceholder', 'Enter school address')}"
                                     >${school?.address || ''}</textarea>
                                 </div>
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label class="form-label">Phone</label>
+                                        <label class="form-label">${this.t('schools.phone', 'Phone')}</label>
                                         <input
                                             type="tel"
                                             class="form-input"
@@ -325,7 +493,7 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="form-label">Email</label>
+                                        <label class="form-label">${this.t('schools.email', 'Email')}</label>
                                         <input
                                             type="email"
                                             class="form-input"
@@ -333,6 +501,66 @@
                                             name="email"
                                             value="${school?.email || ''}"
                                             placeholder="school@example.uz"
+                                        />
+                                        <span class="form-error hidden" id="emailError"></span>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">${this.t('schools.schoolType', 'School Type')}</label>
+                                        <select class="form-input" name="school_type" id="schoolType">
+                                            ${this.getProfileOptionsHtml('school_type', school?.school_type || '')}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">${this.t('schools.ownership', 'Ownership')}</label>
+                                        <select class="form-input" name="ownership" id="schoolOwnership">
+                                            ${this.getProfileOptionsHtml('ownership', school?.ownership || '')}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">${this.t('schools.languageModel', 'Language Model')}</label>
+                                        <select class="form-input" name="language_model" id="schoolLanguageModel">
+                                            ${this.getProfileOptionsHtml('language_model', school?.language_model || '')}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">${this.t('schools.studyShift', 'Study Shift')}</label>
+                                        <select class="form-input" name="study_shift" id="schoolStudyShift">
+                                            ${this.getProfileOptionsHtml('study_shift', school?.study_shift || '')}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">${this.t('schools.capacity', 'Capacity')}</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="50000"
+                                            class="form-input"
+                                            id="schoolCapacity"
+                                            name="capacity"
+                                            value="${school?.capacity ?? ''}"
+                                            placeholder="1200"
+                                        />
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">${this.t('schools.openedYear', 'Opened Year')}</label>
+                                        <input
+                                            type="number"
+                                            min="1800"
+                                            max="${new Date().getFullYear()}"
+                                            class="form-input"
+                                            id="schoolOpenedYear"
+                                            name="opened_year"
+                                            value="${school?.opened_year ?? ''}"
+                                            placeholder="1994"
                                         />
                                     </div>
                                 </div>
@@ -348,7 +576,7 @@
                                             ${school?.is_active ? 'checked' : ''}
                                         />
                                         <label class="form-check-label" for="schoolActive">
-                                            Active
+                                            ${this.t('schools.active', 'Active')}
                                         </label>
                                     </div>
                                 </div>
@@ -371,6 +599,14 @@
 
             // Add modal to body
             document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const form = document.getElementById('schoolForm');
+            if (form) {
+                form.addEventListener('submit', (event) => this.submitSchool(event, schoolId));
+            }
+            this.bindLocationSelects({
+                region_code: school?.region_code || '',
+                city_code: school?.city_code || ''
+            });
 
             // Close on overlay click
             document.getElementById('schoolModal').addEventListener('click', (e) => {
@@ -406,14 +642,30 @@
             const form = event.target;
             const submitBtn = document.getElementById('submitBtn');
             const formAlert = document.getElementById('formAlert');
+            this.clearFormErrors(form);
 
             // Get form data
             const formData = new FormData(form);
+            const parseOptionalInt = (value) => {
+                const raw = String(value ?? '').trim();
+                if (!raw) return null;
+                const parsed = Number.parseInt(raw, 10);
+                return Number.isFinite(parsed) ? parsed : NaN;
+            };
+
             const data = {
                 name: formData.get('name').trim(),
                 address: formData.get('address')?.trim() || null,
                 phone: formData.get('phone')?.trim() || null,
-                email: formData.get('email')?.trim() || null
+                email: formData.get('email')?.trim() || null,
+                region_code: formData.get('region_code')?.trim() || null,
+                city_code: formData.get('city_code')?.trim() || null,
+                school_type: formData.get('school_type')?.trim() || null,
+                ownership: formData.get('ownership')?.trim() || null,
+                language_model: formData.get('language_model')?.trim() || null,
+                study_shift: formData.get('study_shift')?.trim() || null,
+                capacity: parseOptionalInt(formData.get('capacity')),
+                opened_year: parseOptionalInt(formData.get('opened_year'))
             };
 
             if (schoolId) {
@@ -422,12 +674,35 @@
 
             // Validation
             if (!data.name) {
-                this.showFormError('nameError', 'School name is required');
+                this.showFormError('nameError', this.t('schools.validation.nameRequired', 'School name is required'));
+                return;
+            }
+
+            if (!data.region_code) {
+                this.showFormError('regionError', this.t('schools.validation.regionRequired', 'Region is required'));
+                return;
+            }
+
+            if (!data.city_code) {
+                this.showFormError('cityError', this.t('schools.validation.cityRequired', 'City is required'));
                 return;
             }
 
             if (data.email && !this.validateEmail(data.email)) {
-                this.showFormError('emailError', 'Invalid email format');
+                this.showFormError('emailError', this.t('schools.validation.emailInvalid', 'Invalid email format'));
+                return;
+            }
+
+            if (Number.isNaN(data.capacity) || (data.capacity !== null && (data.capacity < 0 || data.capacity > 50000))) {
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = this.t('schools.validation.capacityInvalid', 'Capacity must be between 0 and 50000');
+                return;
+            }
+
+            const currentYear = new Date().getFullYear();
+            if (Number.isNaN(data.opened_year) || (data.opened_year !== null && (data.opened_year < 1800 || data.opened_year > currentYear))) {
+                formAlert.className = 'alert alert-error';
+                formAlert.textContent = this.t('schools.validation.openedYearInvalid', `Opened year must be between 1800 and ${currentYear}`);
                 return;
             }
 
@@ -437,7 +712,7 @@
             formAlert.className = 'hidden';
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const url = schoolId
                     ? `/api/superadmin/schools/${schoolId}`
                     : '/api/superadmin/schools';
@@ -494,6 +769,19 @@
             }
         },
 
+        clearFormErrors: function (form) {
+            if (!form) return;
+
+            form.querySelectorAll('.form-error').forEach((errorEl) => {
+                errorEl.textContent = '';
+                errorEl.classList.add('hidden');
+            });
+
+            form.querySelectorAll('.error').forEach((field) => {
+                field.classList.remove('error');
+            });
+        },
+
         // Validate email
         validateEmail: function (email) {
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -513,7 +801,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/superadmin/schools/${schoolId}`, {
                     method: 'DELETE',
                     headers: {
@@ -535,7 +823,7 @@
         // Manage school administrators
         manageAdmins: async function (schoolId, schoolName) {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/superadmin/schools/${schoolId}/admins`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -691,7 +979,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/superadmin/schools/${schoolId}/admins/${adminId}/reset-password`, {
                     method: 'POST',
                     headers: {
@@ -908,7 +1196,7 @@
             formAlert.className = 'hidden';
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
                 const response = await fetch(`/api/superadmin/schools/${schoolId}/admins`, {
                     method: 'POST',
                     headers: {

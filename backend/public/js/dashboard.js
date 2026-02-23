@@ -335,7 +335,7 @@
         try {
             const response = await fetch('/api/teacher/homeroom-classes', {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
             if (!response.ok) return false;
@@ -2168,14 +2168,72 @@
             }
 
             return `
+                <div class="page-header-section">
+                    <h1 class="page-main-title">${t('dashboard.statistics.title', 'Статистика')}</h1>
+                    <p class="page-subtitle">${t('statistics.geoFirstSubtitle', 'Geo-first аналитика по регионам, городам и сегментам школ')}</p>
+                </div>
+                <div class="dashboard-section">
+                    <div class="reports-toolbar">
+                        <div class="toolbar-filters">
+                            <div class="filter-group">
+                                <label for="superadminStatsPeriod">${t('reports.period', 'Период')}</label>
+                                <select id="superadminStatsPeriod" class="filter-select">
+                                    <option value="7">${t('reports.last7Days', 'Последние 7 дней')}</option>
+                                    <option value="30" selected>${t('reports.last30Days', 'Последние 30 дней')}</option>
+                                    <option value="90">${t('reports.last90Days', 'Последние 90 дней')}</option>
+                                    <option value="365">${t('reports.lastYear', 'Последний год')}</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="superadminStatsRegion">${t('schools.region', 'Область')}</label>
+                                <select id="superadminStatsRegion" class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="superadminStatsCity">${t('schools.city', 'Город / район')}</label>
+                                <select id="superadminStatsCity" class="filter-select" disabled></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="stats-grid" id="superadminStatsCards"></div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">${t('dashboard.statistics.globalBreakdown', 'Global Breakdown')}</h2>
+                        <h2 class="section-title">${t('statistics.coverageTitle', 'Покрытие данных')}</h2>
+                    </div>
+                    <div id="superadminStatsCoverage"></div>
+                </div>
+                <div class="superadmin-geo-charts">
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">${t('statistics.regionRanking', 'Рейтинг регионов')}</h2>
+                        </div>
+                        <div class="superadmin-chart-wrap">
+                            <canvas id="superadminRegionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">${t('statistics.schoolTypeDistribution', 'Распределение по типам школ')}</h2>
+                        </div>
+                        <div class="superadmin-chart-wrap">
+                            <canvas id="superadminSchoolTypeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">${t('statistics.geoCoverageChart', 'Geo coverage')}</h2>
+                        </div>
+                        <div class="superadmin-chart-wrap">
+                            <canvas id="superadminCoverageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">${t('statistics.regionTableTitle', 'Таблица регионов')}</h2>
                     </div>
                     <div id="superadminStatsBreakdown"></div>
                 </div>
-                <div class="dashboard-section" id="superadminStatsNote"></div>
             `;
         }
 
@@ -2235,6 +2293,26 @@
                                     <option value="teacher_count">${t('reports.teachers', 'РЈС‡РёС‚РµР»СЏ')}</option>
                                 </select>
                             </div>
+                            <div class="filter-group" id="reportsDimensionWrap" style="display:none;">
+                                <label for="reportsDimensionFilter">${t('reports.dimension', 'Измерение')}</label>
+                                <select id="reportsDimensionFilter" class="filter-select">
+                                    <option value="school">${t('reports.dimension.school', 'Школа')}</option>
+                                    <option value="region">${t('reports.dimension.region', 'Область')}</option>
+                                    <option value="city">${t('reports.dimension.city', 'Город / район')}</option>
+                                    <option value="school_type">${t('reports.dimension.schoolType', 'Тип школы')}</option>
+                                    <option value="ownership">${t('reports.dimension.ownership', 'Собственность')}</option>
+                                    <option value="language_model">${t('reports.dimension.languageModel', 'Языковая модель')}</option>
+                                    <option value="study_shift">${t('reports.dimension.studyShift', 'Сменность')}</option>
+                                </select>
+                            </div>
+                            <div class="filter-group" id="reportsRegionWrap" style="display:none;">
+                                <label for="reportsRegionFilter">${t('schools.region', 'Область')}</label>
+                                <select id="reportsRegionFilter" class="filter-select"></select>
+                            </div>
+                            <div class="filter-group" id="reportsCityWrap" style="display:none;">
+                                <label for="reportsCityFilter">${t('schools.city', 'Город / район')}</label>
+                                <select id="reportsCityFilter" class="filter-select" disabled></select>
+                            </div>
                         </div>
                         <div class="toolbar-right">
                             <button class="btn btn-secondary" id="reportsRefreshBtn" type="button">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
@@ -2269,6 +2347,13 @@
                             <canvas id="reportsTrendsChart" height="110"></canvas>
                             <div class="reports-trends-empty" id="reportsTrendsEmpty" style="display:none;">${t('reports.noTrendData', 'РќРµС‚ РґР°РЅРЅС‹С… С‚СЂРµРЅРґР° РґР»СЏ РІС‹Р±СЂР°РЅРЅС‹С… С„РёР»СЊС‚СЂРѕРІ')}</div>
                         </div>
+                    </div>
+
+                    <div class="dashboard-section reports-card">
+                        <div class="section-header">
+                            <h2 class="section-title">${t('reports.comparisonBreakdown', 'Сравнительная сводка')}</h2>
+                        </div>
+                        <div id="reportsCompareTable"></div>
                     </div>
 
                     <div class="dashboard-section reports-card">
@@ -2500,7 +2585,7 @@
             const response = await fetch(endpoint, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${window.ZedlyAuth?.getAuthToken?.() || 'cookie-session'}`
                 }
             });
 

@@ -4,7 +4,7 @@
 
     const API_URL = '/api';
     function getAccessToken() {
-        return localStorage.getItem('access_token') || localStorage.getItem('accessToken');
+        return window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
     }
     let currentUser = null;
     let attempts = [];

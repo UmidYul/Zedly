@@ -2,320 +2,150 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+    <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
     <title>Auth Debug - ZEDLY</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #0F1729;
-            color: #E2E8F0;
-            padding: 2rem;
-            line-height: 1.6;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1729;
+            color: #e2e8f0;
+            padding: 24px;
         }
-
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
-            background: #1A2332;
+            background: #1a2332;
             border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            padding: 24px;
         }
-
-        h1 {
-            color: #4A90E2;
-            margin-bottom: 1rem;
-        }
-
-        h2 {
-            color: #50E3C2;
-            margin-top: 2rem;
-            margin-bottom: 1rem;
-            font-size: 1.25rem;
-        }
-
+        h1 { margin-top: 0; color: #4a90e2; }
+        h2 { color: #50e3c2; margin-top: 24px; }
         .status {
-            padding: 1rem;
+            padding: 12px;
             border-radius: 8px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            margin-bottom: 8px;
         }
-
-        .status.success {
-            background: rgba(76, 175, 80, 0.2);
-            border: 1px solid #4CAF50;
-        }
-
-        .status.error {
-            background: rgba(244, 67, 54, 0.2);
-            border: 1px solid #F44336;
-        }
-
-        .status.warning {
-            background: rgba(255, 152, 0, 0.2);
-            border: 1px solid #FF9800;
-        }
-
-        .token-display {
-            background: #0F1729;
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
-            word-break: break-all;
-            margin-bottom: 1rem;
-        }
-
-        button {
-            background: #4A90E2;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        button:hover {
-            background: #3A7BC8;
-            transform: translateY(-2px);
-        }
-
-        button.danger {
-            background: #EF5350;
-        }
-
-        button.danger:hover {
-            background: #E53935;
-        }
-
-        .actions {
-            margin-top: 2rem;
-        }
-
+        .ok { background: rgba(76, 175, 80, 0.18); border: 1px solid #4caf50; }
+        .warn { background: rgba(255, 152, 0, 0.18); border: 1px solid #ff9800; }
+        .err { background: rgba(244, 67, 54, 0.18); border: 1px solid #f44336; }
         pre {
-            background: #0F1729;
-            padding: 1rem;
+            background: #0f1729;
             border-radius: 8px;
-            overflow-x: auto;
+            padding: 12px;
+            overflow: auto;
         }
-
-        .label {
-            font-weight: bold;
-            color: #50E3C2;
-            display: block;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
+        .actions { margin-top: 24px; }
+        button {
+            background: #4a90e2;
+            color: #fff;
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
         }
     </style>
-<script src="/js/console-silence.js"></script>
+    <script src="js/auth-interceptor.js"></script>
+    <script src="/js/console-silence.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>🔐 Auth Debug Tool</h1>
-        <p>Диагностика проблем с аутентификацией ZEDLY</p>
+<div class="container">
+    <h1>Auth Debug</h1>
+    <p>Проверка cookie-based авторизации (без чтения access token из localStorage).</p>
 
-        <h2>📊 Статус LocalStorage</h2>
-        <div id="localStorage-status"></div>
+    <h2>Статус</h2>
+    <div id="status"></div>
 
-        <h2>🔑 Токены</h2>
-        <div id="tokens-display"></div>
+    <h2>Пользователь</h2>
+    <div id="user"></div>
 
-        <h2>👤 Информация о пользователе</h2>
-        <div id="user-info"></div>
+    <h2>API тесты</h2>
+    <div id="api"></div>
 
-        <h2>🧪 Тесты API</h2>
-        <div id="api-tests"></div>
-
-        <div class="actions">
-            <h2>⚙️ Действия</h2>
-            <button onclick="testAuthMe()">Проверить /api/auth/me</button>
-            <button onclick="testRefresh()">Проверить /api/auth/refresh</button>
-            <button onclick="clearAllData()" class="danger">Очистить все данные</button>
-            <button onclick="location.reload()">Обновить страницу</button>
-        </div>
+    <div class="actions">
+        <button onclick="testAuthMe()">Проверить /api/auth/me</button>
+        <button onclick="testRefresh()">Проверить /api/auth/refresh</button>
+        <button onclick="clearLocalCache()">Очистить localStorage кеш</button>
+        <button onclick="location.reload()">Обновить</button>
     </div>
+</div>
 
-    <script>
-        // Check localStorage
-        function checkLocalStorage() {
-            const container = document.getElementById('localStorage-status');
-            const accessToken = localStorage.getItem('access_token');
-            const refreshToken = localStorage.getItem('refresh_token');
-            const user = localStorage.getItem('user');
+<script>
+    function hasCookie(name) {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp('(?:^|; )' + escaped + '=').test(document.cookie || '');
+    }
 
-            let html = '';
+    function renderStatus() {
+        const root = document.getElementById('status');
+        const rows = [
+            { ok: hasCookie('zedly_access_token'), okText: 'Access cookie найден', errText: 'Access cookie не найден' },
+            { ok: hasCookie('zedly_refresh_token'), okText: 'Refresh cookie найден', errText: 'Refresh cookie не найден' },
+            { ok: hasCookie('zedly_csrf_token'), okText: 'CSRF cookie найден', errText: 'CSRF cookie не найден' }
+        ];
 
-            if (accessToken) {
-                html += '<div class="status success">✅ Access Token: СУЩЕСТВУЕТ</div>';
-            } else {
-                html += '<div class="status error">❌ Access Token: ОТСУТСТВУЕТ</div>';
-            }
+        root.innerHTML = rows.map((row) => (
+            '<div class="status ' + (row.ok ? 'ok' : 'warn') + '">' + (row.ok ? row.okText : row.errText) + '</div>'
+        )).join('');
+    }
 
-            if (refreshToken) {
-                html += '<div class="status success">✅ Refresh Token: СУЩЕСТВУЕТ</div>';
-            } else {
-                html += '<div class="status error">❌ Refresh Token: ОТСУТСТВУЕТ</div>';
-            }
-
-            if (user) {
-                html += '<div class="status success">✅ User Data: СУЩЕСТВУЕТ</div>';
-            } else {
-                html += '<div class="status error">❌ User Data: ОТСУТСТВУЕТ</div>';
-            }
-
-            container.innerHTML = html;
+    function renderUserCache() {
+        const root = document.getElementById('user');
+        const raw = localStorage.getItem('user');
+        if (!raw) {
+            root.innerHTML = '<div class="status warn">localStorage.user не найден</div>';
+            return;
         }
-
-        // Display tokens
-        function displayTokens() {
-            const container = document.getElementById('tokens-display');
-            const accessToken = localStorage.getItem('access_token');
-            const refreshToken = localStorage.getItem('refresh_token');
-
-            let html = '';
-
-            if (accessToken) {
-                html += '<span class="label">Access Token:</span>';
-                html += '<div class="token-display">' + accessToken.substring(0, 50) + '...</div>';
-                
-                // Try to decode JWT
-                try {
-                    const payload = JSON.parse(atob(accessToken.split('.')[1]));
-                    html += '<span class="label">Decoded Payload:</span>';
-                    html += '<pre>' + JSON.stringify(payload, null, 2) + '</pre>';
-                    
-                    // Check expiration
-                    const exp = payload.exp * 1000;
-                    const now = Date.now();
-                    if (exp < now) {
-                        html += '<div class="status error">⏰ Токен ИСТЁК ' + new Date(exp).toLocaleString() + '</div>';
-                    } else {
-                        html += '<div class="status success">⏰ Токен действителен до ' + new Date(exp).toLocaleString() + '</div>';
-                    }
-                } catch (e) {
-                    html += '<div class="status error">❌ Не удалось декодировать токен</div>';
-                }
-            }
-
-            if (refreshToken) {
-                html += '<span class="label">Refresh Token:</span>';
-                html += '<div class="token-display">' + refreshToken.substring(0, 50) + '...</div>';
-            }
-
-            container.innerHTML = html || '<div class="status warning">⚠️ Токены отсутствуют</div>';
+        try {
+            root.innerHTML = '<pre>' + JSON.stringify(JSON.parse(raw), null, 2) + '</pre>';
+        } catch (e) {
+            root.innerHTML = '<div class="status err">Невалидный JSON в localStorage.user</div>';
         }
+    }
 
-        // Display user info
-        function displayUserInfo() {
-            const container = document.getElementById('user-info');
-            const user = localStorage.getItem('user');
-
-            if (user) {
-                try {
-                    const userData = JSON.parse(user);
-                    container.innerHTML = '<pre>' + JSON.stringify(userData, null, 2) + '</pre>';
-                } catch (e) {
-                    container.innerHTML = '<div class="status error">❌ Ошибка парсинга данных пользователя</div>';
-                }
-            } else {
-                container.innerHTML = '<div class="status warning">⚠️ Данные пользователя отсутствуют</div>';
-            }
+    async function testAuthMe() {
+        const root = document.getElementById('api');
+        root.innerHTML = '<div class="status warn">Запрос /api/auth/me...</div>';
+        try {
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            const body = await res.json().catch(() => ({}));
+            root.innerHTML = '<div class="status ' + (res.ok ? 'ok' : 'err') + '">/api/auth/me: ' + res.status + '</div><pre>' + JSON.stringify(body, null, 2) + '</pre>';
+        } catch (e) {
+            root.innerHTML = '<div class="status err">Ошибка: ' + e.message + '</div>';
         }
+    }
 
-        // Test /api/auth/me
-        async function testAuthMe() {
-            const container = document.getElementById('api-tests');
-            container.innerHTML = '<div class="status warning">🔄 Тестирование /api/auth/me...</div>';
-
-            const accessToken = localStorage.getItem('access_token');
-            if (!accessToken) {
-                container.innerHTML = '<div class="status error">❌ Access token отсутствует</div>';
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/auth/me', {
-                    headers: {
-                        'Authorization': 'Bearer ' + accessToken
-                    }
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    container.innerHTML = '<div class="status success">✅ /api/auth/me: УСПЕШНО</div><pre>' + JSON.stringify(data, null, 2) + '</pre>';
-                } else {
-                    container.innerHTML = '<div class="status error">❌ /api/auth/me: ОШИБКА ' + response.status + '</div><pre>' + JSON.stringify(data, null, 2) + '</pre>';
-                }
-            } catch (error) {
-                container.innerHTML = '<div class="status error">❌ Ошибка запроса: ' + error.message + '</div>';
-            }
+    async function testRefresh() {
+        const root = document.getElementById('api');
+        root.innerHTML = '<div class="status warn">Запрос /api/auth/refresh...</div>';
+        try {
+            const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+            const body = await res.json().catch(() => ({}));
+            root.innerHTML = '<div class="status ' + (res.ok ? 'ok' : 'err') + '">/api/auth/refresh: ' + res.status + '</div><pre>' + JSON.stringify(body, null, 2) + '</pre>';
+        } catch (e) {
+            root.innerHTML = '<div class="status err">Ошибка: ' + e.message + '</div>';
         }
+    }
 
-        // Test /api/auth/refresh
-        async function testRefresh() {
-            const container = document.getElementById('api-tests');
-            container.innerHTML = '<div class="status warning">🔄 Тестирование /api/auth/refresh...</div>';
+    function clearLocalCache() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        renderStatus();
+        renderUserCache();
+        alert('Локальный кеш очищен');
+    }
 
-            const refreshToken = localStorage.getItem('refresh_token');
-            if (!refreshToken) {
-                container.innerHTML = '<div class="status error">❌ Refresh token отсутствует</div>';
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/auth/refresh', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ refresh_token: refreshToken })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    container.innerHTML = '<div class="status success">✅ /api/auth/refresh: УСПЕШНО</div><pre>' + JSON.stringify(data, null, 2) + '</pre>';
-                    localStorage.setItem('access_token', data.access_token);
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    container.innerHTML = '<div class="status error">❌ /api/auth/refresh: ОШИБКА ' + response.status + '</div><pre>' + JSON.stringify(data, null, 2) + '</pre>';
-                }
-            } catch (error) {
-                container.innerHTML = '<div class="status error">❌ Ошибка запроса: ' + error.message + '</div>';
-            }
-        }
-
-        // Clear all data
-        function clearAllData() {
-            if (confirm('Вы уверены? Это удалит все токены и данные пользователя.')) {
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('user');
-                alert('Все данные очищены!');
-                location.reload();
-            }
-        }
-
-        // Initialize
-        checkLocalStorage();
-        displayTokens();
-        displayUserInfo();
-    </script>
-    <script src="/js/alert-modal.js"></script>
+    renderStatus();
+    renderUserCache();
+</script>
+<script src="/js/alert-modal.js"></script>
 </body>
 </html>
