@@ -203,6 +203,23 @@
     padding-right: 48px;
 }
 
+/* Keep masked password glyphs visible across WebKit/Blink browsers */
+#password {
+    color: var(--text-primary) !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    caret-color: var(--text-primary);
+}
+
+#password[type="password"] {
+    font-family: sans-serif;
+}
+
+#password:-webkit-autofill,
+#password:-webkit-autofill:hover,
+#password:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text-primary) !important;
+}
+
 /* Hide native password reveal/clear controls (Edge/IE/Chromium variants)
    to avoid duplicate "eye" icon with custom toggle button */
 #password::-ms-reveal,
