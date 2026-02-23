@@ -188,6 +188,11 @@
     transition: all 0.3s ease;
 }
 
+.form-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 1;
+}
+
 .form-input:focus {
     outline: none;
     border-color: var(--primary);
@@ -208,6 +213,11 @@
     color: var(--text-primary) !important;
     -webkit-text-fill-color: var(--text-primary) !important;
     caret-color: var(--text-primary);
+}
+
+#password::placeholder {
+    color: var(--text-secondary) !important;
+    -webkit-text-fill-color: var(--text-secondary) !important;
 }
 
 #password[type="password"] {
@@ -263,7 +273,7 @@
 }
 
 .password-toggle.active .eye-closed {
-    display: block;
+    display: inline;
 }
 
 /* Checkbox */
