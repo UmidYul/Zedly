@@ -7,12 +7,12 @@
     heroBodyLine2: 'Тесты, аналитика и управление учебным процессом в одном месте.',
     ctaPrimary: 'Начать сейчас',
     ctaSecondary: 'Подробнее',
-    metric1Title: 'Средний балл',
-    metric1Note: 'по завершенным попыткам',
-    metric2Title: 'Активные классы',
-    metric2Note: 'в системе',
-    metric3Title: 'Тесты',
-    metric3Note: 'всего в платформе',
+    metric1Title: 'Пользователи',
+    metric1Note: 'всего в платформе',
+    metric2Title: 'Школы',
+    metric2Note: 'подключено',
+    metric3Title: 'Классы',
+    metric3Note: 'в системе',
     featuresTitle: 'Почему ZEDLY',
     feature1Title: 'Аналитика в реальном времени',
     feature1Body: 'Отслеживайте прогресс, вовлеченность и результаты по каждому классу.',
@@ -62,12 +62,12 @@
     heroBodyLine2: 'Testlar, analitika va talim jarayonini boshqarish bir joyda.',
     ctaPrimary: 'Boshlash',
     ctaSecondary: 'Batafsil',
-    metric1Title: 'Ortacha ball',
-    metric1Note: 'yakunlangan urinishlar boyicha',
-    metric2Title: 'Faol sinflar',
-    metric2Note: 'tizimda',
-    metric3Title: 'Testlar',
-    metric3Note: 'platformadagi jami',
+    metric1Title: 'Foydalanuvchilar',
+    metric1Note: 'platformadagi jami',
+    metric2Title: 'Maktablar',
+    metric2Note: 'ulangan',
+    metric3Title: 'Sinflar',
+    metric3Note: 'tizimda',
     featuresTitle: 'Nega ZEDLY',
     feature1Title: 'Real vaqt analitikasi',
     feature1Body: 'Har bir sinf boyicha progress va natijalarni kuzating.',
@@ -120,30 +120,27 @@ const landingFeedbackStatus = document.getElementById('landingFeedbackStatus');
 let landingStats = null;
 let currentLandingLang = 'ru';
 let landingMetricDisplay = {
-  average_score: 0,
-  active_classes: 0,
-  tests_total: 0
+  total_users: 0,
+  total_schools: 0,
+  total_classes: 0
 };
 let landingAnimationFrameId = null;
 
 function formatCount(value, lang) {
   const safe = Number.isFinite(Number(value)) ? Number(value) : 0;
+  if (safe >= 1000) {
+    const thousands = Math.floor(safe / 1000);
+    return `${thousands}K+`;
+  }
   const locale = lang === 'uz' ? 'uz-UZ' : 'ru-RU';
   return safe.toLocaleString(locale);
 }
 
-function formatPercent(value) {
-  const safe = Number.isFinite(Number(value)) ? Number(value) : 0;
-  const rounded = Math.round(safe * 10) / 10;
-  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-  return `${text}%`;
-}
-
 function setLandingMetricTexts(values) {
   if (!landingMetricValues || landingMetricValues.length < 3 || !values) return;
-  landingMetricValues[0].textContent = formatPercent(values.average_score);
-  landingMetricValues[1].textContent = formatCount(values.active_classes, currentLandingLang);
-  landingMetricValues[2].textContent = formatCount(values.tests_total, currentLandingLang);
+  landingMetricValues[0].textContent = formatCount(values.total_users, currentLandingLang);
+  landingMetricValues[1].textContent = formatCount(values.total_schools, currentLandingLang);
+  landingMetricValues[2].textContent = formatCount(values.total_classes, currentLandingLang);
 }
 
 function animateLandingMetrics(nextValues, durationMs = 900) {
@@ -156,9 +153,9 @@ function animateLandingMetrics(nextValues, durationMs = 900) {
 
   const startValues = { ...landingMetricDisplay };
   const targetValues = {
-    average_score: Number(nextValues.average_score || 0),
-    active_classes: Number(nextValues.active_classes || 0),
-    tests_total: Number(nextValues.tests_total || 0)
+    total_users: Number(nextValues.total_users || 0),
+    total_schools: Number(nextValues.total_schools || 0),
+    total_classes: Number(nextValues.total_classes || 0)
   };
   const startTime = performance.now();
   const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
@@ -168,9 +165,9 @@ function animateLandingMetrics(nextValues, durationMs = 900) {
     const eased = easeOutCubic(progress);
 
     landingMetricDisplay = {
-      average_score: startValues.average_score + (targetValues.average_score - startValues.average_score) * eased,
-      active_classes: Math.round(startValues.active_classes + (targetValues.active_classes - startValues.active_classes) * eased),
-      tests_total: Math.round(startValues.tests_total + (targetValues.tests_total - startValues.tests_total) * eased)
+      total_users: Math.round(startValues.total_users + (targetValues.total_users - startValues.total_users) * eased),
+      total_schools: Math.round(startValues.total_schools + (targetValues.total_schools - startValues.total_schools) * eased),
+      total_classes: Math.round(startValues.total_classes + (targetValues.total_classes - startValues.total_classes) * eased)
     };
 
     setLandingMetricTexts(landingMetricDisplay);
@@ -191,9 +188,9 @@ function animateLandingMetrics(nextValues, durationMs = 900) {
 function renderLandingMetrics() {
   if (!landingStats) return;
   if (
-    landingMetricDisplay.average_score === 0 &&
-    landingMetricDisplay.active_classes === 0 &&
-    landingMetricDisplay.tests_total === 0
+    landingMetricDisplay.total_users === 0 &&
+    landingMetricDisplay.total_schools === 0 &&
+    landingMetricDisplay.total_classes === 0
   ) {
     setLandingMetricTexts(landingStats);
     return;
@@ -267,9 +264,9 @@ async function loadLandingStats() {
     const data = await response.json();
     if (!data || !data.stats) return;
     landingStats = {
-      average_score: Number(data.stats.average_score || 0),
-      active_classes: Number(data.stats.active_classes || 0),
-      tests_total: Number(data.stats.tests_total || 0)
+      total_users: Number(data.stats.total_users || 0),
+      total_schools: Number(data.stats.total_schools || 0),
+      total_classes: Number(data.stats.total_classes || 0)
     };
     animateLandingMetrics(landingStats);
   } catch (_) {

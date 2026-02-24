@@ -322,7 +322,7 @@ app.get('/api/public/landing-stats', async (req, res) => {
             return res.json(landingStatsCache.payload);
         }
 
-        const [classColumnsResult, attemptColumnsResult] = await Promise.all([
+        const [classColumnsResult, schoolColumnsResult, userColumnsResult] = await Promise.all([
             query(
                 `SELECT column_name
                  FROM information_schema.columns
@@ -331,40 +331,37 @@ app.get('/api/public/landing-stats', async (req, res) => {
             query(
                 `SELECT column_name
                  FROM information_schema.columns
-                 WHERE table_schema = 'public' AND table_name = 'test_attempts'`
+                 WHERE table_schema = 'public' AND table_name = 'schools'`
+            ),
+            query(
+                `SELECT column_name
+                 FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = 'users'`
             )
         ]);
 
         const classColumns = new Set(classColumnsResult.rows.map((row) => row.column_name));
-        const attemptColumns = new Set(attemptColumnsResult.rows.map((row) => row.column_name));
+        const schoolColumns = new Set(schoolColumnsResult.rows.map((row) => row.column_name));
+        const userColumns = new Set(userColumnsResult.rows.map((row) => row.column_name));
 
         const classesFilter = classColumns.has('is_active') ? 'WHERE is_active = true' : '';
-        const scoreColumn = attemptColumns.has('percentage')
-            ? 'percentage'
-            : (attemptColumns.has('score_percentage') ? 'score_percentage' : null);
-        const completedFilter = attemptColumns.has('is_completed') ? 'WHERE is_completed = true' : '';
+        const schoolsFilter = schoolColumns.has('is_active') ? 'WHERE is_active = true' : '';
+        const usersFilter = userColumns.has('is_active') ? 'WHERE is_active = true' : '';
 
+        const usersQuery = query(`SELECT COUNT(*)::int AS total FROM users ${usersFilter}`);
+        const schoolsQuery = query(`SELECT COUNT(*)::int AS total FROM schools ${schoolsFilter}`);
         const classesQuery = query(`SELECT COUNT(*)::int AS total FROM classes ${classesFilter}`);
-        const testsQuery = query(`SELECT COUNT(*)::int AS total FROM tests`);
-        const averageScoreQuery = scoreColumn
-            ? query(
-                `SELECT ROUND(COALESCE(AVG(${scoreColumn}), 0)::numeric, 1) AS avg_score
-                 FROM test_attempts
-                 ${completedFilter}`
-            )
-            : Promise.resolve({ rows: [{ avg_score: null }] });
-
-        const [classesCount, testsCount, averageScore] = await Promise.all([
+        const [usersCount, schoolsCount, classesCount] = await Promise.all([
+            usersQuery,
+            schoolsQuery,
             classesQuery,
-            testsQuery,
-            averageScoreQuery
         ]);
 
         const payload = {
             stats: {
-                active_classes: Number(classesCount.rows[0]?.total || 0),
-                tests_total: Number(testsCount.rows[0]?.total || 0),
-                average_score: Number(averageScore.rows[0]?.avg_score || 0)
+                total_users: Number(usersCount.rows[0]?.total || 0),
+                total_schools: Number(schoolsCount.rows[0]?.total || 0),
+                total_classes: Number(classesCount.rows[0]?.total || 0)
             },
             updated_at: new Date().toISOString()
         };
