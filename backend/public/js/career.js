@@ -25,9 +25,7 @@
         answers: {},
         currentIndex: 0,
         latestResult: null,
-        history: [],
-        radarChart: null,
-        historyChart: null
+        radarChart: null
     };
 
     function getLang() {
@@ -225,17 +223,15 @@
         }));
     }
 
-    async function renderDashboardCharts(latestResult, history) {
+    async function renderDashboardCharts(latestResult) {
         const radarEl = document.getElementById('careerRadarChart');
-        const historyEl = document.getElementById('careerHistoryChart');
         const empty = document.getElementById('careerResultsEmpty');
-        if (!radarEl || !empty || !historyEl) return;
+        if (!radarEl || !empty) return;
 
         const interests = getResultInterests(latestResult);
         if (!interests.length) {
             empty.style.display = 'grid';
             radarEl.style.display = 'none';
-            historyEl.style.display = 'none';
             return;
         }
 
@@ -299,82 +295,14 @@
                 plugins: { legend: { display: false } }
             }
         });
-
-        const historyRows = Array.isArray(history) ? history : [];
-        if (historyRows.length < 2) {
-            historyEl.style.display = 'none';
-            if (state.historyChart) {
-                state.historyChart.destroy();
-                state.historyChart = null;
-            }
-            return;
-        }
-
-        const latestThree = [...interests].sort((a, b) => Number(b.score || 0) - Number(a.score || 0)).slice(0, 3);
-        const labelsByTime = historyRows.slice().reverse().map((row) => `#${row.attempt_no || '-'}`);
-        const datasets = latestThree.map((interest, idx) => {
-            const name = getLang() === 'uz'
-                ? (interest.name_uz || interest.name_ru || `#${idx + 1}`)
-                : (interest.name_ru || interest.name_uz || `#${idx + 1}`);
-            const color = ['#38bdf8', '#22c55e', '#f59e0b'][idx] || '#8b5cf6';
-            return {
-                label: truncateLabel(name, 20),
-                data: historyRows.slice().reverse().map((attempt) => {
-                    const arr = getResultInterests(attempt);
-                    const found = arr.find((row) => (row.name_ru || row.name_uz) === (interest.name_ru || interest.name_uz));
-                    return Number(found?.score || 0);
-                }),
-                borderColor: color,
-                backgroundColor: color,
-                pointRadius: 3,
-                borderWidth: 2,
-                fill: false,
-                tension: 0.25
-            };
-        });
-
-        if (!datasets.length) {
-            historyEl.style.display = 'none';
-            return;
-        }
-
-        historyEl.style.display = 'block';
-        if (state.historyChart) state.historyChart.destroy();
-        state.historyChart = new Chart(historyEl, {
-            type: 'line',
-            data: { labels: labelsByTime, datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        align: 'start',
-                        labels: {
-                            boxWidth: 12,
-                            boxHeight: 12,
-                            padding: 12,
-                            color: '#cbd5e1',
-                            font: {
-                                size: 12,
-                                family: 'Inter, Segoe UI, Arial, sans-serif',
-                                weight: '500'
-                            }
-                        }
-                    }
-                },
-                scales: { y: { beginAtZero: true, max: 100 } }
-            }
-        });
     }
 
-    function renderDashboardCards(latestResult, history) {
+    function renderDashboardCards(latestResult) {
         const topWrap = document.getElementById('careerTopInterestsCards');
         const subjWrap = document.getElementById('careerRecommendedCards');
-        const histWrap = document.getElementById('careerHistoryList');
         const reliabilityEl = document.getElementById('careerReliabilityBadge');
         const lastDateEl = document.getElementById('careerLastDate');
-        if (!topWrap || !subjWrap || !histWrap || !reliabilityEl || !lastDateEl) return;
+        if (!topWrap || !subjWrap || !reliabilityEl || !lastDateEl) return;
 
         const interests = getResultInterests(latestResult)
             .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
@@ -409,16 +337,6 @@
         reliabilityEl.textContent = `Достоверность: ${reliability}`;
         reliabilityEl.style.color = low ? 'var(--warning)' : 'var(--text-secondary)';
         lastDateEl.textContent = `Последняя попытка: ${formatDateTime(latestResult?.completed_at)}`;
-
-        histWrap.innerHTML = Array.isArray(history) && history.length
-            ? `<ul>${history.slice(0, 10).map((attempt) => `
-                <li>Попытка #${attempt.attempt_no || '-'} - ${escapeHtml(formatDateTime(attempt.completed_at))} (${escapeHtml(attempt.reliability?.level || '-')})</li>
-            `).join('')}</ul>`
-            : '<p>История попыток пока пуста.</p>';
-
-        if (Array.isArray(history) && history.length === 1) {
-            histWrap.insertAdjacentHTML('beforeend', '<p style="margin-top:8px;">Для графика динамики нужна минимум 2-я попытка.</p>');
-        }
     }
 
     async function loadDashboardCareer() {
@@ -432,24 +350,14 @@
         if (retakeBtn) retakeBtn.addEventListener('click', startCareerTestPage);
         if (pdfBtn) pdfBtn.addEventListener('click', () => window.open(`${API_URL}/student/career/report.pdf`, '_blank'));
 
-        const [resultRes, historyRes] = await Promise.all([
-            apiFetch(`${API_URL}/student/career/results`),
-            apiFetch(`${API_URL}/student/career/history`)
-        ]);
-
+        const resultRes = await apiFetch(`${API_URL}/student/career/results`);
         const resultData = resultRes.ok ? await resultRes.json() : {};
-        const historyData = historyRes.ok ? await historyRes.json() : {};
-        state.history = Array.isArray(historyData?.history) ? historyData.history : [];
-        state.latestResult = resultData?.result || state.history[0] || null;
+        state.latestResult = resultData?.result || null;
 
         if (!state.latestResult) {
             if (state.radarChart) {
                 state.radarChart.destroy();
                 state.radarChart = null;
-            }
-            if (state.historyChart) {
-                state.historyChart.destroy();
-                state.historyChart = null;
             }
             if (emptyState) emptyState.style.display = 'block';
             if (resultsState) resultsState.style.display = 'none';
@@ -458,8 +366,8 @@
 
         if (emptyState) emptyState.style.display = 'none';
         if (resultsState) resultsState.style.display = 'block';
-        renderDashboardCards(state.latestResult, state.history);
-        await renderDashboardCharts(state.latestResult, state.history);
+        renderDashboardCards(state.latestResult);
+        await renderDashboardCharts(state.latestResult);
     }
 
     function setStandaloneStatus(message, isError = false) {

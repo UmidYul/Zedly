@@ -2117,7 +2117,7 @@
                         <div class="career-results-header">
                             <div>
                                 <h2 class="career-results-title">Ваш результат профориентации</h2>
-                                <p class="career-results-subtitle">Текущие интересы, рекомендации и динамика изменений</p>
+                                <p class="career-results-subtitle">Текущие интересы и рекомендации по предметам</p>
                             </div>
                             <div class="career-results-actions">
                                 <button class="btn btn-outline" id="careerRetakeBtn" type="button">Пройти тест заново</button>
@@ -2143,12 +2143,6 @@
                         <section class="career-section">
                             <h3 class="career-section-title">Рекомендуемые предметы</h3>
                             <div id="careerRecommendedCards" class="career-subject-grid"></div>
-                        </section>
-
-                        <section class="career-section">
-                            <h3 class="career-section-title">История и динамика</h3>
-                            <canvas id="careerHistoryChart" class="career-history-chart" style="display:none;"></canvas>
-                            <div id="careerHistoryList" class="career-history-list"></div>
                         </section>
                     </div>
 
