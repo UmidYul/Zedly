@@ -593,6 +593,7 @@
         setChecked('channelTelegram', channels.telegram, true);
 
         setChecked('eventNewTest', events.new_test, true);
+        setChecked('eventTestResults', events.test_results, true);
         setChecked('eventAssignmentDeadline', events.assignment_deadline, true);
         setChecked('eventPasswordReset', events.password_reset, true);
         setChecked('eventProfileUpdates', events.profile_updates, true);
@@ -898,6 +899,7 @@
             },
             events: {
                 new_test: !!document.getElementById('eventNewTest')?.checked,
+                test_results: !!document.getElementById('eventTestResults')?.checked,
                 assignment_deadline: !!document.getElementById('eventAssignmentDeadline')?.checked,
                 password_reset: !!document.getElementById('eventPasswordReset')?.checked,
                 profile_updates: !!document.getElementById('eventProfileUpdates')?.checked,

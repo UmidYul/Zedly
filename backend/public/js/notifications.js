@@ -116,6 +116,10 @@
     }
 
     function buildMessage(item, details) {
+        if (details && typeof details.message === 'string' && details.message.trim()) {
+            return details.message.trim();
+        }
+
         const parts = [];
         if (details.username) parts.push(`user: ${details.username}`);
         if (details.role) parts.push(`role: ${details.role}`);
@@ -132,7 +136,9 @@
         const details = parseDetails(item.details);
         const id = String(item.id);
         const action = String(item.action || '').replace(/_/g, ' ').trim() || 'activity';
-        const title = action.charAt(0).toUpperCase() + action.slice(1);
+        const title = (details && typeof details.title === 'string' && details.title.trim())
+            ? details.title.trim()
+            : action.charAt(0).toUpperCase() + action.slice(1);
 
         return {
             id,
@@ -628,4 +634,3 @@
         initNotifications();
     }
 })();
-

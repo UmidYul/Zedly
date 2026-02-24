@@ -19,6 +19,7 @@
     const CHANNEL_KEYS = ['in_app', 'email', 'telegram'];
     const EVENT_LABELS = {
         new_test: 'settings.event.new_test',
+        test_results: 'settings.event.test_results',
         assignment_deadline: 'settings.event.assignment_deadline',
         password_reset: 'settings.event.password_reset',
         profile_updates: 'settings.event.profile_updates',
@@ -28,6 +29,7 @@
     };
     const EVENT_KEYS = [
         'new_test',
+        'test_results',
         'assignment_deadline',
         'password_reset',
         'profile_updates',

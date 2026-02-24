@@ -693,6 +693,7 @@
                                     <div class="field-block">
                                         <h3 data-i18n="profile.notificationEvents">События</h3>
                                         <label class="check-row"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
+                                        <label class="check-row"><input type="checkbox" id="eventTestResults"> Результаты тестов</label>
                                         <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
                                         <label class="check-row"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
                                         <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
@@ -2447,6 +2448,7 @@
                                     <option value="welcome">${t('settings.event.welcome', 'РџСЂРёРІРµС‚СЃС‚РІРёРµ')}</option>
                                     <option value="password_reset">${t('settings.event.password_reset', 'РЎР±СЂРѕСЃ РїР°СЂРѕР»СЏ')}</option>
                                     <option value="new_test">${t('settings.event.new_test', 'РќРѕРІС‹Р№ С‚РµСЃС‚')}</option>
+                                    <option value="test_results">${t('settings.event.test_results', 'Результаты тестов')}</option>
                                 </select>
                             </div>
                             <div class="filter-group">
