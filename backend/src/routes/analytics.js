@@ -32,6 +32,33 @@ function pickColumn(columns, candidates, fallback = null) {
     return fallback;
 }
 
+async function getCareerResultsSchema() {
+    const columns = await getTableColumns('student_career_results');
+
+    const hasCompletedAt = columns.has('completed_at');
+    const hasTakenAt = columns.has('taken_at');
+
+    const timeExpr = hasCompletedAt && hasTakenAt
+        ? 'COALESCE(completed_at, taken_at)'
+        : (hasCompletedAt ? 'completed_at' : (hasTakenAt ? 'taken_at' : 'NULL::timestamp'));
+
+    const orderExpr = hasCompletedAt && hasTakenAt
+        ? 'COALESCE(completed_at, taken_at)'
+        : (hasCompletedAt ? 'completed_at' : (hasTakenAt ? 'taken_at' : 'id'));
+
+    return {
+        selectAttemptNo: columns.has('attempt_no') ? 'attempt_no' : 'NULL::integer AS attempt_no',
+        selectInterestsScores: columns.has('interests_scores') ? 'interests_scores' : 'NULL::jsonb AS interests_scores',
+        selectRecommendedSubjects: columns.has('recommended_subjects') ? 'recommended_subjects' : 'NULL::jsonb AS recommended_subjects',
+        selectResults: columns.has('results') ? 'results' : 'NULL::jsonb AS results',
+        selectReliability: columns.has('reliability') ? 'reliability' : 'NULL::jsonb AS reliability',
+        selectTopInterests: columns.has('top_interests') ? 'top_interests' : 'NULL::text[] AS top_interests',
+        selectRecommendations: columns.has('recommendations') ? 'recommendations' : 'NULL::text AS recommendations',
+        timeExpr,
+        orderExpr
+    };
+}
+
 async function getClassGradeColumn() {
     const columns = await getTableColumns('classes');
     return pickColumn(columns, ['grade_level', 'grade'], 'grade_level');
@@ -1273,6 +1300,7 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const careerInterestColumns = await getTableColumns('career_interests');
         const careerNameRuColumn = pickColumn(careerInterestColumns, ['name_ru', 'name'], 'name');
         const careerNameUzColumn = pickColumn(careerInterestColumns, ['name_uz', 'name'], 'name');
+        const careerResultsSchema = await getCareerResultsSchema();
         const careerInterestsResult = await query(
             `SELECT
                 id,
@@ -1287,17 +1315,17 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
         const careerHistoryResult = await query(
             `SELECT
                 id,
-                attempt_no,
-                results,
-                interests_scores,
-                recommended_subjects,
-                top_interests,
-                recommendations,
-                reliability,
-                COALESCE(completed_at, taken_at) AS completed_at
+                ${careerResultsSchema.selectAttemptNo},
+                ${careerResultsSchema.selectResults},
+                ${careerResultsSchema.selectInterestsScores},
+                ${careerResultsSchema.selectRecommendedSubjects},
+                ${careerResultsSchema.selectTopInterests},
+                ${careerResultsSchema.selectRecommendations},
+                ${careerResultsSchema.selectReliability},
+                ${careerResultsSchema.timeExpr} AS completed_at
              FROM student_career_results
              WHERE student_id = $1
-             ORDER BY COALESCE(completed_at, taken_at) DESC NULLS LAST, id DESC
+             ORDER BY ${careerResultsSchema.orderExpr} DESC NULLS LAST, id DESC
              LIMIT 20`,
             [id]
         );
@@ -1423,18 +1451,19 @@ router.get('/student/:id/career/report.pdf', authorize('school_admin', 'teacher'
             });
         }
 
+        const careerResultsSchema = await getCareerResultsSchema();
         const historyResult = await query(
             `SELECT
-                attempt_no,
-                interests_scores,
-                recommended_subjects,
-                results,
-                reliability,
-                top_interests,
-                COALESCE(completed_at, taken_at) AS completed_at
+                ${careerResultsSchema.selectAttemptNo},
+                ${careerResultsSchema.selectInterestsScores},
+                ${careerResultsSchema.selectRecommendedSubjects},
+                ${careerResultsSchema.selectResults},
+                ${careerResultsSchema.selectReliability},
+                ${careerResultsSchema.selectTopInterests},
+                ${careerResultsSchema.timeExpr} AS completed_at
              FROM student_career_results
              WHERE student_id = $1
-             ORDER BY COALESCE(completed_at, taken_at) DESC NULLS LAST, id DESC
+             ORDER BY ${careerResultsSchema.orderExpr} DESC NULLS LAST, id DESC
              LIMIT 20`,
             [id]
         );
