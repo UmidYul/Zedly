@@ -9,7 +9,10 @@
 
 /* Left Side - Branding */
 .login-left {
-    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+    background:
+        radial-gradient(120% 90% at 0% 100%, rgba(41, 79, 172, 0.26) 0%, rgba(41, 79, 172, 0) 62%),
+        radial-gradient(80% 80% at 100% 0%, rgba(59, 130, 246, 0.22) 0%, rgba(59, 130, 246, 0) 60%),
+        linear-gradient(145deg, #081632 0%, #0d2146 45%, #1b3f86 100%);
     color: white;
     padding: var(--spacing-3xl);
     display: flex;
@@ -22,31 +25,164 @@
 .login-left::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    animation: pulse 8s ease-in-out infinite;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(147, 197, 253, 0.12) 0%, rgba(147, 197, 253, 0) 62%);
+    animation: pulse 10s ease-in-out infinite;
+}
+
+.login-left::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(3, 9, 24, 0.1) 0%, rgba(3, 9, 24, 0.36) 100%);
+    pointer-events: none;
 }
 
 @keyframes pulse {
-
     0%,
     100% {
         transform: scale(1);
-        opacity: 0.5;
+        opacity: 0.58;
     }
 
     50% {
-        transform: scale(1.1);
-        opacity: 0.3;
+        transform: scale(1.05);
+        opacity: 0.35;
     }
 }
 
 .login-brand {
     position: relative;
+    z-index: 2;
+}
+
+.login-left-visual {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
     z-index: 1;
+}
+
+.visual-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(circle at 55% 45%, rgba(0, 0, 0, 1) 32%, rgba(0, 0, 0, 0) 82%);
+    animation: gridDrift 28s linear infinite;
+    opacity: 0.42;
+}
+
+.visual-orbit {
+    position: absolute;
+    border: 1px dashed rgba(148, 163, 184, 0.24);
+    border-radius: 999px;
+}
+
+.visual-orbit-1 {
+    width: 420px;
+    height: 420px;
+    left: -130px;
+    bottom: -80px;
+    animation: orbitRotate 24s linear infinite;
+}
+
+.visual-orbit-2 {
+    width: 290px;
+    height: 290px;
+    right: 90px;
+    top: 60px;
+    animation: orbitRotateReverse 20s linear infinite;
+}
+
+.visual-orbit-3 {
+    width: 200px;
+    height: 200px;
+    right: -40px;
+    bottom: 170px;
+    animation: orbitRotate 18s linear infinite;
+}
+
+.visual-tag {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: rgba(224, 242, 254, 0.95);
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(96, 165, 250, 0.26);
+    box-shadow: 0 8px 26px rgba(3, 10, 26, 0.34);
+    backdrop-filter: blur(4px);
+}
+
+.tag-algebra {
+    left: 11%;
+    top: 18%;
+    animation: floatTag 8s ease-in-out infinite;
+}
+
+.tag-physics {
+    right: 16%;
+    top: 30%;
+    animation: floatTag 9s ease-in-out infinite 0.8s;
+}
+
+.tag-code {
+    left: 18%;
+    bottom: 21%;
+    animation: floatTag 7.2s ease-in-out infinite 0.4s;
+}
+
+.tag-language {
+    right: 20%;
+    bottom: 14%;
+    animation: floatTag 8.6s ease-in-out infinite 1.2s;
+}
+
+@keyframes gridDrift {
+    0% {
+        transform: translate(0, 0);
+    }
+    100% {
+        transform: translate(56px, 56px);
+    }
+}
+
+@keyframes orbitRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes orbitRotateReverse {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(-360deg);
+    }
+}
+
+@keyframes floatTag {
+    0%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.78;
+    }
+    50% {
+        transform: translateY(-12px);
+        opacity: 1;
+    }
 }
 
 .login-brand .logo {
@@ -97,7 +233,7 @@
     flex-direction: column;
     gap: var(--spacing-lg);
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 
 .feature-item {
@@ -106,15 +242,17 @@
     gap: var(--spacing-md);
     font-size: 1rem;
     padding: var(--spacing-md);
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(14, 31, 66, 0.42);
+    border: 1px solid rgba(147, 197, 253, 0.2);
     border-radius: var(--radius-md);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px);
     transition: all 0.3s ease;
 }
 
 .feature-item:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateX(8px);
+    background: rgba(20, 43, 86, 0.58);
+    border-color: rgba(147, 197, 253, 0.34);
+    transform: translateX(6px);
 }
 
 .feature-item svg {
