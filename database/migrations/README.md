@@ -4,6 +4,20 @@
 
 ## Текущие миграции
 
+### 2026_02_24_psychologist_career_enhancements.psql
+Добавляет роль `psychologist`, расширяет профориентацию (история попыток, достоверность, school-scoped интересы) и базовые notification defaults для новой роли.
+
+```bash
+psql -U zedly_user -d zedly_db -f 2026_02_24_psychologist_career_enhancements.psql
+```
+
+### 2026_02_24_career_question_bank.psql
+Добавляет таблицу `career_question_bank` (school-scoped банк вопросов профориентации) для роли `psychologist`.
+
+```bash
+psql -U zedly_user -d zedly_db -f 2026_02_24_career_question_bank.psql
+```
+
 ### add_is_otp_column.sql
 Добавляет колонку `is_otp` в таблицу `users` для отслеживания временных паролей.
 

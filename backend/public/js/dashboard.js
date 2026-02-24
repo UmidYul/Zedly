@@ -5,7 +5,7 @@
     let currentUser = null;
     let teacherHasHomeroom = false;
     let currentPageId = 'overview';
-    const hiddenPages = new Set(['career', 'career-admin', 'career-results']);
+    const hiddenPages = new Set(['career-results']);
 
     // Navigation items for each role
     const navigationConfig = {
@@ -44,7 +44,7 @@
                     { icon: 'users', label: 'dashboard.nav.users', id: 'users', href: '#users' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
                     { icon: 'book', label: 'dashboard.nav.subjects', id: 'subjects', href: '#subjects' }
-                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career-admin', href: '#career-admin' } // СЃРєСЂС‹С‚Рѕ
+                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career-admin', href: '#career-admin' } // скрыто
                 ]
             },
             {
@@ -89,6 +89,17 @@
                 ]
             }
         ],
+        psychologist: [
+            {
+                section: 'dashboard.nav.main',
+                items: [
+                    { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
+                    { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
+                    { icon: 'users', label: 'dashboard.nav.students', id: 'students', href: '#students' },
+                    { icon: 'target', label: 'dashboard.nav.careerAdmin', id: 'career-admin', href: '#career-admin' }
+                ]
+            }
+        ],
         student: [
             {
                 section: 'dashboard.nav.main',
@@ -97,8 +108,8 @@
                     { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'star', label: 'dashboard.nav.results', id: 'results', href: '#results' },
-                    { icon: 'users', label: 'dashboard.nav.myClass', id: 'my-class', href: '#my-class' }
-                    // { icon: 'target', label: 'dashboard.nav.career', id: 'career', href: '#career' } // СЃРєСЂС‹С‚Рѕ
+                    { icon: 'users', label: 'dashboard.nav.myClass', id: 'my-class', href: '#my-class' },
+                    { icon: 'target', label: 'dashboard.nav.career', id: 'career', href: '#career' }
                 ]
             },
             {
@@ -222,7 +233,8 @@
                     'superadmin': 'SuperAdmin',
                     'school_admin': 'School Admin',
                     'teacher': 'Teacher',
-                    'student': 'Student'
+                    'student': 'Student',
+                    'psychologist': 'Psychologist'
                 };
                 userRole.textContent = roleNames[currentUser.role] || currentUser.role;
             }
@@ -412,13 +424,14 @@
             if (statsData) {
                 // Set page content with API data
                 const titles = {
-                    superadmin: { title: i18n.t('dashboard.role.superadmin.title'), subtitle: i18n.t('dashboard.role.superadmin.subtitle') },
-                    school_admin: { title: i18n.t('dashboard.role.school_admin.title'), subtitle: i18n.t('dashboard.role.school_admin.subtitle') },
-                    teacher: { title: i18n.t('dashboard.role.teacher.title'), subtitle: i18n.t('dashboard.role.teacher.subtitle') },
-                    student: { title: i18n.t('dashboard.role.student.title'), subtitle: i18n.t('dashboard.role.student.subtitle') }
+                    superadmin: { title: t('dashboard.role.superadmin.title', 'Админ панель'), subtitle: t('dashboard.role.superadmin.subtitle', 'Управление системой и контроль') },
+                    school_admin: { title: t('dashboard.role.school_admin.title', 'Админ панель'), subtitle: t('dashboard.role.school_admin.subtitle', 'Управление школой') },
+                    teacher: { title: t('dashboard.role.teacher.title', 'Панель учителя'), subtitle: t('dashboard.role.teacher.subtitle', 'Тесты и аналитика') },
+                    psychologist: { title: t('dashboard.role.psychologist.title', 'Панель психолога'), subtitle: t('dashboard.role.psychologist.subtitle', 'Профориентация и профили учеников') },
+                    student: { title: t('dashboard.role.student.title', 'Панель ученика'), subtitle: t('dashboard.role.student.subtitle', 'Обучение и результаты') }
                 };
 
-                const roleTitle = titles[currentUser.role] || titles.student;
+                const roleTitle = titles[currentUser.role] || titles.psychologist;
 
                 content.innerHTML = `
                     <div class="page-header-section">
@@ -439,12 +452,13 @@
             }
 
             const titles = {
-                superadmin: { title: i18n.t('dashboard.role.superadmin.title'), subtitle: i18n.t('dashboard.role.superadmin.subtitle') },
-                school_admin: { title: i18n.t('dashboard.role.school_admin.title'), subtitle: i18n.t('dashboard.role.school_admin.subtitle') },
-                teacher: { title: i18n.t('dashboard.role.teacher.title'), subtitle: i18n.t('dashboard.role.teacher.subtitle') },
-                student: { title: i18n.t('dashboard.role.student.title'), subtitle: i18n.t('dashboard.role.student.subtitle') }
+                superadmin: { title: t('dashboard.role.superadmin.title', 'Админ панель'), subtitle: t('dashboard.role.superadmin.subtitle', 'Управление системой и контроль') },
+                school_admin: { title: t('dashboard.role.school_admin.title', 'Админ панель'), subtitle: t('dashboard.role.school_admin.subtitle', 'Управление школой') },
+                teacher: { title: t('dashboard.role.teacher.title', 'Панель учителя'), subtitle: t('dashboard.role.teacher.subtitle', 'Тесты и аналитика') },
+                psychologist: { title: t('dashboard.role.psychologist.title', 'Панель психолога'), subtitle: t('dashboard.role.psychologist.subtitle', 'Профориентация и профили учеников') },
+                student: { title: t('dashboard.role.student.title', 'Панель ученика'), subtitle: t('dashboard.role.student.subtitle', 'Обучение и результаты') }
             };
-            const roleTitle = titles[currentUser.role] || titles.student;
+            const roleTitle = titles[currentUser.role] || titles.psychologist;
             content.innerHTML = `
                 <div class="page-header-section">
                     <h1 class="page-main-title">${roleTitle.title}</h1>
@@ -528,6 +542,7 @@
             'export': { src: '/js/import-export.js', manager: 'ImportExportManager' },
             'progress': { src: '/js/student-progress.js', manager: 'StudentProgress' },
             'leaderboard': { src: '/js/student-leaderboard.js', manager: 'StudentLeaderboard' },
+            'career': { src: '/js/career.js', manager: 'CareerManager' },
             'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
             'career-results': { src: '/js/career-results.js', manager: 'CareerResultsManager' },
             'my-class': currentUser && currentUser.role === 'student'
@@ -704,6 +719,26 @@
                                 <canvas id="performanceChart"></canvas>
                             </article>
 
+                            <article class="profile-card card-surface" id="careerSummaryCard" style="display:none;">
+                                <h2>Профориентация</h2>
+                                <div class="career-summary-actions">
+                                    <button class="btn btn-outline" id="profileCareerOpenBtn" type="button" style="display:none;">Открыть полную страницу</button>
+                                    <button class="btn btn-outline" id="profileCareerPdfBtn" type="button">Экспорт PDF</button>
+                                </div>
+                                <p class="no-data" id="careerSummaryEmpty">Результатов пока нет.</p>
+                                <canvas id="careerRadarChart" style="display:none;"></canvas>
+                                <div class="profile-career-grid">
+                                    <div class="profile-career-box">
+                                        <h3>Топ интересов</h3>
+                                        <div class="profile-career-tags" id="careerTopInterestsSummary"></div>
+                                    </div>
+                                    <div class="profile-career-box">
+                                        <h3>Рекомендуемые предметы</h3>
+                                        <div class="profile-career-tags" id="careerRecommendedSubjectsSummary"></div>
+                                    </div>
+                                </div>
+                            </article>
+
                             <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
                                 <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'Последние действия')}</h2>
                                 <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
@@ -717,12 +752,12 @@
         if (page === 'career-results' && role === 'superadmin') {
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="career.resultsTitle">РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёСЏ: Р РµР·СѓР»СЊС‚Р°С‚С‹</h1>
-                    <p class="page-subtitle" data-i18n="career.resultsSubtitle">РџСЂРѕСЃРјРѕС‚СЂ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РїСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРё РїРѕ С€РєРѕР»Р°Рј, РєР»Р°СЃСЃР°Рј Рё СѓС‡РµРЅРёРєР°Рј</p>
+                    <h1 class="page-main-title" data-i18n="career.resultsTitle">Профориентация: результаты</h1>
+                    <p class="page-subtitle" data-i18n="career.resultsSubtitle">Просмотр результатов профориентации по школам, классам и ученикам</p>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title" data-i18n="career.resultsAnalytics">РђРЅР°Р»РёС‚РёРєР° Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹</h2>
+                        <h2 class="section-title" data-i18n="career.resultsAnalytics">Аналитика и результаты</h2>
                     </div>
                     <div id="careerResultsAnalytics"></div>
                 </div>
@@ -923,12 +958,12 @@
             `;
         }
 
-        if (page === 'students' && role === 'teacher') {
+        if (page === 'students' && (role === 'teacher' || role === 'psychologist')) {
             return `
                 <div class="students-page" id="studentsPage">
                     <section class="students-hero dashboard-section">
                         <div>
-                            <h1 class="section-title">Ученики класса</h1>
+                            <h1 class="section-title">${role === 'psychologist' ? 'Ученики школы' : 'Ученики класса'}</h1>
                             <p class="page-subtitle" id="studentsPageSubtitle">Выберите класс для просмотра учеников</p>
                         </div>
                         <div class="students-hero-actions">
@@ -939,12 +974,6 @@
 
                     <section class="students-toolbar dashboard-section">
                         <div class="students-filter-grid">
-                            <div class="filter-group">
-                                <label for="studentsClassFilter">Класс</label>
-                                <select id="studentsClassFilter" class="filter-select">
-                                    <option value="">Выберите класс</option>
-                                </select>
-                            </div>
                             <div class="filter-group">
                                 <label for="studentsSearchInput">Поиск</label>
                                 <input id="studentsSearchInput" class="form-input" type="text" placeholder="ФИО или логин">
@@ -973,6 +1002,12 @@
                                     <option value="last_activity_desc">По последней активности</option>
                                 </select>
                             </div>
+                            <div class="filter-group">
+                                <label for="studentsClassFilter">Класс</label>
+                                <select id="studentsClassFilter" class="filter-select">
+                                    <option value="">Выберите класс</option>
+                                </select>
+                            </div>
                         </div>
                     </section>
 
@@ -998,6 +1033,7 @@
                                             <th>№</th>
                                             <th>ФИО</th>
                                             <th>Логин</th>
+                                            <th>Класс</th>
                                             <th>Тестов пройдено</th>
                                             <th>Средний балл</th>
                                             <th>Последняя активность</th>
@@ -1006,7 +1042,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="studentsTableBody">
-                                        <tr><td colspan="9" class="empty-row">Загрузка...</td></tr>
+                                        <tr><td colspan="10" class="empty-row">Загрузка...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2060,57 +2096,85 @@
         if (page === 'career' && role === 'student') {
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="career.title">РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёСЏ</h1>
-                    <p class="page-subtitle" data-i18n="career.subtitle">РўРµСЃС‚ РёРЅС‚РµСЂРµСЃРѕРІ Рё СЂРµРєРѕРјРµРЅРґР°С†РёРё РїРѕ РїСЂРµРґРјРµС‚Р°Рј</p>
+                    <h1 class="page-main-title" data-i18n="career.title">Профориентация</h1>
+                    <p class="page-subtitle" data-i18n="career.subtitle">Тест интересов и рекомендации по предметам</p>
                 </div>
-                <div class="career-grid">
-                    <div class="card career-card">
-                        <div class="career-card-header">
-                            <h2 data-i18n="career.testTitle">РўРµСЃС‚ РёРЅС‚РµСЂРµСЃРѕРІ</h2>
-                            <p class="career-hint" data-i18n="career.testHint">РћС†РµРЅРёС‚Рµ СѓС‚РІРµСЂР¶РґРµРЅРёСЏ РїРѕ С€РєР°Р»Рµ РѕС‚ 1 РґРѕ 5</p>
+                <div class="career-hub" id="careerHub">
+                    <div class="card career-hero-card" id="careerEmptyState">
+                        <div class="career-hero-icon" aria-hidden="true">🎯</div>
+                        <h2 class="career-hero-title">Определи свои сильные стороны и профессиональные интересы</h2>
+                        <p class="career-hero-text">
+                            Пройди короткий тест и получи персональные рекомендации по предметам и направлениям.
+                            Это поможет выбрать учебный фокус и будущую профессию.
+                        </p>
+                        <div class="career-hero-actions">
+                            <button class="btn btn-primary" id="careerStartBtn" type="button">Пройти тест профориентации</button>
                         </div>
-                        <form id="careerTestForm">
-                            <div id="careerQuestions" class="career-questions"></div>
-                            <div class="career-actions">
-                                <button class="btn btn-primary" type="submit" id="careerSubmitBtn" data-i18n="career.submit">РџСЂРѕР№С‚Рё С‚РµСЃС‚</button>
-                                <span id="careerFormStatus" class="career-status"></span>
+                    </div>
+
+                    <div class="card career-results-card" id="careerResultsState" style="display:none;">
+                        <div class="career-results-header">
+                            <div>
+                                <h2 class="career-results-title">Ваш результат профориентации</h2>
+                                <p class="career-results-subtitle">Текущие интересы, рекомендации и динамика изменений</p>
                             </div>
-                        </form>
-                    </div>
-                    <div class="card career-card">
-                        <div class="career-card-header">
-                            <h2 data-i18n="career.resultsTitle">Р РµР·СѓР»СЊС‚Р°С‚С‹</h2>
-                            <p class="career-hint" data-i18n="career.resultsHint">Р’Р°С€Рё СЃРёР»СЊРЅС‹Рµ РёРЅС‚РµСЂРµСЃС‹ Рё СЂРµРєРѕРјРµРЅРґР°С†РёРё</p>
+                            <div class="career-results-actions">
+                                <button class="btn btn-outline" id="careerRetakeBtn" type="button">Пройти тест заново</button>
+                                <button class="btn btn-outline" id="careerPdfExportBtn" type="button">Экспорт PDF</button>
+                            </div>
                         </div>
-                        <div id="careerResultsEmpty" class="empty-state">
-                            <p data-i18n="career.noResults">РџРѕРєР° РЅРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ. РџСЂРѕР№РґРёС‚Рµ С‚РµСЃС‚.</p>
+
+                        <div class="career-meta-strip">
+                            <span class="career-reliability" id="careerReliabilityBadge"></span>
+                            <span class="career-status" id="careerLastDate"></span>
                         </div>
-                        <canvas id="careerRadarChart" class="career-radar" style="display: none;"></canvas>
-                        <div id="careerRecommendations" class="career-recommendations"></div>
+
+                        <div class="career-chart-card">
+                            <canvas id="careerRadarChart" class="career-radar" style="display:none;"></canvas>
+                            <div id="careerResultsEmpty" class="career-chart-empty">Результатов пока нет. Пройдите тест, чтобы увидеть профиль интересов.</div>
+                        </div>
+
+                        <section class="career-section">
+                            <h3 class="career-section-title">Топ-3 сферы интересов</h3>
+                            <div id="careerTopInterestsCards" class="career-top-grid"></div>
+                        </section>
+
+                        <section class="career-section">
+                            <h3 class="career-section-title">Рекомендуемые предметы</h3>
+                            <div id="careerRecommendedCards" class="career-subject-grid"></div>
+                        </section>
+
+                        <section class="career-section">
+                            <h3 class="career-section-title">История и динамика</h3>
+                            <canvas id="careerHistoryChart" class="career-history-chart" style="display:none;"></canvas>
+                            <div id="careerHistoryList" class="career-history-list"></div>
+                        </section>
                     </div>
+
                 </div>
             `;
         }
 
         // Career Management (SchoolAdmin)
-        if (page === 'career-admin' && role === 'school_admin') {
+        if (page === 'career-admin' && (role === 'school_admin' || role === 'psychologist')) {
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title" data-i18n="career.adminTitle">РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёСЏ: РЈРїСЂР°РІР»РµРЅРёРµ С‚РµСЃС‚Р°РјРё</h1>
-                    <p class="page-subtitle" data-i18n="career.adminSubtitle">РЎРѕР·РґР°РІР°Р№С‚Рµ, СЂРµРґР°РєС‚РёСЂСѓР№С‚Рµ Рё Р°РЅР°Р»РёР·РёСЂСѓР№С‚Рµ РїСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРѕРЅРЅС‹Рµ С‚РµСЃС‚С‹ РґР»СЏ РІР°С€РµР№ С€РєРѕР»С‹</p>
+                    <h1 class="page-main-title">Профориентация: управление</h1>
+                    <p class="page-subtitle">Направления интересов и банк вопросов профориентации</p>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title" data-i18n="career.tests">РўРµСЃС‚С‹ РїСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРё</h2>
-                        <button class="btn btn-primary" id="addCareerTestBtn" data-i18n="career.addTest">РЎРѕР·РґР°С‚СЊ С‚РµСЃС‚</button>
+                        <h2 class="section-title">Направления</h2>
+                        <button class="btn btn-primary" id="addCareerInterestBtn" type="button">Добавить направление</button>
                     </div>
-                    <div id="careerTestsTable"></div>
+                    <div id="careerInterestsTable"></div>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title" data-i18n="career.analytics">РђРЅР°Р»РёС‚РёРєР° Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹</h2>
+                        <h2 class="section-title">Вопросы профориентации</h2>
+                        <button class="btn btn-primary" id="addCareerQuestionBtn" type="button">Добавить вопрос</button>
                     </div>
-                    <div id="careerAnalytics"></div>
+                    <div id="careerQuestionsTable"></div>
                 </div>
             `;
         }
@@ -2152,7 +2216,7 @@
             `;
         }
 
-        // Career Interests Management (SuperAdmin) вЂ” СѓРґР°Р»РµРЅРѕ РїРѕ С‚СЂРµР±РѕРІР°РЅРёСЏРј RBAC
+        // Career Interests Management (SuperAdmin) - удалено по требованиям RBAC
 
         // Global Statistics (SuperAdmin) / School Statistics (School Admin)
         if (page === 'statistics') {
@@ -2533,13 +2597,14 @@
         // Overview page with stats
         if (page === 'overview') {
             const titles = {
-                superadmin: { title: 'РђРґРјРёРЅ РџР°РЅРµР»СЊ', subtitle: 'РЈРїСЂР°РІР»РµРЅРёРµ СЃРёСЃС‚РµРјРѕР№ Рё РєРѕРЅС‚СЂРѕР»СЊ' },
-                school_admin: { title: 'РђРґРјРёРЅ РџР°РЅРµР»СЊ', subtitle: 'РЈРїСЂР°РІР»РµРЅРёРµ С€РєРѕР»РѕР№' },
-                teacher: { title: 'РџР°РЅРµР»СЊ РЈС‡РёС‚РµР»СЏ', subtitle: 'РўРµСЃС‚С‹ Рё Р°РЅР°Р»РёС‚РёРєР°' },
-                student: { title: 'РџР°РЅРµР»СЊ РЈС‡РµРЅРёРєР°', subtitle: 'РћР±СѓС‡РµРЅРёРµ Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹' }
+                superadmin: { title: t('dashboard.role.superadmin.title', 'Админ панель'), subtitle: t('dashboard.role.superadmin.subtitle', 'Управление системой и контроль') },
+                school_admin: { title: t('dashboard.role.school_admin.title', 'Админ панель'), subtitle: t('dashboard.role.school_admin.subtitle', 'Управление школой') },
+                teacher: { title: t('dashboard.role.teacher.title', 'Панель учителя'), subtitle: t('dashboard.role.teacher.subtitle', 'Тесты и аналитика') },
+                psychologist: { title: t('dashboard.role.psychologist.title', 'Панель психолога'), subtitle: t('dashboard.role.psychologist.subtitle', 'Профориентация и профили учеников') },
+                student: { title: t('dashboard.role.student.title', 'Панель ученика'), subtitle: t('dashboard.role.student.subtitle', 'Обучение и результаты') }
             };
 
-            const roleTitle = titles[role] || titles.student;
+            const roleTitle = titles[role] || titles.psychologist;
 
             return `
                 <div class="page-header-section">
@@ -2576,6 +2641,7 @@
                 superadmin: '/api/superadmin/dashboard/overview',
                 school_admin: '/api/admin/dashboard/overview',
                 teacher: '/api/teacher/dashboard/overview',
+                psychologist: '/api/psychologist/dashboard/overview',
                 student: '/api/student/dashboard/overview'
             };
 
@@ -2734,6 +2800,12 @@
                 { icon: 'trophy', label: t('dashboard.stats.avgScore', 'Средний балл'), value: `${formatPercent(stats.avg_score)}%` },
                 { icon: 'target', label: t('dashboard.stats.careerTest', 'Профориентация'), value: stats.career_test_completed ? t('dashboard.stats.careerDone', 'Пройдено') : t('dashboard.stats.careerPending', 'Не пройдено') }
             );
+        } else if (role === 'psychologist') {
+            cards.push(
+                { icon: 'users', label: t('dashboard.stats.students', 'Ученики'), value: stats.students || 0 },
+                { icon: 'target', label: t('dashboard.stats.careerAttempts', 'Попытки профориентации'), value: stats.career_attempts || 0 },
+                { icon: 'star', label: t('dashboard.stats.studentsWithResults', 'Учеников с результатами'), value: stats.students_with_results || 0 }
+            );
         }
 
         const colors = ['blue', 'green', 'orange', 'purple'];
@@ -2778,10 +2850,15 @@
                 { icon: 'star', color: 'green', label: 'Completed', value: '12' },
                 { icon: 'trophy', color: 'orange', label: 'Avg. Score', value: '88%' },
                 { icon: 'target', color: 'purple', label: 'Rank', value: '#7' }
+            ],
+            psychologist: [
+                { icon: 'users', color: 'blue', label: 'Students', value: '0' },
+                { icon: 'target', color: 'green', label: 'Career Attempts', value: '0' },
+                { icon: 'star', color: 'orange', label: 'With Results', value: '0' }
             ]
         };
 
-        const roleStats = stats[role] || stats.student;
+        const roleStats = stats[role] || stats.psychologist;
         return roleStats.map(stat => `
             <div class="stat-card">
                 <div class="stat-icon ${stat.color}">
@@ -2916,5 +2993,3 @@
         console.log('Dashboard initialized [ok]');
     });
 })();
-
-

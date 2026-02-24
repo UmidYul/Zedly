@@ -169,6 +169,15 @@
     display: block;
 }
 
+.tab-panel-career {
+    padding: 0.25rem 0 0.2rem;
+}
+
+.tab-panel-career.is-active {
+    display: grid;
+    gap: 1rem;
+}
+
 .panel-toolbar {
     display: flex;
     gap: 0.65rem;
@@ -282,6 +291,19 @@
     gap: 0.75rem;
 }
 
+.career-summary-grid {
+    gap: 0.9rem;
+}
+
+.career-summary-card {
+    min-height: 154px;
+    padding: 1.1rem 1rem;
+}
+
+.career-summary-card .tag-list {
+    margin-top: 0.4rem;
+}
+
 .insight-card {
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
@@ -336,6 +358,43 @@
     color: var(--text-secondary);
 }
 
+.career-radar-wrap {
+    min-height: 320px;
+    padding: 1.1rem;
+    position: relative;
+}
+
+#careerDetailsRadarChart {
+    width: 100%;
+    max-height: 320px;
+}
+
+.career-radar-empty {
+    min-height: 220px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-light);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.career-history-wrap {
+    margin-top: 0.1rem;
+}
+
+.career-history-table thead th {
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+.career-history-table tbody td {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+}
+
 @media (max-width: 1080px) {
     .kpi-grid {
         grid-template-columns: repeat(3, minmax(140px, 1fr));
@@ -343,6 +402,10 @@
 
     .insight-grid {
         grid-template-columns: 1fr;
+    }
+
+    .career-summary-card {
+        min-height: 0;
     }
 }
 
@@ -427,6 +490,19 @@
     .progress-visual {
         min-height: 220px;
         padding: 0.75rem;
+    }
+
+    .career-radar-wrap {
+        min-height: 250px;
+        padding: 0.75rem;
+    }
+
+    #careerDetailsRadarChart {
+        max-height: 240px;
+    }
+
+    .career-radar-empty {
+        min-height: 180px;
     }
 
     .progress-svg {

@@ -12,6 +12,7 @@
         subjectSort: 'avg_desc',
         progressRange: '30'
     };
+    let careerChart = null;
 
     function t(key, fallback, params) {
         return window.ZedlyI18n?.translate?.(key, params) || fallback || key;
@@ -363,12 +364,144 @@
         }
     }
 
+    async function ensureChartJs() {
+        if (window.Chart) return;
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    function setCareerChartEmptyState(showEmpty) {
+        const canvas = document.getElementById('careerDetailsRadarChart');
+        const empty = document.getElementById('careerRadarEmpty');
+        if (canvas) {
+            canvas.style.display = showEmpty ? 'none' : 'block';
+        }
+        if (empty) {
+            empty.style.display = showEmpty ? 'flex' : 'none';
+        }
+    }
+
+    function renderCareerRadar(labels, values) {
+        const canvas = document.getElementById('careerDetailsRadarChart');
+        if (!canvas || !window.Chart || !labels.length) return;
+
+        if (careerChart) {
+            careerChart.destroy();
+        }
+
+        careerChart = new Chart(canvas, {
+            type: 'radar',
+            data: {
+                labels,
+                datasets: [{
+                    label: t('career.chartLabel', 'Уровень интереса'),
+                    data: values,
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { r: { beginAtZero: true, max: 100 } }
+            }
+        });
+    }
+
+    async function renderCareer() {
+        const latestMeta = document.getElementById('careerLatestMeta');
+        const recSubjects = document.getElementById('careerRecommendedSubjects');
+        const topInterests = document.getElementById('careerTopInterests');
+        const historyBody = document.getElementById('careerHistoryBody');
+
+        if (!latestMeta || !recSubjects || !topInterests || !historyBody) return;
+
+        const career = state.report?.career || {};
+        const latest = career.latest || null;
+        const history = Array.isArray(career.history) ? career.history : [];
+
+        if (!latest) {
+            if (careerChart) {
+                careerChart.destroy();
+                careerChart = null;
+            }
+            setCareerChartEmptyState(true);
+            latestMeta.innerHTML = `<span class="tag">${escapeHtml(t('career.noResults', 'Пока нет результатов. Пройдите тест.'))}</span>`;
+            recSubjects.innerHTML = `<span class="tag">${escapeHtml(t('career.noRecommendations', 'Рекомендаций пока нет'))}</span>`;
+            topInterests.innerHTML = `<span class="tag">${escapeHtml(t('career.noResults', 'Пока нет результатов. Пройдите тест.'))}</span>`;
+            historyBody.innerHTML = '<tr><td colspan="4" class="empty-row">Нет попыток</td></tr>';
+            return;
+        }
+
+        const reliability = latest.reliability?.level || '-';
+        const lowConfidence = latest.reliability?.low_confidence === true;
+        latestMeta.innerHTML = `
+            <span class="tag">${escapeHtml(`Попытка #${latest.attempt_no || '-'}`)}</span>
+            <span class="tag">${escapeHtml(`Дата: ${formatDateTime(latest.completed_at)}`)}</span>
+            <span class="tag ${lowConfidence ? 'bad' : 'good'}">${escapeHtml(`Достоверность: ${reliability}`)}</span>
+        `;
+
+        const latestSubjects = latest.recommended_subjects?.ru
+            || latest.recommended_subjects?.uz
+            || [];
+        recSubjects.innerHTML = latestSubjects.length
+            ? latestSubjects.map((item) => `<span class="tag">${escapeHtml(item)}</span>`).join('')
+            : `<span class="tag">${escapeHtml(t('career.noRecommendations', 'Рекомендаций пока нет'))}</span>`;
+
+        const top = Array.isArray(latest.top_interests) ? latest.top_interests : [];
+        topInterests.innerHTML = top.length
+            ? top.map((item) => `<span class="tag good">${escapeHtml(item)}</span>`).join('')
+            : `<span class="tag">${escapeHtml('-')}</span>`;
+
+        historyBody.innerHTML = history.length
+            ? history.map((attempt, idx) => {
+                const rel = attempt.reliability?.level || '-';
+                const topAttempt = Array.isArray(attempt.top_interests) ? attempt.top_interests.slice(0, 3).join(', ') : '-';
+                return `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${escapeHtml(formatDateTime(attempt.completed_at))}</td>
+                        <td>${escapeHtml(rel)}</td>
+                        <td>${escapeHtml(topAttempt || '-')}</td>
+                    </tr>
+                `;
+            }).join('')
+            : '<tr><td colspan="4" class="empty-row">Нет попыток</td></tr>';
+
+        const labels = Array.isArray(latest.interests)
+            ? latest.interests.map((interest) => interest.name_ru || interest.name_uz || interest.id)
+            : Object.keys(latest.interests_scores || {});
+        const values = Array.isArray(latest.interests)
+            ? latest.interests.map((interest) => Number(interest.score) || 0)
+            : labels.map((key) => Number((latest.interests_scores || {})[key]) || 0);
+        if (labels.length) {
+            setCareerChartEmptyState(false);
+            await ensureChartJs();
+            renderCareerRadar(labels, values);
+        } else {
+            if (careerChart) {
+                careerChart.destroy();
+                careerChart = null;
+            }
+            setCareerChartEmptyState(true);
+        }
+    }
+
     function renderAll() {
         renderHero();
         renderKpis();
         renderSubjects();
         renderProgress();
         renderInsights();
+        renderCareer().catch((error) => {
+            console.error('Career render error:', error);
+        });
     }
 
     function setTab(tabId) {
@@ -442,6 +575,12 @@
         URL.revokeObjectURL(url);
     }
 
+    function exportCareerPdf() {
+        if (!state.studentId) return;
+        const url = `${API_URL}/analytics/student/${encodeURIComponent(state.studentId)}/career/report.pdf`;
+        window.open(url, '_blank');
+    }
+
     async function copyEmail() {
         const email = state.report?.student?.email;
         if (!email) {
@@ -502,6 +641,7 @@
         });
 
         document.getElementById('exportJsonBtn')?.addEventListener('click', downloadJsonReport);
+        document.getElementById('exportCareerPdfBtn')?.addEventListener('click', exportCareerPdf);
         document.getElementById('printBtn')?.addEventListener('click', () => window.print());
         document.getElementById('copyEmailBtn')?.addEventListener('click', () => {
             copyEmail().catch((error) => showAlert(error.message || t('studentDetails.failedCopyEmail', 'Failed to copy email'), t('common.error', 'Error')));

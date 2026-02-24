@@ -465,7 +465,8 @@
             const labels = {
                 'school_admin': this.t('settings.role.school_admin'),
                 'teacher': this.t('settings.role.teacher'),
-                'student': this.t('settings.role.student')
+                'student': this.t('settings.role.student'),
+                'psychologist': this.t('settings.role.psychologist', 'Психолог')
             };
             return labels[role] || role;
         },
@@ -633,6 +634,7 @@
                                             <option value="school_admin" ${user?.role === 'school_admin' ? 'selected' : ''}>${this.t('settings.role.school_admin', 'Администратор школы')}</option>
                                             <option value="teacher" ${user?.role === 'teacher' ? 'selected' : ''}>${this.t('settings.role.teacher', 'Учитель')}</option>
                                             <option value="student" ${user?.role === 'student' ? 'selected' : ''}>${this.t('settings.role.student', 'Ученик')}</option>
+                                            <option value="psychologist" ${user?.role === 'psychologist' ? 'selected' : ''}>${this.t('settings.role.psychologist', 'Психолог')}</option>
                                         </select>
                                     </div>
                                 </div>

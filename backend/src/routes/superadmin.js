@@ -33,7 +33,7 @@ router.get('/career/analytics', authenticate, authorize('superadmin'), async (re
 router.use(authenticate);
 router.use(authorize('superadmin'));
 
-const NOTIFICATION_DEFAULT_ROLES = ['student', 'teacher', 'school_admin', 'superadmin'];
+const NOTIFICATION_DEFAULT_ROLES = ['student', 'teacher', 'psychologist', 'school_admin', 'superadmin'];
 const NOTIFICATION_CHANNEL_KEYS = ['in_app', 'email', 'telegram'];
 const NOTIFICATION_EVENT_KEYS = [
     'new_test',

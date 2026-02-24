@@ -69,6 +69,7 @@
                     <div class="hero-actions">
                         <button class="btn btn-outline" id="copyEmailBtn" type="button" data-i18n="studentDetails.copyEmail">Скопировать Email</button>
                         <button class="btn btn-outline" id="exportJsonBtn" type="button" data-i18n="studentDetails.exportJson">Экспорт JSON</button>
+                        <button class="btn btn-outline" id="exportCareerPdfBtn" type="button">Профориентация PDF</button>
                         <button class="btn btn-secondary" id="printBtn" type="button" data-i18n="studentDetails.print">Печать</button>
                         <button class="btn btn-primary" id="resetPasswordBtn" type="button" data-i18n="studentDetails.resetPassword">Сбросить пароль</button>
                     </div>
@@ -107,6 +108,7 @@
                     <button type="button" class="tab-btn is-active" data-tab="subjects" role="tab" aria-selected="true" data-i18n="studentDetails.tabSubjects">Предметы</button>
                     <button type="button" class="tab-btn" data-tab="progress" role="tab" aria-selected="false" data-i18n="studentDetails.tabProgress">Прогресс</button>
                     <button type="button" class="tab-btn" data-tab="insights" role="tab" aria-selected="false" data-i18n="studentDetails.tabInsights">Инсайты</button>
+                    <button type="button" class="tab-btn" data-tab="career" role="tab" aria-selected="false">Профориентация</button>
                 </div>
 
                 <div class="tab-panel is-active" data-panel="subjects">
@@ -163,6 +165,42 @@
                             <p class="rank-value" id="rankDetail">-</p>
                             <p class="rank-note" id="rankNote" data-i18n="studentDetails.noClassRankData">Пока нет данных о позиции в классе.</p>
                         </article>
+                    </div>
+                </div>
+
+                <div class="tab-panel tab-panel-career" data-panel="career">
+                    <div class="insight-grid career-summary-grid">
+                        <article class="insight-card career-summary-card">
+                            <h3>Последний результат</h3>
+                            <div class="tag-list" id="careerLatestMeta"></div>
+                        </article>
+                        <article class="insight-card career-summary-card">
+                            <h3>Рекомендации</h3>
+                            <div class="tag-list" id="careerRecommendedSubjects"></div>
+                        </article>
+                        <article class="insight-card career-summary-card">
+                            <h3>Топ интересов</h3>
+                            <div class="tag-list" id="careerTopInterests"></div>
+                        </article>
+                    </div>
+                    <div class="progress-visual career-radar-wrap" id="careerRadarWrap">
+                        <div class="career-radar-empty" id="careerRadarEmpty">Пока нет результатов для графика</div>
+                        <canvas id="careerDetailsRadarChart"></canvas>
+                    </div>
+                    <div class="table-wrap career-history-wrap">
+                        <table class="data-table career-history-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Дата</th>
+                                    <th>Достоверность</th>
+                                    <th>Топ интересы</th>
+                                </tr>
+                            </thead>
+                            <tbody id="careerHistoryBody">
+                                <tr><td colspan="4" class="empty-row">Нет данных</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>

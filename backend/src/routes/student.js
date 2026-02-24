@@ -77,6 +77,9 @@ async function getCareerInterestExpressions() {
     const descriptionUz = col('description_uz') || col('description');
     const icon = col('icon') || 'NULL';
     const color = col('color') || 'NULL';
+    const subjects = col('subjects') || 'NULL';
+    const schoolId = col('school_id') || null;
+    const subjectKeywords = col('subject_keywords') || 'NULL';
 
     return {
         nameRu,
@@ -84,8 +87,77 @@ async function getCareerInterestExpressions() {
         descriptionRu,
         descriptionUz,
         icon,
-        color
+        color,
+        subjects,
+        schoolId,
+        subjectKeywords
     };
+}
+
+function normalizeToken(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function parseSubjects(raw) {
+    if (Array.isArray(raw)) {
+        return raw.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+    if (typeof raw === 'string') {
+        return raw.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+    return [];
+}
+
+async function getCareerInterestsBySchool(schoolId) {
+    const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color, subjects, schoolId: schoolColumn, subjectKeywords } = await getCareerInterestExpressions();
+
+    const where = schoolColumn
+        ? `WHERE ci.school_id = $1 OR ci.school_id IS NULL`
+        : '';
+    const params = schoolColumn ? [schoolId] : [];
+
+    const interestsResult = await query(`
+        SELECT
+            ci.id,
+            ${nameRu} as name_ru,
+            ${nameUz} as name_uz,
+            COALESCE(${descriptionRu}, '') as description_ru,
+            COALESCE(${descriptionUz}, '') as description_uz,
+            ${icon} as icon,
+            COALESCE(${color}, '#4A90E2') as color,
+            COALESCE(${subjects}, ARRAY[]::text[]) as subjects,
+            COALESCE(${subjectKeywords}, '[]'::jsonb) as subject_keywords
+        FROM career_interests ci
+        ${where}
+        ORDER BY ci.id
+    `, params);
+
+    return interestsResult.rows;
+}
+
+async function getSchoolSubjectsForRecommendations(schoolId) {
+    const subjectColumns = await getTableColumns('subjects');
+    const nameRuColumn = pickColumn(subjectColumns, ['name_ru', 'name'], 'name');
+    const nameUzColumn = pickColumn(subjectColumns, ['name_uz', 'name'], 'name');
+
+    const result = await query(
+        `SELECT
+            id,
+            ${nameRuColumn} AS name_ru,
+            ${nameUzColumn} AS name_uz
+         FROM subjects
+         WHERE school_id = $1
+           ${subjectColumns.has('is_active') ? 'AND is_active = true' : ''}
+         ORDER BY ${nameRuColumn} NULLS LAST, ${nameUzColumn} NULLS LAST`,
+        [schoolId]
+    );
+    return result.rows;
 }
 
 async function getCareerResultsColumns() {
@@ -103,6 +175,8 @@ async function getCareerResultsColumns() {
         results: columns.has('results'),
         topInterests: columns.has('top_interests'),
         recommendations: columns.has('recommendations'),
+        reliability: columns.has('reliability'),
+        attemptNo: columns.has('attempt_no'),
         completedAt: columns.has('completed_at'),
         takenAt: columns.has('taken_at')
     };
@@ -161,77 +235,145 @@ function buildCareerQuestions(interests) {
     return questions;
 }
 
-function buildCareerRecommendations(topInterests) {
-    const mapping = {
-        'точные науки': {
-            ru: ['Математика', 'Физика', 'Информатика'],
-            uz: ['Matematika', 'Fizika', 'Informatika']
-        },
-        'естественные науки': {
-            ru: ['Биология', 'Химия', 'География'],
-            uz: ['Biologiya', 'Kimyo', 'Geografiya']
-        },
-        'гуманитарные науки': {
-            ru: ['История', 'Литература', 'Языки'],
-            uz: ['Tarix', 'Adabiyot', 'Tillar']
-        },
-        'искусство': {
-            ru: ['Музыка', 'ИЗО', 'Театр'],
-            uz: ['Musiqa', "Tasviriy san'at", 'Teatr']
-        },
-        'технологии': {
-            ru: ['Информатика', 'Технология', 'Робототехника'],
-            uz: ['Informatika', 'Texnologiya', 'Robototexnika']
-        },
-        'социальные науки': {
-            ru: ['Психология', 'Обществознание', 'Экономика'],
-            uz: ['Psixologiya', 'Jamiyatshunoslik', 'Iqtisodiyot']
-        },
-        "aniq fanlar": {
-            ru: ['Математика', 'Физика', 'Информатика'],
-            uz: ['Matematika', 'Fizika', 'Informatika']
-        },
-        "tabiiy fanlar": {
-            ru: ['Биология', 'Химия', 'География'],
-            uz: ['Biologiya', 'Kimyo', 'Geografiya']
-        },
-        "gumanitar fanlar": {
-            ru: ['История', 'Литература', 'Языки'],
-            uz: ['Tarix', 'Adabiyot', 'Tillar']
-        },
-        "san'at": {
-            ru: ['Музыка', 'ИЗО', 'Театр'],
-            uz: ['Musiqa', "Tasviriy san'at", 'Teatr']
-        },
-        "texnologiya": {
-            ru: ['Информатика', 'Технология', 'Робототехника'],
-            uz: ['Informatika', 'Texnologiya', 'Robototexnika']
-        },
-        "ijtimoiy fanlar": {
-            ru: ['Психология', 'Обществознание', 'Экономика'],
-            uz: ['Psixologiya', 'Jamiyatshunoslik', 'Iqtisodiyot']
+async function getSchoolCareerQuestions(schoolId, interests) {
+    if (await tableExists('career_question_bank')) {
+        const cols = await getTableColumns('career_question_bank');
+        const hasIsActive = cols.has('is_active');
+        const hasOrderNo = cols.has('order_no');
+        const hasTextRu = cols.has('text_ru');
+        const hasTextUz = cols.has('text_uz');
+
+        const rows = await query(
+            `SELECT
+                id,
+                interest_id,
+                ${hasTextRu ? 'text_ru' : "''::text"} AS text_ru,
+                ${hasTextUz ? 'text_uz' : "''::text"} AS text_uz
+             FROM career_question_bank
+             WHERE school_id = $1
+               ${hasIsActive ? 'AND is_active = true' : ''}
+             ORDER BY ${hasOrderNo ? 'order_no' : 'id'} ASC, id ASC`,
+            [schoolId]
+        );
+
+        const mapped = rows.rows
+            .filter((row) => row.interest_id && (row.text_ru || row.text_uz))
+            .map((row) => ({
+                id: String(row.id),
+                interest_id: row.interest_id,
+                text_ru: String(row.text_ru || '').trim(),
+                text_uz: String(row.text_uz || '').trim()
+            }));
+
+        if (mapped.length) {
+            return mapped;
         }
+    }
+
+    return buildCareerQuestions(interests);
+}
+
+function computeCareerReliability(answers, scoredInterests) {
+    const values = Object.values(answers || {}).map((value) => Number(value)).filter(Number.isFinite);
+    const neutralCount = values.filter((value) => value === 3).length;
+    const neutralRatio = values.length ? (neutralCount / values.length) : 1;
+
+    const scores = (scoredInterests || []).map((interest) => Number(interest.score) || 0);
+    const maxScore = scores.length ? Math.max(...scores) : 0;
+    const minScore = scores.length ? Math.min(...scores) : 0;
+    const spread = maxScore - minScore;
+
+    let level = 'high';
+    if (neutralRatio >= 0.6 || spread < 15) level = 'low';
+    else if (neutralRatio >= 0.4 || spread < 25) level = 'medium';
+
+    return {
+        level,
+        neutral_ratio: Number(neutralRatio.toFixed(4)),
+        spread,
+        low_confidence: level === 'low'
+    };
+}
+
+function buildCareerRecommendations(topInterests, schoolSubjects) {
+    const schoolRows = Array.isArray(schoolSubjects) ? schoolSubjects : [];
+    const byInterest = [];
+
+    const normSubjects = schoolRows.map((subject) => ({
+        id: subject.id,
+        name_ru: String(subject.name_ru || '').trim(),
+        name_uz: String(subject.name_uz || '').trim(),
+        ruNorm: normalizeToken(subject.name_ru),
+        uzNorm: normalizeToken(subject.name_uz)
+    }));
+
+    const uniqRu = [];
+    const uniqUz = [];
+    const pushUnique = (target, value) => {
+        if (!value) return;
+        if (!target.includes(value)) target.push(value);
     };
 
-    const recommendations = { ru: [], uz: [] };
-    const addUnique = (target, values) => {
-        values.forEach((value) => {
-            if (!target.includes(value)) {
-                target.push(value);
+    for (const interest of topInterests || []) {
+        const tokens = new Set();
+        [interest.name_ru, interest.name_uz].forEach((name) => {
+            const norm = normalizeToken(name);
+            if (norm) {
+                norm.split(' ').forEach((part) => part && tokens.add(part));
+                tokens.add(norm);
             }
         });
-    };
 
-    topInterests.forEach((interest) => {
-        const key = (interest.name_ru || interest.name_uz || '').toLowerCase();
-        const match = mapping[key];
-        if (match) {
-            addUnique(recommendations.ru, match.ru);
-            addUnique(recommendations.uz, match.uz);
+        for (const subject of parseSubjects(interest.subjects || [])) {
+            const norm = normalizeToken(subject);
+            if (norm) {
+                norm.split(' ').forEach((part) => part && tokens.add(part));
+                tokens.add(norm);
+            }
         }
-    });
 
-    return recommendations;
+        for (const keyword of (Array.isArray(interest.subject_keywords) ? interest.subject_keywords : [])) {
+            const norm = normalizeToken(keyword);
+            if (norm) {
+                norm.split(' ').forEach((part) => part && tokens.add(part));
+                tokens.add(norm);
+            }
+        }
+
+        const matches = normSubjects.filter((subject) => {
+            for (const token of tokens) {
+                if (!token || token.length < 3) continue;
+                if (subject.ruNorm.includes(token) || subject.uzNorm.includes(token)) return true;
+            }
+            return false;
+        }).slice(0, 5);
+
+        const fallback = matches.length ? matches : normSubjects.slice(0, 3);
+        const mapped = fallback.map((subject) => ({
+            id: subject.id,
+            name_ru: subject.name_ru,
+            name_uz: subject.name_uz
+        }));
+
+        mapped.forEach((subject) => {
+            pushUnique(uniqRu, subject.name_ru || subject.name_uz);
+            pushUnique(uniqUz, subject.name_uz || subject.name_ru);
+        });
+
+        byInterest.push({
+            interest_id: interest.id,
+            interest_name_ru: interest.name_ru,
+            interest_name_uz: interest.name_uz,
+            subjects: mapped
+        });
+    }
+
+    return {
+        ru: uniqRu,
+        uz: uniqUz,
+        by_interest: byInterest,
+        fallback_used: byInterest.some((row) => !row.subjects.length)
+    };
 }
 
 /**
@@ -1571,21 +1713,8 @@ router.get('/leaderboard', async (req, res) => {
  */
 router.get('/career/interests', async (req, res) => {
     try {
-        const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color } = await getCareerInterestExpressions();
-        const interestsResult = await query(`
-            SELECT
-                ci.id,
-                ${nameRu} as name_ru,
-                ${nameUz} as name_uz,
-                COALESCE(${descriptionRu}, '') as description_ru,
-                COALESCE(${descriptionUz}, '') as description_uz,
-                ${icon} as icon,
-                COALESCE(${color}, '#4A90E2') as color
-            FROM career_interests ci
-            ORDER BY ci.id
-        `);
-
-        res.json({ interests: interestsResult.rows });
+        const interests = await getCareerInterestsBySchool(req.user.school_id);
+        res.json({ interests });
     } catch (error) {
         console.error('Get career interests error:', error);
         res.status(500).json({
@@ -1601,22 +1730,8 @@ router.get('/career/interests', async (req, res) => {
  */
 router.get('/career/questions', async (req, res) => {
     try {
-        const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color } = await getCareerInterestExpressions();
-        const interestsResult = await query(`
-            SELECT
-                ci.id,
-                ${nameRu} as name_ru,
-                ${nameUz} as name_uz,
-                COALESCE(${descriptionRu}, '') as description_ru,
-                COALESCE(${descriptionUz}, '') as description_uz,
-                ${icon} as icon,
-                COALESCE(${color}, '#4A90E2') as color
-            FROM career_interests ci
-            ORDER BY ci.id
-        `);
-
-        const interests = interestsResult.rows;
-        const questions = buildCareerQuestions(interests);
+        const interests = await getCareerInterestsBySchool(req.user.school_id);
+        const questions = await getSchoolCareerQuestions(req.user.school_id, interests);
 
         res.json({ questions, interests });
     } catch (error) {
@@ -1635,6 +1750,7 @@ router.get('/career/questions', async (req, res) => {
 router.post('/career/submit', async (req, res) => {
     try {
         const studentId = req.user.id;
+        const schoolId = req.user.school_id;
         const answers = req.body?.answers;
 
         if (!answers || typeof answers !== 'object') {
@@ -1644,20 +1760,7 @@ router.post('/career/submit', async (req, res) => {
             });
         }
 
-        const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color } = await getCareerInterestExpressions();
-        const interestsResult = await query(`
-            SELECT
-                ci.id,
-                ${nameRu} as name_ru,
-                ${nameUz} as name_uz,
-                COALESCE(${descriptionRu}, '') as description_ru,
-                COALESCE(${descriptionUz}, '') as description_uz,
-                ${icon} as icon,
-                COALESCE(${color}, '#4A90E2') as color
-            FROM career_interests ci
-            ORDER BY ci.id
-        `);
-        const interests = interestsResult.rows;
+        const interests = await getCareerInterestsBySchool(schoolId);
 
         if (interests.length === 0) {
             return res.status(400).json({
@@ -1666,7 +1769,7 @@ router.post('/career/submit', async (req, res) => {
             });
         }
 
-        const questions = buildCareerQuestions(interests);
+        const questions = await getSchoolCareerQuestions(schoolId, interests);
 
         const totals = new Map();
         for (const question of questions) {
@@ -1711,14 +1814,37 @@ router.post('/career/submit', async (req, res) => {
         const topInterests = [...scoredInterests]
             .sort((a, b) => b.score - a.score)
             .slice(0, 3);
-
-        const recommendedSubjects = buildCareerRecommendations(topInterests);
+        const schoolSubjects = await getSchoolSubjectsForRecommendations(schoolId);
+        const recommendedSubjects = buildCareerRecommendations(topInterests, schoolSubjects);
+        const reliability = computeCareerReliability(answers, scoredInterests);
 
         const resultsSchema = await getCareerResultsColumns();
         const insertColumns = ['student_id'];
         const values = [studentId];
         const placeholders = ['$1'];
         let index = 2;
+
+        let attemptNo = null;
+        if (resultsSchema.attemptNo) {
+            const attemptResult = await query(
+                `SELECT COALESCE(MAX(attempt_no), 0) + 1 AS next_attempt
+                 FROM student_career_results
+                 WHERE student_id = $1`,
+                [studentId]
+            );
+            attemptNo = Number(attemptResult.rows[0]?.next_attempt || 1);
+            insertColumns.push('attempt_no');
+            values.push(attemptNo);
+            placeholders.push(`$${index}`);
+            index += 1;
+        }
+
+        if (resultsSchema.completedAt) {
+            insertColumns.push('completed_at');
+            values.push(new Date());
+            placeholders.push(`$${index}`);
+            index += 1;
+        }
 
         if (resultsSchema.interestsScores) {
             insertColumns.push('interests_scores');
@@ -1736,7 +1862,11 @@ router.post('/career/submit', async (req, res) => {
 
         if (resultsSchema.results) {
             insertColumns.push('results');
-            values.push(JSON.stringify({ scores: interestsScores, recommended_subjects: recommendedSubjects }));
+            values.push(JSON.stringify({
+                scores: interestsScores,
+                recommended_subjects: recommendedSubjects,
+                reliability
+            }));
             placeholders.push(`$${index}`);
             index += 1;
         }
@@ -1755,6 +1885,13 @@ router.post('/career/submit', async (req, res) => {
             index += 1;
         }
 
+        if (resultsSchema.reliability) {
+            insertColumns.push('reliability');
+            values.push(JSON.stringify(reliability));
+            placeholders.push(`$${index}`);
+            index += 1;
+        }
+
         await query(
             `INSERT INTO student_career_results (${insertColumns.join(', ')}) VALUES (${placeholders.join(', ')})`,
             values
@@ -1764,7 +1901,9 @@ router.post('/career/submit', async (req, res) => {
             result: {
                 interests: scoredInterests,
                 recommended_subjects: recommendedSubjects,
-                top_interests: topInterests
+                top_interests: topInterests,
+                reliability,
+                attempt_no: attemptNo
             }
         });
     } catch (error) {
@@ -1783,28 +1922,15 @@ router.post('/career/submit', async (req, res) => {
 router.get('/career/results', async (req, res) => {
     try {
         const studentId = req.user.id;
-        const { nameRu, nameUz, descriptionRu, descriptionUz, icon, color } = await getCareerInterestExpressions();
-        const interestsResult = await query(`
-            SELECT
-                ci.id,
-                ${nameRu} as name_ru,
-                ${nameUz} as name_uz,
-                COALESCE(${descriptionRu}, '') as description_ru,
-                COALESCE(${descriptionUz}, '') as description_uz,
-                ${icon} as icon,
-                COALESCE(${color}, '#4A90E2') as color
-            FROM career_interests ci
-            ORDER BY ci.id
-        `);
-        const interests = interestsResult.rows;
+        const interests = await getCareerInterestsBySchool(req.user.school_id);
 
         const resultsSchema = await getCareerResultsColumns();
         let resultRow = null;
 
         if (resultsSchema.interestsScores || resultsSchema.recommendedSubjects) {
-            const orderColumn = resultsSchema.completedAt ? 'completed_at' : 'id';
+            const orderColumn = resultsSchema.completedAt ? 'completed_at' : (resultsSchema.takenAt ? 'taken_at' : 'id');
             const result = await query(
-                `SELECT interests_scores, recommended_subjects, completed_at
+                `SELECT interests_scores, recommended_subjects, reliability, attempt_no, completed_at, taken_at
                  FROM student_career_results
                  WHERE student_id = $1
                  ORDER BY ${orderColumn} DESC NULLS LAST
@@ -1813,9 +1939,9 @@ router.get('/career/results', async (req, res) => {
             );
             resultRow = result.rows[0] || null;
         } else if (resultsSchema.results) {
-            const orderColumn = resultsSchema.takenAt ? 'taken_at' : 'id';
+            const orderColumn = resultsSchema.completedAt ? 'completed_at' : (resultsSchema.takenAt ? 'taken_at' : 'id');
             const result = await query(
-                `SELECT results, top_interests, recommendations, taken_at
+                `SELECT results, top_interests, recommendations, reliability, attempt_no, completed_at, taken_at
                  FROM student_career_results
                  WHERE student_id = $1
                  ORDER BY ${orderColumn} DESC NULLS LAST
@@ -1832,6 +1958,7 @@ router.get('/career/results', async (req, res) => {
         let scores = {};
         let recommendedSubjects = { ru: [], uz: [] };
         let completedAt = resultRow.completed_at || resultRow.taken_at || null;
+        let reliability = resultRow.reliability || null;
 
         if (resultRow.interests_scores) {
             scores = resultRow.interests_scores || {};
@@ -1843,6 +1970,7 @@ router.get('/career/results', async (req, res) => {
             if (resultRow.results.recommended_subjects) {
                 recommendedSubjects = resultRow.results.recommended_subjects;
             }
+            reliability = reliability || resultRow.results.reliability || null;
         }
 
         const scoredInterests = interests.map((interest) => ({
@@ -1857,7 +1985,9 @@ router.get('/career/results', async (req, res) => {
             result: {
                 interests: scoredInterests,
                 recommended_subjects: recommendedSubjects,
-                completed_at: completedAt
+                completed_at: completedAt,
+                attempt_no: resultRow.attempt_no || null,
+                reliability
             }
         });
     } catch (error) {
@@ -1866,6 +1996,211 @@ router.get('/career/results', async (req, res) => {
             error: 'server_error',
             message: 'Failed to fetch career results'
         });
+    }
+});
+
+/**
+ * GET /api/student/career/history
+ * Get full history of career attempts
+ */
+router.get('/career/history', async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const interests = await getCareerInterestsBySchool(req.user.school_id);
+        const byId = new Map(interests.map((interest) => [String(interest.id), interest]));
+        const resultsSchema = await getCareerResultsColumns();
+        const orderColumn = resultsSchema.completedAt ? 'completed_at' : (resultsSchema.takenAt ? 'taken_at' : 'id');
+        const rowsResult = await query(
+            `SELECT
+                id,
+                attempt_no,
+                interests_scores,
+                recommended_subjects,
+                results,
+                reliability,
+                top_interests,
+                recommendations,
+                completed_at,
+                taken_at
+             FROM student_career_results
+             WHERE student_id = $1
+             ORDER BY ${orderColumn} DESC NULLS LAST, id DESC`,
+            [studentId]
+        );
+
+        const history = rowsResult.rows.map((row, index) => {
+            const scores = row.interests_scores
+                || (row.results && typeof row.results === 'object' ? row.results.scores : null)
+                || {};
+            const recommendedSubjects = row.recommended_subjects
+                || (row.results && typeof row.results === 'object' ? row.results.recommended_subjects : null)
+                || { ru: [], uz: [] };
+            const reliability = row.reliability
+                || (row.results && typeof row.results === 'object' ? row.results.reliability : null)
+                || null;
+
+            return {
+                id: row.id,
+                attempt_no: row.attempt_no || (rowsResult.rows.length - index),
+                completed_at: row.completed_at || row.taken_at || null,
+                reliability,
+                top_interests: Array.isArray(row.top_interests) ? row.top_interests : [],
+                recommended_subjects: recommendedSubjects,
+                interests: Object.entries(scores).map(([interestId, score]) => {
+                    const interest = byId.get(String(interestId)) || {};
+                    return {
+                        id: interestId,
+                        name_ru: interest.name_ru || interestId,
+                        name_uz: interest.name_uz || interest.name_ru || interestId,
+                        color: interest.color || '#4A90E2',
+                        score: Number(score) || 0
+                    };
+                })
+            };
+        });
+
+        res.json({ history });
+    } catch (error) {
+        console.error('Get career history error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch career history'
+        });
+    }
+});
+
+/**
+ * GET /api/student/career/report.pdf
+ * Export career report as PDF for current student
+ */
+router.get('/career/report.pdf', async (req, res) => {
+    try {
+        let PDFDocument;
+        try {
+            PDFDocument = require('pdfkit');
+        } catch (error) {
+            return res.status(500).json({
+                error: 'dependency_missing',
+                message: 'pdfkit is not installed'
+            });
+        }
+
+        const studentId = req.user.id;
+        const profileResult = await query(
+            `SELECT first_name, last_name, username
+             FROM users
+             WHERE id = $1
+             LIMIT 1`,
+            [studentId]
+        );
+        const student = profileResult.rows[0] || {};
+
+        const historyResult = await query(
+            `SELECT
+                attempt_no,
+                interests_scores,
+                recommended_subjects,
+                results,
+                reliability,
+                top_interests,
+                COALESCE(completed_at, taken_at) AS completed_at
+             FROM student_career_results
+             WHERE student_id = $1
+             ORDER BY COALESCE(completed_at, taken_at) DESC NULLS LAST, id DESC
+             LIMIT 20`,
+            [studentId]
+        );
+
+        const latest = historyResult.rows[0] || null;
+        const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.username || 'Student';
+        const filename = `career-report-${String(student.username || studentId).replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        const doc = new PDFDocument({ margin: 48, size: 'A4' });
+        doc.pipe(res);
+
+        doc.fontSize(18).text('ZEDLY Career Orientation Report', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(`Student: ${fullName}`);
+        doc.fontSize(10).text(`Generated: ${new Date().toLocaleString('ru-RU')}`);
+        doc.moveDown(1);
+
+        if (!latest) {
+            doc.fontSize(12).text('No career attempts yet.');
+            doc.end();
+            return;
+        }
+
+        const scores = latest.interests_scores
+            || (latest.results && typeof latest.results === 'object' ? latest.results.scores : null)
+            || {};
+        const reliability = latest.reliability
+            || (latest.results && typeof latest.results === 'object' ? latest.results.reliability : null)
+            || null;
+        const recommended = latest.recommended_subjects
+            || (latest.results && typeof latest.results === 'object' ? latest.results.recommended_subjects : null)
+            || { ru: [], uz: [] };
+
+        doc.fontSize(13).text('Latest attempt', { underline: true });
+        doc.fontSize(10).text(`Attempt: ${latest.attempt_no || '-'}`);
+        doc.text(`Date: ${latest.completed_at ? new Date(latest.completed_at).toLocaleString('ru-RU') : '-'}`);
+        if (reliability) {
+            doc.text(`Reliability: ${String(reliability.level || '-')} (neutral_ratio=${reliability.neutral_ratio ?? '-'})`);
+        }
+        doc.moveDown(0.5);
+
+        doc.fontSize(11).text('Top interests:');
+        const top = Array.isArray(latest.top_interests) ? latest.top_interests : [];
+        if (top.length) {
+            top.slice(0, 5).forEach((interest, idx) => doc.text(`${idx + 1}. ${String(interest)}`));
+        } else {
+            doc.text('No data');
+        }
+
+        doc.moveDown(0.5);
+        doc.fontSize(11).text('Recommended subjects (school-scoped):');
+        const recRu = Array.isArray(recommended.ru) ? recommended.ru : [];
+        if (recRu.length) {
+            recRu.slice(0, 12).forEach((subject, idx) => doc.text(`${idx + 1}. ${String(subject)}`));
+        } else {
+            doc.text('No recommendations');
+        }
+
+        doc.moveDown(0.5);
+        doc.fontSize(11).text('Interest scores:');
+        const sortedScores = Object.entries(scores).sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0));
+        if (sortedScores.length) {
+            sortedScores.slice(0, 15).forEach(([interestId, score]) => {
+                doc.text(`${interestId}: ${Number(score) || 0}`);
+            });
+        } else {
+            doc.text('No score data');
+        }
+
+        doc.addPage();
+        doc.fontSize(13).text('Attempt history', { underline: true });
+        doc.moveDown(0.5);
+        historyResult.rows.forEach((row, idx) => {
+            const rel = row.reliability
+                || (row.results && typeof row.results === 'object' ? row.results.reliability : null)
+                || null;
+            const dt = row.completed_at ? new Date(row.completed_at).toLocaleString('ru-RU') : '-';
+            doc.fontSize(10).text(
+                `${idx + 1}. Attempt #${row.attempt_no || '-'} | ${dt} | reliability=${rel?.level || '-'}`
+            );
+        });
+
+        doc.end();
+    } catch (error) {
+        console.error('Career PDF export error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'server_error',
+                message: 'Failed to export career PDF'
+            });
+        }
     }
 });
 

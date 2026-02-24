@@ -548,7 +548,7 @@ router.post('/users', async (req, res) => {
         }
 
         // Valid roles for school admin
-        const validRoles = ['school_admin', 'teacher', 'student'];
+        const validRoles = ['school_admin', 'teacher', 'student', 'psychologist'];
         if (!validRoles.includes(role)) {
             return res.status(400).json({
                 error: 'validation_error',
@@ -810,7 +810,7 @@ router.put('/users/:id', enforceSchoolIsolation, async (req, res) => {
         }
 
         if (role !== undefined) {
-            const validRoles = ['school_admin', 'teacher', 'student'];
+            const validRoles = ['school_admin', 'teacher', 'student', 'psychologist'];
             if (!validRoles.includes(role)) {
                 return res.status(400).json({
                     error: 'validation_error',
@@ -2848,7 +2848,10 @@ function normalizeRole(role) {
         school_admin: 'school_admin',
         админ: 'school_admin',
         администратор: 'school_admin',
-        администраторшколы: 'school_admin'
+        администраторшколы: 'school_admin',
+        psychologist: 'psychologist',
+        психлог: 'psychologist',
+        психолог: 'psychologist'
     };
     return roleMap[value] || null;
 }

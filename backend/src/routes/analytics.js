@@ -1061,7 +1061,7 @@ router.get('/class/:id/detailed', authorize('school_admin', 'teacher'), async (r
  * GET /api/analytics/student/:id/report
  * Get comprehensive student performance report
  */
-router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student', 'superadmin'), async (req, res) => {
+router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student', 'superadmin', 'psychologist'), async (req, res) => {
     try {
         const { id } = req.params;
         const isSuperadmin = req.user.role === 'superadmin';
@@ -1270,6 +1270,71 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             WHERE student_id = $1
         `, params);
 
+        const careerInterestColumns = await getTableColumns('career_interests');
+        const careerNameRuColumn = pickColumn(careerInterestColumns, ['name_ru', 'name'], 'name');
+        const careerNameUzColumn = pickColumn(careerInterestColumns, ['name_uz', 'name'], 'name');
+        const careerInterestsResult = await query(
+            `SELECT
+                id,
+                ${careerNameRuColumn} AS name_ru,
+                ${careerNameUzColumn} AS name_uz
+             FROM career_interests`
+        );
+        const careerInterestsById = new Map(
+            careerInterestsResult.rows.map((row) => [String(row.id), row])
+        );
+
+        const careerHistoryResult = await query(
+            `SELECT
+                id,
+                attempt_no,
+                results,
+                interests_scores,
+                recommended_subjects,
+                top_interests,
+                recommendations,
+                reliability,
+                COALESCE(completed_at, taken_at) AS completed_at
+             FROM student_career_results
+             WHERE student_id = $1
+             ORDER BY COALESCE(completed_at, taken_at) DESC NULLS LAST, id DESC
+             LIMIT 20`,
+            [id]
+        );
+
+        const careerAttempts = careerHistoryResult.rows.map((row, index) => {
+            const scores = row.interests_scores
+                || (row.results && typeof row.results === 'object' ? row.results.scores : null)
+                || {};
+            const recommendedSubjects = row.recommended_subjects
+                || (row.results && typeof row.results === 'object' ? row.results.recommended_subjects : null)
+                || null;
+            const reliability = row.reliability
+                || (row.results && typeof row.results === 'object' ? row.results.reliability : null)
+                || null;
+            const interestSeries = Object.entries(scores).map(([interestId, score]) => {
+                const interest = careerInterestsById.get(String(interestId)) || {};
+                return {
+                    id: interestId,
+                    name_ru: interest.name_ru || interestId,
+                    name_uz: interest.name_uz || interest.name_ru || interestId,
+                    score: Number(score) || 0
+                };
+            });
+
+            return {
+                id: row.id,
+                attempt_no: row.attempt_no || (careerHistoryResult.rows.length - index),
+                completed_at: row.completed_at,
+                interests_scores: scores,
+                interests: interestSeries,
+                top_interests: Array.isArray(row.top_interests) ? row.top_interests : [],
+                recommended_subjects: recommendedSubjects,
+                recommendations: row.recommendations || null,
+                reliability
+            };
+        });
+
         res.json({
             student: studentInfo.rows[0],
             overall: overallStats.rows[0],
@@ -1277,7 +1342,11 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             progress: progress.rows,
             strengths: strengths.rows,
             weaknesses: weaknesses.rows,
-            ranking: ranking.rows[0] || { rank: null, total_students: 0 }
+            ranking: ranking.rows[0] || { rank: null, total_students: 0 },
+            career: {
+                latest: careerAttempts[0] || null,
+                history: careerAttempts
+            }
         });
     } catch (error) {
         console.error('Student report error:', error);
@@ -1285,6 +1354,175 @@ router.get('/student/:id/report', authorize('school_admin', 'teacher', 'student'
             error: 'server_error',
             message: 'Failed to generate student report'
         });
+    }
+});
+
+/**
+ * GET /api/analytics/student/:id/career/report.pdf
+ * Export student's career report as PDF (school-scoped RBAC)
+ */
+router.get('/student/:id/career/report.pdf', authorize('school_admin', 'teacher', 'student', 'superadmin', 'psychologist'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const isSuperadmin = req.user.role === 'superadmin';
+        const schoolId = req.user.school_id;
+
+        if (req.user.role === 'student' && String(req.user.id) !== String(id)) {
+            return res.status(403).json({ error: 'forbidden', message: 'Access denied' });
+        }
+
+        if (req.user.role === 'teacher') {
+            const teacherScopeResult = await query(
+                `SELECT 1
+                 FROM class_students cs
+                 JOIN classes c ON c.id = cs.class_id
+                 WHERE cs.student_id = $1
+                   AND cs.is_active = true
+                   AND c.school_id = $2
+                   AND (
+                        c.homeroom_teacher_id = $3
+                        OR EXISTS (
+                            SELECT 1
+                            FROM teacher_class_subjects tcs
+                            WHERE tcs.class_id = c.id
+                              AND tcs.teacher_id = $3
+                        )
+                   )
+                 LIMIT 1`,
+                [id, schoolId, req.user.id]
+            );
+
+            if (!teacherScopeResult.rows.length) {
+                return res.status(403).json({ error: 'forbidden', message: 'Access denied' });
+            }
+        }
+
+        const studentParams = isSuperadmin ? [id] : [id, schoolId];
+        const schoolFilter = isSuperadmin ? '' : 'AND school_id = $2';
+        const studentRes = await query(
+            `SELECT id, username, first_name, last_name
+             FROM users
+             WHERE id = $1
+               ${schoolFilter}
+               AND role = 'student'
+             LIMIT 1`,
+            studentParams
+        );
+
+        if (!studentRes.rows.length) {
+            return res.status(404).json({ error: 'not_found', message: 'Student not found' });
+        }
+
+        let PDFDocument;
+        try {
+            PDFDocument = require('pdfkit');
+        } catch (error) {
+            return res.status(500).json({
+                error: 'dependency_missing',
+                message: 'pdfkit is not installed'
+            });
+        }
+
+        const historyResult = await query(
+            `SELECT
+                attempt_no,
+                interests_scores,
+                recommended_subjects,
+                results,
+                reliability,
+                top_interests,
+                COALESCE(completed_at, taken_at) AS completed_at
+             FROM student_career_results
+             WHERE student_id = $1
+             ORDER BY COALESCE(completed_at, taken_at) DESC NULLS LAST, id DESC
+             LIMIT 20`,
+            [id]
+        );
+
+        const student = studentRes.rows[0];
+        const latest = historyResult.rows[0] || null;
+        const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.username || 'Student';
+        const filename = `career-report-${String(student.username || id).replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        const doc = new PDFDocument({ margin: 48, size: 'A4' });
+        doc.pipe(res);
+
+        doc.fontSize(18).text('ZEDLY Career Orientation Report');
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(`Student: ${fullName}`);
+        doc.fontSize(10).text(`Generated: ${new Date().toLocaleString('ru-RU')}`);
+        doc.moveDown(1);
+
+        if (!latest) {
+            doc.fontSize(12).text('No career attempts yet.');
+            doc.end();
+            return;
+        }
+
+        const scores = latest.interests_scores
+            || (latest.results && typeof latest.results === 'object' ? latest.results.scores : null)
+            || {};
+        const reliability = latest.reliability
+            || (latest.results && typeof latest.results === 'object' ? latest.results.reliability : null)
+            || null;
+        const recommended = latest.recommended_subjects
+            || (latest.results && typeof latest.results === 'object' ? latest.results.recommended_subjects : null)
+            || { ru: [], uz: [] };
+
+        doc.fontSize(13).text('Latest attempt', { underline: true });
+        doc.fontSize(10).text(`Attempt: ${latest.attempt_no || '-'}`);
+        doc.text(`Date: ${latest.completed_at ? new Date(latest.completed_at).toLocaleString('ru-RU') : '-'}`);
+        if (reliability) {
+            doc.text(`Reliability: ${String(reliability.level || '-')} (neutral_ratio=${reliability.neutral_ratio ?? '-'})`);
+        }
+        doc.moveDown(0.5);
+        doc.fontSize(11).text('Top interests:');
+        const top = Array.isArray(latest.top_interests) ? latest.top_interests : [];
+        if (top.length) top.slice(0, 5).forEach((interest, idx) => doc.text(`${idx + 1}. ${String(interest)}`));
+        else doc.text('No data');
+
+        doc.moveDown(0.5);
+        doc.fontSize(11).text('Recommended subjects:');
+        const recRu = Array.isArray(recommended.ru) ? recommended.ru : [];
+        if (recRu.length) recRu.slice(0, 12).forEach((subject, idx) => doc.text(`${idx + 1}. ${String(subject)}`));
+        else doc.text('No recommendations');
+
+        doc.moveDown(0.5);
+        doc.fontSize(11).text('Interest scores:');
+        const sortedScores = Object.entries(scores).sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0));
+        if (sortedScores.length) {
+            sortedScores.slice(0, 15).forEach(([interestId, score]) => {
+                doc.text(`${interestId}: ${Number(score) || 0}`);
+            });
+        } else {
+            doc.text('No score data');
+        }
+
+        doc.addPage();
+        doc.fontSize(13).text('Attempt history', { underline: true });
+        doc.moveDown(0.5);
+        historyResult.rows.forEach((row, idx) => {
+            const rel = row.reliability
+                || (row.results && typeof row.results === 'object' ? row.results.reliability : null)
+                || null;
+            const dt = row.completed_at ? new Date(row.completed_at).toLocaleString('ru-RU') : '-';
+            doc.fontSize(10).text(
+                `${idx + 1}. Attempt #${row.attempt_no || '-'} | ${dt} | reliability=${rel?.level || '-'}`
+            );
+        });
+
+        doc.end();
+    } catch (error) {
+        console.error('Career PDF analytics export error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'server_error',
+                message: 'Failed to export career PDF'
+            });
+        }
     }
 });
 

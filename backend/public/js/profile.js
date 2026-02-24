@@ -121,7 +121,8 @@
             super_admin: 'Супер Администратор',
             school_admin: 'Администратор Школы',
             teacher: 'Учитель',
-            student: 'Ученик'
+            student: 'Ученик',
+            psychologist: 'Психолог'
         };
         return map[role] || role || '-';
     }
@@ -146,6 +147,7 @@
             super_admin: '/api/superadmin/dashboard/overview',
             school_admin: '/api/admin/dashboard/overview',
             teacher: '/api/teacher/dashboard/overview',
+            psychologist: '/api/psychologist/dashboard/overview',
             student: '/api/student/dashboard/overview'
         };
         return endpoints[role] || null;
@@ -210,10 +212,6 @@
     async function renderStatsByRole(user) {
         const stats = document.getElementById('statsContent');
         if (!stats) return;
-        const careerCard = document.getElementById('careerTestCard');
-        if (careerCard) {
-            careerCard.style.display = 'none';
-        }
 
         const statsResponse = await loadProfileStats(user.role);
         const apiStats = statsResponse?.stats || {};
@@ -255,6 +253,13 @@
                 { value: String(apiStats.classes ?? '-'), label: i18n.translate('profile.totalClasses') },
                 { value: String(apiStats.subjects ?? '-'), label: i18n.translate('profile.totalSubjects') },
                 { value: String(apiStats.tests ?? '-'), label: i18n.translate('profile.totalTests') }
+            ];
+        } else if (user.role === 'psychologist') {
+            cards = [
+                { value: String(apiStats.students ?? 0), label: i18n.translate('profile.totalStudents') },
+                { value: String(apiStats.career_attempts ?? 0), label: 'Попытки профориентации' },
+                { value: String(apiStats.students_with_results ?? 0), label: 'Учеников с результатами' },
+                { value: String((statsResponse?.recent_activity || []).length), label: 'Активность (посл. 5)' }
             ];
         } else {
             cards = [
@@ -356,29 +361,77 @@
     }
 
     async function loadCareerResults() {
-        const content = document.getElementById('careerTestContent');
-        if (!content) return;
+        const card = document.getElementById('careerSummaryCard');
+        const emptyEl = document.getElementById('careerSummaryEmpty');
+        const topEl = document.getElementById('careerTopInterestsSummary');
+        const recEl = document.getElementById('careerRecommendedSubjectsSummary');
+        const openBtn = document.getElementById('profileCareerOpenBtn');
+        const pdfBtn = document.getElementById('profileCareerPdfBtn');
+        const canvas = document.getElementById('careerRadarChart');
+
+        if (!card || !emptyEl || !topEl || !recEl || !canvas) return;
+        if (!profileUser || profileUser.role !== 'student') {
+            card.style.display = 'none';
+            return;
+        }
+
+        card.style.display = 'block';
+
+        if (pdfBtn) {
+            pdfBtn.onclick = () => {
+                window.open(`${API_URL}/analytics/student/${encodeURIComponent(profileUser.id)}/career/report.pdf`, '_blank');
+            };
+        }
+
+        if (openBtn) {
+            if (isOwnProfile && currentUser?.role === 'student') {
+                openBtn.style.display = 'inline-flex';
+                openBtn.onclick = () => {
+                    window.location.href = '/dashboard#career';
+                };
+            } else {
+                openBtn.style.display = 'none';
+            }
+        }
 
         try {
-            const data = await apiFetch(`${API_URL}/student/career/results`);
-            if (!data.result) {
-                content.innerHTML = '<p class="no-data">Тест не пройден</p>';
+            const data = await apiFetch(`${API_URL}/analytics/student/${encodeURIComponent(profileUser.id)}/report`);
+            const latest = data?.career?.latest || null;
+            if (!latest) {
+                emptyEl.textContent = 'Ученик еще не проходил профориентацию.';
+                emptyEl.style.display = 'block';
+                canvas.style.display = 'none';
+                topEl.innerHTML = '<span class="profile-career-tag">Нет данных</span>';
+                recEl.innerHTML = '<span class="profile-career-tag">Нет рекомендаций</span>';
                 return;
             }
 
-            const result = data.result;
             const lang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
-            const labels = (result.interests || []).map((it) => lang === 'uz' ? it.name_uz : it.name_ru);
-            const scores = (result.interests || []).map((it) => it.score);
+            const interests = Array.isArray(latest.interests) ? latest.interests : [];
+            const labels = interests.map((it) => lang === 'uz' ? (it.name_uz || it.name_ru || '-') : (it.name_ru || it.name_uz || '-'));
+            const scores = interests.map((it) => Number(it.score || 0));
 
-            content.innerHTML = `
-                <div class="info-row"><span>Дата</span><strong>${escapeHtml(formatDate(result.completed_at))}</strong></div>
-                <div class="info-row"><span>Интересов</span><strong>${escapeHtml(String(labels.length))}</strong></div>
-            `;
+            const top = Array.isArray(latest.top_interests) ? latest.top_interests.slice(0, 3) : [];
+            const recommended = Array.isArray(latest.recommended_subjects)
+                ? latest.recommended_subjects
+                : (lang === 'uz'
+                    ? (latest.recommended_subjects?.uz || [])
+                    : (latest.recommended_subjects?.ru || []));
+
+            topEl.innerHTML = top.length
+                ? top.map((item) => `<span class="profile-career-tag">${escapeHtml(item)}</span>`).join('')
+                : '<span class="profile-career-tag">Нет данных</span>';
+            recEl.innerHTML = recommended.length
+                ? recommended.map((item) => `<span class="profile-career-tag">${escapeHtml(item)}</span>`).join('')
+                : '<span class="profile-career-tag">Нет рекомендаций</span>';
+
+            emptyEl.style.display = 'none';
 
             renderCareerRadarChart(labels, scores);
         } catch (error) {
-            content.innerHTML = '<p class="no-data">Не удалось загрузить результаты профориентации</p>';
+            emptyEl.textContent = 'Не удалось загрузить результаты профориентации.';
+            emptyEl.style.display = 'block';
+            canvas.style.display = 'none';
         }
     }
 
@@ -388,6 +441,11 @@
 
         if (careerChart) {
             careerChart.destroy();
+        }
+
+        if (!Array.isArray(labels) || !labels.length) {
+            canvas.style.display = 'none';
+            return;
         }
 
         canvas.style.display = 'block';
@@ -935,6 +993,7 @@
                     if (!profileUser) return;
                     renderProfileInfo(profileUser);
                     await renderStatsByRole(profileUser);
+                    await loadCareerResults();
                 }, 120);
             });
         });
@@ -954,6 +1013,21 @@
         if (currentUser.role === 'school_admin') {
             const data = await apiFetch(`/api/admin/users/${userId}`);
             return data.user || data;
+        }
+
+        if (currentUser.role === 'teacher' || currentUser.role === 'psychologist') {
+            const report = await apiFetch(`/api/analytics/student/${encodeURIComponent(userId)}/report`);
+            const student = report?.student || {};
+            return {
+                id: student.id || userId,
+                role: 'student',
+                username: student.username || '',
+                first_name: student.first_name || '',
+                last_name: student.last_name || '',
+                email: student.email || '',
+                class_name: student.class_name || '',
+                school_name: currentUser.school_name || ''
+            };
         }
 
         throw new Error('Просмотр чужого профиля недоступен для этой роли');
@@ -986,6 +1060,7 @@
             renderProfileHeader(profileUser);
             renderProfileInfo(profileUser);
             await renderStatsByRole(profileUser);
+            await loadCareerResults();
 
             if (isOwnProfile) {
                 document.getElementById('profileActionsCard').style.display = 'block';

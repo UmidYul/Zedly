@@ -151,6 +151,11 @@
     color: var(--success);
 }
 
+.role-psychologist {
+    background: rgba(244, 114, 182, 0.12);
+    color: #be185d;
+}
+
 /* User Name */
 .user-name {
     font-weight: 600;

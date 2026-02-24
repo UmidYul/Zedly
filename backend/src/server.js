@@ -556,6 +556,16 @@ try {
     console.error(error.stack);
 }
 
+// Psychologist routes
+try {
+    const psychologistRouter = require('./routes/psychologist');
+    app.use('/api/psychologist', psychologistRouter);
+    console.log('✓ Psychologist routes loaded: /api/psychologist');
+} catch (error) {
+    console.error('❌ Failed to load psychologist routes:', error.message);
+    console.error(error.stack);
+}
+
 // Analytics routes
 try {
     const analyticsRouter = require('./routes/analytics');

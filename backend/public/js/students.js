@@ -6,9 +6,11 @@
     const PAGE_SIZE = 12;
 
     const state = {
+        role: 'teacher',
         classes: [],
         homeroomClassId: null,
         selectedClassId: '',
+        selectedPsychologistClass: 'all',
         students: [],
         filtered: [],
         search: '',
@@ -109,14 +111,37 @@
     }
 
     function canResetPasswords() {
+        if (state.role !== 'teacher') return false;
         return !!state.selectedClassId
             && !!state.homeroomClassId
             && String(state.selectedClassId) === String(state.homeroomClassId);
     }
 
+    async function loadCurrentRole() {
+        const cached = localStorage.getItem('user');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (parsed?.role) {
+                    state.role = String(parsed.role);
+                    return;
+                }
+            } catch (_) {
+                // ignore cached parse errors
+            }
+        }
+
+        const me = await apiGet(`${API}/auth/me`);
+        state.role = String(me?.user?.role || 'teacher');
+    }
+
     function updateSubtitle() {
         const subtitle = byId('studentsPageSubtitle');
         if (!subtitle) return;
+        if (state.role === 'psychologist') {
+            subtitle.textContent = `Все ученики школы: ${state.filtered.length} из ${state.students.length}`;
+            return;
+        }
         if (!state.selectedClassId) {
             subtitle.textContent = 'Выберите класс для просмотра учеников';
             return;
@@ -127,6 +152,19 @@
     }
 
     async function loadFilters() {
+        const classSelect = byId('studentsClassFilter');
+
+        if (state.role === 'psychologist') {
+            state.classes = [];
+            state.selectedPsychologistClass = 'all';
+            state.homeroomClassId = null;
+            if (classSelect) {
+                classSelect.innerHTML = '<option value="all">Все классы</option>';
+                classSelect.value = state.selectedPsychologistClass;
+            }
+            return;
+        }
+
         const [classesRes, homeroomRes] = await Promise.all([
             apiGet(`${API}/teacher/classes?page=1&limit=100`),
             apiGet(`${API}/teacher/homeroom-class`).catch(() => null)
@@ -135,7 +173,6 @@
         state.classes = classesRes.classes || [];
         state.homeroomClassId = homeroomRes?.class?.id ? String(homeroomRes.class.id) : null;
 
-        const classSelect = byId('studentsClassFilter');
         if (!classSelect) return;
 
         classSelect.innerHTML = state.classes
@@ -153,6 +190,42 @@
     }
 
     async function loadClassAnalytics() {
+        if (state.role === 'psychologist') {
+            const data = await apiGet(`${API}/psychologist/students`);
+            state.students = (data.students || []).map((student, index) => ({
+                ...student,
+                journal_no: String(index + 1),
+                tests_completed: 0,
+                avg_score: 0,
+                last_attempt_at: null,
+                is_active: true
+            }));
+
+            const classSelect = byId('studentsClassFilter');
+            if (classSelect) {
+                const classNames = Array.from(
+                    new Set(
+                        state.students
+                            .map((student) => String(student.class_name || '').trim())
+                            .filter(Boolean)
+                    )
+                ).sort((a, b) => a.localeCompare(b, 'ru'));
+
+                const options = ['<option value="all">Все классы</option>']
+                    .concat(classNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`));
+                classSelect.innerHTML = options.join('');
+                if (!classNames.includes(state.selectedPsychologistClass)) {
+                    state.selectedPsychologistClass = 'all';
+                }
+                classSelect.value = state.selectedPsychologistClass;
+            }
+
+            state.selectedIds.clear();
+            state.page = 1;
+            applyFiltersAndRender();
+            return;
+        }
+
         if (!state.selectedClassId) {
             state.students = [];
             state.filtered = [];
@@ -189,6 +262,10 @@
         let rows = state.students.filter((student) => {
             const haystack = `${safeName(student)} ${student.username || ''}`.toLowerCase();
             if (searchText && !haystack.includes(searchText)) return false;
+            if (state.role === 'psychologist' && state.selectedPsychologistClass !== 'all') {
+                const className = String(student.class_name || '').trim();
+                if (className !== state.selectedPsychologistClass) return false;
+            }
             if (status !== 'all' && studentStatus(student) !== status) return false;
             if (progress === 'with_attempts' && toNumber(student.tests_completed) <= 0) return false;
             if (progress === 'no_attempts' && toNumber(student.tests_completed) > 0) return false;
@@ -203,6 +280,7 @@
 
         state.filtered = rows;
         state.page = Math.max(1, Math.min(state.page, Math.max(1, Math.ceil(rows.length / PAGE_SIZE))));
+        updateSubtitle();
         renderKpi();
         renderTable();
         updateBulkControls();
@@ -233,7 +311,7 @@
         const rows = pagedRows();
         const pageStartIndex = (state.page - 1) * PAGE_SIZE;
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="empty-row">Нет данных по выбранным фильтрам</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="empty-row">Нет данных по выбранным фильтрам</td></tr>';
             renderPagination();
             syncSelectAllCheckbox();
             return;
@@ -244,7 +322,14 @@
             const rowNumber = pageStartIndex + index + 1;
             const status = studentStatus(student);
             const checked = state.selectedIds.has(id) ? 'checked' : '';
-            const profileHref = `student-details.html?id=${encodeURIComponent(id)}&class_id=${encodeURIComponent(state.selectedClassId || '')}`;
+            const profileClassId = state.role === 'psychologist'
+                ? (student.class_id || '')
+                : (state.selectedClassId || '');
+            const profileHref = `student-details.html?id=${encodeURIComponent(id)}&class_id=${encodeURIComponent(profileClassId)}`;
+            const className = String(student.class_name || '').trim()
+                || (state.role === 'teacher'
+                    ? (state.classes.find((item) => String(item.id) === String(state.selectedClassId))?.name || '-')
+                    : '-');
 
             return `
                 <tr>
@@ -254,6 +339,7 @@
                     <td data-label="№">${rowNumber}</td>
                     <td data-label="ФИО">${escapeHtml(safeName(student))}</td>
                     <td data-label="Логин">${escapeHtml(student.username || '-')}</td>
+                    <td data-label="Класс">${escapeHtml(className)}</td>
                     <td data-label="Тестов пройдено">${toNumber(student.tests_completed)}</td>
                     <td data-label="Средний балл"><strong>${formatPercent(student.avg_score)}</strong></td>
                     <td data-label="Последняя активность">${formatDateTime(student.last_attempt_at)}</td>
@@ -389,12 +475,17 @@
             return;
         }
 
-        const header = ['journal_no', 'full_name', 'username', 'tests_completed', 'avg_score', 'last_activity', 'status'];
+        const header = ['journal_no', 'full_name', 'username', 'class_name', 'tests_completed', 'avg_score', 'last_activity', 'status'];
         const lines = [header.join(',')].concat(state.filtered.map((student) => {
+            const className = String(student.class_name || '').trim()
+                || (state.role === 'teacher'
+                    ? (state.classes.find((item) => String(item.id) === String(state.selectedClassId))?.name || '-')
+                    : '-');
             const cols = [
                 student.journal_no || '-',
                 safeName(student),
                 student.username || '',
+                className,
                 toNumber(student.tests_completed),
                 toNumber(student.avg_score).toFixed(1),
                 formatDateTime(student.last_attempt_at),
@@ -430,8 +521,14 @@
 
         if (classFilter) {
             classFilter.addEventListener('change', async () => {
-                state.selectedClassId = classFilter.value;
-                await loadClassAnalytics();
+                if (state.role === 'psychologist') {
+                    state.selectedPsychologistClass = classFilter.value || 'all';
+                    state.page = 1;
+                    applyFiltersAndRender();
+                } else {
+                    state.selectedClassId = classFilter.value;
+                    await loadClassAnalytics();
+                }
             });
         }
 
@@ -567,6 +664,7 @@
     async function init() {
         if (!byId('studentsPage')) return;
         try {
+            await loadCurrentRole();
             await loadFilters();
             bindEvents();
             await loadClassAnalytics();

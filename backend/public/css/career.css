@@ -1,34 +1,160 @@
-/* career.css */
-.career-test-page {
-    max-width: 700px;
-    margin: 40px auto;
-    background: var(--card-bg);
-    border-radius: 12px;
-    box-shadow: 0 2px 8px var(--shadow-color);
-    padding: 32px 24px;
+.career-test-layout {
+    min-height: 100vh;
+    padding: clamp(16px, 3vw, 28px);
+    background:
+        radial-gradient(circle at 12% 12%, rgba(45, 125, 255, 0.18), transparent 34%),
+        radial-gradient(circle at 88% 85%, rgba(20, 184, 166, 0.14), transparent 38%),
+        var(--bg-main);
 }
-.career-question {
-    margin-bottom: 24px;
+
+.career-test-shell {
+    width: min(920px, 100%);
+    margin: 0 auto;
+    border: 1px solid var(--border-strong);
+    border-radius: 22px;
+    background: rgba(9, 16, 36, 0.85);
+    box-shadow: 0 18px 48px rgba(4, 9, 24, 0.44);
+    padding: clamp(16px, 3vw, 30px);
 }
-.career-question-title {
-    font-weight: 600;
-    margin-bottom: 8px;
+
+.career-test-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
 }
-.career-scale label {
-    margin-right: 16px;
-    display: inline-block;
+
+#careerFormStatus {
+    display: none;
 }
-.career-status {
-    margin-top: 16px;
+
+#careerFormStatus.is-visible {
+    display: inline-flex;
+}
+
+.career-test-header h1 {
+    margin: 0 0 8px;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.career-test-header p {
+    margin: 0;
     color: var(--text-secondary);
 }
-.career-recommendations {
-    margin-top: 32px;
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    padding: 16px;
+
+.career-test-progress {
+    margin-top: 18px;
 }
-.career-recommendations h3 {
-    margin-top: 0;
-    font-size: 1.1em;
+
+.career-test-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    margin-bottom: 8px;
+}
+
+.career-test-progress-track {
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.career-test-progress-bar {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #3b82f6, #22d3ee);
+    transition: width 0.22s ease;
+}
+
+.career-step-card {
+    margin-top: 18px;
+    border: 1px solid var(--border-light);
+    border-radius: 18px;
+    background: rgba(10, 22, 48, 0.78);
+    padding: clamp(14px, 2.6vw, 24px);
+}
+
+.career-step-index {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    background: rgba(59, 130, 246, 0.26);
+    border: 1px solid rgba(59, 130, 246, 0.45);
+    margin-bottom: 10px;
+}
+
+.career-step-title {
+    margin: 0 0 14px;
+    line-height: 1.35;
+}
+
+.career-step-options {
+    display: grid;
+    gap: 10px;
+}
+
+.career-step-option {
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.career-step-option:hover {
+    border-color: rgba(59, 130, 246, 0.6);
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.career-step-option.is-selected {
+    border-color: rgba(59, 130, 246, 0.74);
+    background: rgba(59, 130, 246, 0.2);
+}
+
+.career-step-option input {
+    margin-right: 10px;
+}
+
+.career-step-actions {
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.career-step-actions .btn {
+    min-width: 140px;
+}
+
+@media (max-width: 700px) {
+    .career-test-shell {
+        border-radius: 16px;
+        padding: 14px;
+    }
+
+    .career-test-topbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .career-step-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .career-step-actions .btn {
+        width: 100%;
+        min-width: 0;
+    }
 }

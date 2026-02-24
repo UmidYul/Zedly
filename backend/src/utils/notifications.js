@@ -432,6 +432,19 @@ const STATIC_ROLE_NOTIFICATION_DEFAULTS = {
         },
         frequency: 'instant'
     },
+    psychologist: {
+        channels: { in_app: true, email: true, telegram: true },
+        events: {
+            new_test: false,
+            assignment_deadline: false,
+            password_reset: true,
+            profile_updates: true,
+            system_updates: true,
+            welcome: true,
+            digest_summary: true
+        },
+        frequency: 'instant'
+    },
     school_admin: {
         channels: { in_app: true, email: true, telegram: true },
         events: {
@@ -1091,12 +1104,14 @@ async function notifyNewUser(user, password, language = 'ru') {
         ru: {
             student: 'ученик',
             teacher: 'учитель',
+            psychologist: 'психолог',
             school_admin: 'школьный администратор',
             superadmin: 'супер администратор'
         },
         uz: {
             student: "o'quvchi",
             teacher: "o'qituvchi",
+            psychologist: 'psixolog',
             school_admin: 'maktab administratori',
             superadmin: 'super administrator'
         }
