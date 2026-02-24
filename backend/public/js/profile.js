@@ -9,6 +9,7 @@
     let isOwnProfile = false;
     let performanceChart = null;
     let careerChart = null;
+    let careerThemeObserver = null;
     let phoneRequestPollTimer = null;
     let activePhoneRequestId = '';
     let contactVerifyModalType = 'email';
@@ -164,6 +165,31 @@
         });
         if (current) lines.push(current);
         return lines.length ? lines : [text];
+    }
+
+    function getCareerRadarPalette() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        if (isLight) {
+            return {
+                borderColor: 'rgba(2, 132, 199, 1)',
+                backgroundColor: 'rgba(14, 116, 144, 0.20)',
+                pointBackgroundColor: 'rgba(3, 105, 161, 1)',
+                ticksColor: '#334155',
+                pointLabelsColor: '#0f172a',
+                gridColor: 'rgba(100, 116, 139, 0.35)',
+                angleLinesColor: 'rgba(100, 116, 139, 0.30)'
+            };
+        }
+
+        return {
+            borderColor: 'rgba(56, 189, 248, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.24)',
+            pointBackgroundColor: 'rgba(14, 165, 233, 1)',
+            ticksColor: '#93c5fd',
+            pointLabelsColor: '#dbeafe',
+            gridColor: 'rgba(148, 163, 184, 0.25)',
+            angleLinesColor: 'rgba(148, 163, 184, 0.22)'
+        };
     }
 
     function getOverviewEndpoint(role) {
@@ -475,6 +501,7 @@
 
         canvas.style.display = 'block';
         const wrappedLabels = labels.map((label) => wrapRadarLabel(label, 13));
+        const palette = getCareerRadarPalette();
 
         careerChart = new Chart(canvas, {
             type: 'radar',
@@ -483,9 +510,9 @@
                 datasets: [{
                     label: i18n.translate('profile.interests'),
                     data: values,
-                    borderColor: 'rgba(56, 189, 248, 1)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.24)',
-                    pointBackgroundColor: 'rgba(14, 165, 233, 1)'
+                    borderColor: palette.borderColor,
+                    backgroundColor: palette.backgroundColor,
+                    pointBackgroundColor: palette.pointBackgroundColor
                 }]
             },
             options: {
@@ -497,7 +524,7 @@
                         max: 100,
                         ticks: {
                             stepSize: 20,
-                            color: '#93c5fd',
+                            color: palette.ticksColor,
                             showLabelBackdrop: false,
                             z: 1,
                             font: {
@@ -507,7 +534,7 @@
                             }
                         },
                         pointLabels: {
-                            color: '#dbeafe',
+                            color: palette.pointLabelsColor,
                             font: {
                                 size: 12,
                                 family: 'Inter, Segoe UI, Arial, sans-serif',
@@ -515,10 +542,10 @@
                             }
                         },
                         grid: {
-                            color: 'rgba(148, 163, 184, 0.25)'
+                            color: palette.gridColor
                         },
                         angleLines: {
-                            color: 'rgba(148, 163, 184, 0.22)'
+                            color: palette.angleLinesColor
                         }
                     }
                 },
@@ -526,6 +553,43 @@
                     legend: { display: false }
                 }
             }
+        });
+    }
+
+    function bindThemeRefresh() {
+        if (careerThemeObserver) {
+            careerThemeObserver.disconnect();
+        }
+
+        careerThemeObserver = new MutationObserver(() => {
+            if (!careerChart) return;
+            const palette = getCareerRadarPalette();
+            const chartDataset = careerChart.data?.datasets?.[0];
+            if (!chartDataset) return;
+
+            chartDataset.borderColor = palette.borderColor;
+            chartDataset.backgroundColor = palette.backgroundColor;
+            chartDataset.pointBackgroundColor = palette.pointBackgroundColor;
+
+            if (careerChart.options?.scales?.r?.ticks) {
+                careerChart.options.scales.r.ticks.color = palette.ticksColor;
+            }
+            if (careerChart.options?.scales?.r?.pointLabels) {
+                careerChart.options.scales.r.pointLabels.color = palette.pointLabelsColor;
+            }
+            if (careerChart.options?.scales?.r?.grid) {
+                careerChart.options.scales.r.grid.color = palette.gridColor;
+            }
+            if (careerChart.options?.scales?.r?.angleLines) {
+                careerChart.options.scales.r.angleLines.color = palette.angleLinesColor;
+            }
+
+            careerChart.update('none');
+        });
+
+        careerThemeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme']
         });
     }
 
@@ -1123,6 +1187,7 @@
             renderProfileInfo(profileUser);
             await renderStatsByRole(profileUser);
             await loadCareerResults();
+            bindThemeRefresh();
 
             if (isOwnProfile) {
                 document.getElementById('profileActionsCard').style.display = 'block';
