@@ -272,7 +272,9 @@ function initLandingFaqMotion() {
 
     item.dataset.animating = 'false';
 
-    summary.addEventListener('click', (event) => {
+    item.addEventListener('click', (event) => {
+      if (event.target && event.target.closest('p')) return;
+
       event.preventDefault();
       if (item.dataset.animating === 'true') return;
 

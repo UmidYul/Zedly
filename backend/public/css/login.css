@@ -348,10 +348,10 @@
 
 /* Keep masked password glyphs visible across WebKit/Blink browsers */
 #password {
-    color: #0f172a !important;
-    -webkit-text-fill-color: #0f172a !important;
-    caret-color: #0f172a;
-    text-shadow: 0 0 0 #0f172a;
+    color: #f8fafc !important;
+    -webkit-text-fill-color: #f8fafc !important;
+    caret-color: #f8fafc;
+    text-shadow: 0 0 0 #f8fafc;
 }
 
 #password::placeholder {
@@ -368,10 +368,10 @@
 #password:-webkit-autofill,
 #password:-webkit-autofill:hover,
 #password:-webkit-autofill:focus {
-    -webkit-text-fill-color: #0f172a !important;
-    box-shadow: 0 0 0 1000px #eef2ff inset !important;
-    -webkit-box-shadow: 0 0 0 1000px #eef2ff inset !important;
-    caret-color: #0f172a;
+    -webkit-text-fill-color: #f8fafc !important;
+    box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.65) inset !important;
+    -webkit-box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.65) inset !important;
+    caret-color: #f8fafc;
 }
 
 /* Hide native password reveal/clear controls (Edge/IE/Chromium variants)
