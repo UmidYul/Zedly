@@ -55,6 +55,7 @@ function normalizeNotificationPreferences(prefs) {
         },
         events: {
             new_test: true,
+            test_results: true,
             assignment_deadline: true,
             password_reset: true,
             profile_updates: true,

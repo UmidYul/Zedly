@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
+const { notifyTestResults } = require('../utils/notifications');
 
 // All routes require student role
 router.use(authenticate);
@@ -112,6 +113,78 @@ function parseSubjects(raw) {
         return raw.split(',').map((item) => item.trim()).filter(Boolean);
     }
     return [];
+}
+
+function parseSettings(rawSettings) {
+    if (!rawSettings) return {};
+    if (typeof rawSettings === 'object' && !Array.isArray(rawSettings)) return rawSettings;
+    if (typeof rawSettings === 'string') {
+        try {
+            const parsed = JSON.parse(rawSettings);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed;
+            }
+        } catch (error) {
+            return {};
+        }
+    }
+    return {};
+}
+
+function resolveLanguageFromSettings(rawSettings) {
+    const settings = parseSettings(rawSettings);
+    const profileLanguage = String(settings?.profile?.language || '').trim().toLowerCase();
+    const rootLanguage = String(settings?.language || '').trim().toLowerCase();
+    return profileLanguage === 'uz' || rootLanguage === 'uz' ? 'uz' : 'ru';
+}
+
+async function getStudentNotificationRecipient(userId) {
+    const result = await query(
+        `SELECT id, first_name, last_name, email, telegram_id, role, settings
+         FROM users
+         WHERE id = $1
+         LIMIT 1`,
+        [userId]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0];
+}
+
+async function getTestMetaForNotification(testId) {
+    if (!testId) return null;
+
+    const testResult = await query(
+        `SELECT id, title, subject_id
+         FROM tests
+         WHERE id = $1
+         LIMIT 1`,
+        [testId]
+    );
+    if (testResult.rows.length === 0) return null;
+
+    const test = testResult.rows[0];
+    let subjectName = null;
+
+    if (test.subject_id && await tableExists('subjects')) {
+        const subjectColumns = await getTableColumns('subjects');
+        const subjectNameColumn = pickColumn(subjectColumns, ['name_ru', 'name', 'name_uz'], null);
+        if (subjectNameColumn) {
+            const subjectResult = await query(
+                `SELECT ${subjectNameColumn} AS name
+                 FROM subjects
+                 WHERE id = $1
+                 LIMIT 1`,
+                [test.subject_id]
+            );
+            subjectName = subjectResult.rows[0]?.name || null;
+        }
+    }
+
+    return {
+        id: test.id,
+        title: test.title || 'Тест',
+        subject_name: subjectName
+    };
 }
 
 async function getCareerInterestsBySchool(schoolId) {
@@ -1070,6 +1143,30 @@ router.put('/attempts/:id/submit', async (req, res) => {
             ]
         );
 
+        try {
+            const recipient = await getStudentNotificationRecipient(studentId);
+            if (recipient) {
+                const language = resolveLanguageFromSettings(recipient.settings);
+                const testMeta = await getTestMetaForNotification(attempt.test_id);
+                await notifyTestResults(
+                    recipient,
+                    {
+                        type: 'subject',
+                        test_id: attempt.test_id,
+                        test_title: testMeta?.title || 'Тест',
+                        subject_name: testMeta?.subject_name || null,
+                        score: totalScore,
+                        max_score: attempt.max_score,
+                        percentage,
+                        passed: percentage >= attempt.passing_score
+                    },
+                    language
+                );
+            }
+        } catch (notifyError) {
+            console.error('Subject test results notification error:', notifyError);
+        }
+
         res.json({
             message: 'Test submitted successfully',
             score: totalScore,
@@ -1896,6 +1993,32 @@ router.post('/career/submit', async (req, res) => {
             `INSERT INTO student_career_results (${insertColumns.join(', ')}) VALUES (${placeholders.join(', ')})`,
             values
         );
+
+        try {
+            const recipient = await getStudentNotificationRecipient(studentId);
+            if (recipient) {
+                const language = resolveLanguageFromSettings(recipient.settings);
+                const topNames = topInterests.map((interest) => interest.name_ru || interest.name_uz).filter(Boolean);
+                const recommendationPool = language === 'uz'
+                    ? (Array.isArray(recommendedSubjects.uz) ? recommendedSubjects.uz : [])
+                    : (Array.isArray(recommendedSubjects.ru) ? recommendedSubjects.ru : []);
+
+                await notifyTestResults(
+                    recipient,
+                    {
+                        type: 'career',
+                        test_id: null,
+                        test_title: 'Профориентация',
+                        top_interests: topNames,
+                        recommended_subjects: recommendationPool,
+                        attempt_no: attemptNo
+                    },
+                    language
+                );
+            }
+        } catch (notifyError) {
+            console.error('Career test results notification error:', notifyError);
+        }
 
         res.json({
             result: {

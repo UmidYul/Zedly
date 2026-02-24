@@ -346,6 +346,7 @@ async function sendPhoneRequestToTelegram(userId, chatId) {
 const ROLE_EVENT_MAP = {
     student: [
         { key: 'new_test', label: 'Новый тест', description: 'Когда учитель назначает вам новый тест' },
+        { key: 'test_results', label: 'Результаты тестов', description: 'Когда вы завершаете тест и получаете результат' },
         { key: 'password_reset', label: 'Сброс пароля', description: 'Когда пароль был сброшен администратором' },
         { key: 'welcome', label: 'Приветственное сообщение', description: 'При создании аккаунта' }
     ],

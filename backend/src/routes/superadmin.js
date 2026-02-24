@@ -37,6 +37,7 @@ const NOTIFICATION_DEFAULT_ROLES = ['student', 'teacher', 'psychologist', 'schoo
 const NOTIFICATION_CHANNEL_KEYS = ['in_app', 'email', 'telegram'];
 const NOTIFICATION_EVENT_KEYS = [
     'new_test',
+    'test_results',
     'assignment_deadline',
     'password_reset',
     'profile_updates',

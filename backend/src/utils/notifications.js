@@ -410,6 +410,7 @@ const STATIC_ROLE_NOTIFICATION_DEFAULTS = {
         channels: { in_app: true, email: true, telegram: true },
         events: {
             new_test: true,
+            test_results: true,
             assignment_deadline: true,
             password_reset: true,
             profile_updates: true,
@@ -423,6 +424,7 @@ const STATIC_ROLE_NOTIFICATION_DEFAULTS = {
         channels: { in_app: true, email: true, telegram: true },
         events: {
             new_test: false,
+            test_results: false,
             assignment_deadline: true,
             password_reset: true,
             profile_updates: true,
@@ -436,6 +438,7 @@ const STATIC_ROLE_NOTIFICATION_DEFAULTS = {
         channels: { in_app: true, email: true, telegram: true },
         events: {
             new_test: false,
+            test_results: false,
             assignment_deadline: false,
             password_reset: true,
             profile_updates: true,
@@ -449,6 +452,7 @@ const STATIC_ROLE_NOTIFICATION_DEFAULTS = {
         channels: { in_app: true, email: true, telegram: true },
         events: {
             new_test: false,
+            test_results: false,
             assignment_deadline: true,
             password_reset: true,
             profile_updates: true,
@@ -462,6 +466,7 @@ const STATIC_ROLE_NOTIFICATION_DEFAULTS = {
         channels: { in_app: true, email: true, telegram: true },
         events: {
             new_test: false,
+            test_results: false,
             assignment_deadline: true,
             password_reset: true,
             profile_updates: true,
@@ -971,6 +976,186 @@ async function notifyNewTest(user, test, language = 'ru') {
     return results;
 }
 
+async function notifyTestResults(user, payload = {}, language = 'ru') {
+    const normalizedPayload = payload && typeof payload === 'object' ? payload : {};
+    const isCareer = normalizedPayload.type === 'career';
+    const testTitle = String(
+        normalizedPayload.test_title
+        || normalizedPayload.title
+        || (isCareer ? 'Профориентационный тест' : 'Тест')
+    ).trim();
+    const percentageRaw = Number(normalizedPayload.percentage);
+    const percentage = Number.isFinite(percentageRaw) ? Math.round(percentageRaw * 100) / 100 : null;
+    const score = Number(normalizedPayload.score);
+    const maxScore = Number(normalizedPayload.max_score);
+    const passed = normalizedPayload.passed === true;
+    const topInterests = Array.isArray(normalizedPayload.top_interests)
+        ? normalizedPayload.top_interests.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 3)
+        : [];
+    const recommendedSubjects = Array.isArray(normalizedPayload.recommended_subjects)
+        ? normalizedPayload.recommended_subjects.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+
+    const subjectLineRu = normalizedPayload.subject_name ? `\nПредмет: ${normalizedPayload.subject_name}` : '';
+    const subjectLineUz = normalizedPayload.subject_name ? `\nFan: ${normalizedPayload.subject_name}` : '';
+    const scoreLineRu = (Number.isFinite(score) && Number.isFinite(maxScore))
+        ? `\nБаллы: ${score} / ${maxScore}`
+        : '';
+    const scoreLineUz = (Number.isFinite(score) && Number.isFinite(maxScore))
+        ? `\nBall: ${score} / ${maxScore}`
+        : '';
+    const percentLineRu = percentage !== null ? `\nРезультат: ${percentage}%` : '';
+    const percentLineUz = percentage !== null ? `\nNatija: ${percentage}%` : '';
+    const passLineRu = normalizedPayload.passed === undefined
+        ? ''
+        : `\nСтатус: ${passed ? 'пройден' : 'не пройден'}`;
+    const passLineUz = normalizedPayload.passed === undefined
+        ? ''
+        : `\nHolat: ${passed ? "o'tdi" : "o'tmadi"}`;
+
+    const topInterestsRu = topInterests.length
+        ? `\nТоп интересов: ${topInterests.join(', ')}`
+        : '';
+    const topInterestsUz = topInterests.length
+        ? `\nTop qiziqishlar: ${topInterests.join(', ')}`
+        : '';
+    const recommendationsRu = recommendedSubjects.length
+        ? `\nРекомендуемые предметы: ${recommendedSubjects.join(', ')}`
+        : '';
+    const recommendationsUz = recommendedSubjects.length
+        ? `\nTavsiya etilgan fanlar: ${recommendedSubjects.join(', ')}`
+        : '';
+
+    const messages = {
+        ru: {
+            subject: isCareer ? 'Результаты профориентации готовы' : 'Результаты теста готовы',
+            text: isCareer
+                ? `Здравствуйте, ${user.first_name || 'ученик'}!\n\nВы завершили профориентационный тест.\nНазвание: ${testTitle}${topInterestsRu}${recommendationsRu}\n\nОткройте профиль, чтобы посмотреть детали.`
+                : `Здравствуйте, ${user.first_name || 'ученик'}!\n\nВы завершили тест: "${testTitle}".${subjectLineRu}${scoreLineRu}${percentLineRu}${passLineRu}\n\nОткройте профиль, чтобы посмотреть детали.`,
+            telegram: isCareer
+                ? `✅ <b>Результаты профориентации готовы</b>\n\n<b>Тест:</b> ${escapeHtml(testTitle)}${topInterestsRu ? `\n<b>Топ интересов:</b> ${escapeHtml(topInterests.join(', '))}` : ''}${recommendationsRu ? `\n<b>Рекомендации:</b> ${escapeHtml(recommendedSubjects.join(', '))}` : ''}`
+                : `✅ <b>Результаты теста готовы</b>\n\n<b>Тест:</b> ${escapeHtml(testTitle)}${subjectLineRu ? `\n<b>Предмет:</b> ${escapeHtml(String(normalizedPayload.subject_name))}` : ''}${scoreLineRu ? `\n<b>Баллы:</b> ${escapeHtml(String(score))} / ${escapeHtml(String(maxScore))}` : ''}${percentLineRu ? `\n<b>Результат:</b> ${escapeHtml(String(percentage))}%` : ''}${passLineRu ? `\n<b>Статус:</b> ${passed ? 'пройден' : 'не пройден'}` : ''}`
+        },
+        uz: {
+            subject: isCareer ? 'Kasbiy yo‘naltirish natijalari tayyor' : 'Test natijalari tayyor',
+            text: isCareer
+                ? `Assalomu alaykum, ${user.first_name || "o'quvchi"}!\n\nSiz kasbiy yo‘naltirish testini yakunladingiz.\nNomi: ${testTitle}${topInterestsUz}${recommendationsUz}\n\nBatafsil natijalarni profil sahifasida ko‘ring.`
+                : `Assalomu alaykum, ${user.first_name || "o'quvchi"}!\n\nSiz testni yakunladingiz: "${testTitle}".${subjectLineUz}${scoreLineUz}${percentLineUz}${passLineUz}\n\nBatafsil natijalarni profil sahifasida ko‘ring.`,
+            telegram: isCareer
+                ? `✅ <b>Kasbiy yo‘naltirish natijalari tayyor</b>\n\n<b>Test:</b> ${escapeHtml(testTitle)}${topInterests.length ? `\n<b>Top qiziqishlar:</b> ${escapeHtml(topInterests.join(', '))}` : ''}${recommendedSubjects.length ? `\n<b>Tavsiyalar:</b> ${escapeHtml(recommendedSubjects.join(', '))}` : ''}`
+                : `✅ <b>Test natijalari tayyor</b>\n\n<b>Test:</b> ${escapeHtml(testTitle)}${subjectLineUz ? `\n<b>Fan:</b> ${escapeHtml(String(normalizedPayload.subject_name))}` : ''}${scoreLineUz ? `\n<b>Ball:</b> ${escapeHtml(String(score))} / ${escapeHtml(String(maxScore))}` : ''}${percentLineUz ? `\n<b>Natija:</b> ${escapeHtml(String(percentage))}%` : ''}${passLineUz ? `\n<b>Holat:</b> ${passed ? "o'tdi" : "o'tmadi"}` : ''}`
+        }
+    };
+
+    const msg = messages[language] || messages.ru;
+    const emailHtml = buildModernEmailTemplate({
+        title: msg.subject,
+        eyebrow: language === 'uz' ? 'Natijalar' : 'Results',
+        bodyHtml: plainTextToEmailHtml(msg.text),
+        ctaText: language === 'uz' ? 'Profilni ochish' : 'Open profile',
+        ctaUrl: `${getAppUrl()}/dashboard.html#profile`,
+        footerNote: language === 'uz'
+            ? "Bu xabar avtomatik yuborildi."
+            : 'This is an automated message.'
+    });
+
+    const results = {
+        delivered: false,
+        email: false,
+        telegram: false,
+        in_app: false
+    };
+
+    const metadata = {
+        test_type: isCareer ? 'career' : 'subject',
+        test_id: normalizedPayload.test_id || null
+    };
+
+    if (user?.telegram_id && await isEventEnabledForChannel(user, 'telegram', 'test_results')) {
+        const telegramResult = await sendTelegram(user.telegram_id, msg.telegram, { returnDetails: true });
+        const ok = !!telegramResult.ok;
+        results.telegram = ok;
+
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'telegram',
+            eventKey: 'test_results',
+            status: ok ? 'sent' : 'failed',
+            recipient: String(user.telegram_id),
+            errorMessage: ok ? null : (telegramResult.error || 'Telegram delivery failed'),
+            metadata
+        });
+    }
+
+    if (user?.email && await isEventEnabledForChannel(user, 'email', 'test_results')) {
+        const ok = await sendEmail({
+            to: user.email,
+            subject: msg.subject,
+            text: msg.text,
+            html: emailHtml
+        });
+        results.email = ok;
+
+        await logNotificationAttempt({
+            userId: user.id,
+            channel: 'email',
+            eventKey: 'test_results',
+            status: ok ? 'sent' : 'failed',
+            recipient: user.email,
+            subject: msg.subject,
+            metadata
+        });
+    }
+
+    if (await isEventEnabledForChannel(user, 'in_app', 'test_results')) {
+        try {
+            const ok = await sendInAppNotification(user.id, {
+                action: 'notification_test_results',
+                entityType: isCareer ? 'career_test' : 'test_attempt',
+                entityId: normalizedPayload.test_id || null,
+                details: {
+                    event_key: 'test_results',
+                    title: msg.subject,
+                    message: msg.text,
+                    test_type: isCareer ? 'career' : 'subject',
+                    test_title: testTitle,
+                    percentage: percentage,
+                    score: Number.isFinite(score) ? score : null,
+                    max_score: Number.isFinite(maxScore) ? maxScore : null,
+                    passed: normalizedPayload.passed === undefined ? null : !!normalizedPayload.passed,
+                    top_interests: topInterests,
+                    recommended_subjects: recommendedSubjects
+                }
+            });
+            results.in_app = ok;
+
+            await logNotificationAttempt({
+                userId: user.id,
+                channel: 'in_app',
+                eventKey: 'test_results',
+                status: ok ? 'sent' : 'failed',
+                recipient: String(user.id),
+                subject: msg.subject,
+                metadata
+            });
+        } catch (error) {
+            await logNotificationAttempt({
+                userId: user.id,
+                channel: 'in_app',
+                eventKey: 'test_results',
+                status: 'failed',
+                recipient: String(user.id),
+                subject: msg.subject,
+                errorMessage: error.message || 'Failed to write in-app notification',
+                metadata
+            });
+        }
+    }
+
+    results.delivered = results.telegram || results.email || results.in_app;
+    return results;
+}
+
 /**
  * Send notification about password reset
  * @param {Object} user - User object
@@ -1247,6 +1432,7 @@ module.exports = {
     invalidateNotificationDefaultsCache,
     notifySystemChange,
     notifyNewTest,
+    notifyTestResults,
     notifyPasswordReset,
     notifyNewUser
 };
