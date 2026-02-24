@@ -120,7 +120,6 @@ router.use(authenticate);
 router.use(authorize('school_admin'));
 
 const COLUMN_CACHE = {};
-let USER_ROLE_ENUM_CACHE = null;
 
 async function getTableColumns(tableName) {
     if (COLUMN_CACHE[tableName]) {
@@ -140,10 +139,6 @@ async function getTableColumns(tableName) {
 }
 
 async function getUserRoleEnumValues() {
-    if (Array.isArray(USER_ROLE_ENUM_CACHE) && USER_ROLE_ENUM_CACHE.length) {
-        return USER_ROLE_ENUM_CACHE;
-    }
-
     const result = await query(
         `SELECT e.enumlabel
          FROM pg_type t
@@ -153,8 +148,7 @@ async function getUserRoleEnumValues() {
          ORDER BY e.enumsortorder`
     );
 
-    USER_ROLE_ENUM_CACHE = (result.rows || []).map((row) => row.enumlabel);
-    return USER_ROLE_ENUM_CACHE;
+    return (result.rows || []).map((row) => row.enumlabel);
 }
 
 function pickColumn(columns, candidates, fallback = null) {
