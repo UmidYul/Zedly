@@ -348,24 +348,30 @@
 
 /* Keep masked password glyphs visible across WebKit/Blink browsers */
 #password {
-    color: var(--text-primary) !important;
-    -webkit-text-fill-color: var(--text-primary) !important;
-    caret-color: var(--text-primary);
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    caret-color: #0f172a;
+    text-shadow: 0 0 0 #0f172a;
 }
 
 #password::placeholder {
-    color: var(--text-secondary) !important;
-    -webkit-text-fill-color: var(--text-secondary) !important;
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
 }
 
 #password[type="password"] {
     font-family: sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.08em;
 }
 
 #password:-webkit-autofill,
 #password:-webkit-autofill:hover,
 #password:-webkit-autofill:focus {
-    -webkit-text-fill-color: var(--text-primary) !important;
+    -webkit-text-fill-color: #0f172a !important;
+    box-shadow: 0 0 0 1000px #eef2ff inset !important;
+    -webkit-box-shadow: 0 0 0 1000px #eef2ff inset !important;
+    caret-color: #0f172a;
 }
 
 /* Hide native password reveal/clear controls (Edge/IE/Chromium variants)
@@ -389,7 +395,7 @@
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: var(--text-secondary);
+    color: #64748b;
     cursor: pointer;
     padding: var(--spacing-sm);
     display: flex;
@@ -399,7 +405,7 @@
 }
 
 .password-toggle:hover {
-    color: var(--primary);
+    color: #334155;
 }
 
 .password-toggle .eye-closed {
