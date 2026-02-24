@@ -2049,11 +2049,23 @@ router.get('/career/results', async (req, res) => {
 
         const resultsSchema = await getCareerResultsColumns();
         let resultRow = null;
+        const selectReliability = resultsSchema.reliability ? 'reliability' : 'NULL::jsonb AS reliability';
+        const selectAttemptNo = resultsSchema.attemptNo ? 'attempt_no' : 'NULL::integer AS attempt_no';
+        const selectCompletedAt = resultsSchema.completedAt ? 'completed_at' : 'NULL::timestamp AS completed_at';
+        const selectTakenAt = resultsSchema.takenAt ? 'taken_at' : 'NULL::timestamp AS taken_at';
 
         if (resultsSchema.interestsScores || resultsSchema.recommendedSubjects) {
             const orderColumn = resultsSchema.completedAt ? 'completed_at' : (resultsSchema.takenAt ? 'taken_at' : 'id');
+            const selectInterestsScores = resultsSchema.interestsScores ? 'interests_scores' : 'NULL::jsonb AS interests_scores';
+            const selectRecommendedSubjects = resultsSchema.recommendedSubjects ? 'recommended_subjects' : 'NULL::jsonb AS recommended_subjects';
             const result = await query(
-                `SELECT interests_scores, recommended_subjects, reliability, attempt_no, completed_at, taken_at
+                `SELECT
+                    ${selectInterestsScores},
+                    ${selectRecommendedSubjects},
+                    ${selectReliability},
+                    ${selectAttemptNo},
+                    ${selectCompletedAt},
+                    ${selectTakenAt}
                  FROM student_career_results
                  WHERE student_id = $1
                  ORDER BY ${orderColumn} DESC NULLS LAST
@@ -2063,8 +2075,18 @@ router.get('/career/results', async (req, res) => {
             resultRow = result.rows[0] || null;
         } else if (resultsSchema.results) {
             const orderColumn = resultsSchema.completedAt ? 'completed_at' : (resultsSchema.takenAt ? 'taken_at' : 'id');
+            const selectResults = resultsSchema.results ? 'results' : 'NULL::jsonb AS results';
+            const selectTopInterests = resultsSchema.topInterests ? 'top_interests' : 'NULL::text[] AS top_interests';
+            const selectRecommendations = resultsSchema.recommendations ? 'recommendations' : 'NULL::text AS recommendations';
             const result = await query(
-                `SELECT results, top_interests, recommendations, reliability, attempt_no, completed_at, taken_at
+                `SELECT
+                    ${selectResults},
+                    ${selectTopInterests},
+                    ${selectRecommendations},
+                    ${selectReliability},
+                    ${selectAttemptNo},
+                    ${selectCompletedAt},
+                    ${selectTakenAt}
                  FROM student_career_results
                  WHERE student_id = $1
                  ORDER BY ${orderColumn} DESC NULLS LAST
@@ -2133,18 +2155,27 @@ router.get('/career/history', async (req, res) => {
         const byId = new Map(interests.map((interest) => [String(interest.id), interest]));
         const resultsSchema = await getCareerResultsColumns();
         const orderColumn = resultsSchema.completedAt ? 'completed_at' : (resultsSchema.takenAt ? 'taken_at' : 'id');
+        const selectAttemptNo = resultsSchema.attemptNo ? 'attempt_no' : 'NULL::integer AS attempt_no';
+        const selectInterestsScores = resultsSchema.interestsScores ? 'interests_scores' : 'NULL::jsonb AS interests_scores';
+        const selectRecommendedSubjects = resultsSchema.recommendedSubjects ? 'recommended_subjects' : 'NULL::jsonb AS recommended_subjects';
+        const selectResults = resultsSchema.results ? 'results' : 'NULL::jsonb AS results';
+        const selectReliability = resultsSchema.reliability ? 'reliability' : 'NULL::jsonb AS reliability';
+        const selectTopInterests = resultsSchema.topInterests ? 'top_interests' : 'NULL::text[] AS top_interests';
+        const selectRecommendations = resultsSchema.recommendations ? 'recommendations' : 'NULL::text AS recommendations';
+        const selectCompletedAt = resultsSchema.completedAt ? 'completed_at' : 'NULL::timestamp AS completed_at';
+        const selectTakenAt = resultsSchema.takenAt ? 'taken_at' : 'NULL::timestamp AS taken_at';
         const rowsResult = await query(
             `SELECT
                 id,
-                attempt_no,
-                interests_scores,
-                recommended_subjects,
-                results,
-                reliability,
-                top_interests,
-                recommendations,
-                completed_at,
-                taken_at
+                ${selectAttemptNo},
+                ${selectInterestsScores},
+                ${selectRecommendedSubjects},
+                ${selectResults},
+                ${selectReliability},
+                ${selectTopInterests},
+                ${selectRecommendations},
+                ${selectCompletedAt},
+                ${selectTakenAt}
              FROM student_career_results
              WHERE student_id = $1
              ORDER BY ${orderColumn} DESC NULLS LAST, id DESC`,
@@ -2209,6 +2240,19 @@ router.get('/career/report.pdf', async (req, res) => {
         }
 
         const studentId = req.user.id;
+        const resultsSchema = await getCareerResultsColumns();
+        const reportOrderExpr = resultsSchema.completedAt && resultsSchema.takenAt
+            ? 'COALESCE(completed_at, taken_at)'
+            : (resultsSchema.completedAt ? 'completed_at' : (resultsSchema.takenAt ? 'taken_at' : 'id'));
+        const selectAttemptNo = resultsSchema.attemptNo ? 'attempt_no' : 'NULL::integer AS attempt_no';
+        const selectInterestsScores = resultsSchema.interestsScores ? 'interests_scores' : 'NULL::jsonb AS interests_scores';
+        const selectRecommendedSubjects = resultsSchema.recommendedSubjects ? 'recommended_subjects' : 'NULL::jsonb AS recommended_subjects';
+        const selectResults = resultsSchema.results ? 'results' : 'NULL::jsonb AS results';
+        const selectReliability = resultsSchema.reliability ? 'reliability' : 'NULL::jsonb AS reliability';
+        const selectTopInterests = resultsSchema.topInterests ? 'top_interests' : 'NULL::text[] AS top_interests';
+        const selectCompletedAt = resultsSchema.completedAt && resultsSchema.takenAt
+            ? 'COALESCE(completed_at, taken_at) AS completed_at'
+            : (resultsSchema.completedAt ? 'completed_at' : (resultsSchema.takenAt ? 'taken_at AS completed_at' : 'NULL::timestamp AS completed_at'));
         const profileResult = await query(
             `SELECT first_name, last_name, username
              FROM users
@@ -2220,16 +2264,16 @@ router.get('/career/report.pdf', async (req, res) => {
 
         const historyResult = await query(
             `SELECT
-                attempt_no,
-                interests_scores,
-                recommended_subjects,
-                results,
-                reliability,
-                top_interests,
-                COALESCE(completed_at, taken_at) AS completed_at
+                ${selectAttemptNo},
+                ${selectInterestsScores},
+                ${selectRecommendedSubjects},
+                ${selectResults},
+                ${selectReliability},
+                ${selectTopInterests},
+                ${selectCompletedAt}
              FROM student_career_results
              WHERE student_id = $1
-             ORDER BY COALESCE(completed_at, taken_at) DESC NULLS LAST, id DESC
+             ORDER BY ${reportOrderExpr} DESC NULLS LAST, id DESC
              LIMIT 20`,
             [studentId]
         );
