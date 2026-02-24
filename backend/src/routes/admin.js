@@ -120,6 +120,7 @@ router.use(authenticate);
 router.use(authorize('school_admin'));
 
 const COLUMN_CACHE = {};
+let USER_ROLE_ENUM_CACHE = null;
 
 async function getTableColumns(tableName) {
     if (COLUMN_CACHE[tableName]) {
@@ -136,6 +137,24 @@ async function getTableColumns(tableName) {
     const columns = new Set(result.rows.map(row => row.column_name));
     COLUMN_CACHE[tableName] = columns;
     return columns;
+}
+
+async function getUserRoleEnumValues() {
+    if (Array.isArray(USER_ROLE_ENUM_CACHE) && USER_ROLE_ENUM_CACHE.length) {
+        return USER_ROLE_ENUM_CACHE;
+    }
+
+    const result = await query(
+        `SELECT e.enumlabel
+         FROM pg_type t
+         JOIN pg_enum e ON e.enumtypid = t.oid
+         WHERE t.typnamespace = 'public'::regnamespace
+           AND t.typname = 'user_role'
+         ORDER BY e.enumsortorder`
+    );
+
+    USER_ROLE_ENUM_CACHE = (result.rows || []).map((row) => row.enumlabel);
+    return USER_ROLE_ENUM_CACHE;
 }
 
 function pickColumn(columns, candidates, fallback = null) {
@@ -539,8 +558,10 @@ router.post('/users', async (req, res) => {
             nextPhone: normalizedPhone || ''
         }).settings;
 
+        const normalizedRole = String(role || '').trim();
+
         // Validation
-        if (!username || !role || !first_name || !last_name) {
+        if (!username || !normalizedRole || !first_name || !last_name) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'Username, role, first name and last name are required'
@@ -549,10 +570,18 @@ router.post('/users', async (req, res) => {
 
         // Valid roles for school admin
         const validRoles = ['school_admin', 'teacher', 'student', 'psychologist'];
-        if (!validRoles.includes(role)) {
+        if (!validRoles.includes(normalizedRole)) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'Invalid role'
+            });
+        }
+
+        const dbRoles = await getUserRoleEnumValues();
+        if (dbRoles.length && !dbRoles.includes(normalizedRole)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: `Role "${normalizedRole}" is not available in current database schema`
             });
         }
 
@@ -585,7 +614,7 @@ router.post('/users', async (req, res) => {
              RETURNING id, username, role, first_name, last_name, email, phone, telegram_id, created_at`,
             [
                 schoolId,
-                role,
+                normalizedRole,
                 username.trim(),
                 passwordHash,
                 first_name.trim(),
@@ -603,7 +632,7 @@ router.post('/users', async (req, res) => {
         let studentClassAssigned = false;
 
         // If teacher, save teacher assignments
-        if (role === 'teacher' && req.body.teacher_assignments && Array.isArray(req.body.teacher_assignments)) {
+        if (normalizedRole === 'teacher' && req.body.teacher_assignments && Array.isArray(req.body.teacher_assignments)) {
             for (const assignment of req.body.teacher_assignments) {
                 const { subject_id, class_ids } = assignment;
                 if (subject_id && Array.isArray(class_ids)) {
@@ -640,7 +669,7 @@ router.post('/users', async (req, res) => {
             }
         }
         // If student, save class assignment
-        if (role === 'student' && req.body.student_class_id) {
+        if (normalizedRole === 'student' && req.body.student_class_id) {
             const classAccessCheck = await query(
                 'SELECT id FROM classes WHERE id = $1 AND school_id = $2',
                 [req.body.student_class_id, schoolId]
@@ -672,7 +701,7 @@ router.post('/users', async (req, res) => {
                 userId,
                 {
                     username: username.trim(),
-                    role,
+                    role: normalizedRole,
                     teacher_assignments_applied: teacherAssignmentsApplied,
                     student_class_assigned: studentClassAssigned
                 }
@@ -708,6 +737,26 @@ router.post('/users', async (req, res) => {
         });
     } catch (error) {
         console.error('Create user error:', error);
+
+        if (error?.code === '23505') {
+            const details = `${error.constraint || ''} ${error.detail || ''} ${error.message || ''}`.toLowerCase();
+            let message = 'Duplicate value already exists';
+            if (details.includes('username')) message = 'Username already exists';
+            else if (details.includes('email')) message = 'Email already exists';
+            else if (details.includes('phone')) message = 'Phone already exists';
+            return res.status(400).json({
+                error: 'duplicate_error',
+                message
+            });
+        }
+
+        if (error?.code === '22P02' && /enum user_role|user_role/i.test(String(error.message || ''))) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Selected role is not supported by current database schema'
+            });
+        }
+
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to create user'
