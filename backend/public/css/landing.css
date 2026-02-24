@@ -247,6 +247,52 @@ html {
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: var(--shadow);
     animation: landingFadeUp 0.7s ease both;
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    --spot-x: 50%;
+    --spot-y: 50%;
+    transition:
+        transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 220ms ease,
+        background-color 220ms ease,
+        box-shadow 280ms ease;
+}
+
+.landing-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: radial-gradient(
+        260px circle at var(--spot-x) var(--spot-y),
+        rgba(139, 181, 255, 0.2),
+        transparent 65%
+    );
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+}
+
+.landing-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.landing-card:hover,
+.landing-card.is-interactive {
+    border-color: rgba(139, 181, 255, 0.42);
+    box-shadow: 0 18px 36px rgba(5, 14, 32, 0.45);
+}
+
+.landing-card:hover::before,
+.landing-card.is-interactive::before {
+    opacity: 1;
+}
+
+.landing-card:focus-visible {
+    outline: none;
+    border-color: rgba(139, 181, 255, 0.52);
+    box-shadow: 0 0 0 3px rgba(73, 129, 235, 0.24), 0 18px 36px rgba(5, 14, 32, 0.45);
 }
 
 .landing-card:nth-child(1) { animation-delay: 0.06s; }
@@ -265,6 +311,12 @@ html {
 
 .landing-card p {
     color: var(--text-secondary);
+    transition: color 220ms ease;
+}
+
+.landing-card.is-interactive p,
+.landing-card:hover p {
+    color: #d8e3ff;
 }
 
 .landing-faq-list {
@@ -278,6 +330,12 @@ html {
     border-radius: 14px;
     padding: 14px 16px;
     animation: landingFadeUp 0.6s ease both;
+    transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+}
+
+.landing-faq-item:hover {
+    border-color: rgba(139, 181, 255, 0.35);
+    background: rgba(20, 33, 62, 0.72);
 }
 
 .landing-faq-item summary {
@@ -288,6 +346,7 @@ html {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+    transition: color 0.2s ease;
 }
 
 .landing-faq-item summary::-webkit-details-marker {
@@ -299,7 +358,7 @@ html {
     font-size: 1.2rem;
     line-height: 1;
     color: #8bb5ff;
-    transition: transform 0.25s ease, color 0.25s ease;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), color 0.25s ease;
 }
 
 .landing-faq-item[open] summary::after {
@@ -311,16 +370,29 @@ html {
     color: var(--text-secondary);
     margin-top: 0;
     line-height: 1.5;
-    max-height: 0;
+    height: 0;
     opacity: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease, opacity 0.22s ease, margin-top 0.3s ease;
+    will-change: height, opacity, margin-top;
 }
 
 .landing-faq-item[open] p {
-    max-height: 260px;
+    height: auto;
     opacity: 1;
     margin-top: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-card,
+    .landing-card::before,
+    .landing-faq-item,
+    .landing-faq-item summary::after {
+        transition: none;
+    }
+
+    .landing-card {
+        transform: none !important;
+    }
 }
 
 .landing-contact-grid {

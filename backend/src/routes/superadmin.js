@@ -251,8 +251,8 @@ function buildAuditFilters(queryInput = {}) {
         params.push(`%${search}%`);
         const p = `$${params.length}`;
         where.push(`(
-            al.action ILIKE ${p}
-            OR al.entity_type ILIKE ${p}
+            al.action::text ILIKE ${p}
+            OR al.entity_type::text ILIKE ${p}
             OR COALESCE(al.entity_id::text, '') ILIKE ${p}
             OR COALESCE(u.username, '') ILIKE ${p}
             OR COALESCE(u.first_name, '') ILIKE ${p}
@@ -277,9 +277,9 @@ function buildAuditFilters(queryInput = {}) {
         where.push(`al.user_id = $${params.length}::uuid`);
     }
     if (status === 'failed') {
-        where.push(`(al.action ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%')`);
+        where.push(`(al.action::text ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%')`);
     } else if (status === 'success') {
-        where.push(`NOT (al.action ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%')`);
+        where.push(`NOT (al.action::text ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%')`);
     }
     if (from) {
         params.push(from);
@@ -2246,7 +2246,7 @@ router.get('/audit/logs', async (req, res) => {
                 u.role AS actor_role,
                 s.id AS school_id,
                 ${schoolNameExpr} AS school_name,
-                (al.action ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%') AS is_failed
+                (al.action::text ILIKE '%failed%' OR COALESCE(al.details::text, '') ILIKE '%error%') AS is_failed
              FROM audit_logs al
              LEFT JOIN users u ON u.id = al.user_id
              LEFT JOIN schools s ON s.id = u.school_id
@@ -2294,7 +2294,7 @@ router.get('/audit/summary', async (req, res) => {
             SELECT
                 COUNT(*)::int AS total_events,
                 COUNT(DISTINCT user_id)::int AS unique_actors,
-                COUNT(*) FILTER (WHERE action ILIKE '%failed%' OR COALESCE(details::text, '') ILIKE '%error%')::int AS failed_events
+                COUNT(*) FILTER (WHERE action::text ILIKE '%failed%' OR COALESCE(details::text, '') ILIKE '%error%')::int AS failed_events
             FROM filtered`,
             baseParams
         );
