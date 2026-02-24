@@ -141,6 +141,31 @@
         return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}%`;
     }
 
+    function wrapRadarLabel(value, maxLineLen = 13) {
+        const text = String(value || '').trim();
+        if (!text) return ['-'];
+        if (text.length <= maxLineLen) return [text];
+        const words = text.split(/\s+/).filter(Boolean);
+        if (words.length <= 1) return [text];
+
+        const lines = [];
+        let current = '';
+        words.forEach((word) => {
+            if (!current) {
+                current = word;
+                return;
+            }
+            if ((current.length + 1 + word.length) <= maxLineLen) {
+                current += ` ${word}`;
+                return;
+            }
+            lines.push(current);
+            current = word;
+        });
+        if (current) lines.push(current);
+        return lines.length ? lines : [text];
+    }
+
     function getOverviewEndpoint(role) {
         const endpoints = {
             superadmin: '/api/superadmin/dashboard/overview',
@@ -449,22 +474,57 @@
         }
 
         canvas.style.display = 'block';
+        const wrappedLabels = labels.map((label) => wrapRadarLabel(label, 13));
 
         careerChart = new Chart(canvas, {
             type: 'radar',
             data: {
-                labels,
+                labels: wrappedLabels,
                 datasets: [{
                     label: i18n.translate('profile.interests'),
                     data: values,
-                    borderColor: 'rgb(74, 144, 226)',
-                    backgroundColor: 'rgba(74, 144, 226, 0.2)'
+                    borderColor: 'rgba(56, 189, 248, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.24)',
+                    pointBackgroundColor: 'rgba(14, 165, 233, 1)'
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                scales: { r: { beginAtZero: true, max: 100 } }
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            color: '#93c5fd',
+                            showLabelBackdrop: false,
+                            z: 1,
+                            font: {
+                                size: 12,
+                                family: 'Inter, Segoe UI, Arial, sans-serif',
+                                weight: '600'
+                            }
+                        },
+                        pointLabels: {
+                            color: '#dbeafe',
+                            font: {
+                                size: 12,
+                                family: 'Inter, Segoe UI, Arial, sans-serif',
+                                weight: '500'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.25)'
+                        },
+                        angleLines: {
+                            color: 'rgba(148, 163, 184, 0.22)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
             }
         });
     }
