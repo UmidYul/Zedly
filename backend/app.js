@@ -22,7 +22,7 @@ function loadRuntimeEnv() {
 
         dotenv.config({
             path: envPath,
-            override: false
+            override: true
         });
     }
 }
