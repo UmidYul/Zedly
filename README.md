@@ -119,7 +119,21 @@ npm run dev
 
 Сервер будет доступен на http://localhost:5000
 
-Frontend встроен в backend и сервится через Express.
+Доступные режимы запуска:
+
+```bash
+# Legacy monolith (API + web)
+npm run start:legacy
+
+# API-only
+npm run start:api
+
+# Web-only (static frontend + runtime config)
+npm run start:web
+
+# Worker (cron/background jobs)
+npm run start:worker
+```
 
 ### Production JS build (minify + obfuscate)
 
@@ -133,6 +147,12 @@ npm run build:frontend
 
 ```env
 SERVE_COMPILED_FRONTEND=true
+```
+
+Для production split (`web` + `api` + `worker`) используйте:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up --build -d
 ```
 
 ## Безопасность

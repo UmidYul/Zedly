@@ -11,7 +11,9 @@ if (typeof self !== 'undefined' && self.console) {
 const CACHE_NAME = 'zedly-shell-v8';
 const APP_SHELL = [
   '/',
+  '/runtime-config.js',
   '/css/landing.css',
+  '/js/api-client.js',
   '/js/landing.js',
   '/dashboard',
   '/css/main.css',

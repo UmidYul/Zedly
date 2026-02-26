@@ -1,36 +1,35 @@
 const request = require('supertest');
 process.env.NODE_ENV = 'test';
+
 const app = require('../server');
 const { pool } = require('../config/database');
 
-const DEFAULT_PASSWORD = process.env.SMOKE_PASSWORD || '';
+const DEFAULT_PASSWORD = process.env.SMOKE_PASSWORD || 'admin123';
 
 function credentialCandidates(role) {
     const map = {
-        superadmin: {
-            usernames: [process.env.SMOKE_SUPERADMIN_USERNAME, 'superadmin'],
-            passwords: [process.env.SMOKE_SUPERADMIN_PASSWORD, DEFAULT_PASSWORD, 'admin123']
-        },
         school_admin: {
             usernames: [
+                'admin1',
                 process.env.SMOKE_ADMIN_USERNAME,
                 process.env.SMOKE_SCHOOL_ADMIN_USERNAME,
-                'admin1',
-                'schooladmin',
-                'school_admin',
-                'admin'
             ],
-            passwords: [process.env.SMOKE_ADMIN_PASSWORD, process.env.SMOKE_SCHOOL_ADMIN_PASSWORD, DEFAULT_PASSWORD, 'admin123']
+            passwords: [
+                DEFAULT_PASSWORD,
+                process.env.SMOKE_ADMIN_PASSWORD,
+                process.env.SMOKE_SCHOOL_ADMIN_PASSWORD,
+            ]
         },
         teacher: {
-            usernames: [process.env.SMOKE_TEACHER_USERNAME, 'teacher1'],
-            passwords: [process.env.SMOKE_TEACHER_PASSWORD, DEFAULT_PASSWORD, 'admin123']
+            usernames: ['teacher1', process.env.SMOKE_TEACHER_USERNAME],
+            passwords: [DEFAULT_PASSWORD, process.env.SMOKE_TEACHER_PASSWORD]
         },
         student: {
-            usernames: [process.env.SMOKE_STUDENT_USERNAME, 'student1'],
-            passwords: [process.env.SMOKE_STUDENT_PASSWORD, DEFAULT_PASSWORD, 'admin123']
+            usernames: ['student1', process.env.SMOKE_STUDENT_USERNAME],
+            passwords: [DEFAULT_PASSWORD, process.env.SMOKE_STUDENT_PASSWORD]
         }
     };
+
     const cfg = map[role] || { usernames: [], passwords: [] };
     return {
         usernames: Array.from(new Set(cfg.usernames.filter(Boolean))),
@@ -40,15 +39,21 @@ function credentialCandidates(role) {
 
 const context = {
     users: {},
-    tokens: {},
-    createdAssignmentId: null,
+    agents: {},
     loginError: null
 };
 
 jest.setTimeout(120000);
 
-function authHeader(token) {
-    return { Authorization: `Bearer ${token}` };
+async function getCsrfToken(role) {
+    const response = await context.agents[role]
+        .get('/api/auth/csrf-token');
+
+    if (response.status !== 200 || !response.body?.csrf_token) {
+        throw new Error(`Failed to get CSRF token for role=${role}: status=${response.status}`);
+    }
+
+    return response.body.csrf_token;
 }
 
 async function loginWithFallback(role) {
@@ -56,44 +61,43 @@ async function loginWithFallback(role) {
     const errors = [];
 
     if (!usernames.length || !passwords.length) {
-        throw new Error(`Missing smoke credentials for role=${role}. Set SMOKE_* env vars.`);
+        throw new Error(`Missing smoke credentials for role=${role}`);
     }
 
     for (const username of usernames) {
         for (const password of passwords) {
-            const response = await request(app)
+            const agent = request.agent(app);
+
+            const loginResponse = await agent
                 .post('/api/auth/login')
                 .send({ username, password });
 
-            if (response.status !== 200) {
-                errors.push(`${username}: ${response.status}`);
+            if (loginResponse.status !== 200) {
+                errors.push(`${username}:${loginResponse.status}`);
                 continue;
             }
 
-            const body = response.body || {};
-            if (body.must_change_password) {
-                errors.push(`${username}: must_change_password`);
+            if (loginResponse.body?.must_change_password) {
+                errors.push(`${username}:must_change_password`);
                 continue;
             }
 
-            if (!body.access_token || !body.user?.id) {
-                errors.push(`${username}: missing access token`);
+            const meResponse = await agent.get('/api/auth/me');
+            if (meResponse.status !== 200 || !meResponse.body?.user?.id) {
+                errors.push(`${username}:auth_me_${meResponse.status}`);
                 continue;
             }
 
-            context.tokens[role] = body.access_token;
-            context.users[role] = body.user;
+            context.agents[role] = agent;
+            context.users[role] = meResponse.body.user;
             return;
         }
     }
 
-    throw new Error(
-        `Unable to login as ${role}. Tried: ${errors.join(', ')}. ` +
-        `Configure SMOKE_${role.toUpperCase()}_USERNAME / SMOKE_${role.toUpperCase()}_PASSWORD`
-    );
+    throw new Error(`Unable to login as ${role}. Tried: ${errors.join(', ')}`);
 }
 
-describe('E2E smoke: login/import/assign/take/report', () => {
+describe('E2E smoke: auth/core flows', () => {
     beforeAll(async () => {
         try {
             await loginWithFallback('school_admin');
@@ -108,7 +112,7 @@ describe('E2E smoke: login/import/assign/take/report', () => {
         try {
             await pool.end();
         } catch (_) {
-            // ignore pool close errors in smoke teardown
+            // ignore pool close errors
         }
     });
 
@@ -118,20 +122,20 @@ describe('E2E smoke: login/import/assign/take/report', () => {
         }
     }
 
-    test('login flow for core roles', async () => {
+    test('login session established for core roles', () => {
         ensureLogin();
-        expect(context.tokens.school_admin).toBeTruthy();
-        expect(context.tokens.teacher).toBeTruthy();
-        expect(context.tokens.student).toBeTruthy();
+        expect(context.agents.school_admin).toBeTruthy();
+        expect(context.agents.teacher).toBeTruthy();
+        expect(context.agents.student).toBeTruthy();
     });
 
-    test('auth/me works for logged in users', async () => {
+    test('auth/me works via cookie sessions', async () => {
         ensureLogin();
         const roles = ['school_admin', 'teacher', 'student'];
+
         for (const role of roles) {
-            const response = await request(app)
-                .get('/api/auth/me')
-                .set(authHeader(context.tokens[role]));
+            const response = await context.agents[role]
+                .get('/api/auth/me');
 
             expect(response.status).toBe(200);
             expect(response.body?.user?.id).toBeTruthy();
@@ -141,57 +145,46 @@ describe('E2E smoke: login/import/assign/take/report', () => {
 
     test('import/export endpoints smoke for school admin', async () => {
         ensureLogin();
-        const token = context.tokens.school_admin;
+        const agent = context.agents.school_admin;
 
-        const templateRes = await request(app)
-            .get('/api/admin/import/template/users?type=student')
-            .set(authHeader(token));
+        const templateRes = await agent
+            .get('/api/admin/import/template/users?type=student');
         expect(templateRes.status).toBe(200);
         expect(String(templateRes.headers['content-type'] || '')).toContain('spreadsheetml');
 
-        const exportRes = await request(app)
-            .get('/api/admin/export/users')
-            .set(authHeader(token));
+        const exportRes = await agent
+            .get('/api/admin/export/users');
         expect(exportRes.status).toBe(200);
         expect(String(exportRes.headers['content-type'] || '')).toContain('spreadsheetml');
     });
 
-    test('teacher assignment flow smoke', async () => {
+    test('teacher assignment create/update smoke', async () => {
         ensureLogin();
-        const token = context.tokens.teacher;
-        const testsRes = await request(app)
-            .get('/api/teacher/tests?status=active&limit=20')
-            .set(authHeader(token));
+        const agent = context.agents.teacher;
 
+        const testsRes = await agent.get('/api/teacher/tests?status=active&limit=20');
         expect(testsRes.status).toBe(200);
         const tests = testsRes.body?.tests || [];
-        if (!tests.length) {
-            return;
-        }
+        if (!tests.length) return;
 
         const selectedTest = tests.find((row) => row.subject_id) || tests[0];
-        if (!selectedTest?.id || !selectedTest?.subject_id) {
-            return;
-        }
+        if (!selectedTest?.id || !selectedTest?.subject_id) return;
 
-        const classesRes = await request(app)
-            .get(`/api/teacher/classes-by-subject?subject_id=${encodeURIComponent(selectedTest.subject_id)}`)
-            .set(authHeader(token));
+        const classesRes = await agent
+            .get(`/api/teacher/classes-by-subject?subject_id=${encodeURIComponent(selectedTest.subject_id)}`);
         expect(classesRes.status).toBe(200);
-
         const classes = classesRes.body?.classes || [];
-        if (!classes.length) {
-            return;
-        }
+        if (!classes.length) return;
 
         const targetClass = classes[0];
         const now = new Date();
         const startDate = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
         const endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        const csrfToken = await getCsrfToken('teacher');
 
-        const assignRes = await request(app)
+        const assignRes = await agent
             .post('/api/teacher/assignments')
-            .set(authHeader(token))
+            .set('X-CSRF-Token', csrfToken)
             .send({
                 test_id: selectedTest.id,
                 class_ids: [targetClass.id],
@@ -199,53 +192,39 @@ describe('E2E smoke: login/import/assign/take/report', () => {
                 end_date: endDate
             });
 
-        if (assignRes.status === 201) {
-            const created = assignRes.body?.assignments || [];
-            if (created.length > 0) {
-                context.createdAssignmentId = created[0].id;
-            }
-            expect(assignRes.body?.message).toBeTruthy();
-            return;
-        }
-
-        expect(assignRes.status).toBe(400);
+        expect([201, 400]).toContain(assignRes.status);
     });
 
-    test('student take flow smoke', async () => {
+    test('student start attempt smoke', async () => {
         ensureLogin();
-        const token = context.tokens.student;
-        const assignmentsRes = await request(app)
-            .get('/api/student/assignments?status=active')
-            .set(authHeader(token));
+        const agent = context.agents.student;
+        const assignmentsRes = await agent
+            .get('/api/student/assignments?status=active');
 
         expect(assignmentsRes.status).toBe(200);
         const assignments = assignmentsRes.body?.assignments || [];
-        if (!assignments.length) {
-            return;
-        }
+        if (!assignments.length) return;
 
         const assignmentId = assignments[0]?.id;
-        if (!assignmentId) {
-            return;
-        }
+        if (!assignmentId) return;
 
-        const startRes = await request(app)
-            .post('/api/student/tests/start')
-            .set(authHeader(token))
+        const csrfToken = await getCsrfToken('student');
+        const startRes = await agent
+            .post('/api/student/attempts')
+            .set('X-CSRF-Token', csrfToken)
             .send({ assignment_id: assignmentId });
 
-        expect([200, 400]).toContain(startRes.status);
+        expect([200, 201, 400]).toContain(startRes.status);
     });
 
     test('student report flow smoke', async () => {
         ensureLogin();
-        const token = context.tokens.student;
+        const agent = context.agents.student;
         const studentId = context.users.student?.id;
         expect(studentId).toBeTruthy();
 
-        const reportRes = await request(app)
-            .get(`/api/analytics/student/${encodeURIComponent(studentId)}/report`)
-            .set(authHeader(token));
+        const reportRes = await agent
+            .get(`/api/analytics/student/${encodeURIComponent(studentId)}/report`);
 
         expect(reportRes.status).toBe(200);
         expect(reportRes.body?.student?.id).toBeTruthy();

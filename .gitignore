@@ -1,12 +1,12 @@
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 
 # Environment variables
 .env
 .env.local
 .env.production
+.env.prod
 .env.docker.local
 
 # Logs
@@ -45,6 +45,10 @@ temp/
 
 # Database dumps
 *.sql
+!database/schema.sql
+!database/schema_safe.sql
+!database/seed_safe.sql
+!database/migrations/*.sql
 *.dump
 
 # OS

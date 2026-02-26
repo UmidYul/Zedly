@@ -4,6 +4,8 @@ This Docker configuration is for local development only:
 - `backend` (Node.js API + static frontend)
 - `db` (PostgreSQL 16, isolated local container/volume)
 
+For production split (`web` + `api` + `worker`), use `docker-compose.prod.yml`.
+
 ## Why this is safe for prod
 
 - Local Docker DB has separate defaults (`zedly_local`, port `5433`).
@@ -64,3 +66,17 @@ docker compose --env-file .env.docker.local logs -f backend
 docker compose --env-file .env.docker.local logs -f db
 docker compose --env-file .env.docker.local down
 ```
+
+## Production split deployment
+
+```bash
+cp .env.prod.example .env.prod
+docker compose -f docker-compose.prod.yml --env-file .env.prod up --build -d
+```
+
+Services:
+- `reverse-proxy` (Nginx)
+- `web` (static frontend + runtime config)
+- `api` (API-only backend)
+- `worker` (background jobs)
+- `db` (PostgreSQL)

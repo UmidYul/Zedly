@@ -15,6 +15,8 @@ const { ensureCsrfCookie, verifyCsrfToken } = require('./middleware/csrf');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const serveFrontend = String(process.env.SERVE_FRONTEND || 'true').toLowerCase() !== 'false';
+const serveApi = String(process.env.SERVE_API || 'true').toLowerCase() !== 'false';
 app.set('trust proxy', 1);
 
 function parsePositiveInt(value, fallback) {
@@ -36,7 +38,7 @@ function normalizeOrigin(rawOrigin) {
 function buildAllowedCorsOrigins() {
     const entries = [];
 
-    [process.env.FRONTEND_URL, process.env.APP_URL].forEach((value) => {
+    [process.env.FRONTEND_URL, process.env.APP_URL, process.env.WEB_BASE_URL].forEach((value) => {
         if (value) entries.push(value);
     });
 
@@ -88,8 +90,58 @@ function buildCspDirectives(allowedOrigins) {
     };
 }
 
-const apiRateLimitWindowMs = parsePositiveInt(process.env.API_RATE_LIMIT_WINDOW_MS, 60_000);
-const apiRateLimitMax = parsePositiveInt(process.env.API_RATE_LIMIT_MAX, 240);
+function parseBoolean(value, fallback = false) {
+    if (value === undefined || value === null || value === '') return fallback;
+    return String(value).trim().toLowerCase() === 'true';
+}
+
+function normalizeV1ErrorBody(req, payload, statusCode) {
+    const status = Number.isFinite(statusCode) ? statusCode : 500;
+    const requestId = req.requestId || null;
+
+    if (payload && typeof payload === 'object' && payload.error && typeof payload.error === 'object' && payload.error.code) {
+        return {
+            error: {
+                code: String(payload.error.code || 'error'),
+                message: String(payload.error.message || payload.message || 'Request failed'),
+                details: payload.error.details || undefined,
+                request_id: requestId,
+                status
+            }
+        };
+    }
+
+    if (payload && typeof payload === 'object' && typeof payload.error === 'string') {
+        return {
+            error: {
+                code: payload.error,
+                message: String(payload.message || payload.error),
+                details: payload.details || undefined,
+                request_id: requestId,
+                status
+            }
+        };
+    }
+
+    return {
+        error: {
+            code: 'request_failed',
+            message: String(payload?.message || 'Request failed'),
+            details: payload?.details || undefined,
+            request_id: requestId,
+            status
+        }
+    };
+}
+
+const apiRateLimitWindowMs = parsePositiveInt(
+    process.env.API_RATE_LIMIT_WINDOW_MS || process.env.RATE_LIMIT_WINDOW_MS,
+    60_000
+);
+const apiRateLimitMax = parsePositiveInt(
+    process.env.API_RATE_LIMIT_MAX || process.env.RATE_LIMIT_MAX_REQUESTS,
+    240
+);
 const allowedCorsOrigins = buildAllowedCorsOrigins();
 
 const apiRateLimiter = rateLimit({
@@ -157,7 +209,7 @@ if (!process.env.JWT_SECRET) {
     console.error('Add JWT_SECRET to your .env file');
 }
 
-if (!process.env.DB_PASSWORD) {
+if (serveApi && !process.env.DB_PASSWORD) {
     console.warn('\n⚠️  WARNING: DB_PASSWORD not set in .env!');
 }
 
@@ -210,26 +262,76 @@ app.use((req, res, next) => {
     next();
 });
 
-// SEO: index only the landing page, block private/app pages and API routes.
 app.use((req, res, next) => {
-    const path = req.path || '/';
-    const indexablePaths = new Set(['/']);
-    const xRobotsTag = indexablePaths.has(path)
-        ? 'index, follow'
-        : 'noindex, nofollow, noarchive, nosnippet';
-    res.setHeader('X-Robots-Tag', xRobotsTag);
+    const originalJson = res.json.bind(res);
+    res.apiError = (statusCode, code, message, details) => {
+        return res.status(statusCode).json({
+            error: {
+                code,
+                message,
+                details,
+                request_id: req.requestId || null,
+                status: statusCode
+            }
+        });
+    };
+
+    res.json = (payload) => {
+        const isV1Request = String(req.originalUrl || req.url || '').startsWith('/api/v1/');
+        if (isV1Request && res.statusCode >= 400) {
+            return originalJson(normalizeV1ErrorBody(req, payload, res.statusCode));
+        }
+        return originalJson(payload);
+    };
+
     next();
 });
 
+const logApiRequests = parseBoolean(process.env.LOG_API_REQUESTS, process.env.NODE_ENV !== 'production');
+if (logApiRequests) {
+    app.use((req, res, next) => {
+        const startedAt = process.hrtime.bigint();
+        res.on('finish', () => {
+            const pathValue = String(req.originalUrl || req.url || '');
+            if (!pathValue.startsWith('/api/')) return;
+
+            const elapsedMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+            const structured = {
+                event: 'api_request',
+                request_id: req.requestId || null,
+                method: req.method,
+                path: pathValue,
+                status: res.statusCode,
+                duration_ms: Number(elapsedMs.toFixed(2)),
+                ip: req.ip || null
+            };
+            console.log(JSON.stringify(structured));
+        });
+        next();
+    });
+}
+
+// SEO: index only the landing page, block private/app pages and API routes.
+if (serveFrontend) {
+    app.use((req, res, next) => {
+        const pathValue = req.path || '/';
+        const indexablePaths = new Set(['/']);
+        const xRobotsTag = indexablePaths.has(pathValue)
+            ? 'index, follow'
+            : 'noindex, nofollow, noarchive, nosnippet';
+        res.setHeader('X-Robots-Tag', xRobotsTag);
+        next();
+    });
+}
+
 // Canonical URL normalization for SEO.
-const canonicalRedirectEnabled = String(process.env.ENABLE_CANONICAL_REDIRECT || '').toLowerCase() === 'true'
-    || process.env.NODE_ENV === 'production';
+const canonicalRedirectEnabled = serveFrontend && (
+    String(process.env.ENABLE_CANONICAL_REDIRECT || '').toLowerCase() === 'true'
+    || process.env.NODE_ENV === 'production'
+);
 
-app.use((req, res, next) => {
-    if (!canonicalRedirectEnabled) {
-        return next();
-    }
-
+if (canonicalRedirectEnabled) {
+    app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
         return next();
     }
@@ -270,7 +372,8 @@ app.use((req, res, next) => {
     }
 
     return res.redirect(301, redirectUrl);
-});
+    });
+}
 
 // Logging
 if (process.env.NODE_ENV !== 'production') {
@@ -281,24 +384,59 @@ if (process.env.NODE_ENV !== 'production') {
 // API Routes (BEFORE static files!)
 // ==============================================
 
-console.log('Loading API routes...');
+const apiPrefixes = ['/api', '/api/v1'];
+if (serveApi) {
+    console.log('Loading API routes...');
 
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        message: 'ZEDLY API is running',
-        timestamp: new Date().toISOString()
+    app.get('/api/health', (req, res) => {
+        res.json({
+            status: 'OK',
+            message: 'ZEDLY API is running',
+            timestamp: new Date().toISOString()
+        });
     });
-});
 
-app.use('/api', apiRateLimiter);
-app.use('/api', ensureCsrfCookie);
-app.use('/api', (req, res, next) => {
-    if (req.path === '/health' || req.path.startsWith('/public/')) {
-        return next();
-    }
-    return verifyCsrfToken(req, res, next);
-});
+    app.get('/api/v1/health/live', (req, res) => {
+        res.json({
+            status: 'ok',
+            service: 'api',
+            timestamp: new Date().toISOString()
+        });
+    });
+
+    app.get('/api/v1/health/ready', async (req, res) => {
+        try {
+            await query('SELECT 1');
+            return res.json({
+                status: 'ready',
+                db: 'up',
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            return res.status(503).json({
+                error: 'service_unavailable',
+                message: 'Database is not ready'
+            });
+        }
+    });
+
+    apiPrefixes.forEach((prefix) => {
+        app.use(prefix, apiRateLimiter);
+        app.use(prefix, ensureCsrfCookie);
+        app.use(prefix, (req, res, next) => {
+            const normalizedPath = String(req.path || '').toLowerCase();
+            if (
+                normalizedPath === '/health'
+                || normalizedPath === '/health/live'
+                || normalizedPath === '/health/ready'
+                || normalizedPath.startsWith('/public/')
+            ) {
+                return next();
+            }
+            return verifyCsrfToken(req, res, next);
+        });
+    });
+}
 
 let landingStatsCache = {
     expiresAt: 0,
@@ -315,42 +453,20 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-app.get('/api/public/landing-stats', async (req, res) => {
-    try {
-        const now = Date.now();
-        if (landingStatsCache.payload && now < landingStatsCache.expiresAt) {
-            return res.json(landingStatsCache.payload);
-        }
+function registerPublicApiRoutes(prefix) {
+    app.get(`${prefix}/public/landing-stats`, async (req, res) => {
+        try {
+            const now = Date.now();
+            if (landingStatsCache.payload && now < landingStatsCache.expiresAt) {
+                return res.json(landingStatsCache.payload);
+            }
 
-        const [classColumnsResult, schoolColumnsResult, userColumnsResult] = await Promise.all([
-            query(
-                `SELECT column_name
-                 FROM information_schema.columns
-                 WHERE table_schema = 'public' AND table_name = 'classes'`
-            ),
-            query(
-                `SELECT column_name
-                 FROM information_schema.columns
-                 WHERE table_schema = 'public' AND table_name = 'schools'`
-            ),
-            query(
-                `SELECT column_name
-                 FROM information_schema.columns
-                 WHERE table_schema = 'public' AND table_name = 'users'`
-            )
-        ]);
-
-        const classColumns = new Set(classColumnsResult.rows.map((row) => row.column_name));
-        const schoolColumns = new Set(schoolColumnsResult.rows.map((row) => row.column_name));
-        const userColumns = new Set(userColumnsResult.rows.map((row) => row.column_name));
-
-        const classesFilter = classColumns.has('is_active') ? 'WHERE is_active = true' : '';
-        const schoolsFilter = schoolColumns.has('is_active') ? 'WHERE is_active = true' : '';
-        const usersFilter = userColumns.has('is_active') ? 'WHERE is_active = true' : '';
-
-        const usersQuery = query(`SELECT COUNT(*)::int AS total FROM users ${usersFilter}`);
-        const schoolsQuery = query(`SELECT COUNT(*)::int AS total FROM schools ${schoolsFilter}`);
-        const classesQuery = query(`SELECT COUNT(*)::int AS total FROM classes ${classesFilter}`);
+        const usersQuery = query('SELECT COUNT(*)::int AS total FROM users WHERE is_active = true')
+            .catch(() => query('SELECT COUNT(*)::int AS total FROM users'));
+        const schoolsQuery = query('SELECT COUNT(*)::int AS total FROM schools WHERE is_active = true')
+            .catch(() => query('SELECT COUNT(*)::int AS total FROM schools'));
+        const classesQuery = query('SELECT COUNT(*)::int AS total FROM classes WHERE is_active = true')
+            .catch(() => query('SELECT COUNT(*)::int AS total FROM classes'));
         const [usersCount, schoolsCount, classesCount] = await Promise.all([
             usersQuery,
             schoolsQuery,
@@ -374,14 +490,14 @@ app.get('/api/public/landing-stats', async (req, res) => {
         return res.json(payload);
     } catch (error) {
         console.error('Landing stats error:', error);
-        return res.status(500).json({
-            message: 'Failed to load landing stats'
-        });
-    }
-});
+            return res.status(500).json({
+                message: 'Failed to load landing stats'
+            });
+        }
+    });
 
-app.post('/api/public/feedback', async (req, res) => {
-    try {
+    app.post(`${prefix}/public/feedback`, async (req, res) => {
+        try {
         const name = String(req.body?.name || '').trim();
         const email = String(req.body?.email || '').trim().toLowerCase();
         const message = String(req.body?.message || '').trim();
@@ -497,132 +613,189 @@ app.post('/api/public/feedback', async (req, res) => {
         });
     } catch (error) {
         console.error('Landing feedback error:', error);
-        return res.status(500).json({
-            message: 'Failed to process feedback.'
-        });
-    }
-});
+            return res.status(500).json({
+                message: 'Failed to process feedback.'
+            });
+        }
+    });
+}
+
+if (serveApi) {
+    apiPrefixes.forEach((prefix) => registerPublicApiRoutes(prefix));
+}
 
 // Auth routes
-try {
-    const authRouter = require('./routes/auth');
-    app.use('/api/auth', authRouter);
-    console.log('✓ Auth routes loaded: /api/auth');
-} catch (error) {
-    console.error('❌ Failed to load auth routes:', error.message);
-    console.error(error.stack);
+if (serveApi) {
+    try {
+        const authRouter = require('./routes/auth');
+        app.use('/api/auth', authRouter);
+        app.use('/api/v1/auth', authRouter);
+        app.use('/api/v1/auth/session', authRouter);
+        app.use('/api/v1/auth/token', authRouter);
+        console.log('✓ Auth routes loaded: /api/auth + /api/v1/auth');
+    } catch (error) {
+        console.error('❌ Failed to load auth routes:', error.message);
+        console.error(error.stack);
+    }
 }
 
-// SuperAdmin routes
-try {
-    const superadminRouter = require('./routes/superadmin');
-    app.use('/api/superadmin', superadminRouter);
-    console.log('✓ SuperAdmin routes loaded: /api/superadmin');
-} catch (error) {
-    console.error('❌ Failed to load superadmin routes:', error.message);
-    console.error(error.stack);
-}
+if (serveApi) {
+    // SuperAdmin routes
+    try {
+        const superadminRouter = require('./routes/superadmin');
+        app.use('/api/superadmin', superadminRouter);
+        app.use('/api/v1/superadmin', superadminRouter);
+        console.log('✓ SuperAdmin routes loaded: /api/superadmin + /api/v1/superadmin');
+    } catch (error) {
+        console.error('❌ Failed to load superadmin routes:', error.message);
+        console.error(error.stack);
+    }
 
-// SchoolAdmin routes
-try {
-    const adminRouter = require('./routes/admin');
-    app.use('/api/admin', adminRouter);
-    console.log('✓ SchoolAdmin routes loaded: /api/admin');
-} catch (error) {
-    console.error('❌ Failed to load admin routes:', error.message);
-    console.error(error.stack);
-}
+    // SchoolAdmin routes
+    try {
+        const adminRouter = require('./routes/admin');
+        app.use('/api/admin', adminRouter);
+        app.use('/api/v1/admin', adminRouter);
+        console.log('✓ SchoolAdmin routes loaded: /api/admin + /api/v1/admin');
+    } catch (error) {
+        console.error('❌ Failed to load admin routes:', error.message);
+        console.error(error.stack);
+    }
 
-// Teacher routes
-try {
-    const teacherRouter = require('./routes/teacher');
-    app.use('/api/teacher', teacherRouter);
-    console.log('✓ Teacher routes loaded: /api/teacher');
-} catch (error) {
-    console.error('❌ Failed to load teacher routes:', error.message);
-    console.error(error.stack);
-}
+    // Teacher routes
+    try {
+        const teacherRouter = require('./routes/teacher');
+        app.use('/api/teacher', teacherRouter);
+        app.use('/api/v1/teacher', teacherRouter);
+        console.log('✓ Teacher routes loaded: /api/teacher + /api/v1/teacher');
+    } catch (error) {
+        console.error('❌ Failed to load teacher routes:', error.message);
+        console.error(error.stack);
+    }
 
-// Student routes
-try {
-    const studentRouter = require('./routes/student');
-    app.use('/api/student', studentRouter);
-    console.log('✓ Student routes loaded: /api/student');
-} catch (error) {
-    console.error('❌ Failed to load student routes:', error.message);
-    console.error(error.stack);
-}
+    // Student routes
+    try {
+        const studentRouter = require('./routes/student');
+        app.use('/api/student', studentRouter);
+        app.use('/api/v1/student', studentRouter);
+        console.log('✓ Student routes loaded: /api/student + /api/v1/student');
+    } catch (error) {
+        console.error('❌ Failed to load student routes:', error.message);
+        console.error(error.stack);
+    }
 
-// Psychologist routes
-try {
-    const psychologistRouter = require('./routes/psychologist');
-    app.use('/api/psychologist', psychologistRouter);
-    console.log('✓ Psychologist routes loaded: /api/psychologist');
-} catch (error) {
-    console.error('❌ Failed to load psychologist routes:', error.message);
-    console.error(error.stack);
-}
+    // Psychologist routes
+    try {
+        const psychologistRouter = require('./routes/psychologist');
+        app.use('/api/psychologist', psychologistRouter);
+        app.use('/api/v1/psychologist', psychologistRouter);
+        console.log('✓ Psychologist routes loaded: /api/psychologist + /api/v1/psychologist');
+    } catch (error) {
+        console.error('❌ Failed to load psychologist routes:', error.message);
+        console.error(error.stack);
+    }
 
-// Analytics routes
-try {
-    const analyticsRouter = require('./routes/analytics');
-    app.use('/api/analytics', analyticsRouter);
-    console.log('✓ Analytics routes loaded: /api/analytics');
-} catch (error) {
-    console.error('❌ Failed to load analytics routes:', error.message);
-    console.error(error.stack);
-}
+    // Analytics routes
+    try {
+        const analyticsRouter = require('./routes/analytics');
+        app.use('/api/analytics', analyticsRouter);
+        app.use('/api/v1/analytics', analyticsRouter);
+        console.log('✓ Analytics routes loaded: /api/analytics + /api/v1/analytics');
+    } catch (error) {
+        console.error('❌ Failed to load analytics routes:', error.message);
+        console.error(error.stack);
+    }
 
-// Telegram routes
-try {
-    const telegramRouter = require('./routes/telegram');
-    app.use('/api/telegram', telegramRouter);
-    console.log('✓ Telegram routes loaded: /api/telegram');
-} catch (error) {
-    console.error('❌ Failed to load telegram routes:', error.message);
-    console.error(error.stack);
-}
+    // Telegram routes
+    try {
+        const telegramRouter = require('./routes/telegram');
+        app.use('/api/telegram', telegramRouter);
+        app.use('/api/v1/telegram', telegramRouter);
+        console.log('✓ Telegram routes loaded: /api/telegram + /api/v1/telegram');
+    } catch (error) {
+        console.error('❌ Failed to load telegram routes:', error.message);
+        console.error(error.stack);
+    }
 
-// Career module routes
-try {
-    const careerRouter = require('../routes/career');
-    app.use('/api/career', careerRouter);
-    console.log('✓ Career module routes loaded: /api/career');
-} catch (error) {
-    console.error('❌ Failed to load career module routes:', error.message);
-    console.error(error.stack);
+    // Career module routes
+    try {
+        const careerRouter = require('../routes/career');
+        app.use('/api/career', careerRouter);
+        app.use('/api/v1/career', careerRouter);
+        console.log('✓ Career module routes loaded: /api/career + /api/v1/career');
+    } catch (error) {
+        console.error('❌ Failed to load career module routes:', error.message);
+        console.error(error.stack);
+    }
 }
 
 // ==============================================
 // Serve Static Files (AFTER API routes!)
 // ==============================================
 
-// Serve static files (HTML, CSS, JS)
-app.use(express.static(publicRoot));
+if (serveFrontend) {
+    // Serve static files (HTML, CSS, JS)
+    app.use(express.static(publicRoot));
 
-// ==============================================
-// Serve Frontend (HTML pages)
-// ==============================================
+    // Runtime config for frontend deployment split (web app -> api domain)
+    app.get('/runtime-config.js', (req, res) => {
+        const configuredApiBase = String(process.env.API_BASE_URL || '').trim();
+        const payload = [
+            '(function(){',
+            'window.__ZEDLY_CONFIG__=window.__ZEDLY_CONFIG__||{};',
+            `window.__ZEDLY_CONFIG__.API_BASE_URL=${JSON.stringify(configuredApiBase)};`,
+            '})();'
+        ].join('');
+        res.type('application/javascript').send(payload);
+    });
 
-// Landing page
-app.get('/', (req, res) => {
-    res.sendFile(path.join(publicRoot, 'index.html'));
-});
+    // ==============================================
+    // Serve Frontend (HTML pages)
+    // ==============================================
 
-// Login page
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(publicRoot, 'login.html'));
-});
+    // Landing page
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(publicRoot, 'index.html'));
+    });
 
-// Dashboard pages (will redirect to appropriate role-based page)
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(publicRoot, 'dashboard.html'));
-});
+    // Login page
+    app.get('/login', (req, res) => {
+        res.sendFile(path.join(publicRoot, 'login.html'));
+    });
 
-// Catch-all route (404)
-app.use((req, res) => {
-    res.status(404).sendFile(path.join(publicRoot, '404.html'));
-});
+    // Dashboard pages (will redirect to appropriate role-based page)
+    app.get('/dashboard', (req, res) => {
+        res.sendFile(path.join(publicRoot, 'dashboard.html'));
+    });
+
+    // Catch-all route (404)
+    app.use((req, res, next) => {
+        if (String(req.path || '').startsWith('/api/')) {
+            return next();
+        }
+        return res.status(404).sendFile(path.join(publicRoot, '404.html'));
+    });
+}
+
+if (serveApi) {
+    app.use('/api/v1', (req, res) => {
+        res.status(404).json({
+            error: {
+                code: 'not_found',
+                message: 'API route not found',
+                request_id: req.requestId || null,
+                status: 404
+            }
+        });
+    });
+
+    app.use('/api', (req, res) => {
+        res.status(404).json({
+            error: 'not_found',
+            message: 'API route not found'
+        });
+    });
+}
 
 // ==============================================
 // Error Handler
@@ -656,35 +829,37 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.get('/robots.txt', (req, res) => {
-    const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`)
-        .replace(/\/+$/, '')
-        .replace(/\/api$/i, '');
-    const robots = [
-        'User-agent: *',
-        'Allow: /',
-        'Disallow: /api/',
-        'Disallow: /dashboard',
-        'Disallow: /dashboard.html',
-        'Disallow: /change-password',
-        'Disallow: /change-password.html',
-        'Disallow: /student-',
-        'Disallow: /teacher-',
-        'Disallow: /advanced-analytics',
-        'Disallow: /grading',
-        'Disallow: /grade-attempt',
-        'Disallow: /class-details',
-        'Disallow: /import-users',
-        'Disallow: /telegram-status',
-        `Sitemap: ${appUrl}/sitemap.xml`
-    ].join('\n');
+if (serveFrontend) {
+    app.get('/robots.txt', (req, res) => {
+        const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`)
+            .replace(/\/+$/, '')
+            .replace(/\/api$/i, '');
+        const robots = [
+            'User-agent: *',
+            'Allow: /',
+            'Disallow: /api/',
+            'Disallow: /dashboard',
+            'Disallow: /dashboard.html',
+            'Disallow: /change-password',
+            'Disallow: /change-password.html',
+            'Disallow: /student-',
+            'Disallow: /teacher-',
+            'Disallow: /advanced-analytics',
+            'Disallow: /grading',
+            'Disallow: /grade-attempt',
+            'Disallow: /class-details',
+            'Disallow: /import-users',
+            'Disallow: /telegram-status',
+            `Sitemap: ${appUrl}/sitemap.xml`
+        ].join('\n');
 
-    res.type('text/plain').send(robots);
-});
+        res.type('text/plain').send(robots);
+    });
 
-app.get('/sitemap.xml', (req, res) => {
-    res.sendFile(path.join(publicRoot, 'sitemap.xml'));
-});
+    app.get('/sitemap.xml', (req, res) => {
+        res.sendFile(path.join(publicRoot, 'sitemap.xml'));
+    });
+}
 
 // ==============================================
 // Start Server
@@ -717,14 +892,19 @@ if (require.main === module) {
         `);
 
         console.log('📍 Registered routes:');
-        console.log('   GET  /api/health');
-        console.log('   POST /api/auth/login');
-        console.log('   POST /api/auth/refresh');
-        console.log('   POST /api/auth/logout');
-        console.log('   GET  /api/auth/me');
-        console.log('   GET  /');
-        console.log('   GET  /login');
-        console.log('   GET  /dashboard');
+        if (serveApi) {
+            console.log('   GET  /api/health');
+            console.log('   GET  /api/v1/health/live');
+            console.log('   GET  /api/v1/health/ready');
+            console.log('   POST /api/auth/login');
+            console.log('   POST /api/v1/auth/session/login');
+            console.log('   POST /api/v1/auth/token/login');
+        }
+        if (serveFrontend) {
+            console.log('   GET  /');
+            console.log('   GET  /login');
+            console.log('   GET  /dashboard');
+        }
         console.log('');
         captureMessage('Server started', 'info', {
             tags: { component: 'server' },
@@ -732,19 +912,6 @@ if (require.main === module) {
         });
     });
 
-    try {
-        const { startDeadlineReminderJob } = require('./jobs/deadlineReminders');
-        startDeadlineReminderJob();
-    } catch (jobError) {
-        console.error('Failed to start deadline reminder job:', jobError.message);
-    }
-
-    try {
-        const { startNotificationDigestJob } = require('./jobs/notificationDigest');
-        startNotificationDigestJob();
-    } catch (jobError) {
-        console.error('Failed to start notification digest job:', jobError.message);
-    }
 }
 
 module.exports = app;

@@ -46,8 +46,12 @@ services:
       API_URL: ${ZEDLY_API_URL:-http://localhost:5000}
       FRONTEND_URL: ${ZEDLY_FRONTEND_URL:-http://localhost:5000}
       APP_URL: ${ZEDLY_APP_URL:-http://localhost:5000}
+      WEB_BASE_URL: ${ZEDLY_WEB_BASE_URL:-http://localhost:5000}
+      API_BASE_URL: ${ZEDLY_API_BASE_URL:-http://localhost:5000}
       CORS_ALLOWED_ORIGINS: ${ZEDLY_CORS_ALLOWED_ORIGINS:-http://localhost:5000}
       COOKIE_SECURE: "false"
+      SERVE_API: "true"
+      SERVE_FRONTEND: "true"
     volumes:
       - zedly_local_uploads:/app/uploads
       - zedly_local_backups:/app/backups

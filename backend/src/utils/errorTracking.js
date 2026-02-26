@@ -5,7 +5,7 @@ function loadSentry() {
     if (sentry) return sentry;
     try {
         // Optional dependency: service keeps working if package is not installed.
-        // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+        // eslint-disable-next-line global-require
         sentry = require('@sentry/node');
         return sentry;
     } catch (_) {

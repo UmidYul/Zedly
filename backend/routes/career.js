@@ -1,38 +1,25 @@
-// Профориентация: API endpoints
-
-/** RBAC: SchoolAdmin, Student, SuperAdmin (только статистика) */
-
 const express = require('express');
-const router = express.Router();
-const rbac = require('../src/middleware/rbac');
+const { authenticate, authorize } = require('../src/middleware/auth');
 const careerHandlers = require('../src/routes/careerHandlers');
 
-// --- SchoolAdmin ---
-// Создать тест
-// Редактировать тест
-// Публикация/скрытие теста
-// Получить все тесты своей школы
-// Получить результаты учеников
-// Агрегированная статистика
-router.post('/career/tests', rbac(['SchoolAdmin']), careerHandlers.createCareerTest);
-router.put('/career/tests/:id', rbac(['SchoolAdmin']), careerHandlers.updateCareerTest);
-router.patch('/career/tests/:id/publish', rbac(['SchoolAdmin']), careerHandlers.publishCareerTest);
-router.get('/career/tests', rbac(['SchoolAdmin']), careerHandlers.getCareerTests);
-router.get('/career/results', rbac(['SchoolAdmin']), careerHandlers.getCareerResults);
-router.get('/career/stats', rbac(['SchoolAdmin']), careerHandlers.getCareerStats);
+const router = express.Router();
 
-// --- Student ---
-// Получить доступные тесты
-// Пройти тест
-// Получить свой результат
-router.get('/career/available', rbac(['Student']), careerHandlers.getAvailableCareerTests);
-router.post('/career/attempt/:testId', rbac(['Student']), careerHandlers.attemptCareerTest);
-router.get('/career/my-result/:testId', rbac(['Student']), careerHandlers.getMyCareerResult);
+router.use(authenticate);
 
-// --- SuperAdmin ---
-// Глобальная статистика (без редактирования)
-router.get('/career/global-stats', rbac(['SuperAdmin']), careerHandlers.getGlobalCareerStats);
+// School admin scope
+router.post('/tests', authorize('school_admin'), careerHandlers.createCareerTest);
+router.put('/tests/:id', authorize('school_admin'), careerHandlers.updateCareerTest);
+router.patch('/tests/:id/publish', authorize('school_admin'), careerHandlers.publishCareerTest);
+router.get('/tests', authorize('school_admin'), careerHandlers.getCareerTests);
+router.get('/results', authorize('school_admin'), careerHandlers.getCareerResults);
+router.get('/stats', authorize('school_admin'), careerHandlers.getCareerStats);
+
+// Student scope
+router.get('/available', authorize('student'), careerHandlers.getAvailableCareerTests);
+router.post('/attempt/:testId', authorize('student'), careerHandlers.attemptCareerTest);
+router.get('/my-result/:testId', authorize('student'), careerHandlers.getMyCareerResult);
+
+// Superadmin scope
+router.get('/global-stats', authorize('superadmin'), careerHandlers.getGlobalCareerStats);
 
 module.exports = router;
-
-// ...handlers реализовать отдельно
