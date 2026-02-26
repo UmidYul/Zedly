@@ -1,5 +1,35 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
+
+function loadRuntimeEnv() {
+    const explicitEnvFile = process.env.ENV_FILE && String(process.env.ENV_FILE).trim();
+    const candidates = [
+        explicitEnvFile ? path.resolve(process.cwd(), explicitEnvFile) : null,
+        path.resolve(process.cwd(), '.env'),
+        path.resolve(process.cwd(), '.env.local'),
+        path.resolve(process.cwd(), '.env.prod'),
+        path.resolve(__dirname, '..', '..', '.env'),
+        path.resolve(__dirname, '..', '..', '.env.local'),
+        path.resolve(__dirname, '..', '..', '..', '.env'),
+        path.resolve(__dirname, '..', '..', '..', '.env.prod')
+    ].filter(Boolean);
+
+    const uniqueCandidates = Array.from(new Set(candidates));
+    for (const envPath of uniqueCandidates) {
+        if (!fs.existsSync(envPath)) {
+            continue;
+        }
+
+        dotenv.config({
+            path: envPath,
+            override: true
+        });
+    }
+}
+
+loadRuntimeEnv();
 
 function parseBoolean(value, fallback = false) {
     if (value === undefined || value === null || value === '') return fallback;
