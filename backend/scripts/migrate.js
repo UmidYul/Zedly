@@ -42,12 +42,16 @@ async function ensureMigrationsTable(client) {
 }
 
 async function listMigrationFiles() {
+    const includeLegacy = String(process.env.MIGRATION_INCLUDE_LEGACY || '').trim().toLowerCase() === 'true';
+    const versionedPattern = /^\d{4}_\d{2}_\d{2}_.+\.(sql|psql)$/i;
+
     const entries = await fs.readdir(MIGRATIONS_DIR, { withFileTypes: true });
     return entries
         .filter((entry) => entry.isFile())
         .map((entry) => entry.name)
         .filter((name) => name.endsWith('.sql') || name.endsWith('.psql'))
         .filter((name) => !name.toLowerCase().includes('readme'))
+        .filter((name) => includeLegacy || versionedPattern.test(name))
         .sort((a, b) => a.localeCompare(b));
 }
 
