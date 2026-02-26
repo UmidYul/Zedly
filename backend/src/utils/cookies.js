@@ -30,12 +30,19 @@ function shouldUseSecureCookies(req) {
 }
 
 function getCookieOptions(req, { httpOnly = true, maxAge } = {}) {
+    const sameSite = normalizeSameSite(process.env.COOKIE_SAME_SITE);
+    const secure = shouldUseSecureCookies(req) || sameSite === 'None';
+
     const options = {
         httpOnly,
-        secure: shouldUseSecureCookies(req),
-        sameSite: normalizeSameSite(process.env.COOKIE_SAME_SITE),
+        secure,
+        sameSite,
         path: '/'
     };
+    const cookieDomain = String(process.env.COOKIE_DOMAIN || '').trim();
+    if (cookieDomain) {
+        options.domain = cookieDomain;
+    }
 
     if (Number.isFinite(maxAge)) {
         options.maxAge = maxAge;

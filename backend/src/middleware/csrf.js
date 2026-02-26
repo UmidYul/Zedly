@@ -18,14 +18,23 @@ function ensureCsrfCookie(req, res, next) {
     next();
 }
 
+function isCsrfExemptAuthRoute(path) {
+    const normalized = String(path || '').toLowerCase();
+    return normalized === '/auth/login'
+        || normalized === '/auth/refresh'
+        || normalized === '/v1/auth/token/login'
+        || normalized === '/v1/auth/token/refresh'
+        || normalized === '/auth/token/login'
+        || normalized === '/auth/token/refresh';
+}
+
 function verifyCsrfToken(req, res, next) {
     if (isSafeMethod(req.method)) {
         return next();
     }
 
     const path = String(req.path || '');
-    const isLegacyAuthRoute = path === '/auth/login' || path === '/auth/refresh';
-    if (isLegacyAuthRoute) {
+    if (isCsrfExemptAuthRoute(path)) {
         return next();
     }
 

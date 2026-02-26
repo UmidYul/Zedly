@@ -19,6 +19,15 @@ const { sendVerificationCodeEmail, isEmailConfigured, sendEmail } = require('../
 
 const router = express.Router();
 
+function isTokenAuthFlow(req) {
+    const base = String(req.baseUrl || '').toLowerCase();
+    return base.includes('/auth/token');
+}
+
+function isSessionAuthFlow(req) {
+    return !isTokenAuthFlow(req);
+}
+
 router.get('/csrf-token', (req, res) => {
     const existingToken = getCookieValue(req, CSRF_COOKIE_NAME);
     const csrfToken = existingToken || issueCsrfToken(req, res);
@@ -148,6 +157,7 @@ const loginLimiter = rateLimit({
 router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { username, password, remember } = req.body;
+        const tokenFlow = isTokenAuthFlow(req);
 
         // Validation
         if (!username || !password) {
@@ -217,9 +227,12 @@ router.post('/login', loginLimiter, async (req, res) => {
                 temp: true
             });
 
-            clearAuthCookies(req, res);
-            setTempAuthCookie(req, res, tempToken);
-            return res.status(200).json({
+            if (isSessionAuthFlow(req)) {
+                clearAuthCookies(req, res);
+                setTempAuthCookie(req, res, tempToken);
+            }
+
+            const payload = {
                 must_change_password: true,
                 user: {
                     id: user.id,
@@ -227,7 +240,14 @@ router.post('/login', loginLimiter, async (req, res) => {
                     role: user.role,
                     full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
                 }
-            });
+            };
+
+            if (tokenFlow) {
+                payload.temp_access_token = tempToken;
+                payload.token_type = 'Bearer';
+            }
+
+            return res.status(200).json(payload);
         }
 
         // Generate tokens
@@ -238,11 +258,13 @@ router.post('/login', loginLimiter, async (req, res) => {
             school_id: user.school_id,
             token_version: user.token_version
         });
-        setAuthCookies(req, res, {
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
-            remember: !!remember
-        });
+        if (isSessionAuthFlow(req)) {
+            setAuthCookies(req, res, {
+                accessToken: tokens.access_token,
+                refreshToken: tokens.refresh_token,
+                remember: !!remember
+            });
+        }
 
         // Update last login
         await query(
@@ -264,7 +286,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         );
 
         // Return user info and tokens
-        res.json({
+        const payload = {
             message: 'Login successful',
             user: {
                 id: user.id,
@@ -273,7 +295,15 @@ router.post('/login', loginLimiter, async (req, res) => {
                 school_id: user.school_id,
                 full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
             }
-        });
+        };
+
+        if (tokenFlow) {
+            payload.access_token = tokens.access_token;
+            payload.refresh_token = tokens.refresh_token;
+            payload.token_type = 'Bearer';
+        }
+
+        res.json(payload);
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({
@@ -289,7 +319,10 @@ router.post('/login', loginLimiter, async (req, res) => {
  */
 router.post('/refresh', async (req, res) => {
     try {
-        const refresh_token = req.body?.refresh_token || getCookieValue(req, REFRESH_COOKIE_NAME);
+        const tokenFlow = isTokenAuthFlow(req);
+        const refresh_token = tokenFlow
+            ? req.body?.refresh_token
+            : (req.body?.refresh_token || getCookieValue(req, REFRESH_COOKIE_NAME));
 
         if (!refresh_token) {
             return res.status(400).json({
@@ -355,15 +388,22 @@ router.post('/refresh', async (req, res) => {
             school_id: user.school_id,
             token_version: user.token_version
         });
-        setAuthCookies(req, res, {
-            accessToken: access_token,
-            refreshToken: refresh_token,
-            remember: true
-        });
 
-        res.json({
-            access_token
-        });
+        if (isSessionAuthFlow(req)) {
+            setAuthCookies(req, res, {
+                accessToken: access_token,
+                refreshToken: refresh_token,
+                remember: true
+            });
+        }
+
+        const payload = { access_token };
+        if (tokenFlow) {
+            payload.refresh_token = refresh_token;
+            payload.token_type = 'Bearer';
+        }
+
+        res.json(payload);
     } catch (error) {
         console.error('Token refresh error:', error);
         res.status(500).json({
@@ -379,6 +419,7 @@ router.post('/refresh', async (req, res) => {
  */
 router.post('/logout', authenticate, async (req, res) => {
     try {
+        const tokenFlow = isTokenAuthFlow(req);
         await query(
             `UPDATE users
              SET token_version = token_version + 1,
@@ -393,11 +434,14 @@ router.post('/logout', authenticate, async (req, res) => {
              VALUES ($1, $2, $3, $4)`,
             [req.user.id, 'logout', 'user', req.user.id]
         );
-        clearAuthCookies(req, res);
-        clearCsrfCookie(req, res);
+
+        if (isSessionAuthFlow(req)) {
+            clearAuthCookies(req, res);
+            clearCsrfCookie(req, res);
+        }
 
         res.json({
-            message: 'Logout successful'
+            message: tokenFlow ? 'Token logout successful' : 'Logout successful'
         });
     } catch (error) {
         console.error('Logout error:', error);

@@ -4,6 +4,8 @@
 
     const originalFetch = window.fetch;
     const CSRF_COOKIE_NAME = 'zedly_csrf_token';
+    const AUTH_CSRF_PATH = '/api/v1/auth/csrf-token';
+    const AUTH_REFRESH_PATH = '/api/v1/auth/session/refresh';
 
     // Compatibility helper for legacy modules that still build Bearer headers.
     // Real auth is cookie-based; this placeholder is stripped in cleanupInvalidAuthorization().
@@ -15,6 +17,50 @@
     let isRefreshing = false;
     let refreshPromise = null;
     let csrfPromise = null;
+
+    function getApiBaseUrl() {
+        const configured = String(
+            window.__ZEDLY_CONFIG__?.API_BASE_URL
+            || window.ZEDLY_API_BASE_URL
+            || ''
+        ).trim();
+
+        if (!configured || configured === '/api' || configured === '/api/v1') {
+            return '';
+        }
+
+        return configured.replace(/\/+$/, '');
+    }
+
+    function normalizeApiUrl(rawUrl) {
+        const value = String(rawUrl || '').trim();
+        if (!value) return value;
+
+        if (/^https?:\/\//i.test(value)) {
+            return value;
+        }
+
+        if (!value.startsWith('/api/')) {
+            return value;
+        }
+
+        const apiBase = getApiBaseUrl();
+        if (!apiBase) return value;
+        return `${apiBase}${value}`;
+    }
+
+    function getPathname(rawUrl) {
+        try {
+            const parsed = new URL(rawUrl, window.location.origin);
+            return parsed.pathname || '';
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function isApiPath(rawUrl) {
+        return getPathname(rawUrl).startsWith('/api/');
+    }
 
     function clearLegacyAuthStorage() {
         localStorage.removeItem('access_token');
@@ -85,9 +131,15 @@
     }
 
     function shouldSkipAutoRefresh(url) {
-        return url.includes('/api/auth/login') ||
-            url.includes('/api/auth/refresh') ||
-            url.includes('/api/auth/csrf-token');
+        const pathname = getPathname(url);
+        return pathname.endsWith('/api/auth/login')
+            || pathname.endsWith('/api/auth/refresh')
+            || pathname.endsWith('/api/auth/csrf-token')
+            || pathname.endsWith('/api/v1/auth/session/login')
+            || pathname.endsWith('/api/v1/auth/session/refresh')
+            || pathname.endsWith('/api/v1/auth/csrf-token')
+            || pathname.endsWith('/api/v1/auth/token/login')
+            || pathname.endsWith('/api/v1/auth/token/refresh');
     }
 
     async function ensureCsrfToken() {
@@ -96,7 +148,7 @@
 
         if (!csrfPromise) {
             csrfPromise = (async () => {
-                const response = await originalFetch('/api/auth/csrf-token', {
+                const response = await originalFetch(normalizeApiUrl(AUTH_CSRF_PATH), {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -117,7 +169,7 @@
 
     async function refreshAccessToken() {
         const csrfToken = await ensureCsrfToken();
-        const response = await originalFetch('/api/auth/refresh', {
+        const response = await originalFetch(normalizeApiUrl(AUTH_REFRESH_PATH), {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -150,9 +202,10 @@
 
     window.fetch = async function (...args) {
         const [input, init = {}] = args;
-        const requestUrl = typeof input === 'string' ? input : String(input?.url || '');
+        const originalUrl = typeof input === 'string' ? input : String(input?.url || '');
+        const requestUrl = normalizeApiUrl(originalUrl);
 
-        if (!requestUrl.includes('/api/')) {
+        if (!isApiPath(requestUrl)) {
             return originalFetch.apply(this, args);
         }
 
@@ -171,14 +224,14 @@
 
         nextInit.headers = headers;
 
-        let response = await originalFetch(input, nextInit);
+        let response = await originalFetch(requestUrl, nextInit);
 
         if (!isSafeMethod(method) && !shouldSkipAutoRefresh(requestUrl) && await isCsrfValidationFailed(response)) {
             const freshToken = getCookie(CSRF_COOKIE_NAME) || await ensureCsrfToken();
             if (freshToken) {
                 setHeader(headers, 'X-CSRF-Token', freshToken);
                 nextInit.headers = headers;
-                response = await originalFetch(input, nextInit);
+                response = await originalFetch(requestUrl, nextInit);
             }
         }
 
@@ -194,7 +247,7 @@
                     refreshPromise = null;
                 }
 
-                response = await originalFetch(input, nextInit);
+                response = await originalFetch(requestUrl, nextInit);
             } catch (error) {
                 isRefreshing = false;
                 refreshPromise = null;

@@ -1,6 +1,13 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+function parseBoolean(value, fallback = false) {
+    if (value === undefined || value === null || value === '') return fallback;
+    return String(value).trim().toLowerCase() === 'true';
+}
+
+const LOG_SQL = parseBoolean(process.env.LOG_SQL_QUERIES, process.env.NODE_ENV !== 'production');
+
 const pool = new Pool({
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
@@ -28,7 +35,9 @@ async function query(text, params) {
     try {
         const res = await pool.query(text, params);
         const duration = Date.now() - start;
-        console.log('Executed query', { text, duration, rows: res.rowCount });
+        if (LOG_SQL) {
+            console.log('Executed query', { text, duration, rows: res.rowCount });
+        }
         return res;
     } catch (error) {
         console.error('Database query error:', error);
@@ -65,6 +74,7 @@ async function getClient() {
 
 module.exports = {
     query,
+    connect: getClient,
     getClient,
     pool
 };

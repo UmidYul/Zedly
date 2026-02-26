@@ -1,5 +1,34 @@
 // cPanel/Passenger startup entrypoint
 // Use this file as "Application startup file" in cPanel.
+const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
+
+function loadRuntimeEnv() {
+    const explicitEnvFile = process.env.ENV_FILE && String(process.env.ENV_FILE).trim();
+    const candidates = [
+        explicitEnvFile ? path.resolve(process.cwd(), explicitEnvFile) : null,
+        path.resolve(__dirname, '.env'),
+        path.resolve(__dirname, '.env.local'),
+        path.resolve(__dirname, '..', '.env'),
+        path.resolve(__dirname, '..', '.env.prod')
+    ].filter(Boolean);
+
+    const uniqueCandidates = Array.from(new Set(candidates));
+    for (const envPath of uniqueCandidates) {
+        if (!fs.existsSync(envPath)) {
+            continue;
+        }
+
+        dotenv.config({
+            path: envPath,
+            override: false
+        });
+    }
+}
+
+loadRuntimeEnv();
+
 const app = require('./src/server');
 
 const PORT = Number(process.env.PORT || 5000);

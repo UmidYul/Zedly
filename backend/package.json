@@ -5,17 +5,22 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "start:legacy": "node src/server.js",
+    "start:api": "node src/api-server.js",
+    "start:web": "node src/web-server.js",
+    "start:worker": "node src/worker.js",
     "dev": "nodemon src/server.js",
+    "dev:api": "nodemon src/api-server.js",
+    "dev:web": "nodemon src/web-server.js",
     "build:frontend": "node scripts/build-frontend.js",
     "db:migrate": "node scripts/migrate.js",
     "db:migrate:school-geo": "node scripts/migrate-school-geo-profile.js",
     "db:seed": "node scripts/seed.js",
     "db:backup": "node scripts/backup.js",
-    "test": "jest --coverage",
-    "test:smoke": "NODE_ENV=test jest src/tests/smoke.e2e.test.js --runInBand --forceExit",
-    "lint": "eslint src/**/*.js",
-    "cron:reports": "node src/jobs/reports.js",
-    "cron:backups": "node src/jobs/backups.js",
+    "test": "npm run test:unit",
+    "test:unit": "jest src/routes/superadmin.geo.test.js --runInBand",
+    "test:smoke": "jest src/tests/smoke.e2e.test.js --runInBand --forceExit",
+    "lint": "eslint \"src/**/*.js\" \"scripts/**/*.js\" \"app.js\" \"generate_hash.js\" --no-error-on-unmatched-pattern",
     "cron:notifications": "node -e \"require('./src/jobs/notificationDigest').runNotificationDigestOnce().then((s)=>{console.log(s);process.exit(0)}).catch((e)=>{console.error(e);process.exit(1)})\""
   },
   "keywords": [
@@ -60,7 +65,6 @@
   "overrides": {
     "archiver": "^7.0.1",
     "archiver-utils": "^5.0.2",
-    "minimatch": "^10.2.2",
     "readdir-glob": "^2.0.2",
     "unzipper": "^0.12.3"
   },

@@ -3,8 +3,8 @@ require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minutes
-const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
+const ACCESS_TOKEN_EXPIRY = process.env.JWT_ACCESS_TTL || process.env.JWT_EXPIRES_IN || '15m';
+const REFRESH_TOKEN_EXPIRY = process.env.JWT_REFRESH_TTL || process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 if (!JWT_SECRET) {
     throw new Error('JWT_SECRET is not configured');
