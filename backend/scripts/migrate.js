@@ -4,6 +4,9 @@ const fs = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
 const { Pool } = require('pg');
+const { loadEnv } = require('./load-env');
+
+loadEnv();
 
 const MIGRATIONS_DIR = path.resolve(
     __dirname,

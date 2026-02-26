@@ -3,6 +3,9 @@
 const fs = require('fs/promises');
 const path = require('path');
 const { spawn } = require('child_process');
+const { loadEnv } = require('./load-env');
+
+loadEnv();
 
 function timestamp() {
     const now = new Date();

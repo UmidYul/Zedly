@@ -3,6 +3,9 @@
 const fs = require('fs/promises');
 const path = require('path');
 const { Pool } = require('pg');
+const { loadEnv } = require('./load-env');
+
+loadEnv();
 
 const DEFAULT_SEED_FILE = path.resolve(
     __dirname,
