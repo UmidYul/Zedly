@@ -1,5 +1,8 @@
 const request = require('supertest');
 process.env.NODE_ENV = 'test';
+process.env.COOKIE_SECURE = 'false';
+process.env.COOKIE_DOMAIN = '';
+process.env.COOKIE_SAME_SITE = process.env.COOKIE_SAME_SITE || 'Lax';
 
 const app = require('../server');
 const { pool } = require('../config/database');
