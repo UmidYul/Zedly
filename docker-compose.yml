@@ -55,6 +55,7 @@ services:
     volumes:
       - zedly_local_uploads:/app/uploads
       - zedly_local_backups:/app/backups
+      - ./backend/.env:/app/.env:ro
     healthcheck:
       test:
         [

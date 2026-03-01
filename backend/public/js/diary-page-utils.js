@@ -19,37 +19,59 @@
         const safe = escapeHtml(message || '');
         if (kind === 'loading') {
             return `
-                <div style="text-align:center; padding: 24px;">
+                <div class="diary-state diary-state-loading">
                     <div class="spinner" style="display:inline-block;"></div>
-                    <p style="margin-top:10px; color:var(--text-secondary);">${safe || t('common.loading', 'Loading...')}</p>
+                    <p>${safe || t('common.loading', 'Loading...')}</p>
                 </div>
             `;
         }
         if (kind === 'empty') {
-            return `<p class="text-secondary" style="padding: 10px 0;">${safe || t('common.empty', 'No data')}</p>`;
+            return `<div class="diary-state diary-state-empty"><p>${safe || t('common.empty', 'No data')}</p></div>`;
         }
-        return `<div class="error-message"><p>${safe || t('common.error', 'Unexpected error')}</p></div>`;
+        return `<div class="diary-state diary-state-error"><p>${safe || t('common.error', 'Unexpected error')}</p></div>`;
     }
 
     function renderIntegrationBadge(mode, endpoint) {
         const isMock = mode === 'mock';
         const label = isMock ? 'Mock mode' : 'API mode';
-        const color = isMock ? 'var(--warning, #f59e0b)' : 'var(--success, #16a34a)';
         const safeEndpoint = escapeHtml(endpoint || '');
 
         return `
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                <span style="display:inline-block; font-size:12px; font-weight:600; color:${color}; border:1px solid ${color}; border-radius:999px; padding:3px 10px;">
-                    ${label}
+            <div class="diary-integration-row">
+                <span class="diary-badge ${isMock ? 'diary-badge-warning' : 'diary-badge-success'}">
+                    ${escapeHtml(label)}
                 </span>
-                ${safeEndpoint ? `<code style="font-size:12px; color: var(--text-secondary);">${safeEndpoint}</code>` : ''}
+                ${safeEndpoint ? `<code>${safeEndpoint}</code>` : ''}
             </div>
         `;
     }
 
+    function getRole() {
+        try {
+            const raw = localStorage.getItem('user');
+            if (!raw) return null;
+            const user = JSON.parse(raw);
+            return user?.role || null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function getAuthToken() {
+        return window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
+    }
+
+    function withAuthHeaders(init) {
+        const headers = { ...(init?.headers || {}) };
+        if (!headers.Authorization && !headers.authorization) {
+            headers.Authorization = `Bearer ${getAuthToken()}`;
+        }
+        return { ...(init || {}), headers, credentials: 'include' };
+    }
+
     async function fetchWithFallback(endpoint, mockFactory, init) {
         try {
-            const response = await fetch(endpoint, init);
+            const response = await fetch(endpoint, withAuthHeaders(init));
             if (response.ok) {
                 const data = await response.json().catch(() => ({}));
                 return { integrationStatus: 'api', data, endpoint };
@@ -70,6 +92,7 @@
         escapeHtml,
         renderState,
         renderIntegrationBadge,
-        fetchWithFallback
+        fetchWithFallback,
+        getRole
     };
 })();
