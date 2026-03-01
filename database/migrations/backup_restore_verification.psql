@@ -1,0 +1,114 @@
+-- Backup/restore verification smoke checks (read-only)
+-- Run this on SOURCE DB before backup, then on RESTORED DB.
+-- Compare the final fingerprint + key counters.
+
+WITH table_counts AS (
+    SELECT 'schools' AS key, COUNT(*)::text AS value FROM schools
+    UNION ALL SELECT 'users', COUNT(*)::text FROM users
+    UNION ALL SELECT 'classes', COUNT(*)::text FROM classes
+    UNION ALL SELECT 'subjects', COUNT(*)::text FROM subjects
+    UNION ALL SELECT 'tests', COUNT(*)::text FROM tests
+    UNION ALL SELECT 'test_assignments', COUNT(*)::text FROM test_assignments
+    UNION ALL SELECT 'test_attempts', COUNT(*)::text FROM test_attempts
+    UNION ALL SELECT 'notifications', COUNT(*)::text FROM notifications
+    UNION ALL SELECT 'audit_logs', COUNT(*)::text FROM audit_logs
+),
+role_counts AS (
+    SELECT
+        'users_by_role:' || role::text AS key,
+        COUNT(*)::text AS value
+    FROM users
+    GROUP BY role
+),
+integrity_checks AS (
+    SELECT 'orphan_class_students_student' AS key, COUNT(*)::text AS value
+    FROM class_students cs
+    LEFT JOIN users u ON u.id = cs.student_id
+    WHERE u.id IS NULL
+    UNION ALL
+    SELECT 'orphan_class_students_class', COUNT(*)::text
+    FROM class_students cs
+    LEFT JOIN classes c ON c.id = cs.class_id
+    WHERE c.id IS NULL
+    UNION ALL
+    SELECT 'orphan_teacher_classes_teacher', COUNT(*)::text
+    FROM teacher_classes tc
+    LEFT JOIN users u ON u.id = tc.teacher_id
+    WHERE u.id IS NULL
+    UNION ALL
+    SELECT 'orphan_teacher_classes_class', COUNT(*)::text
+    FROM teacher_classes tc
+    LEFT JOIN classes c ON c.id = tc.class_id
+    WHERE c.id IS NULL
+    UNION ALL
+    SELECT 'orphan_teacher_classes_subject', COUNT(*)::text
+    FROM teacher_classes tc
+    LEFT JOIN subjects s ON s.id = tc.subject_id
+    WHERE s.id IS NULL
+),
+snapshot AS (
+    SELECT key, value FROM table_counts
+    UNION ALL
+    SELECT key, value FROM role_counts
+    UNION ALL
+    SELECT key, value FROM integrity_checks
+)
+SELECT key, value
+FROM snapshot
+ORDER BY key;
+
+-- Deterministic fingerprint for quick source-vs-restored comparison.
+WITH table_counts AS (
+    SELECT 'schools' AS key, COUNT(*)::text AS value FROM schools
+    UNION ALL SELECT 'users', COUNT(*)::text FROM users
+    UNION ALL SELECT 'classes', COUNT(*)::text FROM classes
+    UNION ALL SELECT 'subjects', COUNT(*)::text FROM subjects
+    UNION ALL SELECT 'tests', COUNT(*)::text FROM tests
+    UNION ALL SELECT 'test_assignments', COUNT(*)::text FROM test_assignments
+    UNION ALL SELECT 'test_attempts', COUNT(*)::text FROM test_attempts
+    UNION ALL SELECT 'notifications', COUNT(*)::text FROM notifications
+    UNION ALL SELECT 'audit_logs', COUNT(*)::text FROM audit_logs
+),
+role_counts AS (
+    SELECT
+        'users_by_role:' || role::text AS key,
+        COUNT(*)::text AS value
+    FROM users
+    GROUP BY role
+),
+integrity_checks AS (
+    SELECT 'orphan_class_students_student' AS key, COUNT(*)::text AS value
+    FROM class_students cs
+    LEFT JOIN users u ON u.id = cs.student_id
+    WHERE u.id IS NULL
+    UNION ALL
+    SELECT 'orphan_class_students_class', COUNT(*)::text
+    FROM class_students cs
+    LEFT JOIN classes c ON c.id = cs.class_id
+    WHERE c.id IS NULL
+    UNION ALL
+    SELECT 'orphan_teacher_classes_teacher', COUNT(*)::text
+    FROM teacher_classes tc
+    LEFT JOIN users u ON u.id = tc.teacher_id
+    WHERE u.id IS NULL
+    UNION ALL
+    SELECT 'orphan_teacher_classes_class', COUNT(*)::text
+    FROM teacher_classes tc
+    LEFT JOIN classes c ON c.id = tc.class_id
+    WHERE c.id IS NULL
+    UNION ALL
+    SELECT 'orphan_teacher_classes_subject', COUNT(*)::text
+    FROM teacher_classes tc
+    LEFT JOIN subjects s ON s.id = tc.subject_id
+    WHERE s.id IS NULL
+),
+snapshot AS (
+    SELECT key, value FROM table_counts
+    UNION ALL
+    SELECT key, value FROM role_counts
+    UNION ALL
+    SELECT key, value FROM integrity_checks
+)
+SELECT md5(string_agg(key || '=' || value, '|' ORDER BY key)) AS backup_restore_fingerprint
+FROM snapshot;
+
