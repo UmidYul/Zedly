@@ -14,7 +14,11 @@
             return '';
         }
 
-        return raw.replace(/\/+$/, '');
+        const normalized = raw.replace(/\/+$/, '');
+        if (window.location.protocol === 'https:' && /^http:\/\//i.test(normalized)) {
+            return normalized.replace(/^http:\/\//i, 'https://');
+        }
+        return normalized;
     }
 
     function toUrl(path) {

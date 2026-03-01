@@ -29,7 +29,11 @@
             return '';
         }
 
-        return configured.replace(/\/+$/, '');
+        const normalized = configured.replace(/\/+$/, '');
+        if (window.location.protocol === 'https:' && /^http:\/\//i.test(normalized)) {
+            return normalized.replace(/^http:\/\//i, 'https://');
+        }
+        return normalized;
     }
 
     function normalizeApiUrl(rawUrl) {
