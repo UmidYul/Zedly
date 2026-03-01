@@ -418,8 +418,10 @@ router.post('/refresh', async (req, res) => {
  * Logout endpoint (client should delete tokens)
  */
 router.post('/logout', authenticate, async (req, res) => {
+    const tokenFlow = isTokenAuthFlow(req);
+    let revokeFailed = false;
+
     try {
-        const tokenFlow = isTokenAuthFlow(req);
         await query(
             `UPDATE users
              SET token_version = token_version + 1,
@@ -427,29 +429,47 @@ router.post('/logout', authenticate, async (req, res) => {
              WHERE id = $1`,
             [req.user.id]
         );
+    } catch (error) {
+        revokeFailed = true;
+        console.error('Logout token revocation error:', error);
+    }
 
-        // Log logout event
+    // Audit logging should not block user logout.
+    try {
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id)
              VALUES ($1, $2, $3, $4)`,
             [req.user.id, 'logout', 'user', req.user.id]
         );
+    } catch (error) {
+        console.warn('Logout audit log warning:', error.message);
+    }
 
-        if (isSessionAuthFlow(req)) {
+    if (isSessionAuthFlow(req)) {
+        try {
             clearAuthCookies(req, res);
             clearCsrfCookie(req, res);
+        } catch (error) {
+            console.error('Logout cookie clear error:', error);
         }
+    }
 
-        res.json({
-            message: tokenFlow ? 'Token logout successful' : 'Logout successful'
-        });
-    } catch (error) {
-        console.error('Logout error:', error);
-        res.status(500).json({
+    if (revokeFailed && tokenFlow) {
+        return res.status(500).json({
             error: 'server_error',
-            message: 'An error occurred during logout'
+            message: 'Logout failed to revoke token'
         });
     }
+
+    const payload = {
+        message: tokenFlow ? 'Token logout successful' : 'Logout successful'
+    };
+
+    if (revokeFailed && isSessionAuthFlow(req)) {
+        payload.warning = 'Session ended locally; token revocation failed';
+    }
+
+    return res.json(payload);
 });
 
 /**

@@ -22,6 +22,10 @@ function isCsrfExemptAuthRoute(path) {
     const normalized = String(path || '').toLowerCase();
     return normalized === '/auth/login'
         || normalized === '/auth/refresh'
+        || normalized === '/v1/auth/session/login'
+        || normalized === '/v1/auth/session/refresh'
+        || normalized === '/auth/session/login'
+        || normalized === '/auth/session/refresh'
         || normalized === '/v1/auth/token/login'
         || normalized === '/v1/auth/token/refresh'
         || normalized === '/auth/token/login'

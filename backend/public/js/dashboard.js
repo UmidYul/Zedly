@@ -3047,13 +3047,64 @@
         }
     }
 
-    // Logout
-    async function logout() {
+    function getCookie(name) {
+        const escaped = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    async function ensureCsrfToken() {
+        const existing = getCookie('zedly_csrf_token');
+        if (existing) return existing;
+
         try {
-            await fetch('/api/auth/logout', {
-                method: 'POST',
+            const response = await fetch('/api/auth/csrf-token', {
+                method: 'GET',
                 credentials: 'include'
             });
+
+            if (!response.ok) return '';
+            const data = await response.json().catch(() => ({}));
+            return data?.csrf_token || getCookie('zedly_csrf_token') || '';
+        } catch (_) {
+            return '';
+        }
+    }
+
+    // Logout
+    async function logout() {
+        let response = null;
+
+        try {
+            const csrfToken = await ensureCsrfToken();
+            const headers = {};
+            const legacyToken = window.ZedlyAuth?.getAuthToken?.();
+
+            if (legacyToken && legacyToken !== 'cookie-session') {
+                headers.Authorization = `Bearer ${legacyToken}`;
+            }
+            if (csrfToken) {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+
+            response = await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include',
+                headers
+            });
+
+            // Backward compatibility for deployments exposing only v1 session auth paths.
+            if (!response.ok && (response.status === 404 || response.status === 405)) {
+                response = await fetch('/api/v1/auth/session/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers
+                });
+            }
+
+            if (!response.ok) {
+                console.warn('Logout request returned non-OK status:', response.status);
+            }
         } catch (error) {
             console.error('Logout error:', error);
         }
