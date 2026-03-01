@@ -35,10 +35,14 @@ app.get('/health', (_req, res) => {
 
 app.get('/runtime-config.js', (_req, res) => {
     const configuredApiBase = String(process.env.API_BASE_URL || '').trim();
+    const shouldUpgradeToHttps = String(_req.protocol || '').toLowerCase() === 'https';
+    const safeApiBase = shouldUpgradeToHttps
+        ? configuredApiBase.replace(/^http:\/\//i, 'https://')
+        : configuredApiBase;
     const payload = [
         '(function(){',
         'window.__ZEDLY_CONFIG__=window.__ZEDLY_CONFIG__||{};',
-        `window.__ZEDLY_CONFIG__.API_BASE_URL=${JSON.stringify(configuredApiBase)};`,
+        `window.__ZEDLY_CONFIG__.API_BASE_URL=${JSON.stringify(safeApiBase)};`,
         '})();'
     ].join('');
     res.type('application/javascript').send(payload);

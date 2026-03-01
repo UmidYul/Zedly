@@ -762,10 +762,14 @@ if (serveFrontend) {
     // Runtime config for frontend deployment split (web app -> api domain)
     app.get('/runtime-config.js', (req, res) => {
         const configuredApiBase = String(process.env.API_BASE_URL || '').trim();
+        const shouldUpgradeToHttps = String(req.protocol || '').toLowerCase() === 'https';
+        const safeApiBase = shouldUpgradeToHttps
+            ? configuredApiBase.replace(/^http:\/\//i, 'https://')
+            : configuredApiBase;
         const payload = [
             '(function(){',
             'window.__ZEDLY_CONFIG__=window.__ZEDLY_CONFIG__||{};',
-            `window.__ZEDLY_CONFIG__.API_BASE_URL=${JSON.stringify(configuredApiBase)};`,
+            `window.__ZEDLY_CONFIG__.API_BASE_URL=${JSON.stringify(safeApiBase)};`,
             '})();'
         ].join('');
         res.type('application/javascript').send(payload);
