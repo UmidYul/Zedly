@@ -48,6 +48,13 @@
                 ]
             },
             {
+                section: 'Academic',
+                items: [
+                    { icon: 'calendar', label: 'Расписание', id: 'schedule-admin', href: '#schedule-admin' },
+                    { icon: 'file', label: 'Учебные периоды', id: 'academic-terms', href: '#academic-terms' }
+                ]
+            },
+            {
                 section: 'dashboard.nav.analytics',
                 items: [
                     { icon: 'chart', label: 'dashboard.nav.advanced', id: 'advanced', href: '#advanced' },
@@ -68,6 +75,11 @@
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
+                    { icon: 'book', label: 'Журнал', id: 'gradebook', href: '#gradebook' },
+                    { icon: 'calendar', label: 'Расписание', id: 'schedule', href: '#schedule' },
+                    { icon: 'assignment', label: 'Домашние задания', id: 'homework', href: '#homework' },
+                    { icon: 'check', label: 'Посещаемость', id: 'attendance', href: '#attendance' },
+                    { icon: 'message', label: 'Сообщения', id: 'messages', href: '#messages' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'assignment', label: 'dashboard.nav.assignments', id: 'assignments', href: '#assignments' },
                     { icon: 'class', label: 'dashboard.nav.classes', id: 'classes', href: '#classes' },
@@ -106,6 +118,11 @@
                 items: [
                     { icon: 'grid', label: 'dashboard.nav.overview', id: 'overview', href: '#overview' },
                     { icon: 'profile', label: 'dashboard.profile', id: 'profile', href: '#profile' },
+                    { icon: 'book', label: 'Дневник', id: 'diary', href: '#diary' },
+                    { icon: 'calendar', label: 'Расписание', id: 'schedule', href: '#schedule' },
+                    { icon: 'assignment', label: 'Домашние задания', id: 'homework', href: '#homework' },
+                    { icon: 'check', label: 'Посещаемость', id: 'attendance', href: '#attendance' },
+                    { icon: 'message', label: 'Сообщения', id: 'messages', href: '#messages' },
                     { icon: 'clipboard', label: 'dashboard.nav.tests', id: 'tests', href: '#tests' },
                     { icon: 'star', label: 'dashboard.nav.results', id: 'results', href: '#results' },
                     { icon: 'users', label: 'dashboard.nav.myClass', id: 'my-class', href: '#my-class' },
@@ -150,7 +167,9 @@
         calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
         profile: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
         assignment: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>',
-        edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'
+        edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+        message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+        check: '<polyline points="20 6 9 17 4 12"/>'
     };
 
     // Initialize dashboard
@@ -555,7 +574,15 @@
             'reports': { src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/reports.js'], manager: 'ReportsManager' },
             'settings': { src: '/js/settings.js', manager: 'SettingsPage' },
             'audit': { src: '/js/audit.js', manager: 'AuditPage' },
-            'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' }
+            'profile': { src: ['https://cdn.jsdelivr.net/npm/chart.js', '/js/profile.js'], manager: 'ProfilePage' },
+            'gradebook': { src: ['/js/diary-page-utils.js', '/js/gradebook.js'], manager: 'GradebookPage' },
+            'schedule': { src: ['/js/diary-page-utils.js', '/js/diary-schedule.js'], manager: 'DiarySchedulePage' },
+            'homework': { src: ['/js/diary-page-utils.js', '/js/homework.js'], manager: 'HomeworkPage' },
+            'messages': { src: ['/js/diary-page-utils.js', '/js/messages.js'], manager: 'MessagesPage' },
+            'attendance': { src: ['/js/diary-page-utils.js', '/js/attendance.js'], manager: 'AttendancePage' },
+            'diary': { src: ['/js/diary-page-utils.js', '/js/student-diary.js'], manager: 'StudentDiaryPage' },
+            'schedule-admin': { src: ['/js/diary-page-utils.js', '/js/admin-schedule.js'], manager: 'AdminSchedulePage' },
+            'academic-terms': { src: ['/js/diary-page-utils.js', '/js/academic-terms.js'], manager: 'AcademicTermsPage' }
         };
 
         const scriptInfo = scriptMap[page];
@@ -612,6 +639,17 @@
     // Get page content (placeholder - will be replaced with actual components)
     function getPageContent(page) {
         const role = currentUser?.role || 'student';
+        const renderDiaryPageShell = ({ title, subtitle, toolbar = '', contentId }) => `
+            <div class="page-header-section">
+                <h1 class="page-main-title">${title}</h1>
+                <p class="page-subtitle">${subtitle}</p>
+            </div>
+            ${toolbar ? `<div class="page-toolbar">${toolbar}</div>` : ''}
+            <div class="dashboard-section">
+                <div id="${contentId}"></div>
+            </div>
+        `;
+
         if (page === 'profile') {
             return `
                 <div class="content-wrapper profile-wrapper">
@@ -748,6 +786,119 @@
                     </section>
                 </div>
             `;
+        }
+
+        if (page === 'gradebook' && role === 'teacher') {
+            return renderDiaryPageShell({
+                title: 'Электронный журнал',
+                subtitle: 'Оценки по классам и предметам, комментарии и история изменений',
+                toolbar: `
+                    <div class="toolbar-right">
+                        <select id="gradebookClassFilter" class="select-input"></select>
+                        <select id="gradebookSubjectFilter" class="select-input"></select>
+                        <select id="gradebookTermFilter" class="select-input"></select>
+                        <button class="btn btn-primary" id="gradebookAddBtn">Выставить оценку</button>
+                    </div>
+                `,
+                contentId: 'gradebookRoot'
+            });
+        }
+
+        if (page === 'diary' && role === 'student') {
+            return renderDiaryPageShell({
+                title: 'Дневник ученика',
+                subtitle: 'Текущие и итоговые оценки по предметам',
+                toolbar: `
+                    <div class="toolbar-right">
+                        <select id="studentDiarySubjectFilter" class="select-input"></select>
+                        <select id="studentDiaryTermFilter" class="select-input"></select>
+                    </div>
+                `,
+                contentId: 'studentDiaryRoot'
+            });
+        }
+
+        if (page === 'schedule' && (role === 'teacher' || role === 'student')) {
+            return renderDiaryPageShell({
+                title: role === 'teacher' ? 'Расписание учителя' : 'Мое расписание',
+                subtitle: 'Неделя уроков, кабинеты, изменения и замены',
+                toolbar: `
+                    <div class="toolbar-right">
+                        <button class="btn btn-outline" id="schedulePrevWeekBtn">◀ Неделя</button>
+                        <button class="btn btn-secondary" id="scheduleTodayBtn">Текущая неделя</button>
+                        <button class="btn btn-outline" id="scheduleNextWeekBtn">Неделя ▶</button>
+                    </div>
+                `,
+                contentId: 'scheduleRoot'
+            });
+        }
+
+        if (page === 'homework' && (role === 'teacher' || role === 'student')) {
+            return renderDiaryPageShell({
+                title: role === 'teacher' ? 'Домашние задания' : 'Мои домашние задания',
+                subtitle: role === 'teacher'
+                    ? 'Публикация, проверка и оценивание работ'
+                    : 'Список заданий, статусы сдачи и обратная связь',
+                toolbar: `
+                    <div class="toolbar-right">
+                        <select id="homeworkStatusFilter" class="select-input"></select>
+                        ${role === 'teacher' ? '<button class="btn btn-primary" id="homeworkCreateBtn">Новое ДЗ</button>' : ''}
+                    </div>
+                `,
+                contentId: 'homeworkRoot'
+            });
+        }
+
+        if (page === 'attendance' && (role === 'teacher' || role === 'student')) {
+            return renderDiaryPageShell({
+                title: role === 'teacher' ? 'Посещаемость' : 'Моя посещаемость',
+                subtitle: role === 'teacher'
+                    ? 'Отметка присутствия по урокам'
+                    : 'История посещения уроков и причины пропусков',
+                toolbar: '',
+                contentId: 'attendanceRoot'
+            });
+        }
+
+        if (page === 'messages' && (role === 'teacher' || role === 'student' || role === 'school_admin')) {
+            return renderDiaryPageShell({
+                title: 'Сообщения',
+                subtitle: 'Коммуникация между участниками образовательного процесса',
+                toolbar: `
+                    <div class="toolbar-right">
+                        <input id="messagesSearchInput" class="search-input" type="text" placeholder="Поиск диалогов">
+                        <button class="btn btn-primary" id="messagesNewDialogBtn">Новый диалог</button>
+                    </div>
+                `,
+                contentId: 'messagesRoot'
+            });
+        }
+
+        if (page === 'schedule-admin' && role === 'school_admin') {
+            return renderDiaryPageShell({
+                title: 'Расписание школы',
+                subtitle: 'Управление сеткой уроков, кабинетами и заменами',
+                toolbar: `
+                    <div class="toolbar-right">
+                        <select id="adminScheduleClassFilter" class="select-input"></select>
+                        <button class="btn btn-primary" id="adminScheduleAddLessonBtn">Добавить урок</button>
+                    </div>
+                `,
+                contentId: 'adminScheduleRoot'
+            });
+        }
+
+        if (page === 'academic-terms' && role === 'school_admin') {
+            return renderDiaryPageShell({
+                title: 'Учебные периоды',
+                subtitle: 'Четверти, семестры и каникулы для текущего учебного года',
+                toolbar: `
+                    <div class="toolbar-right">
+                        <button class="btn btn-primary" id="academicTermAddBtn">Добавить период</button>
+                    </div>
+                `,
+                contentId: 'academicTermsRoot'
+            });
         }
         // Career Results (SuperAdmin, read-only)
         if (page === 'career-results' && role === 'superadmin') {
