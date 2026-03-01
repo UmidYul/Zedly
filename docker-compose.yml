@@ -50,8 +50,11 @@ services:
       API_BASE_URL: ${ZEDLY_API_BASE_URL:-http://localhost:5000}
       CORS_ALLOWED_ORIGINS: ${ZEDLY_CORS_ALLOWED_ORIGINS:-http://localhost:5000}
       COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: "Lax"
+      COOKIE_DOMAIN: ""
       SERVE_API: "true"
       SERVE_FRONTEND: "true"
+      SERVE_COMPILED_FRONTEND: "false"
     volumes:
       - zedly_local_uploads:/app/uploads
       - zedly_local_backups:/app/backups

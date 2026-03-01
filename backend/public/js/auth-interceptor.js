@@ -4,8 +4,8 @@
 
     const originalFetch = window.fetch;
     const CSRF_COOKIE_NAME = 'zedly_csrf_token';
-    const AUTH_CSRF_PATH = '/api/v1/auth/csrf-token';
-    const AUTH_REFRESH_PATH = '/api/v1/auth/session/refresh';
+    const AUTH_CSRF_PATH = '/api/auth/csrf-token';
+    const AUTH_REFRESH_PATH = '/api/auth/refresh';
 
     // Compatibility helper for legacy modules that still build Bearer headers.
     // Real auth is cookie-based; this placeholder is stripped in cleanupInvalidAuthorization().
