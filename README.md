@@ -122,8 +122,8 @@ npm run dev
 Доступные режимы запуска:
 
 ```bash
-# Legacy monolith (API + web)
-npm run start:legacy
+# Monolith (API + web)
+npm start
 
 # API-only
 npm run start:api
@@ -133,6 +133,23 @@ npm run start:web
 
 # Worker (cron/background jobs)
 npm run start:worker
+```
+
+### Shared hosting (without Docker)
+
+If your hosting runs Node.js directly, start monolith mode with an external PostgreSQL:
+
+```bash
+npm --prefix backend ci --omit=dev
+cp .env.prod.example .env.prod
+# edit .env.prod (DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD, JWT_*, URLs)
+ENV_FILE=.env.prod NODE_ENV=production node backend/src/server.js
+```
+
+If environment variables are managed in hosting panel, you can skip `ENV_FILE` and run:
+
+```bash
+node backend/src/server.js
 ```
 
 ### Production JS build (minify + obfuscate)

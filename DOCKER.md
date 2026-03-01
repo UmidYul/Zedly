@@ -4,6 +4,12 @@ This Docker configuration is for local development only:
 - `backend` (Node.js API + static frontend)
 - `db` (PostgreSQL 16, isolated local container/volume)
 
+For shared hosting without Docker, run Node directly with external DB config:
+
+```bash
+ENV_FILE=.env.prod NODE_ENV=production node backend/src/server.js
+```
+
 For production split (`web` + `api` + `worker`), use `docker-compose.prod.yml`.
 
 ## Why this is safe for prod
@@ -73,6 +79,10 @@ docker compose --env-file .env.docker.local down
 cp .env.prod.example .env.prod
 docker compose -f docker-compose.prod.yml --env-file .env.prod up --build -d
 ```
+
+Important:
+- Run production compose with `--env-file .env.prod` (or exported env vars).
+- `docker-compose.prod.yml` now fails fast if required vars are missing (`DB_*`, `JWT_*`, `APP_URL`, `WEB_BASE_URL`, `API_BASE_URL`, `CORS_ALLOWED_ORIGINS`).
 
 Services:
 - `reverse-proxy` (Nginx)

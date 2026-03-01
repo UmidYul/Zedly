@@ -6,16 +6,20 @@ const dotenv = require('dotenv');
 function resolveCandidates(customEnvFile) {
     const cwd = process.cwd();
     const scriptDir = __dirname;
+    const backendRoot = path.resolve(scriptDir, '..');
+    const repoRoot = path.resolve(scriptDir, '..', '..');
 
     const candidates = [
         customEnvFile ? path.resolve(cwd, customEnvFile) : null,
+        path.resolve(backendRoot, '.env'),
+        path.resolve(backendRoot, '.env.local'),
+        path.resolve(backendRoot, '.env.prod'),
         path.resolve(cwd, '.env'),
         path.resolve(cwd, '.env.local'),
         path.resolve(cwd, '.env.prod'),
-        path.resolve(scriptDir, '..', '.env'),
-        path.resolve(scriptDir, '..', '.env.local'),
-        path.resolve(scriptDir, '..', '..', '.env'),
-        path.resolve(scriptDir, '..', '..', '.env.prod')
+        path.resolve(repoRoot, '.env'),
+        path.resolve(repoRoot, '.env.local'),
+        path.resolve(repoRoot, '.env.prod')
     ].filter(Boolean);
 
     return Array.from(new Set(candidates));

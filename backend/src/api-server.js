@@ -1,4 +1,5 @@
-require('dotenv').config();
+const { loadEnv } = require('../scripts/load-env');
+loadEnv();
 
 process.env.SERVE_API = 'true';
 process.env.SERVE_FRONTEND = 'false';

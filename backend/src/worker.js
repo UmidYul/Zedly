@@ -1,4 +1,5 @@
-require('dotenv').config();
+const { loadEnv } = require('../scripts/load-env');
+loadEnv();
 const { pool } = require('./config/database');
 
 const WORKER_LOCK_ID = 9_743_210;

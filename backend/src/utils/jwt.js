@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const { loadEnv } = require('../../scripts/load-env');
+loadEnv();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-const ACCESS_TOKEN_EXPIRY = process.env.JWT_ACCESS_TTL || process.env.JWT_EXPIRES_IN || '15m';
-const REFRESH_TOKEN_EXPIRY = process.env.JWT_REFRESH_TTL || process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+const ACCESS_TOKEN_EXPIRY = process.env.JWT_ACCESS_TTL || '15m';
+const REFRESH_TOKEN_EXPIRY = process.env.JWT_REFRESH_TTL || '7d';
 
 if (!JWT_SECRET) {
     throw new Error('JWT_SECRET is not configured');

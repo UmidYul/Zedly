@@ -41,8 +41,8 @@ services:
       DB_PASSWORD: ${ZEDLY_DB_PASSWORD:-zedly_local_password}
       JWT_SECRET: ${JWT_SECRET:-docker_local_jwt_secret_change_me}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-docker_local_refresh_secret_change_me}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
-      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-1h}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
       API_URL: ${ZEDLY_API_URL:-http://localhost:5000}
       FRONTEND_URL: ${ZEDLY_FRONTEND_URL:-http://localhost:5000}
       APP_URL: ${ZEDLY_APP_URL:-http://localhost:5000}

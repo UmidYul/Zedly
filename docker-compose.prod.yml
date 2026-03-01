@@ -5,13 +5,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - zedly_prod_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:?DB_USER is required} -d ${DB_NAME:?DB_NAME is required}"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -32,19 +32,19 @@ services:
       PORT: 5000
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
       API_RATE_LIMIT_WINDOW_MS: ${API_RATE_LIMIT_WINDOW_MS:-60000}
       API_RATE_LIMIT_MAX: ${API_RATE_LIMIT_MAX:-240}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      APP_URL: ${APP_URL}
-      WEB_BASE_URL: ${WEB_BASE_URL}
-      API_BASE_URL: ${API_BASE_URL}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      APP_URL: ${APP_URL:?APP_URL is required}
+      WEB_BASE_URL: ${WEB_BASE_URL:?WEB_BASE_URL is required}
+      API_BASE_URL: ${API_BASE_URL:?API_BASE_URL is required}
       COOKIE_SECURE: "true"
       COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-None}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
@@ -71,9 +71,9 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      APP_URL: ${APP_URL}
-      FRONTEND_URL: ${WEB_BASE_URL}
-      API_BASE_URL: ${API_BASE_URL}
+      APP_URL: ${APP_URL:?APP_URL is required}
+      FRONTEND_URL: ${WEB_BASE_URL:?WEB_BASE_URL is required}
+      API_BASE_URL: ${API_BASE_URL:?API_BASE_URL is required}
       SERVE_COMPILED_FRONTEND: ${SERVE_COMPILED_FRONTEND:-true}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -97,9 +97,9 @@ services:
       NODE_ENV: production
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       ENABLE_DEADLINE_REMINDER_JOB: ${ENABLE_DEADLINE_REMINDER_JOB:-true}
       ENABLE_NOTIFICATION_DIGEST_JOB: ${ENABLE_NOTIFICATION_DIGEST_JOB:-true}
     volumes:

@@ -19,7 +19,7 @@
 Проект собран вокруг одного backend-приложения на Node.js/Express, которое может работать в нескольких режимах:
 
 1. `legacy monolith` (API + frontend вместе)  
-   Запуск: `npm run start:legacy` (`backend/src/server.js`)
+   Запуск: `npm start` (`backend/src/server.js`)
 2. `api-only`  
    Запуск: `npm run start:api` (`backend/src/api-server.js`)
 3. `web-only`  

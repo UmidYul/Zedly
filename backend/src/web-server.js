@@ -1,4 +1,5 @@
-require('dotenv').config();
+const { loadEnv } = require('../scripts/load-env');
+loadEnv();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');

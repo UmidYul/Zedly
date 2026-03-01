@@ -5,7 +5,6 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "start:legacy": "node src/server.js",
     "start:api": "node src/api-server.js",
     "start:web": "node src/web-server.js",
     "start:worker": "node src/worker.js",

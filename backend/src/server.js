@@ -1,4 +1,5 @@
-require('dotenv').config();
+const { loadEnv } = require('../scripts/load-env');
+loadEnv();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -453,6 +454,21 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+async function countTableRowsWithFallback(activeSql, allSql, metricName) {
+    try {
+        const result = await query(activeSql);
+        return Number(result.rows[0]?.total || 0);
+    } catch (activeError) {
+        try {
+            const result = await query(allSql);
+            return Number(result.rows[0]?.total || 0);
+        } catch (fallbackError) {
+            console.error(`[landing-stats] Failed to count ${metricName}:`, fallbackError.message);
+            return 0;
+        }
+    }
+}
+
 function registerPublicApiRoutes(prefix) {
     app.get(`${prefix}/public/landing-stats`, async (req, res) => {
         try {
@@ -461,35 +477,41 @@ function registerPublicApiRoutes(prefix) {
                 return res.json(landingStatsCache.payload);
             }
 
-        const usersQuery = query('SELECT COUNT(*)::int AS total FROM users WHERE is_active = true')
-            .catch(() => query('SELECT COUNT(*)::int AS total FROM users'));
-        const schoolsQuery = query('SELECT COUNT(*)::int AS total FROM schools WHERE is_active = true')
-            .catch(() => query('SELECT COUNT(*)::int AS total FROM schools'));
-        const classesQuery = query('SELECT COUNT(*)::int AS total FROM classes WHERE is_active = true')
-            .catch(() => query('SELECT COUNT(*)::int AS total FROM classes'));
-        const [usersCount, schoolsCount, classesCount] = await Promise.all([
-            usersQuery,
-            schoolsQuery,
-            classesQuery,
-        ]);
+            const [usersCount, schoolsCount, classesCount] = await Promise.all([
+                countTableRowsWithFallback(
+                    'SELECT COUNT(*)::int AS total FROM users WHERE is_active = true',
+                    'SELECT COUNT(*)::int AS total FROM users',
+                    'users'
+                ),
+                countTableRowsWithFallback(
+                    'SELECT COUNT(*)::int AS total FROM schools WHERE is_active = true',
+                    'SELECT COUNT(*)::int AS total FROM schools',
+                    'schools'
+                ),
+                countTableRowsWithFallback(
+                    'SELECT COUNT(*)::int AS total FROM classes WHERE is_active = true',
+                    'SELECT COUNT(*)::int AS total FROM classes',
+                    'classes'
+                ),
+            ]);
 
-        const payload = {
-            stats: {
-                total_users: Number(usersCount.rows[0]?.total || 0),
-                total_schools: Number(schoolsCount.rows[0]?.total || 0),
-                total_classes: Number(classesCount.rows[0]?.total || 0)
-            },
-            updated_at: new Date().toISOString()
-        };
+            const payload = {
+                stats: {
+                    total_users: usersCount,
+                    total_schools: schoolsCount,
+                    total_classes: classesCount
+                },
+                updated_at: new Date().toISOString()
+            };
 
-        landingStatsCache = {
-            payload,
-            expiresAt: now + (5 * 60 * 1000)
-        };
+            landingStatsCache = {
+                payload,
+                expiresAt: now + (5 * 60 * 1000)
+            };
 
-        return res.json(payload);
-    } catch (error) {
-        console.error('Landing stats error:', error);
+            return res.json(payload);
+        } catch (error) {
+            console.error('Landing stats error:', error);
             return res.status(500).json({
                 message: 'Failed to load landing stats'
             });
