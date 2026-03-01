@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+    <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <title>Take Test - Zedly</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/take-test.css">
+<script src="/runtime-config.js"></script>
+<script src="/js/api-client.js"></script>
+<script src="/js/console-silence.js"></script>
+</head>
+
+<body>
+    <!-- Test Header -->
+    <div class="test-header">
+        <div class="test-header-content">
+            <div class="test-info">
+                <h1 class="test-title" id="testTitle">Loading test...</h1>
+                <div class="test-meta" id="testMeta"></div>
+            </div>
+            <div class="test-timer" id="testTimer">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span id="timerDisplay">--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Test Container -->
+    <div class="test-container">
+        <!-- Question Display Area -->
+        <div class="question-area">
+            <div id="questionContainer" data-no-fallback-i18n>
+                <!-- Questions will be rendered here -->
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="question-controls">
+                <button class="btn btn-outline" id="prevBtn" style="visibility: hidden;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Назад
+                </button>
+                <button class="btn btn-primary" id="nextBtn">
+                    Вперед
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="question-nav">
+                <div class="nav-header">
+                    <h3>Вопросы</h3>
+                    <div class="nav-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot answered"></span>
+                            <span>Отвечен</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot unanswered"></span>
+                            <span>Без ответа</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="nav-grid" id="questionNav"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-save Indicator -->
+    <div class="auto-save-indicator" id="autoSaveIndicator">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Changes saved</span>
+    </div>
+
+    <script src="/js/auth-interceptor.js"></script>
+    <script src="/js/take-test.js"></script>
+    <script src="/js/alert-modal.js"></script>
+</body>
+
+</html>
+
+

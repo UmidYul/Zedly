@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /uploads/
+Disallow: /class-details.html
+Disallow: /student-details.html
+Disallow: /student-history.html
+Disallow: /student-attempt.html
+Disallow: /teacher-classes.html
+Disallow: /teacher-results.html
+Disallow: /take-test.html
+Disallow: /grade-attempt.html
+Disallow: /grading.html
+Disallow: /advanced-analytics.html
+Disallow: /import-users.html
+Disallow: /change-password.html
+Disallow: /debug-auth.html
+Disallow: /telegram-status.html
+
+Sitemap: /sitemap.xml

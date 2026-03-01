@@ -1,0 +1,218 @@
+.class-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary);
+    font-weight: 700;
+    transition: var(--transition-fast);
+}
+
+.class-back-btn:hover {
+    transform: translateX(-2px);
+    border-color: var(--primary);
+    background: rgba(74, 144, 226, 0.14);
+}
+
+.main-content {
+    padding: 1.25rem 1rem 3rem;
+}
+
+.content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    gap: 1rem;
+}
+
+.class-top-actions {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.35rem;
+}
+
+.class-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 1rem;
+    background:
+        radial-gradient(circle at 85% 5%, rgba(80, 227, 194, 0.16), transparent 40%),
+        radial-gradient(circle at 15% 15%, rgba(74, 144, 226, 0.22), transparent 48%),
+        var(--surface-card);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-strong);
+    padding: 1.5rem;
+}
+
+.hero-main {
+    max-width: 720px;
+}
+
+.hero-label {
+    margin: 0 0 0.45rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+}
+
+.class-hero h1 {
+    margin: 0;
+    font-size: clamp(1.6rem, 2.6vw, 2.35rem);
+}
+
+#classInfo {
+    margin: 0.65rem 0 0;
+    color: var(--text-secondary);
+    max-width: 72ch;
+}
+
+.hero-stats {
+    min-width: 250px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
+    gap: 0.75rem;
+}
+
+.mini-stat {
+    margin: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 0.9rem 1rem;
+    text-align: center;
+}
+
+.mini-stat-label {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.mini-stat-value {
+    margin: 0.35rem 0 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.details-card {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-light);
+    padding: 1.35rem;
+}
+
+.section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.section-heading h2 {
+    margin: 0;
+    font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+}
+
+.section-heading p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    text-align: right;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+}
+
+.data-table {
+    border-radius: 0;
+    background: transparent;
+}
+
+.data-table th {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-tertiary);
+}
+
+.data-table td a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(74, 144, 226, 0.35);
+    color: var(--primary-light);
+    background: rgba(74, 144, 226, 0.1);
+    font-weight: 600;
+}
+
+.data-table td a:hover {
+    color: #fff;
+    border-color: var(--primary);
+    background: rgba(74, 144, 226, 0.22);
+}
+
+.actions-cell {
+    white-space: nowrap;
+}
+
+.empty-row {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 1.25rem 0;
+}
+
+@media (max-width: 900px) {
+    .class-hero {
+        flex-direction: column;
+    }
+
+    .hero-stats {
+        width: 100%;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .section-heading p {
+        text-align: left;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        padding: calc(64px + env(safe-area-inset-top)) 0.75rem 2rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .main-content {
+        padding: calc(64px + env(safe-area-inset-top)) 0.75rem 2rem;
+    }
+
+    .class-hero,
+    .details-card {
+        padding: 1rem;
+    }
+
+    .hero-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .class-back-btn {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.9rem;
+    }
+}

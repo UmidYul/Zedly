@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+    <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <title>Telegram Bot - ZEDLY</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .telegram-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+            animation: none;
+        }
+
+        .status-dot.checking {
+            background: #f59e0b;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .bot-info {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .bot-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .bot-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .bot-info-label {
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .bot-info-value {
+            color: #1e293b;
+            font-family: monospace;
+        }
+
+        .test-section {
+            margin-top: 30px;
+        }
+
+        .test-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .test-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .test-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        .help-text {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .config-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        .config-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .config-icon.ok {
+            background: #dcfce7;
+            color: #22c55e;
+        }
+
+        .config-icon.error {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .refresh-btn {
+            background: transparent;
+            border: 2px solid #3b82f6;
+            color: #3b82f6;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #3b82f6;
+            color: white;
+        }
+    </style>
+<script src="/runtime-config.js"></script>
+<script src="/js/api-client.js"></script>
+<script src="/js/console-silence.js"></script>
+</head>
+
+<body>
+    <div class="telegram-container">
+        <h1>🤖 Telegram Bot Status</h1>
+
+        <!-- Status Card -->
+        <div class="status-card">
+            <div class="status-header">
+                <div class="status-indicator">
+                    <span class="status-dot checking" id="statusDot"></span>
+                    <span id="statusText">Проверка подключения...</span>
+                </div>
+                <button class="refresh-btn" onclick="checkStatus()">
+                    🔄 Обновить
+                </button>
+            </div>
+
+            <div id="statusMessage"></div>
+
+            <!-- Bot Info -->
+            <div class="bot-info" id="botInfo" style="display: none;">
+                <h3>Информация о боте</h3>
+                <div class="bot-info-row">
+                    <span class="bot-info-label">Username:</span>
+                    <span class="bot-info-value" id="botUsername">-</span>
+                </div>
+                <div class="bot-info-row">
+                    <span class="bot-info-label">Name:</span>
+                    <span class="bot-info-value" id="botName">-</span>
+                </div>
+                <div class="bot-info-row">
+                    <span class="bot-info-label">ID:</span>
+                    <span class="bot-info-value" id="botId">-</span>
+                </div>
+                <div class="bot-info-row">
+                    <span class="bot-info-label">Can Join Groups:</span>
+                    <span class="bot-info-value" id="botCanJoinGroups">-</span>
+                </div>
+            </div>
+
+            <!-- Configuration Status -->
+            <div class="config-section">
+                <h3>Конфигурация</h3>
+                <div class="config-item">
+                    <span class="config-icon" id="tokenIcon">?</span>
+                    <span id="tokenStatus">Проверка токена...</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-icon" id="botIcon">?</span>
+                    <span id="botStatus">Проверка бота...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Message Section -->
+        <div class="status-card">
+            <div class="test-section">
+                <h3>Отправить тестовое сообщение</h3>
+                <p class="help-text">
+                    Введите ваш Telegram Chat ID для получения тестового сообщения.
+                    Чтобы узнать свой Chat ID, напишите боту /start
+                </p>
+
+                <div class="test-form">
+                    <input type="text" class="test-input" id="chatIdInput"
+                        placeholder="Введите Chat ID (например: 123456789)">
+                    <button class="btn btn-primary" onclick="sendTestMessage()" id="sendBtn">
+                        📤 Отправить
+                    </button>
+                </div>
+
+                <div id="testResult"></div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn btn-success" onclick="window.location.href='/dashboard'">
+                ← Назад к панели
+            </button>
+        </div>
+    </div>
+
+    <script src="js/auth-interceptor.js"></script>
+    <script>
+        let statusData = null;
+
+        // Check connection status on load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkStatus();
+        });
+
+        async function checkStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // Set checking state
+            statusDot.className = 'status-dot checking';
+            statusText.textContent = 'Проверка подключения...';
+            statusMessage.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/telegram/status', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                statusData = await response.json();
+
+                // Update status indicator
+                if (statusData.connected) {
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'Подключено';
+                    statusMessage.innerHTML = `<div class="alert alert-success">✅ ${statusData.message}</div>`;
+
+                    // Show bot info
+                    if (statusData.details && statusData.details.info) {
+                        document.getElementById('botInfo').style.display = 'block';
+                        document.getElementById('botUsername').textContent = '@' + statusData.details.info.username;
+                        document.getElementById('botName').textContent = statusData.details.info.first_name;
+                        document.getElementById('botId').textContent = statusData.details.info.id;
+                        document.getElementById('botCanJoinGroups').textContent =
+                            statusData.details.info.can_join_groups ? 'Да' : 'Нет';
+                    }
+                } else {
+                    statusDot.className = 'status-dot disconnected';
+                    statusText.textContent = 'Не подключено';
+
+                    if (!statusData.configured) {
+                        statusMessage.innerHTML = `<div class="alert alert-warning">⚠️ ${statusData.message}</div>`;
+                    } else {
+                        statusMessage.innerHTML = `<div class="alert alert-error">❌ ${statusData.message}${statusData.error ? '<br>' + statusData.error : ''}</div>`;
+                    }
+
+                    document.getElementById('botInfo').style.display = 'none';
+                }
+
+                // Update config status
+                updateConfigStatus(statusData.details);
+
+            } catch (error) {
+                console.error('Status check error:', error);
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Ошибка проверки';
+                statusMessage.innerHTML = `<div class="alert alert-error">❌ Не удалось проверить статус: ${error.message}</div>`;
+
+                updateConfigStatus({ token: false, bot: false });
+            }
+        }
+
+        function updateConfigStatus(details) {
+            const tokenIcon = document.getElementById('tokenIcon');
+            const tokenStatus = document.getElementById('tokenStatus');
+            const botIcon = document.getElementById('botIcon');
+            const botStatus = document.getElementById('botStatus');
+
+            if (details && details.token) {
+                tokenIcon.className = 'config-icon ok';
+                tokenIcon.textContent = '✓';
+                tokenStatus.textContent = 'TELEGRAM_BOT_TOKEN настроен';
+            } else {
+                tokenIcon.className = 'config-icon error';
+                tokenIcon.textContent = '✗';
+                tokenStatus.textContent = 'TELEGRAM_BOT_TOKEN не найден в .env';
+            }
+
+            if (details && details.bot) {
+                botIcon.className = 'config-icon ok';
+                botIcon.textContent = '✓';
+                botStatus.textContent = 'Бот инициализирован и отвечает';
+            } else {
+                botIcon.className = 'config-icon error';
+                botIcon.textContent = '✗';
+                botStatus.textContent = 'Бот не инициализирован или не отвечает';
+            }
+        }
+
+        async function sendTestMessage() {
+            const chatIdInput = document.getElementById('chatIdInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const testResult = document.getElementById('testResult');
+
+            const chatId = chatIdInput.value.trim();
+
+            if (!chatId) {
+                testResult.innerHTML = '<div class="alert alert-warning">⚠️ Введите Chat ID</div>';
+                return;
+            }
+
+            if (!statusData || !statusData.connected) {
+                testResult.innerHTML = '<div class="alert alert-error">❌ Бот не подключен. Сначала настройте подключение.</div>';
+                return;
+            }
+
+            // Disable button
+            sendBtn.disabled = true;
+            sendBtn.textContent = '⏳ Отправка...';
+            testResult.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/telegram/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ chat_id: chatId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    testResult.innerHTML = '<div class="alert alert-success">✅ Тестовое сообщение отправлено! Проверьте ваш Telegram.</div>';
+                    chatIdInput.value = '';
+                } else {
+                    testResult.innerHTML = `<div class="alert alert-error">❌ Не удалось отправить сообщение: ${data.message || 'Неизвестная ошибка'}</div>`;
+                }
+
+            } catch (error) {
+                console.error('Test message error:', error);
+                testResult.innerHTML = `<div class="alert alert-error">❌ Ошибка: ${error.message}</div>`;
+            } finally {
+                // Re-enable button
+                sendBtn.disabled = false;
+                sendBtn.textContent = '📤 Отправить';
+            }
+        }
+
+        // Allow Enter key to send test message
+        document.getElementById('chatIdInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendTestMessage();
+            }
+        });
+    </script>
+    <script src="/js/alert-modal.js"></script>
+</body>
+
+</html>
+
+

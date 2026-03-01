@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+    <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <title>Расширенная аналитика - ZEDLY</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --accent-color: #8b5cf6;
+            --success-color: #22c55e;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background: var(--bg-secondary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: var(--text-primary);
+    }
+    /* ...existing CSS... */
+    .analytics-container { height: 8px; }
+    /* Remove stray closing brace */
+    </style>
+<script src="/runtime-config.js"></script>
+<script src="/js/api-client.js"></script>
+<script src="/js/console-silence.js"></script>
+</head>
+<body>
+    <div class="advanced-analytics" id="advancedAnalyticsRoot">
+        <div class="analytics-container">
+            <div class="page-header-section">
+                <h1 class="page-main-title" data-i18n="advanced_analytics">Расширенная аналитика</h1>
+            </div>
+            <div class="filters" id="advancedFilters">
+                <div class="filter-group">
+                    <label data-i18n="period">Период</label>
+                                <select id="periodFilter">
+                                    <option value="7">Последние 7 дней</option>
+                                    <option value="30" selected>Последние 30 дней</option>
+                                    <option value="90">Последние 90 дней</option>
+                                    <option value="365">Последний год</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label data-i18n="grade_level">Параллель</label>
+                                <select id="gradeLevelFilter">
+                                    <option value="">Все параллели</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label data-i18n="reports.class">Класс</label>
+                                <select id="advancedClassFilter">
+                                    <option value="">Все классы</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label data-i18n="subject">Предмет</label>
+                                <select id="subjectFilter">
+                                    <option value="">Все предметы</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" type="button" id="applyAdvancedFilters" data-i18n="apply">Применить</button>
+                            <button class="btn btn-outline" type="button" id="exportAdvancedAnalytics" data-i18n="export">Экспорт</button>
+                        </div>
+
+                        <div class="analytics-grid" id="overviewStats">
+                            <div class="stat-card">
+                                <h3 data-i18n="total_students">Всего студентов</h3>
+                                <div class="stat-value" id="totalStudents">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3 data-i18n="average_score">Средний балл</h3>
+                                <div class="stat-value" id="avgScore">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3 data-i18n="total_tests">Всего тестов</h3>
+                                <div class="stat-value" id="totalTests">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3 data-i18n="total_attempts">Всего попыток</h3>
+                                <div class="stat-value" id="totalAttempts">-</div>
+                            </div>
+                        </div>
+
+                        <div class="tabs">
+                            <button class="tab active" type="button" data-tab="heatmap">
+                                <span data-i18n="heatmap">Тепловая карта</span>
+                            </button>
+                            <button class="tab" type="button" data-tab="comparison">
+                                <span data-i18n="comparison">Сравнение</span>
+                            </button>
+                            <button class="tab" type="button" data-tab="trends">
+                                <span data-i18n="trends">Тренды</span>
+                            </button>
+                            <button class="tab" type="button" data-tab="subjects">
+                                <span data-i18n="subjects">По предметам</span>
+                            </button>
+                        </div>
+
+                        <div class="tab-content active" id="heatmap-content">
+                            <div class="chart-card">
+                                <h2>
+                                    <span data-i18n="performance_heatmap">Тепловая карта успеваемости</span>
+                                </h2>
+                                <p class="chart-subtitle" data-i18n="heatmap_description">
+                                    Визуализация средних баллов по предметам и неделям
+                                </p>
+                                <div class="heatmap-legend">
+                                    <span class="legend-title">Легенда:</span>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(to right, #ef4444, #f97316);"></div>
+                                        <span>0-50%</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(to right, #f97316, #fbbf24);"></div>
+                                        <span>50-70%</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(to right, #fbbf24, #84cc16);"></div>
+                                        <span>70-85%</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(to right, #84cc16, #22c55e);"></div>
+                                        <span>85-100%</span>
+                                    </div>
+                                </div>
+                                <div class="heatmap-container">
+                                    <div id="heatmapCanvas" class="loading">
+                                        <div class="spinner"></div>
+                                        <span>Загрузка данных...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="comparison-content">
+                            <div class="chart-card">
+                                <h2>
+                                    <span data-i18n="class_comparison">Сравнение классов</span>
+                                    <select id="comparisonType">
+                                        <option value="classes" data-i18n="advanced.byClasses">По классам</option>
+                                        <option value="subjects" data-i18n="advanced.bySubjects">По предметам</option>
+                                        <option value="students" data-i18n="advanced.byStudents">По ученикам</option>
+                                    </select>
+                                </h2>
+                                <div class="chart-container">
+                                    <canvas id="comparisonChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="chart-card">
+                                <h2 data-i18n="detailed_comparison">Детальное сравнение</h2>
+                                <div class="table-container">
+                                    <table class="comparison-table" id="comparisonTable">
+                                        <thead>
+                                            <tr>
+                                                <th data-i18n="advanced.table.name">Название</th>
+                                                <th data-i18n="advanced.table.attempts">Попыток</th>
+                                                <th data-i18n="advanced.table.avgScore">Средний балл</th>
+                                                <th data-i18n="advanced.table.minScore">Мин балл</th>
+                                                <th data-i18n="advanced.table.maxScore">Макс балл</th>
+                                                <th data-i18n="advanced.table.progress">Прогресс</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="comparisonTableBody">
+                                            <tr>
+                                                <td colspan="6" class="loading">
+                                                    <div class="spinner"></div>
+                                                    <span data-i18n="advanced.loadingData">Загрузка данных...</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="trends-content">
+                            <div class="chart-card">
+                                <h2 data-i18n="activity_trends">Тренды активности</h2>
+                                <div class="chart-container">
+                                    <canvas id="trendsChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="analytics-grid">
+                                <div class="chart-card">
+                                    <h2 data-i18n="top_classes">Лучшие классы</h2>
+                                    <div id="topClassesList"></div>
+                                </div>
+                                <div class="chart-card">
+                                    <h2 data-i18n="needs_attention">Требуют внимания</h2>
+                                    <div id="needsAttentionList"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="subjects-content">
+                            <div class="chart-card">
+                                <h2 data-i18n="subject_performance">Успеваемость по предметам</h2>
+                                <div class="chart-container">
+                                    <canvas id="subjectsChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="chart-card">
+                                <h2 data-i18n="subject_stats">Статистика по предметам</h2>
+                                <div class="table-container">
+                                    <table class="comparison-table">
+                                        <thead>
+                                            <tr>
+                                                <th data-i18n="advanced.subjectTable.subject">Предмет</th>
+                                                <th data-i18n="advanced.subjectTable.tests">Тестов</th>
+                                                <th data-i18n="advanced.subjectTable.attempts">Попыток</th>
+                                                <th data-i18n="advanced.subjectTable.avgScore">Средний балл</th>
+                                                <th data-i18n="advanced.subjectTable.avgTime">Среднее время (мин)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="subjectsTableBody">
+                                            <tr>
+                                                <td colspan="5" class="loading">
+                                                    <div class="spinner"></div>
+                                                    <span data-i18n="advanced.loadingData">Загрузка данных...</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+    <script src="/js/i18n.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/auth-interceptor.js"></script>
+    <script src="/js/advanced-analytics.js"></script>
+    <!-- All custom JS logic is now inside /js/advanced-analytics.js -->
+    <script src="/js/alert-modal.js"></script>
+</body>
+
+</html>
+
+
