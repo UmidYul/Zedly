@@ -7,21 +7,29 @@ DUMP_OWNER_ROLE="${DUMP_OWNER_ROLE:-zedlyuz}"
 
 echo "[docker-init] Initializing local database '${DB_NAME}'"
 
-case "${DUMP_OWNER_ROLE}" in
-  *[!a-zA-Z0-9_]*|'')
-    echo "[docker-init] ERROR: DUMP_OWNER_ROLE must contain only [A-Za-z0-9_]." >&2
-    exit 1
-    ;;
-esac
+ensure_role_exists() {
+  role_name="$1"
 
-echo "[docker-init] Ensuring role '${DUMP_OWNER_ROLE}' exists for ownership statements in dump..."
-psql -v ON_ERROR_STOP=1 --username "${DB_USER}" --dbname "${DB_NAME}" \
-  -c "DO \$\$BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${DUMP_OWNER_ROLE}') THEN CREATE ROLE \"${DUMP_OWNER_ROLE}\" LOGIN; END IF; END\$\$;"
+  case "${role_name}" in
+    *[!a-zA-Z0-9_]*|'')
+      echo "[docker-init] ERROR: role '${role_name}' must contain only [A-Za-z0-9_]." >&2
+      exit 1
+      ;;
+  esac
+
+  echo "[docker-init] Ensuring role '${role_name}' exists..."
+  psql -v ON_ERROR_STOP=1 --username "${DB_USER}" --dbname "${DB_NAME}" \
+    -c "DO \$\$BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${role_name}') THEN CREATE ROLE \"${role_name}\" LOGIN; END IF; END\$\$;"
+}
+
+ensure_role_exists "${DUMP_OWNER_ROLE}"
+# Some prod dumps contain OWNER TO postgres statements.
+ensure_role_exists "postgres"
 
 if [ -f /docker-seed/dump.sql ]; then
   echo "[docker-init] Found /docker-seed/dump.sql, restoring local copy of prod backup..."
-  # Drop ACL statements that often reference prod-only roles.
-  sed -E '/^GRANT /d; /^REVOKE /d; /^ALTER DEFAULT PRIVILEGES /d' /docker-seed/dump.sql \
+  # Drop statements that commonly fail on local restore from prod dump.
+  sed -E '/^GRANT /d; /^REVOKE /d; /^ALTER DEFAULT PRIVILEGES /d; /^CREATE SCHEMA public;/d' /docker-seed/dump.sql \
     | psql -v ON_ERROR_STOP=1 --username "${DB_USER}" --dbname "${DB_NAME}"
   echo "[docker-init] dump.sql restored successfully."
 elif [ -f /docker-seed/dump.dump ]; then

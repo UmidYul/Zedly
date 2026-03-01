@@ -65,6 +65,29 @@ docker compose --env-file .env.docker.local down -v
 docker compose --env-file .env.docker.local up --build -d
 ```
 
+## Import dump.sql on another PC
+
+1) Put your dump into `database/dump.sql`:
+
+```bash
+cp dump.sql database/dump.sql
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item dump.sql database\dump.sql -Force
+```
+
+2) Recreate local Docker DB volume (required for init script to run):
+
+```bash
+docker compose --env-file .env.docker.local -f docker-compose.yml down -v
+docker compose --env-file .env.docker.local -f docker-compose.yml up --build -d
+```
+
+The init script now handles common prod-dump conflicts automatically (`CREATE SCHEMA public`, ACL lines, `OWNER TO postgres` role).
+
 ## Useful commands
 
 ```bash
