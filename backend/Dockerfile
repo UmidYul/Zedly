@@ -1,4 +1,5 @@
-FROM node:20-alpine
+ARG NODE_IMAGE=node:20-alpine
+FROM ${NODE_IMAGE}
 
 WORKDIR /app
 
@@ -7,6 +8,6 @@ RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 
 COPY . .
 
-EXPOSE 5000
+EXPOSE 3001
 
 CMD ["npm", "start"]

@@ -6,6 +6,17 @@
         return window.ZedlyI18n?.translate(key) || fallback || key;
     }
 
+    function escapeHtml(value) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(value ?? '').replace(/[&<>"']/g, (char) => map[char]);
+    }
+
     function showConfirm(message, title = null) {
         const dialogTitle = title || t('common.confirmation', 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ');
         if (window.ZedlyDialog?.confirm) {
@@ -70,6 +81,7 @@
         currentTest: null,
         questions: [],
         subjects: [],
+        currentStep: 1,
         editingQuestionIndex: -1,
         dragSourceIndex: null,
 
@@ -83,6 +95,7 @@
             }
 
             await this.loadSubjects();
+            this.currentStep = 1;
             this.render();
         },
 
@@ -199,14 +212,26 @@
             }
         },
 
+        getEditorSteps: function () {
+            return [
+                { id: 1, label: t('testEditor.stepSettings', 'Настройки') },
+                { id: 2, label: t('testEditor.stepQuestions', 'Вопросы') },
+                { id: 3, label: t('testEditor.stepPublish', 'Публикация') }
+            ];
+        },
+
         // Render editor modal
         render: function () {
             const test = this.currentTest || {};
+            const steps = this.getEditorSteps();
+            const modalTitle = test.id
+                ? t('testEditor.editTest', 'Редактировать тест')
+                : t('testEditor.createTest', 'Создать тест');
             const modalHtml = `
                 <div class="modal-overlay" id="testEditorModal">
                     <div class="modal modal-xl test-editor">
                         <div class="modal-header">
-                            <h2 class="modal-title">${test.id ? t('testEditor.editTest', 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ С‚РµСЃС‚') : t('testEditor.createNewTest', 'РЎРѕР·РґР°С‚СЊ РЅРѕРІС‹Р№ С‚РµСЃС‚')}</h2>
+                            <h2 class="modal-title">${modalTitle}</h2>
                             <button class="modal-close" onclick="TestEditor.close()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -214,88 +239,122 @@
                                 </svg>
                             </button>
                         </div>
+                        <div class="test-editor-stepper" role="tablist" aria-label="${t('testEditor.creationSteps', 'Этапы создания теста')}">
+                            ${steps.map((step, index) => `
+                                <button
+                                    type="button"
+                                    class="test-editor-step-indicator ${this.currentStep === step.id ? 'is-active' : ''}"
+                                    data-step="${step.id}"
+                                    onclick="TestEditor.goToStep(${step.id})"
+                                >
+                                    <span class="test-editor-step-index">${step.id}</span>
+                                    <span class="test-editor-step-label">${step.label}</span>
+                                </button>
+                                ${index < steps.length - 1 ? '<span class="test-editor-step-divider" aria-hidden="true"></span>' : ''}
+                            `).join('')}
+                        </div>
                         <div class="modal-body test-editor-body">
-                            <!-- Test Settings -->
-                            <div class="test-editor-section">
-                                <h3 class="section-title">${t('testEditor.testInformation', 'РРЅС„РѕСЂРјР°С†РёСЏ Рѕ С‚РµСЃС‚Рµ')}</h3>
-                                <div class="form-row">
-                                    <div class="form-group" style="flex: 2;">
-                                        <label class="form-label">${t('testEditor.testTitle', 'РќР°Р·РІР°РЅРёРµ С‚РµСЃС‚Р°')} <span class="required">*</span></label>
-                                        <input type="text" id="testTitle" class="form-input" value="${test.title || ''}" placeholder="${t('testEditor.testTitlePlaceholder', 'Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ С‚РµСЃС‚Р°')}" required>
+                            <div class="test-editor-step-page ${this.currentStep === 1 ? 'is-active' : ''}" data-step-page="1">
+                                <div class="test-editor-section">
+                                    <h3 class="section-title">${t('testEditor.testInformation', 'Информация о тесте')}</h3>
+                                    <div class="form-row">
+                                        <div class="form-group" style="flex: 2;">
+                                            <label class="form-label">${t('testEditor.testTitle', 'Название теста')} <span class="required">*</span></label>
+                                            <input type="text" id="testTitle" class="form-input" value="${test.title || ''}" placeholder="${t('testEditor.testTitlePlaceholder', 'Введите название теста')}" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">${t('testEditor.subject', 'Предмет')} <span class="required">*</span></label>
+                                            <select id="testSubject" class="form-input" required>
+                                                <option value="">${t('testEditor.selectSubject', 'Выберите предмет')}</option>
+                                                ${this.subjects.map(s => `
+                                                    <option value="${s.id}" ${test.subject_id == s.id ? 'selected' : ''}>${s.name}</option>
+                                                `).join('')}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">${t('testEditor.subject', 'РџСЂРµРґРјРµС‚')} <span class="required">*</span></label>
-                                        <select id="testSubject" class="form-input" required>
-                                            <option value="">${t('testEditor.selectSubject', 'Р’С‹Р±РµСЂРёС‚Рµ РїСЂРµРґРјРµС‚')}</option>
-                                            ${this.subjects.map(s => `
-                                                <option value="${s.id}" ${test.subject_id == s.id ? 'selected' : ''}>${s.name}</option>
-                                            `).join('')}
-                                        </select>
+                                        <label class="form-label">${t('testEditor.description', 'Описание')}</label>
+                                        <textarea id="testDescription" class="form-textarea" rows="3" placeholder="${t('testEditor.descriptionPlaceholder', 'Введите описание теста')}">${test.description || ''}</textarea>
                                     </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">${t('testEditor.description', 'РћРїРёСЃР°РЅРёРµ')}</label>
-                                    <textarea id="testDescription" class="form-textarea" rows="3" placeholder="${t('testEditor.descriptionPlaceholder', 'Р’РІРµРґРёС‚Рµ РѕРїРёСЃР°РЅРёРµ С‚РµСЃС‚Р°')}">${test.description || ''}</textarea>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">${t('testEditor.durationMinutes', 'Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ (РјРёРЅСѓС‚С‹)')}</label>
-                                        <input type="number" id="testDuration" class="form-input" value="${test.duration_minutes || 60}" min="1">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">${t('testEditor.passingScore', 'РџСЂРѕС…РѕРґРЅРѕР№ Р±Р°Р»Р» (%)')}</label>
-                                        <input type="number" id="testPassingScore" class="form-input" value="${test.passing_score || 60}" min="0" max="100">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">${t('testEditor.durationMinutes', 'Длительность (минуты)')}</label>
+                                            <input type="number" id="testDuration" class="form-input" value="${test.duration_minutes || 60}" min="1">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">${t('testEditor.passingScore', 'Проходной балл (%)')}</label>
+                                            <input type="number" id="testPassingScore" class="form-input" value="${test.passing_score || 60}" min="0" max="100">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">${t('testEditor.maxAttempts', 'Макс. попыток')}</label>
+                                            <input type="number" id="testMaxAttempts" class="form-input" value="${test.max_attempts || 1}" min="1">
+                                        </div>
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">${t('testEditor.maxAttempts', 'РњР°РєСЃ. РїРѕРїС‹С‚РѕРє')}</label>
-                                        <input type="number" id="testMaxAttempts" class="form-input" value="${test.max_attempts || 1}" min="1">
+                                        <label class="form-label">${t('testEditor.antiCheating', 'Анти-списывание')}</label>
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="testBlockCopyPaste" ${test.block_copy_paste !== false ? 'checked' : ''}>
+                                            <span>${t('testEditor.blockCopyPaste', 'Запретить копирование/вставку')}</span>
+                                        </label>
+                                        <label class="checkbox-label" style="margin-left: 16px;">
+                                            <input type="checkbox" id="testTrackTabSwitches" ${test.track_tab_switches !== false ? 'checked' : ''}>
+                                            <span>${t('testEditor.trackTabSwitches', 'Отслеживать переключение вкладок')}</span>
+                                        </label>
+                                        <label class="checkbox-label" style="margin-left: 16px;">
+                                            <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required === true ? 'checked' : ''}>
+                                            <span>${t('testEditor.requireFullscreen', 'Требовать полноэкранный режим')}</span>
+                                        </label>
                                     </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">${t('testEditor.antiCheating', 'РђРЅС‚Рё-СЃРїРёСЃС‹РІР°РЅРёРµ')}</label>
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="testBlockCopyPaste" ${test.block_copy_paste !== false ? 'checked' : ''}>
-                                        <span>${t('testEditor.blockCopyPaste', 'Р—Р°РїСЂРµС‚РёС‚СЊ РєРѕРїРёСЂРѕРІР°РЅРёРµ/РІСЃС‚Р°РІРєСѓ')}</span>
-                                    </label>
-                                    <label class="checkbox-label" style="margin-left: 16px;">
-                                        <input type="checkbox" id="testTrackTabSwitches" ${test.track_tab_switches !== false ? 'checked' : ''}>
-                                        <span>${t('testEditor.trackTabSwitches', 'РћС‚СЃР»РµР¶РёРІР°С‚СЊ РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РІРєР»Р°РґРѕРє')}</span>
-                                    </label>
-                                    <label class="checkbox-label" style="margin-left: 16px;">
-                                        <input type="checkbox" id="testFullscreenRequired" ${test.fullscreen_required === true ? 'checked' : ''}>
-                                        <span>${t('testEditor.requireFullscreen', 'РўСЂРµР±РѕРІР°С‚СЊ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј')}</span>
-                                    </label>
                                 </div>
                             </div>
 
-                            <!-- Questions Section -->
-                            <div class="test-editor-section">
-                                <div class="section-header">
-                                    <h3 class="section-title" id="questionsSectionTitle">${t('testEditor.questions', 'Р’РѕРїСЂРѕСЃС‹')} (${this.questions.length})</h3>
-                                    <button class="btn btn-outline btn-sm" onclick="TestEditor.downloadImportTemplate()">
-                                            ${t('testEditor.downloadImportTemplate', 'Download template')}
-                                        </button>
-                                        <button class="btn btn-outline btn-sm" onclick="TestEditor.triggerImportExcel()">
-                                            ${t('testEditor.importFromExcel', 'Import Excel')}
-                                        </button>
-                                        <button class="btn btn-primary btn-sm" onclick="TestEditor.showQuestionTypeSelector()">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                            </svg>
-                                            ${t('testEditor.addQuestion', 'Р”РѕР±Р°РІРёС‚СЊ РІРѕРїСЂРѕСЃ')}
-                                        </button>
+                            <div class="test-editor-step-page ${this.currentStep === 2 ? 'is-active' : ''}" data-step-page="2">
+                                <div class="test-editor-section">
+                                    <div class="section-header">
+                                        <h3 class="section-title" id="questionsSectionTitle">${t('testEditor.questions', 'Вопросы')} (${this.questions.length})</h3>
+                                        <div class="test-editor-question-actions">
+                                            <button class="btn btn-outline btn-sm" onclick="TestEditor.downloadImportTemplate()">
+                                                ${t('testEditor.downloadImportTemplate', 'Download template')}
+                                            </button>
+                                            <button class="btn btn-outline btn-sm" onclick="TestEditor.triggerImportExcel()">
+                                                ${t('testEditor.importFromExcel', 'Import Excel')}
+                                            </button>
+                                            <button class="btn btn-primary btn-sm" onclick="TestEditor.showQuestionTypeSelector()">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                                ${t('testEditor.addQuestion', 'Добавить вопрос')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <input id="questionsImportFile" type="file" accept=".xlsx,.xls" style="display:none;">
+                                    <div id="questionsList">
+                                        ${this.renderQuestionsList()}
+                                    </div>
                                 </div>
-                                <input id="questionsImportFile" type="file" accept=".xlsx,.xls" style="display:none;">
-                                <div id="questionsList">
-                                    ${this.renderQuestionsList()}
+                            </div>
+
+                            <div class="test-editor-step-page ${this.currentStep === 3 ? 'is-active' : ''}" data-step-page="3">
+                                <div class="test-editor-section">
+                                    <h3 class="section-title">${t('testEditor.preview', 'Предпросмотр теста')}</h3>
+                                    <div class="test-publish-summary-grid" id="testPublishPreviewSummary"></div>
+                                </div>
+                                <div class="test-editor-section">
+                                    <h3 class="section-title">${t('testEditor.questions', 'Вопросы')}</h3>
+                                    <div id="testPublishPreviewQuestions"></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="TestEditor.close()">${t('common.close', 'Закрыть')}</button>
-                            <button class="btn btn-outline" onclick="TestEditor.saveAsDraft()">${t('testEditor.saveAsDraft', 'РЎРѕС…СЂР°РЅРёС‚СЊ РєР°Рє С‡РµСЂРЅРѕРІРёРє')}</button>
-                            <button class="btn btn-primary" onclick="TestEditor.publish()">${t('testEditor.publishTest', 'РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ С‚РµСЃС‚')}</button>
+                        <div class="modal-footer test-editor-footer">
+                            <div class="test-editor-footer-left">
+                                <button class="btn btn-outline" id="testEditorBackBtn" onclick="TestEditor.previousStep()">${t('common.prev', 'Назад')}</button>
+                            </div>
+                            <div class="test-editor-footer-right">
+                                <button class="btn btn-primary" id="testEditorNextBtn" onclick="TestEditor.nextStep()">${t('common.next', 'Далее')}</button>
+                                <button class="btn btn-outline" id="testEditorSaveDraftBtn" onclick="TestEditor.saveAsDraft()">${t('testEditor.saveAsDraft', 'Сохранить как черновик')}</button>
+                                <button class="btn btn-primary" id="testEditorPublishBtn" onclick="TestEditor.publish()">${t('testEditor.publishTest', 'Опубликовать тест')}</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -319,7 +378,150 @@
                     }
                 });
             }
+
+            this.bindStepFormSync();
+            this.goToStep(this.currentStep, { force: true });
             this.initDragAndDrop();
+        },
+
+        bindStepFormSync: function () {
+            const watchIds = [
+                'testTitle',
+                'testSubject',
+                'testDescription',
+                'testDuration',
+                'testPassingScore',
+                'testMaxAttempts'
+            ];
+
+            watchIds.forEach((id) => {
+                const element = document.getElementById(id);
+                if (!element) return;
+                const eventName = element.tagName === 'SELECT' ? 'change' : 'input';
+                element.addEventListener(eventName, () => {
+                    if (this.currentStep === 3) {
+                        this.refreshPublishPreview();
+                    }
+                });
+            });
+        },
+
+        goToStep: function (step, options = {}) {
+            const force = options?.force === true;
+            const numericStep = Number.parseInt(String(step ?? ''), 10);
+            const safeStep = Number.isFinite(numericStep) ? Math.min(3, Math.max(1, numericStep)) : 1;
+            if (!force && safeStep === this.currentStep) return;
+
+            this.currentStep = safeStep;
+
+            document.querySelectorAll('.test-editor-step-page').forEach((page) => {
+                const pageStep = Number.parseInt(page.dataset.stepPage || '', 10);
+                page.classList.toggle('is-active', pageStep === safeStep);
+            });
+
+            document.querySelectorAll('.test-editor-step-indicator').forEach((indicator) => {
+                const indicatorStep = Number.parseInt(indicator.dataset.step || '', 10);
+                indicator.classList.toggle('is-active', indicatorStep === safeStep);
+                indicator.classList.toggle('is-complete', indicatorStep < safeStep);
+            });
+
+            const backBtn = document.getElementById('testEditorBackBtn');
+            const nextBtn = document.getElementById('testEditorNextBtn');
+            const saveDraftBtn = document.getElementById('testEditorSaveDraftBtn');
+            const publishBtn = document.getElementById('testEditorPublishBtn');
+
+            if (backBtn) backBtn.style.display = safeStep > 1 ? '' : 'none';
+            if (nextBtn) nextBtn.style.display = safeStep < 3 ? '' : 'none';
+            if (saveDraftBtn) saveDraftBtn.style.display = safeStep === 3 ? '' : 'none';
+            if (publishBtn) publishBtn.style.display = safeStep === 3 ? '' : 'none';
+
+            if (safeStep === 3) {
+                this.refreshPublishPreview();
+            }
+        },
+
+        nextStep: function () {
+            this.goToStep(this.currentStep + 1);
+        },
+
+        previousStep: function () {
+            this.goToStep(this.currentStep - 1);
+        },
+
+        renderPublishQuestionPreview: function () {
+            if (this.questions.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <p>${t('testEditor.noQuestionsAdded', 'Пока нет вопросов. Добавьте вопросы на предыдущем шаге.')}</p>
+                    </div>
+                `;
+            }
+
+            const previewQuestions = this.questions.slice(0, 5);
+            const list = previewQuestions.map((question, index) => {
+                const text = escapeHtml(question?.question_text || t('testEditor.noQuestionText', 'Без текста вопроса'));
+                const typeLabel = escapeHtml(
+                    Object.values(QUESTION_TYPES).find(type => type.id === question?.question_type)?.name
+                    || question?.question_type
+                    || '-'
+                );
+                return `
+                    <div class="test-publish-question-item">
+                        <div class="test-publish-question-index">${index + 1}</div>
+                        <div class="test-publish-question-content">
+                            <div class="test-publish-question-text">${text}</div>
+                            <div class="test-publish-question-meta">${typeLabel}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const remaining = this.questions.length - previewQuestions.length;
+            const tail = remaining > 0
+                ? `<p class="text-secondary test-publish-more">${t('testEditor.moreQuestionsCount', 'И ещё {count} вопросов').replace('{count}', String(remaining))}</p>`
+                : '';
+
+            return `<div class="test-publish-question-list">${list}</div>${tail}`;
+        },
+
+        refreshPublishPreview: function () {
+            const title = document.getElementById('testTitle')?.value.trim() || t('testEditor.noTitle', 'Без названия');
+            const subjectSelect = document.getElementById('testSubject');
+            const subject = subjectSelect?.selectedOptions?.[0]?.textContent?.trim() || t('tests.noSubject', 'Без предмета');
+            const description = document.getElementById('testDescription')?.value.trim() || t('testEditor.noDescriptionShort', 'Описание не указано');
+            const duration = Number.parseInt(document.getElementById('testDuration')?.value || '0', 10) || 0;
+            const passingScore = Number.parseFloat(document.getElementById('testPassingScore')?.value || '0') || 0;
+            const maxAttempts = Number.parseInt(document.getElementById('testMaxAttempts')?.value || '1', 10) || 1;
+
+            const summary = [
+                { label: t('testEditor.testTitle', 'Название теста'), value: title },
+                { label: t('testEditor.subject', 'Предмет'), value: subject },
+                { label: t('testEditor.questions', 'Вопросы'), value: String(this.questions.length) },
+                { label: t('testEditor.durationMinutes', 'Длительность (минуты)'), value: `${duration}` },
+                { label: t('testEditor.passingScore', 'Проходной балл (%)'), value: `${passingScore}%` },
+                { label: t('testEditor.maxAttempts', 'Макс. попыток'), value: String(maxAttempts) }
+            ];
+
+            const summaryContainer = document.getElementById('testPublishPreviewSummary');
+            if (summaryContainer) {
+                summaryContainer.innerHTML = `
+                    ${summary.map((item) => `
+                        <div class="test-publish-summary-item">
+                            <div class="test-publish-summary-label">${escapeHtml(item.label)}</div>
+                            <div class="test-publish-summary-value">${escapeHtml(item.value)}</div>
+                        </div>
+                    `).join('')}
+                    <div class="test-publish-summary-item test-publish-summary-item-full">
+                        <div class="test-publish-summary-label">${t('testEditor.description', 'Описание')}</div>
+                        <div class="test-publish-summary-value">${escapeHtml(description)}</div>
+                    </div>
+                `;
+            }
+
+            const questionsContainer = document.getElementById('testPublishPreviewQuestions');
+            if (questionsContainer) {
+                questionsContainer.innerHTML = this.renderPublishQuestionPreview();
+            }
         },
 
         // Render questions list
@@ -1171,6 +1373,7 @@
                 header.textContent = `${t('testEditor.questions', 'Р’РѕРїСЂРѕСЃС‹')} (${this.questions.length})`;
             }
 
+            this.refreshPublishPreview();
             this.initDragAndDrop();
         },
 

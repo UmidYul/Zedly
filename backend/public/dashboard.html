@@ -73,13 +73,16 @@
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
                     </button>
-                </div>
-
-                <div class="header-center">
                     <div class="header-logo">
                         <img src="/images/zedly_logo_bg.png" alt="ZEDLY">
                         <span>ZEDLY</span>
                     </div>
+                </div>
+
+                <div class="header-center">
+                    <nav class="top-nav" id="topNav" aria-label="Dashboard navigation">
+                        <!-- Top navigation will be loaded dynamically based on role -->
+                    </nav>
                 </div>
 
                 <div class="header-right">
@@ -113,6 +116,16 @@
                             </svg>
                         </button>
                     </div>
+                    <div class="top-user-menu" id="topUserMenu">
+                        <button class="top-user-btn" id="topUserBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+                            <span class="top-user-btn-label" id="topUserBtnLabel">Profile</span>
+                        </button>
+                        <div class="top-user-dropdown" id="topUserDropdown">
+                            <button class="top-user-dropdown-item" type="button" data-top-action="profile">PROFILE</button>
+                            <button class="top-user-dropdown-item" type="button" data-top-action="settings">SETTINGS</button>
+                            <button class="top-user-dropdown-item top-user-dropdown-item-danger" type="button" data-top-action="logout">LOGOUT</button>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -141,5 +154,3 @@
 </body>
 
 </html>
-
-

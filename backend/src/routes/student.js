@@ -276,14 +276,187 @@ async function getAttemptStatsExpressions(alias = 'att') {
         scoreExpr = score;
     }
 
+    const startedAt = col('started_at') || col('created_at') || 'NULL';
     const completedAt = col('submitted_at') || col('completed_at') || col('graded_at') || col('created_at') || 'NULL';
+    const persistedTimeSpent = col('time_spent_seconds') || col('time_spent') || col('duration_seconds');
+    const timeSpentExpr = persistedTimeSpent
+        ? persistedTimeSpent
+        : (startedAt !== 'NULL' && completedAt !== 'NULL'
+            ? `GREATEST(0, EXTRACT(EPOCH FROM (${completedAt} - ${startedAt})))`
+            : 'NULL');
 
     let completedFilter = 'false';
     if (columns.has('status')) completedFilter = `${alias}.status = 'completed'`;
     else if (columns.has('is_completed')) completedFilter = `${alias}.is_completed = true`;
     else if (completedAt !== 'NULL') completedFilter = `${completedAt} IS NOT NULL`;
 
-    return { scoreExpr, completedFilter, completedAt };
+    return { scoreExpr, completedFilter, completedAt, startedAt, timeSpentExpr };
+}
+
+function normalizeProgressPeriod(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    if (raw === 'year' || raw === '365') return 365;
+    if (raw === '90') return 90;
+    if (raw === '30') return 30;
+    return 56; // 8 weeks by default
+}
+
+function toDateOnly(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function computeCurrentStreakDays(days) {
+    const uniqueDays = [...new Set((Array.isArray(days) ? days : [])
+        .map(toDateOnly)
+        .filter(Boolean)
+        .map((day) => day.getTime()))]
+        .sort((a, b) => b - a)
+        .map((ts) => new Date(ts));
+
+    if (!uniqueDays.length) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const first = uniqueDays[0].getTime();
+    if (first !== today.getTime() && first !== yesterday.getTime()) {
+        return 0;
+    }
+
+    let streak = 1;
+    for (let i = 1; i < uniqueDays.length; i++) {
+        const diffDays = Math.round((uniqueDays[i - 1].getTime() - uniqueDays[i].getTime()) / 86400000);
+        if (diffDays === 1) {
+            streak += 1;
+        } else {
+            break;
+        }
+    }
+
+    return streak;
+}
+
+function computeLongestHighScoreStreak(scores, threshold = 80) {
+    let current = 0;
+    let best = 0;
+
+    (Array.isArray(scores) ? scores : []).forEach((score) => {
+        const safeScore = Number(score);
+        if (Number.isFinite(safeScore) && safeScore > threshold) {
+            current += 1;
+            if (current > best) best = current;
+        } else {
+            current = 0;
+        }
+    });
+
+    return best;
+}
+
+function normalizeTopicKey(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function computeStreakUnlockDate(days, targetStreak = 7) {
+    const uniqueDays = [...new Set((Array.isArray(days) ? days : [])
+        .map(toDateOnly)
+        .filter(Boolean)
+        .map((day) => day.getTime()))]
+        .sort((a, b) => a - b)
+        .map((ts) => new Date(ts));
+
+    if (!uniqueDays.length) return null;
+
+    let streak = 1;
+    if (targetStreak <= 1) return uniqueDays[0];
+    for (let i = 1; i < uniqueDays.length; i++) {
+        const diffDays = Math.round((uniqueDays[i].getTime() - uniqueDays[i - 1].getTime()) / 86400000);
+        if (diffDays === 1) {
+            streak += 1;
+        } else {
+            streak = 1;
+        }
+
+        if (streak >= targetStreak) {
+            return uniqueDays[i];
+        }
+    }
+
+    return null;
+}
+
+function computeRecentAchievement(rows) {
+    const safeRows = Array.isArray(rows) ? rows
+        .map((row) => ({
+            completedAt: row?.completed_at ? new Date(row.completed_at) : null,
+            score: Number(row?.score_percent) || 0,
+            timeSpent: Number(row?.time_spent_seconds) || 0
+        }))
+        .filter((row) => row.completedAt && !Number.isNaN(row.completedAt.getTime()))
+        .sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime())
+        : [];
+
+    if (!safeRows.length) return null;
+
+    let sniperAt = null;
+    let lightningAt = null;
+    let marathonAt = null;
+    let diamondAt = null;
+
+    let above80Streak = 0;
+    safeRows.forEach((row, index) => {
+        if (!sniperAt && row.score >= 100) {
+            sniperAt = row.completedAt;
+        }
+
+        if (!lightningAt && row.timeSpent > 0 && row.timeSpent < 300) {
+            lightningAt = row.completedAt;
+        }
+
+        if (!marathonAt && index + 1 >= 50) {
+            marathonAt = row.completedAt;
+        }
+
+        if (row.score > 80) {
+            above80Streak += 1;
+            if (!diamondAt && above80Streak >= 5) {
+                diamondAt = row.completedAt;
+            }
+        } else {
+            above80Streak = 0;
+        }
+    });
+
+    const fireAt = computeStreakUnlockDate(safeRows.map((row) => row.completedAt), 7);
+
+    const unlocks = [
+        fireAt ? { id: 'fire', icon: '🔥', title: 'Огонь', unlocked_at: fireAt } : null,
+        sniperAt ? { id: 'sniper', icon: '🎯', title: 'Снайпер', unlocked_at: sniperAt } : null,
+        diamondAt ? { id: 'diamond', icon: '💎', title: 'Алмаз', unlocked_at: diamondAt } : null,
+        lightningAt ? { id: 'lightning', icon: '⚡️', title: 'Молния', unlocked_at: lightningAt } : null,
+        marathonAt ? { id: 'marathon', icon: '📚', title: 'Марафонец', unlocked_at: marathonAt } : null
+    ].filter(Boolean);
+
+    if (!unlocks.length) return null;
+
+    const threshold = Date.now() - (3 * 86400000);
+    const recent = unlocks
+        .filter((item) => item.unlocked_at.getTime() >= threshold)
+        .sort((a, b) => b.unlocked_at.getTime() - a.unlocked_at.getTime())[0];
+
+    if (!recent) return null;
+    return {
+        id: recent.id,
+        icon: recent.icon,
+        title: recent.title,
+        unlocked_at: recent.unlocked_at
+    };
 }
 
 function buildCareerQuestions(interests) {
@@ -1562,12 +1735,20 @@ router.get('/subjects', async (req, res) => {
 router.get('/progress/overview', async (req, res) => {
     try {
         const studentId = req.user.id;
+        const periodDays = normalizeProgressPeriod(req.query.period);
+        const selectedSubjectIdRaw = String(req.query.subject_id || '').trim();
+        const selectedSubjectId = selectedSubjectIdRaw && selectedSubjectIdRaw !== 'all'
+            ? selectedSubjectIdRaw
+            : null;
         const classStudentColumns = await getTableColumns('class_students');
         const classStudentActiveFilter = classStudentColumns.has('is_active')
             ? 'AND cs.is_active = true'
             : '';
         const subjectColumns = await getTableColumns('subjects');
         const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
+        const subjectActiveFilter = subjectColumns.has('is_active')
+            ? 'AND s.is_active = true'
+            : '';
         const attempt = await getAttemptStatsExpressions();
 
         const testsAssignedResult = await query(`
@@ -1579,74 +1760,264 @@ router.get('/progress/overview', async (req, res) => {
         const testsAssigned = parseInt(testsAssignedResult.rows[0]?.count || 0);
 
         const testsCompletedResult = await query(`
-            SELECT COUNT(DISTINCT att.assignment_id) as count
+            SELECT COUNT(DISTINCT COALESCE(att.assignment_id::text, att.test_id::text)) as count
             FROM test_attempts att
-            INNER JOIN test_assignments ta ON ta.id = att.assignment_id
-            INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 ${classStudentActiveFilter} AND ${attempt.completedFilter}
+            WHERE att.student_id = $1 AND ${attempt.completedFilter}
         `, [studentId]);
         const testsCompleted = parseInt(testsCompletedResult.rows[0]?.count || 0);
 
-        let avgScore = 0;
-        if (attempt.scoreExpr !== 'NULL') {
-            const avgScoreResult = await query(`
-                SELECT AVG(${attempt.scoreExpr})::float as avg
-                FROM test_attempts att
-                WHERE att.student_id = $1 AND ${attempt.completedFilter}
-            `, [studentId]);
-            avgScore = parseFloat(avgScoreResult.rows[0]?.avg || 0);
+        const statsResult = await query(`
+            SELECT
+                AVG(${attempt.scoreExpr})::float as avg_score,
+                AVG(${attempt.scoreExpr}) FILTER (
+                    WHERE ${attempt.completedAt} >= CURRENT_DATE - INTERVAL '30 days'
+                )::float as avg_score_30,
+                AVG(${attempt.scoreExpr}) FILTER (
+                    WHERE ${attempt.completedAt} < CURRENT_DATE - INTERVAL '30 days'
+                      AND ${attempt.completedAt} >= CURRENT_DATE - INTERVAL '60 days'
+                )::float as avg_score_prev_30,
+                COALESCE(SUM(${attempt.timeSpentExpr})::bigint, 0) as total_time_spent_seconds
+            FROM test_attempts att
+            WHERE att.student_id = $1
+              AND ${attempt.completedFilter}
+        `, [studentId]);
+
+        const trendParams = [studentId, periodDays];
+        let trendSubjectFilter = '';
+        if (selectedSubjectId) {
+            trendParams.push(selectedSubjectId);
+            trendSubjectFilter = `AND t.subject_id = $${trendParams.length}`;
         }
 
         const trendResult = await query(`
             SELECT
                 DATE_TRUNC('week', ${attempt.completedAt}) as period,
-                COUNT(*) as attempts,
-                AVG(${attempt.scoreExpr})::float as avg_score
-            FROM test_attempts att
-            WHERE att.student_id = $1 AND ${attempt.completedFilter}
-              AND ${attempt.completedAt} > CURRENT_DATE - INTERVAL '56 days'
-            GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
-            ORDER BY period ASC
-        `, [studentId]);
-
-        const subjectResult = await query(`
-            SELECT
-                s.id,
-                s.${subjectNameColumn} as subject_name,
-                s.color as subject_color,
-                COUNT(att.id) as attempts,
+                COUNT(att.id)::int as attempts,
                 AVG(${attempt.scoreExpr})::float as avg_score
             FROM test_attempts att
             JOIN tests t ON t.id = att.test_id
-            LEFT JOIN subjects s ON s.id = t.subject_id
-            WHERE att.student_id = $1 AND ${attempt.completedFilter}
-            GROUP BY s.id, s.${subjectNameColumn}, s.color
-            ORDER BY avg_score DESC NULLS LAST
+            WHERE att.student_id = $1
+              AND ${attempt.completedFilter}
+              AND ${attempt.completedAt} >= CURRENT_DATE - ($2::text || ' days')::interval
+              ${trendSubjectFilter}
+            GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
+            ORDER BY period ASC
+        `, trendParams);
+
+        const subjectResult = await query(`
+            WITH subject_pool AS (
+                SELECT DISTINCT s.id, s.${subjectNameColumn} as subject_name, s.color as subject_color
+                FROM class_students cs
+                JOIN test_assignments ta ON ta.class_id = cs.class_id
+                JOIN tests t ON t.id = ta.test_id
+                JOIN subjects s ON s.id = t.subject_id
+                WHERE cs.student_id = $1 ${classStudentActiveFilter} ${subjectActiveFilter}
+                UNION
+                SELECT DISTINCT s.id, s.${subjectNameColumn} as subject_name, s.color as subject_color
+                FROM test_attempts att
+                JOIN tests t ON t.id = att.test_id
+                JOIN subjects s ON s.id = t.subject_id
+                WHERE att.student_id = $1 ${subjectActiveFilter}
+            ),
+            attempts_by_subject AS (
+                SELECT
+                    t.subject_id,
+                    COUNT(att.id)::int as attempts,
+                    AVG(${attempt.scoreExpr})::float as avg_score
+                FROM test_attempts att
+                JOIN tests t ON t.id = att.test_id
+                WHERE att.student_id = $1
+                  AND ${attempt.completedFilter}
+                  AND t.subject_id IS NOT NULL
+                GROUP BY t.subject_id
+            )
+            SELECT
+                sp.id,
+                sp.subject_name,
+                sp.subject_color,
+                COALESCE(abs.attempts, 0)::int as attempts,
+                COALESCE(abs.avg_score, 0)::float as avg_score
+            FROM subject_pool sp
+            LEFT JOIN attempts_by_subject abs ON abs.subject_id = sp.id
+            ORDER BY sp.subject_name ASC
+        `, [studentId]);
+
+        const topicsResult = await query(`
+            SELECT
+                t.subject_id,
+                COALESCE(NULLIF(TRIM(t.title), ''), 'Тема без названия') as topic_name,
+                COUNT(att.id)::int as attempts,
+                AVG(${attempt.scoreExpr})::float as avg_score
+            FROM test_attempts att
+            JOIN tests t ON t.id = att.test_id
+            WHERE att.student_id = $1
+              AND ${attempt.completedFilter}
+              AND t.subject_id IS NOT NULL
+            GROUP BY t.subject_id, COALESCE(NULLIF(TRIM(t.title), ''), 'Тема без названия')
+            ORDER BY t.subject_id ASC, attempts DESC, topic_name ASC
+        `, [studentId]);
+
+        const weakTopicsResult = await query(`
+            SELECT
+                COALESCE(NULLIF(TRIM(t.title), ''), 'Тема без названия') as topic_name,
+                COUNT(att.id)::int as error_tests
+            FROM test_attempts att
+            JOIN tests t ON t.id = att.test_id
+            WHERE att.student_id = $1
+              AND ${attempt.completedFilter}
+              AND COALESCE(${attempt.scoreExpr}, 0) < 100
+            GROUP BY COALESCE(NULLIF(TRIM(t.title), ''), 'Тема без названия')
+            ORDER BY error_tests DESC, topic_name ASC
+            LIMIT 3
+        `, [studentId]);
+
+        const streakDaysResult = await query(`
+            SELECT DISTINCT DATE(${attempt.completedAt}) as day
+            FROM test_attempts att
+            WHERE att.student_id = $1
+              AND ${attempt.completedFilter}
+            ORDER BY day DESC
+            LIMIT 180
+        `, [studentId]);
+
+        const achievementsInputResult = await query(`
+            SELECT
+                ${attempt.completedAt} as completed_at,
+                DATE(${attempt.completedAt}) as day,
+                (${attempt.scoreExpr})::float as score_percent,
+                (${attempt.timeSpentExpr})::float as time_spent_seconds
+            FROM test_attempts att
+            WHERE att.student_id = $1
+              AND ${attempt.completedFilter}
+            ORDER BY ${attempt.completedAt} ASC
         `, [studentId]);
 
         const completionRate = testsAssigned > 0
             ? Math.min(100, Math.round((testsCompleted / testsAssigned) * 100))
             : 0;
 
+        const statsRow = statsResult.rows[0] || {};
+        const avgScore = parseFloat(statsRow.avg_score || 0);
+        const avgScore30 = parseFloat(statsRow.avg_score_30 || 0);
+        const avgScorePrev30 = parseFloat(statsRow.avg_score_prev_30 || 0);
+        const avgTrendDelta = avgScore30 - avgScorePrev30;
+        const totalTimeSpentSeconds = parseInt(statsRow.total_time_spent_seconds || 0, 10);
+
+        const streakDays = computeCurrentStreakDays(streakDaysResult.rows.map((row) => row.day));
+        const achievementRows = achievementsInputResult.rows || [];
+        const achievementScores = achievementRows.map((row) => Number(row.score_percent) || 0);
+        const highScoreStreak = computeLongestHighScoreStreak(achievementScores, 80);
+        const totalCompletedAttempts = achievementRows.length;
+        const hasSniper = achievementRows.some((row) => Number(row.score_percent) >= 100);
+        const hasLightning = achievementRows.some((row) => {
+            const seconds = Number(row.time_spent_seconds);
+            return Number.isFinite(seconds) && seconds > 0 && seconds < 300;
+        });
+
+        const topicsBySubject = new Map();
+        topicsResult.rows.forEach((row) => {
+            const key = String(row.subject_id || '');
+            if (!key) return;
+            if (!topicsBySubject.has(key)) {
+                topicsBySubject.set(key, []);
+            }
+            topicsBySubject.get(key).push({
+                topic_name: row.topic_name,
+                attempts: parseInt(row.attempts || 0, 10),
+                avg_score: parseFloat(row.avg_score || 0)
+            });
+        });
+
+        const subjects = subjectResult.rows.map((row) => {
+            const key = String(row.id || '');
+            const topics = (topicsBySubject.get(key) || []).slice(0, 6);
+            return {
+                subject_id: row.id,
+                subject_name: row.subject_name,
+                subject_color: row.subject_color,
+                attempts: parseInt(row.attempts || 0, 10),
+                avg_score: parseFloat(row.avg_score || 0),
+                topics
+            };
+        });
+
+        const weakTopics = weakTopicsResult.rows.map((row) => ({
+            topic_name: row.topic_name,
+            error_tests: parseInt(row.error_tests || 0, 10)
+        }));
+
+        const achievements = [
+            {
+                id: 'fire',
+                icon: '🔥',
+                title: 'Огонь',
+                description: '7 дней подряд',
+                obtained: streakDays >= 7,
+                locked: streakDays < 7
+            },
+            {
+                id: 'sniper',
+                icon: '🎯',
+                title: 'Снайпер',
+                description: '100% в тесте',
+                obtained: hasSniper,
+                locked: !hasSniper
+            },
+            {
+                id: 'diamond',
+                icon: '💎',
+                title: 'Алмаз',
+                description: '5 тестов подряд >80%',
+                obtained: highScoreStreak >= 5,
+                locked: highScoreStreak < 5
+            },
+            {
+                id: 'lightning',
+                icon: '⚡️',
+                title: 'Молния',
+                description: 'Тест за <5 мин',
+                obtained: hasLightning,
+                locked: !hasLightning
+            },
+            {
+                id: 'marathon',
+                icon: '📚',
+                title: 'Марафонец',
+                description: '50 тестов',
+                obtained: totalCompletedAttempts >= 50,
+                locked: totalCompletedAttempts < 50
+            }
+        ];
+
         res.json({
             stats: {
                 tests_assigned: testsAssigned,
                 tests_completed: testsCompleted,
                 completion_rate: completionRate,
-                avg_score: avgScore
+                avg_score: avgScore,
+                avg_score_30: avgScore30,
+                avg_score_prev_30: avgScorePrev30,
+                avg_score_trend: avgTrendDelta,
+                streak_days: streakDays,
+                total_time_spent_seconds: Number.isFinite(totalTimeSpentSeconds) ? totalTimeSpentSeconds : 0
             },
             trend: trendResult.rows.map(row => ({
                 period: row.period,
                 attempts: parseInt(row.attempts || 0),
                 avg_score: parseFloat(row.avg_score || 0)
             })),
-            subjects: subjectResult.rows.map(row => ({
-                subject_id: row.id,
-                subject_name: row.subject_name,
-                subject_color: row.subject_color,
-                attempts: parseInt(row.attempts || 0),
-                avg_score: parseFloat(row.avg_score || 0)
-            }))
+            subjects,
+            weak_topics: weakTopics,
+            achievements,
+            filters: {
+                period_days: periodDays,
+                selected_subject_id: selectedSubjectId,
+                subjects: subjects.map((item) => ({
+                    subject_id: item.subject_id,
+                    subject_name: item.subject_name,
+                    subject_color: item.subject_color
+                }))
+            }
         });
     } catch (error) {
         console.error('Get student progress overview error:', error);
@@ -2403,263 +2774,507 @@ function shuffleQuestions(questions, seedValue) {
 router.get('/dashboard/overview', async (req, res) => {
     try {
         const studentId = req.user.id;
+        const schoolId = req.user.school_id;
 
         const testColumns = await getTableColumns('tests');
         const testTitleColumn = pickColumn(testColumns, ['title', 'title_ru', 'title_uz'], 'title');
         const subjectColumns = await getTableColumns('subjects');
         const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
-        const subjectCodeColumn = pickColumn(subjectColumns, ['code'], null);
-        const subjectIsActiveFilter = subjectColumns.has('is_active')
-            ? 'AND s.is_active = true'
-            : '';
         const assignmentColumns = await getTableColumns('test_assignments');
+        const classStudentColumns = await getTableColumns('class_students');
+
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
         const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
-        const classStudentColumns = await getTableColumns('class_students');
-        const classStudentActiveFilter = classStudentColumns.has('is_active')
-            ? 'AND cs.is_active = true'
+        const assignmentIsActiveColumn = pickColumn(assignmentColumns, ['is_active', 'active'], null);
+
+        const classStudentFilter = (alias = 'cs') => classStudentColumns.has('is_active')
+            ? `AND ${alias}.is_active = true`
             : '';
-        const hasTeacherClassSubjects = await tableExists('teacher_class_subjects');
-        const teacherClassSubjectColumns = hasTeacherClassSubjects
-            ? await getTableColumns('teacher_class_subjects')
-            : new Set();
-        const teacherClassSubjectActiveFilter = teacherClassSubjectColumns.has('is_active')
-            ? 'AND tcs.is_active = true'
+        const subjectActiveFilter = (alias = 's') => subjectColumns.has('is_active')
+            ? `AND ${alias}.is_active = true`
             : '';
+        const assignmentActiveFilter = (alias = 'ta') => assignmentIsActiveColumn
+            ? `AND ${alias}.${assignmentIsActiveColumn} = true`
+            : '';
+        const startDateExpr = (alias = 'ta') => startDateColumn ? `${alias}.${startDateColumn}` : 'NULL';
+        const endDateExpr = (alias = 'ta') => endDateColumn ? `${alias}.${endDateColumn}` : 'NULL';
 
-        // Get tests assigned to student's classes
-        const testsAssignedResult = await query(`
-            SELECT COUNT(DISTINCT ta.id) as count
-            FROM test_assignments ta
-            INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 ${classStudentActiveFilter}
-        `, [studentId]);
-        const testsAssigned = parseInt(testsAssignedResult.rows[0]?.count || 0);
+        const attemptBase = await getAttemptStatsExpressions('att');
+        const withAttemptAlias = (alias) => {
+            const replaceAlias = (value) => String(value || '').replace(/\batt\./g, `${alias}.`);
+            return {
+                scoreExpr: replaceAlias(attemptBase.scoreExpr),
+                completedFilter: replaceAlias(attemptBase.completedFilter),
+                completedAt: replaceAlias(attemptBase.completedAt),
+                startedAt: replaceAlias(attemptBase.startedAt),
+                timeSpentExpr: replaceAlias(attemptBase.timeSpentExpr)
+            };
+        };
 
-        // Get tests completed by student
-        const columnsResult = await query(`
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = 'test_attempts'
-        `);
-        const columns = new Set(columnsResult.rows.map(row => row.column_name));
+        const attemptStats = withAttemptAlias('att');
+        const attemptUrgent = withAttemptAlias('attu');
+        const attemptRank = withAttemptAlias('attr');
+        const attemptWeak = withAttemptAlias('attw');
+        const attemptRecommendation = withAttemptAlias('attp');
+        const attemptActivity = withAttemptAlias('atta');
+        const attemptAchievement = withAttemptAlias('atth');
 
-        let completedFilter = 'false';
-        if (columns.has('status')) completedFilter = "tatt.status = 'completed'";
-        else if (columns.has('is_completed')) completedFilter = 'tatt.is_completed = true';
-        else if (columns.has('submitted_at')) completedFilter = 'tatt.submitted_at IS NOT NULL';
-
-        const testsCompletedResult = await query(`
-            SELECT COUNT(DISTINCT tatt.assignment_id) as count
-            FROM test_attempts tatt
-            INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
-            INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 ${classStudentActiveFilter}
-              AND tatt.student_id = $1
-              AND ${completedFilter}
-        `, [studentId]);
-        const testsCompleted = parseInt(testsCompletedResult.rows[0]?.count || 0);
-
-        // Get average score
-        let scoreExpr = columns.has('percentage') ? 'tatt.percentage'
-            : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)'
-                : 'NULL';
-
-        let avgScoreResult = { rows: [{ avg: null }] };
-        if (scoreExpr !== 'NULL') {
-            avgScoreResult = await query(`
-                SELECT AVG(${scoreExpr})::int as avg
-                FROM test_attempts tatt
-                INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
-                INNER JOIN class_students cs ON cs.class_id = ta.class_id
-                WHERE cs.student_id = $1 ${classStudentActiveFilter}
-                  AND tatt.student_id = $1
-                  AND ${completedFilter}
-            `, [studentId]);
-        }
-        const avgScore = avgScoreResult.rows[0]?.avg || 0;
-
-        let classRank = null;
-        const classResult = await query(
-            `SELECT class_id
+        const classIdsResult = await query(
+            `SELECT cs.class_id
              FROM class_students cs
-             WHERE cs.student_id = $1 ${classStudentActiveFilter}
-             ORDER BY cs.class_id ASC
-             LIMIT 1`,
+             WHERE cs.student_id = $1 ${classStudentFilter('cs')}
+             ORDER BY cs.class_id ASC`,
             [studentId]
         );
-        const classId = classResult.rows[0]?.class_id || null;
-        if (classId && scoreExpr !== 'NULL') {
-            const rankResult = await query(
-                `WITH ranked AS (
-                    SELECT
-                        cs.student_id,
-                        COUNT(tatt.id) as attempts,
-                        AVG(${scoreExpr})::float as avg_score
-                    FROM class_students cs
-                    LEFT JOIN test_attempts tatt
-                        ON tatt.student_id = cs.student_id
-                        AND ${completedFilter}
-                    WHERE cs.class_id = $1 ${classStudentActiveFilter}
-                    GROUP BY cs.student_id
-                    HAVING COUNT(tatt.id) > 0
-                )
-                SELECT rank
-                FROM (
-                    SELECT student_id, RANK() OVER (ORDER BY avg_score DESC NULLS LAST, attempts DESC) as rank
-                    FROM ranked
-                ) r
-                WHERE student_id = $2
-                LIMIT 1`,
-                [classId, studentId]
+        const classIds = classIdsResult.rows.map((row) => row.class_id).filter(Boolean);
+        const primaryClassId = classIds[0] || null;
+
+        let testsAssigned = 0;
+        if (classIds.length) {
+            const testsAssignedResult = await query(
+                `SELECT COUNT(DISTINCT ta.id)::int as count
+                 FROM test_assignments ta
+                 WHERE ta.class_id = ANY($1) ${assignmentActiveFilter('ta')}`,
+                [classIds]
             );
-            classRank = rankResult.rows[0]?.rank || null;
+            testsAssigned = parseInt(testsAssignedResult.rows[0]?.count || 0, 10);
         }
 
-        const taughtSubjectsSource = hasTeacherClassSubjects
-            ? `SELECT DISTINCT tcs.subject_id
-               FROM class_students cs
-               INNER JOIN teacher_class_subjects tcs ON tcs.class_id = cs.class_id
-               WHERE cs.student_id = $2 ${classStudentActiveFilter} ${teacherClassSubjectActiveFilter}`
-            : `SELECT DISTINCT t.subject_id
-               FROM class_students cs
-               INNER JOIN test_assignments ta ON ta.class_id = cs.class_id
-               INNER JOIN tests t ON t.id = ta.test_id
-               WHERE cs.student_id = $2 ${classStudentActiveFilter}`;
+        const testsCompletedResult = await query(
+            `SELECT COUNT(DISTINCT COALESCE(att.assignment_id::text, att.test_id::text))::int as count
+             FROM test_attempts att
+             WHERE att.student_id = $1
+               AND ${attemptStats.completedFilter}`,
+            [studentId]
+        );
+        const testsCompleted = parseInt(testsCompletedResult.rows[0]?.count || 0, 10);
 
-        const subjectPerformanceResult = await query(
-            `WITH student_subjects AS (
-                ${taughtSubjectsSource}
+        const avgScoreResult = await query(
+            `SELECT AVG(${attemptStats.scoreExpr})::float as avg_score
+             FROM test_attempts att
+             WHERE att.student_id = $1
+               AND ${attemptStats.completedFilter}`,
+            [studentId]
+        );
+        const avgScore = parseFloat(avgScoreResult.rows[0]?.avg_score || 0);
+
+        const streakDaysResult = await query(
+            `SELECT DISTINCT DATE(${attemptStats.completedAt}) as day
+             FROM test_attempts att
+             WHERE att.student_id = $1
+               AND ${attemptStats.completedFilter}
+             ORDER BY day DESC
+             LIMIT 180`,
+            [studentId]
+        );
+        const streakDays = computeCurrentStreakDays(streakDaysResult.rows.map((row) => row.day));
+
+        const subjectPerformanceResult = classIds.length
+            ? await query(
+                `WITH assigned_subjects AS (
+                    SELECT DISTINCT t.subject_id
+                    FROM test_assignments ta
+                    JOIN tests t ON t.id = ta.test_id
+                    WHERE ta.class_id = ANY($1)
+                      ${assignmentActiveFilter('ta')}
+                      AND t.subject_id IS NOT NULL
+                    UNION
+                    SELECT DISTINCT t.subject_id
+                    FROM test_attempts att
+                    JOIN tests t ON t.id = att.test_id
+                    WHERE att.student_id = $2
+                      AND t.subject_id IS NOT NULL
+                ),
+                subject_scores AS (
+                    SELECT
+                        t.subject_id,
+                        COUNT(atts.id)::int as attempts,
+                        AVG(${withAttemptAlias('atts').scoreExpr})::float as avg_score
+                    FROM test_attempts atts
+                    JOIN tests t ON t.id = atts.test_id
+                    WHERE atts.student_id = $2
+                      AND ${withAttemptAlias('atts').completedFilter}
+                      AND t.subject_id IS NOT NULL
+                    GROUP BY t.subject_id
+                )
+                SELECT
+                    s.id,
+                    s.${subjectNameColumn} as subject_name,
+                    s.color as subject_color,
+                    COALESCE(ss.attempts, 0)::int as attempts,
+                    COALESCE(ss.avg_score, 0)::float as avg_score
+                FROM assigned_subjects ads
+                JOIN subjects s ON s.id = ads.subject_id
+                LEFT JOIN subject_scores ss ON ss.subject_id = s.id
+                WHERE s.school_id = $3
+                  ${subjectActiveFilter('s')}
+                ORDER BY s.${subjectNameColumn} ASC`,
+                [classIds, studentId, schoolId]
             )
-            SELECT
-                s.id,
+            : await query(
+                `WITH assigned_subjects AS (
+                    SELECT DISTINCT t.subject_id
+                    FROM test_attempts att
+                    JOIN tests t ON t.id = att.test_id
+                    WHERE att.student_id = $1
+                      AND t.subject_id IS NOT NULL
+                ),
+                subject_scores AS (
+                    SELECT
+                        t.subject_id,
+                        COUNT(atts.id)::int as attempts,
+                        AVG(${withAttemptAlias('atts').scoreExpr})::float as avg_score
+                    FROM test_attempts atts
+                    JOIN tests t ON t.id = atts.test_id
+                    WHERE atts.student_id = $1
+                      AND ${withAttemptAlias('atts').completedFilter}
+                      AND t.subject_id IS NOT NULL
+                    GROUP BY t.subject_id
+                )
+                SELECT
+                    s.id,
+                    s.${subjectNameColumn} as subject_name,
+                    s.color as subject_color,
+                    COALESCE(ss.attempts, 0)::int as attempts,
+                    COALESCE(ss.avg_score, 0)::float as avg_score
+                FROM assigned_subjects ads
+                JOIN subjects s ON s.id = ads.subject_id
+                LEFT JOIN subject_scores ss ON ss.subject_id = s.id
+                WHERE s.school_id = $2
+                  ${subjectActiveFilter('s')}
+                ORDER BY s.${subjectNameColumn} ASC`,
+                [studentId, schoolId]
+            );
+
+        const subjects = subjectPerformanceResult.rows.map((row) => ({
+            subject_id: row.id,
+            subject_name: row.subject_name,
+            subject_color: row.subject_color,
+            attempts: parseInt(row.attempts || 0, 10),
+            avg_score: parseFloat(row.avg_score || 0)
+        }));
+
+        const bestSubject = subjects
+            .filter((subject) => subject.attempts > 0)
+            .sort((a, b) => {
+                if (b.avg_score !== a.avg_score) return b.avg_score - a.avg_score;
+                return b.attempts - a.attempts;
+            })[0] || null;
+
+        const urgentTestsResult = classIds.length
+            ? await query(
+                `SELECT
+                    ta.id as assignment_id,
+                    t.id as test_id,
+                    COALESCE(NULLIF(TRIM(t.${testTitleColumn}), ''), 'Тест без названия') as test_title,
+                    s.id as subject_id,
+                    s.${subjectNameColumn} as subject_name,
+                    ${startDateExpr('ta')} as start_date,
+                    ${endDateExpr('ta')} as end_date,
+                    CASE
+                        WHEN ${endDateExpr('ta')} IS NULL THEN NULL
+                        ELSE CEIL(EXTRACT(EPOCH FROM (${endDateExpr('ta')} - CURRENT_TIMESTAMP)) / 86400.0)::int
+                    END as days_left
+                FROM test_assignments ta
+                JOIN tests t ON t.id = ta.test_id
+                LEFT JOIN subjects s ON s.id = t.subject_id
+                WHERE ta.class_id = ANY($1)
+                  ${assignmentActiveFilter('ta')}
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM test_attempts attu
+                        WHERE attu.assignment_id = ta.id
+                          AND attu.student_id = $2
+                          AND ${attemptUrgent.completedFilter}
+                  )
+                ORDER BY (${endDateExpr('ta')} IS NULL) ASC, ${endDateExpr('ta')} ASC NULLS LAST, ta.created_at ASC
+                LIMIT 10`,
+                [classIds, studentId]
+            )
+            : { rows: [] };
+        const urgentTests = (urgentTestsResult.rows || []).map((row) => ({
+            assignment_id: row.assignment_id,
+            test_id: row.test_id,
+            test_title: row.test_title,
+            subject_id: row.subject_id,
+            subject_name: row.subject_name,
+            start_date: row.start_date,
+            end_date: row.end_date,
+            days_left: row.days_left !== null ? parseInt(row.days_left, 10) : null
+        }));
+
+        let classRankThisMonth = null;
+        let classTotalStudents = 0;
+        if (primaryClassId) {
+            const rankResult = await query(
+                `WITH class_members AS (
+                    SELECT cs.student_id
+                    FROM class_students cs
+                    WHERE cs.class_id = $1 ${classStudentFilter('cs')}
+                ),
+                monthly_scores AS (
+                    SELECT
+                        cm.student_id,
+                        AVG(${attemptRank.scoreExpr})::float as avg_score,
+                        COUNT(attr.id)::int as attempts
+                    FROM class_members cm
+                    LEFT JOIN test_attempts attr
+                        ON attr.student_id = cm.student_id
+                        AND ${attemptRank.completedFilter}
+                        AND ${attemptRank.completedAt} >= DATE_TRUNC('month', CURRENT_DATE)
+                        AND ${attemptRank.completedAt} < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+                    GROUP BY cm.student_id
+                )
+                SELECT ranked.rank, ranked.total_students
+                FROM (
+                    SELECT
+                        ms.student_id,
+                        RANK() OVER (
+                            ORDER BY COALESCE(ms.avg_score, 0) DESC, ms.attempts DESC, ms.student_id
+                        ) as rank,
+                        COUNT(*) OVER ()::int as total_students
+                    FROM monthly_scores ms
+                ) ranked
+                WHERE ranked.student_id = $2
+                LIMIT 1`,
+                [primaryClassId, studentId]
+            );
+            classRankThisMonth = rankResult.rows[0]?.rank ? parseInt(rankResult.rows[0].rank, 10) : null;
+            classTotalStudents = rankResult.rows[0]?.total_students
+                ? parseInt(rankResult.rows[0].total_students, 10)
+                : 0;
+        }
+
+        const weakTopicResult = await query(
+            `SELECT
+                COALESCE(NULLIF(TRIM(t.${testTitleColumn}), ''), 'Тема без названия') as topic_name,
+                LOWER(COALESCE(NULLIF(TRIM(t.${testTitleColumn}), ''), 'тема без названия')) as topic_key,
+                t.subject_id,
                 s.${subjectNameColumn} as subject_name,
-                s.color as subject_color,
-                COUNT(tatt.id) as attempts,
-                COALESCE(AVG(${scoreExpr}), 0)::float as avg_score
-             FROM student_subjects ss
-             INNER JOIN subjects s
-                ON s.id = ss.subject_id
-             LEFT JOIN tests t
-                ON t.subject_id = s.id
-                AND t.school_id = s.school_id
-             LEFT JOIN test_assignments ta
-                ON ta.test_id = t.id
-             LEFT JOIN class_students cs
-                ON cs.class_id = ta.class_id
-                AND cs.student_id = $2
-                ${classStudentColumns.has('is_active') ? 'AND cs.is_active = true' : ''}
-             LEFT JOIN test_attempts tatt
-                ON tatt.assignment_id = ta.id
-                AND tatt.student_id = $2
-                AND ${completedFilter}
-             WHERE s.school_id = $1
-               ${subjectIsActiveFilter}
-               AND s.id IS NOT NULL
-             GROUP BY s.id, s.${subjectNameColumn}, s.color${subjectCodeColumn ? `, s.${subjectCodeColumn}` : ''}
-             ORDER BY ${subjectCodeColumn ? `s.${subjectCodeColumn} ASC NULLS LAST,` : ''} s.${subjectNameColumn} ASC`,
-            [req.user.school_id, studentId]
+                COUNT(attw.id)::int as errors_count
+            FROM test_attempts attw
+            JOIN tests t ON t.id = attw.test_id
+            LEFT JOIN subjects s ON s.id = t.subject_id
+            WHERE attw.student_id = $1
+              AND ${attemptWeak.completedFilter}
+              AND COALESCE(${attemptWeak.scoreExpr}, 0) < 100
+            GROUP BY topic_name, topic_key, t.subject_id, s.${subjectNameColumn}
+            ORDER BY errors_count DESC, topic_name ASC
+            LIMIT 1`,
+            [studentId]
         );
 
-        // Get career test completion
-        let careerTestCompleted = false;
-        if (await tableExists('student_career_results')) {
-            const careerResult = await query(`
-                SELECT COUNT(*) as count
-                FROM student_career_results
-                WHERE student_id = $1
-            `, [studentId]);
-            careerTestCompleted = parseInt(careerResult.rows[0]?.count || 0) > 0;
+        const weakTopic = weakTopicResult.rows[0] || null;
+        let recommendedTest = null;
+        if (weakTopic && classIds.length) {
+            const exactRecommendationResult = await query(
+                `SELECT
+                    ta.id as assignment_id,
+                    t.id as test_id,
+                    COALESCE(NULLIF(TRIM(t.${testTitleColumn}), ''), 'Тест без названия') as test_title,
+                    s.id as subject_id,
+                    s.${subjectNameColumn} as subject_name,
+                    ${endDateExpr('ta')} as end_date,
+                    CASE
+                        WHEN ${endDateExpr('ta')} IS NULL THEN NULL
+                        ELSE CEIL(EXTRACT(EPOCH FROM (${endDateExpr('ta')} - CURRENT_TIMESTAMP)) / 86400.0)::int
+                    END as days_left
+                FROM test_assignments ta
+                JOIN tests t ON t.id = ta.test_id
+                LEFT JOIN subjects s ON s.id = t.subject_id
+                WHERE ta.class_id = ANY($1)
+                  ${assignmentActiveFilter('ta')}
+                  AND LOWER(COALESCE(NULLIF(TRIM(t.${testTitleColumn}), ''), '')) = $3
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM test_attempts attp
+                        WHERE attp.assignment_id = ta.id
+                          AND attp.student_id = $2
+                          AND ${attemptRecommendation.completedFilter}
+                  )
+                ORDER BY (${endDateExpr('ta')} IS NULL) ASC, ${endDateExpr('ta')} ASC NULLS LAST, ta.created_at ASC
+                LIMIT 1`,
+                [classIds, studentId, normalizeTopicKey(weakTopic.topic_key)]
+            );
+
+            let recommendationRow = exactRecommendationResult.rows[0] || null;
+            if (!recommendationRow && weakTopic.subject_id) {
+                const subjectRecommendationResult = await query(
+                    `SELECT
+                        ta.id as assignment_id,
+                        t.id as test_id,
+                        COALESCE(NULLIF(TRIM(t.${testTitleColumn}), ''), 'Тест без названия') as test_title,
+                        s.id as subject_id,
+                        s.${subjectNameColumn} as subject_name,
+                        ${endDateExpr('ta')} as end_date,
+                        CASE
+                            WHEN ${endDateExpr('ta')} IS NULL THEN NULL
+                            ELSE CEIL(EXTRACT(EPOCH FROM (${endDateExpr('ta')} - CURRENT_TIMESTAMP)) / 86400.0)::int
+                        END as days_left
+                    FROM test_assignments ta
+                    JOIN tests t ON t.id = ta.test_id
+                    LEFT JOIN subjects s ON s.id = t.subject_id
+                    WHERE ta.class_id = ANY($1)
+                      ${assignmentActiveFilter('ta')}
+                      AND t.subject_id = $3
+                      AND NOT EXISTS (
+                            SELECT 1
+                            FROM test_attempts attp
+                            WHERE attp.assignment_id = ta.id
+                              AND attp.student_id = $2
+                              AND ${attemptRecommendation.completedFilter}
+                      )
+                    ORDER BY (${endDateExpr('ta')} IS NULL) ASC, ${endDateExpr('ta')} ASC NULLS LAST, ta.created_at ASC
+                    LIMIT 1`,
+                    [classIds, studentId, weakTopic.subject_id]
+                );
+                recommendationRow = subjectRecommendationResult.rows[0] || null;
+            }
+
+            if (recommendationRow) {
+                const errorsCount = parseInt(weakTopic.errors_count || 0, 10);
+                recommendedTest = {
+                    topic_name: weakTopic.topic_name,
+                    topic_errors_count: errorsCount,
+                    assignment_id: recommendationRow.assignment_id,
+                    test_id: recommendationRow.test_id,
+                    test_title: recommendationRow.test_title,
+                    subject_id: recommendationRow.subject_id,
+                    subject_name: recommendationRow.subject_name,
+                    end_date: recommendationRow.end_date,
+                    days_left: recommendationRow.days_left !== null
+                        ? parseInt(recommendationRow.days_left, 10)
+                        : null,
+                    reason: `Ты ошибся в этой теме ${errorsCount} раз`
+                };
+            }
         }
 
-        // Get recent test attempts (last 5)
-        const recentResult = await query(`
-            SELECT 
-                t.id,
-                t.${testTitleColumn} as title,
-                c.name as class_name,
-                ${columns.has('percentage') ? 'tatt.percentage'
-                : columns.has('score') && columns.has('max_score') ? '(tatt.score::float / NULLIF(tatt.max_score, 0) * 100)::int'
-                    : '0'}::int as percentage,
-                ${columns.has('submitted_at') ? 'tatt.submitted_at'
-                : columns.has('completed_at') ? 'tatt.completed_at'
-                    : 'NULL'}::timestamp as submitted_at
-            FROM test_attempts tatt
-            INNER JOIN test_assignments ta ON ta.id = tatt.assignment_id
-            INNER JOIN tests t ON t.id = ta.test_id
-            INNER JOIN classes c ON c.id = ta.class_id
-            INNER JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 ${classStudentActiveFilter}
-              AND tatt.student_id = $1
-              AND ${completedFilter}
-            ORDER BY ${columns.has('submitted_at') ? 'tatt.submitted_at'
-                : columns.has('completed_at') ? 'tatt.completed_at'
-                    : 'tatt.id'} DESC
-            LIMIT 5
-        `, [studentId]);
-        const recentAttempts = recentResult.rows || [];
+        const lastActivityResult = await query(
+            `SELECT
+                COALESCE(NULLIF(TRIM(t.${testTitleColumn}), ''), 'Тест без названия') as test_title,
+                s.${subjectNameColumn} as subject_name,
+                COALESCE(${attemptActivity.scoreExpr}, 0)::float as percentage,
+                ${attemptActivity.completedAt} as completed_at
+            FROM test_attempts atta
+            JOIN tests t ON t.id = atta.test_id
+            LEFT JOIN subjects s ON s.id = t.subject_id
+            WHERE atta.student_id = $1
+              AND ${attemptActivity.completedFilter}
+            ORDER BY ${attemptActivity.completedAt} DESC
+            LIMIT 5`,
+            [studentId]
+        );
+        const lastActivity = lastActivityResult.rows.map((row) => ({
+            test_title: row.test_title,
+            subject_name: row.subject_name,
+            percentage: parseFloat(row.percentage || 0),
+            completed_at: row.completed_at
+        }));
 
-        const assignmentResult = await query(`
-            SELECT
-                ta.id,
-                t.${testTitleColumn} as test_title,
-                c.name as class_name,
-                ${startDateColumn ? `ta.${startDateColumn}` : 'NULL'} as start_date,
-                ${endDateColumn ? `ta.${endDateColumn}` : 'NULL'} as end_date,
-                ta.created_at
-            FROM test_assignments ta
-            JOIN tests t ON t.id = ta.test_id
-            JOIN classes c ON c.id = ta.class_id
-            JOIN class_students cs ON cs.class_id = ta.class_id
-            WHERE cs.student_id = $1 ${classStudentActiveFilter}
-            ORDER BY ta.created_at DESC
-            LIMIT 5
-        `, [studentId]);
+        const achievementRowsResult = await query(
+            `SELECT
+                ${attemptAchievement.completedAt} as completed_at,
+                (${attemptAchievement.scoreExpr})::float as score_percent,
+                (${attemptAchievement.timeSpentExpr})::float as time_spent_seconds
+            FROM test_attempts atth
+            WHERE atth.student_id = $1
+              AND ${attemptAchievement.completedFilter}
+            ORDER BY ${attemptAchievement.completedAt} ASC`,
+            [studentId]
+        );
+        const recentBadge = computeRecentAchievement(achievementRowsResult.rows || []);
 
-        const recentAssignments = assignmentResult.rows || [];
+        let careerTestCompleted = false;
+        if (await tableExists('student_career_results')) {
+            const careerResult = await query(
+                `SELECT COUNT(*)::int as count
+                 FROM student_career_results
+                 WHERE student_id = $1`,
+                [studentId]
+            );
+            careerTestCompleted = parseInt(careerResult.rows[0]?.count || 0, 10) > 0;
+        }
 
-        const activity = [];
-        recentAttempts.forEach(row => {
-            activity.push({
+        const classRank = classRankThisMonth;
+        const subjectProgressTop = [...subjects]
+            .sort((a, b) => {
+                if (b.attempts !== a.attempts) return b.attempts - a.attempts;
+                if (b.avg_score !== a.avg_score) return b.avg_score - a.avg_score;
+                return String(a.subject_name || '').localeCompare(String(b.subject_name || ''), 'ru');
+            })
+            .slice(0, 4);
+
+        const recentActivity = [
+            ...lastActivity.map((item) => ({
                 type: 'attempt',
-                title: row.title,
-                subtitle: row.class_name,
-                percentage: row.percentage || 0,
-                date: row.submitted_at
-            });
-        });
-        recentAssignments.forEach(row => {
-            activity.push({
+                title: item.test_title,
+                subtitle: item.subject_name || '-',
+                percentage: item.percentage,
+                date: item.completed_at
+            })),
+            ...urgentTests.slice(0, 3).map((item) => ({
                 type: 'assignment',
-                title: row.test_title,
-                subtitle: row.class_name,
-                date: row.created_at
-            });
-        });
-        activity.sort((a, b) => new Date(b.date) - new Date(a.date));
+                title: item.test_title,
+                subtitle: item.subject_name || '-',
+                percentage: null,
+                date: item.end_date || item.start_date || null
+            }))
+        ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
         res.json({
             stats: {
                 tests_assigned: testsAssigned,
                 tests_completed: testsCompleted,
-                avg_score: Math.round(avgScore),
+                avg_score: Math.round(avgScore * 10) / 10,
                 class_rank: classRank,
                 career_test_completed: careerTestCompleted
             },
-            subjects: subjectPerformanceResult.rows.map(row => ({
-                subject_id: row.id,
-                subject_name: row.subject_name,
-                subject_color: row.subject_color,
-                attempts: parseInt(row.attempts || 0),
-                avg_score: parseFloat(row.avg_score || 0)
+            mini_stats: {
+                avg_score: Math.round(avgScore * 10) / 10,
+                tests_assigned: testsAssigned,
+                tests_completed: testsCompleted,
+                best_subject: bestSubject
+                    ? {
+                        subject_id: bestSubject.subject_id,
+                        subject_name: bestSubject.subject_name,
+                        avg_score: Math.round(bestSubject.avg_score * 10) / 10
+                    }
+                    : null
+            },
+            streak: {
+                days: streakDays,
+                motivation: streakDays > 0
+                    ? (streakDays >= 7
+                        ? 'Сильная серия, так держать!'
+                        : 'Отличное начало, продолжай в том же ритме!')
+                    : null
+            },
+            class_position: {
+                rank: classRankThisMonth,
+                total_students: classTotalStudents,
+                period: 'current_month'
+            },
+            urgent_tests: urgentTests,
+            subject_progress: subjectProgressTop,
+            recommended_test: recommendedTest,
+            last_activity: lastActivity,
+            recent_badge: recentBadge
+                ? {
+                    id: recentBadge.id,
+                    icon: recentBadge.icon,
+                    title: recentBadge.title,
+                    unlocked_at: recentBadge.unlocked_at
+                }
+                : null,
+            subjects,
+            recent_attempts: lastActivity.map((row) => ({
+                test_title: row.test_title,
+                class_name: row.subject_name || '-',
+                percentage: row.percentage,
+                submitted_at: row.completed_at
             })),
-            recent_attempts: recentAttempts.map(row => ({
-                test_title: row.title,
-                class_name: row.class_name,
-                percentage: row.percentage || 0,
-                submitted_at: row.submitted_at
-            })),
-            recent_activity: activity.slice(0, 8)
+            recent_activity: recentActivity.slice(0, 8)
         });
     } catch (error) {
         console.error('Student dashboard overview error:', error);

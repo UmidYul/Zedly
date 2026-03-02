@@ -195,6 +195,650 @@ async function getAttemptOverviewExpressions(alias = 'att') {
     return { scoreExpr, completedAt, completedFilter };
 }
 
+function startOfDay(date) {
+    const value = new Date(date);
+    value.setHours(0, 0, 0, 0);
+    return value;
+}
+
+function endOfDayExclusive(date) {
+    const value = startOfDay(date);
+    value.setDate(value.getDate() + 1);
+    return value;
+}
+
+function getDirectorDateRanges(referenceDate = new Date()) {
+    const now = new Date(referenceDate);
+    const todayStart = startOfDay(now);
+    const tomorrowStart = endOfDayExclusive(now);
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const twoWeeksAgo = startOfDay(now);
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+    const sevenDaysAgo = startOfDay(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const fourteenDaysAgo = startOfDay(now);
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    const threeMonthsAgo = startOfDay(now);
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    return {
+        now,
+        todayStart,
+        tomorrowStart,
+        currentMonthStart,
+        nextMonthStart,
+        prevMonthStart,
+        twoWeeksAgo,
+        sevenDaysAgo,
+        fourteenDaysAgo,
+        threeMonthsAgo
+    };
+}
+
+function computeTrend(deltaValue) {
+    const delta = Number(deltaValue || 0);
+    if (!Number.isFinite(delta) || Math.abs(delta) < 0.01) {
+        return 'stable';
+    }
+    return delta > 0 ? 'up' : 'down';
+}
+
+function formatTeacherName(row) {
+    return `${row?.first_name || ''} ${row?.last_name || ''}`.trim() || String(row?.id || '—');
+}
+
+async function buildDirectorOverviewPayload(schoolId) {
+    const ranges = getDirectorDateRanges();
+    const attemptAtt = await getAttemptOverviewExpressions('att');
+    const attemptTa = await getAttemptOverviewExpressions('ta');
+    const attemptSa = await getAttemptOverviewExpressions('sa');
+    const subjectColumns = await getTableColumns('subjects');
+    const subjectNameColumn = pickColumn(subjectColumns, ['name_ru', 'name', 'name_uz'], 'name');
+    const subjectActiveFilter = subjectColumns.has('is_active') ? 'AND s.is_active = true' : '';
+
+    const mainNumbersResult = await query(
+        `
+        SELECT
+            (SELECT COUNT(*)::int FROM users WHERE school_id = $1 AND role = 'student' AND is_active = true) as total_students,
+            (SELECT COUNT(*)::int FROM users WHERE school_id = $1 AND role = 'teacher' AND is_active = true) as total_teachers,
+            (
+                SELECT COUNT(*)::int
+                FROM test_attempts att
+                JOIN tests t ON t.id = att.test_id
+                WHERE t.school_id = $1
+                  AND ${attemptAtt.completedFilter}
+                  AND ${attemptAtt.completedAt} >= $2
+                  AND ${attemptAtt.completedAt} < $3
+            ) as tests_completed_today,
+            (
+                SELECT AVG(${attemptAtt.scoreExpr})::float
+                FROM test_attempts att
+                JOIN tests t ON t.id = att.test_id
+                WHERE t.school_id = $1
+                  AND ${attemptAtt.completedFilter}
+                  AND ${attemptAtt.completedAt} >= $4
+                  AND ${attemptAtt.completedAt} < $5
+            ) as avg_score_current_month,
+            (
+                SELECT AVG(${attemptAtt.scoreExpr})::float
+                FROM test_attempts att
+                JOIN tests t ON t.id = att.test_id
+                WHERE t.school_id = $1
+                  AND ${attemptAtt.completedFilter}
+                  AND ${attemptAtt.completedAt} >= $6
+                  AND ${attemptAtt.completedAt} < $4
+            ) as avg_score_prev_month
+        `,
+        [
+            schoolId,
+            ranges.todayStart,
+            ranges.tomorrowStart,
+            ranges.currentMonthStart,
+            ranges.nextMonthStart,
+            ranges.prevMonthStart
+        ]
+    );
+
+    const classRankingResult = await query(
+        `
+        WITH class_scores AS (
+            SELECT
+                c.id,
+                c.name,
+                AVG(${attemptTa.scoreExpr}) FILTER (
+                    WHERE t.id IS NOT NULL
+                      AND ${attemptTa.completedFilter}
+                      AND ${attemptTa.completedAt} >= $2
+                      AND ${attemptTa.completedAt} < $3
+                ) as current_avg_score,
+                AVG(${attemptTa.scoreExpr}) FILTER (
+                    WHERE t.id IS NOT NULL
+                      AND ${attemptTa.completedFilter}
+                      AND ${attemptTa.completedAt} >= $4
+                      AND ${attemptTa.completedAt} < $2
+                ) as prev_avg_score,
+                COUNT(ta.id) FILTER (
+                    WHERE t.id IS NOT NULL
+                      AND ${attemptTa.completedFilter}
+                      AND ${attemptTa.completedAt} >= $2
+                      AND ${attemptTa.completedAt} < $3
+                )::int as attempts_current_month
+            FROM classes c
+            LEFT JOIN class_students cs ON cs.class_id = c.id AND cs.is_active = true
+            LEFT JOIN test_attempts ta ON ta.student_id = cs.student_id
+            LEFT JOIN tests t ON t.id = ta.test_id AND t.school_id = $1
+            WHERE c.school_id = $1
+            GROUP BY c.id, c.name
+        )
+        SELECT
+            id,
+            name,
+            COALESCE(current_avg_score, 0)::float as avg_score,
+            COALESCE(prev_avg_score, 0)::float as prev_avg_score,
+            COALESCE(attempts_current_month, 0)::int as attempts_current_month,
+            (COALESCE(current_avg_score, 0) - COALESCE(prev_avg_score, 0))::float as delta
+        FROM class_scores
+        ORDER BY avg_score DESC, name ASC
+        `,
+        [schoolId, ranges.currentMonthStart, ranges.nextMonthStart, ranges.prevMonthStart]
+    );
+
+    const lowPerformanceClassesResult = await query(
+        `
+        SELECT
+            c.id,
+            c.name,
+            AVG(${attemptTa.scoreExpr})::float as avg_score,
+            COUNT(ta.id)::int as attempts
+        FROM classes c
+        JOIN class_students cs ON cs.class_id = c.id AND cs.is_active = true
+        JOIN test_attempts ta ON ta.student_id = cs.student_id
+        JOIN tests t ON t.id = ta.test_id
+        WHERE c.school_id = $1
+          AND t.school_id = $1
+          AND ${attemptTa.completedFilter}
+          AND ${attemptTa.completedAt} >= $2
+        GROUP BY c.id, c.name
+        HAVING AVG(${attemptTa.scoreExpr}) < 50
+        ORDER BY avg_score ASC, c.name ASC
+        `,
+        [schoolId, ranges.twoWeeksAgo]
+    );
+
+    const inactiveTeachersResult = await query(
+        `
+        SELECT
+            u.id,
+            u.first_name,
+            u.last_name,
+            MAX(tas.created_at) as last_assigned_at
+        FROM users u
+        LEFT JOIN tests t ON t.teacher_id = u.id AND t.school_id = $1
+        LEFT JOIN test_assignments tas ON tas.test_id = t.id
+        WHERE u.school_id = $1
+          AND u.role = 'teacher'
+          AND u.is_active = true
+        GROUP BY u.id, u.first_name, u.last_name
+        HAVING MAX(tas.created_at) IS NULL OR MAX(tas.created_at) < $2
+        ORDER BY last_assigned_at ASC NULLS FIRST, u.last_name ASC, u.first_name ASC
+        `,
+        [schoolId, ranges.fourteenDaysAgo]
+    );
+
+    const inactiveStudentsCountResult = await query(
+        `
+        WITH student_last_attempt AS (
+            SELECT
+                u.id,
+                MAX(${attemptSa.completedAt}) FILTER (
+                    WHERE t.id IS NOT NULL
+                      AND ${attemptSa.completedFilter}
+                ) as last_attempt_at
+            FROM users u
+            LEFT JOIN test_attempts sa ON sa.student_id = u.id
+            LEFT JOIN tests t ON t.id = sa.test_id AND t.school_id = $1
+            WHERE u.school_id = $1
+              AND u.role = 'student'
+              AND u.is_active = true
+            GROUP BY u.id
+        )
+        SELECT COUNT(*)::int as inactive_students_count
+        FROM student_last_attempt
+        WHERE last_attempt_at IS NULL OR last_attempt_at < $2
+        `,
+        [schoolId, ranges.sevenDaysAgo]
+    );
+
+    const teacherActivityResult = await query(
+        `
+        SELECT
+            u.id,
+            u.first_name,
+            u.last_name,
+            COUNT(DISTINCT t.id) FILTER (
+                WHERE t.created_at >= $2 AND t.created_at < $3
+            )::int as tests_created_month,
+            MAX(COALESCE(tas.created_at, t.updated_at, t.created_at, u.last_login)) as last_activity_at
+        FROM users u
+        LEFT JOIN tests t ON t.teacher_id = u.id AND t.school_id = $1
+        LEFT JOIN test_assignments tas ON tas.test_id = t.id
+        WHERE u.school_id = $1
+          AND u.role = 'teacher'
+          AND u.is_active = true
+        GROUP BY u.id, u.first_name, u.last_name
+        ORDER BY last_activity_at DESC NULLS LAST, u.last_name ASC, u.first_name ASC
+        `,
+        [schoolId, ranges.currentMonthStart, ranges.nextMonthStart]
+    );
+
+    const weakSubjectsResult = await query(
+        `
+        SELECT
+            s.id,
+            s.${subjectNameColumn} as subject_name,
+            AVG(${attemptTa.scoreExpr}) FILTER (
+                WHERE t.id IS NOT NULL
+                  AND ${attemptTa.completedFilter}
+                  AND ${attemptTa.completedAt} >= $2
+            )::float as avg_score,
+            COUNT(ta.id) FILTER (
+                WHERE t.id IS NOT NULL
+                  AND ${attemptTa.completedFilter}
+                  AND ${attemptTa.completedAt} >= $2
+            )::int as attempts
+        FROM subjects s
+        LEFT JOIN tests t ON t.subject_id = s.id AND t.school_id = $1
+        LEFT JOIN test_attempts ta ON ta.test_id = t.id
+        WHERE s.school_id = $1
+          ${subjectActiveFilter}
+        GROUP BY s.id, s.${subjectNameColumn}
+        HAVING COUNT(ta.id) FILTER (
+                WHERE t.id IS NOT NULL
+                  AND ${attemptTa.completedFilter}
+                  AND ${attemptTa.completedAt} >= $2
+            ) > 0
+        ORDER BY avg_score ASC, subject_name ASC
+        `,
+        [schoolId, ranges.threeMonthsAgo]
+    );
+
+    const riskStudentsResult = await query(
+        `
+        WITH student_scores AS (
+            SELECT
+                u.id,
+                u.first_name,
+                u.last_name,
+                COALESCE(MIN(c.name), '—') as class_name,
+                AVG(${attemptSa.scoreExpr}) FILTER (
+                    WHERE t.id IS NOT NULL
+                      AND ${attemptSa.completedFilter}
+                      AND ${attemptSa.completedAt} >= $2
+                      AND ${attemptSa.completedAt} < $3
+                )::float as avg_score,
+                MAX(${attemptSa.completedAt}) FILTER (
+                    WHERE t.id IS NOT NULL
+                      AND ${attemptSa.completedFilter}
+                ) as last_attempt_at
+            FROM users u
+            LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.is_active = true
+            LEFT JOIN classes c ON c.id = cs.class_id
+            LEFT JOIN test_attempts sa ON sa.student_id = u.id
+            LEFT JOIN tests t ON t.id = sa.test_id AND t.school_id = $1
+            WHERE u.school_id = $1
+              AND u.role = 'student'
+              AND u.is_active = true
+            GROUP BY u.id, u.first_name, u.last_name
+        )
+        SELECT
+            id,
+            first_name,
+            last_name,
+            class_name,
+            COALESCE(avg_score, 0)::float as avg_score,
+            last_attempt_at
+        FROM student_scores
+        WHERE COALESCE(avg_score, 0) < 40
+        ORDER BY avg_score ASC, last_attempt_at ASC NULLS FIRST
+        LIMIT 10
+        `,
+        [schoolId, ranges.currentMonthStart, ranges.nextMonthStart]
+    );
+
+    const todayActivityResult = await query(
+        `
+        SELECT
+            (
+                SELECT COUNT(*)::int
+                FROM test_attempts att
+                JOIN tests t ON t.id = att.test_id
+                WHERE t.school_id = $1
+                  AND ${attemptAtt.completedFilter}
+                  AND ${attemptAtt.completedAt} >= $2
+                  AND ${attemptAtt.completedAt} < $3
+            ) as tests_completed_today,
+            (
+                SELECT COUNT(*)::int
+                FROM test_assignments tas
+                JOIN tests t ON t.id = tas.test_id
+                WHERE t.school_id = $1
+                  AND tas.created_at >= $2
+                  AND tas.created_at < $3
+            ) as tests_assigned_today,
+            (
+                SELECT COUNT(DISTINCT att.student_id)::int
+                FROM test_attempts att
+                JOIN tests t ON t.id = att.test_id
+                WHERE t.school_id = $1
+                  AND ${attemptAtt.completedFilter}
+                  AND ${attemptAtt.completedAt} >= $2
+                  AND ${attemptAtt.completedAt} < $3
+            ) as active_students_today
+        `,
+        [schoolId, ranges.todayStart, ranges.tomorrowStart]
+    );
+
+    const main = mainNumbersResult.rows[0] || {};
+    const avgCurrent = Number(main.avg_score_current_month || 0);
+    const avgPrev = Number(main.avg_score_prev_month || 0);
+    const avgDelta = avgCurrent - avgPrev;
+
+    const classRanking = classRankingResult.rows.map((row) => {
+        const delta = Number(row.delta || 0);
+        return {
+            id: row.id,
+            name: row.name,
+            avg_score: Number(row.avg_score || 0),
+            prev_avg_score: Number(row.prev_avg_score || 0),
+            attempts_current_month: Number(row.attempts_current_month || 0),
+            trend_delta: delta,
+            trend: computeTrend(delta)
+        };
+    });
+
+    const improvedClasses = classRanking
+        .filter((item) => item.prev_avg_score > 0 && item.trend_delta > 10)
+        .map((item) => ({
+            id: item.id,
+            name: item.name,
+            previous_score: Number(item.prev_avg_score.toFixed(2)),
+            current_score: Number(item.avg_score.toFixed(2)),
+            improvement: Number(item.trend_delta.toFixed(2))
+        }));
+
+    const inactiveTeacherRows = inactiveTeachersResult.rows.map((row) => ({
+        id: row.id,
+        name: formatTeacherName(row),
+        last_assigned_at: row.last_assigned_at
+    }));
+
+    const today = todayActivityResult.rows[0] || {};
+    const totalStudents = Number(main.total_students || 0);
+    const activeToday = Number(today.active_students_today || 0);
+
+    const riskStudents = riskStudentsResult.rows.map((row) => {
+        const lastAttempt = row.last_attempt_at ? new Date(row.last_attempt_at) : null;
+        const inactiveDays = lastAttempt
+            ? Math.max(0, Math.floor((ranges.now.getTime() - lastAttempt.getTime()) / 86400000))
+            : null;
+        return {
+            id: row.id,
+            name: `${row.first_name || ''} ${row.last_name || ''}`.trim() || String(row.id),
+            class_name: row.class_name || '—',
+            avg_score: Number(row.avg_score || 0),
+            inactive_days: inactiveDays
+        };
+    });
+
+    const teacherActivity = teacherActivityResult.rows.map((row) => {
+        const lastActivity = row.last_activity_at ? new Date(row.last_activity_at) : null;
+        const inactiveDays = lastActivity
+            ? Math.max(0, Math.floor((ranges.now.getTime() - lastActivity.getTime()) / 86400000))
+            : null;
+        return {
+            id: row.id,
+            name: formatTeacherName(row),
+            tests_created_month: Number(row.tests_created_month || 0),
+            last_activity_at: row.last_activity_at,
+            inactive_days: inactiveDays,
+            is_inactive_14_days: inactiveDays === null || inactiveDays > 14
+        };
+    });
+
+    const lowPerformanceClasses = lowPerformanceClassesResult.rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        avg_score: Number(row.avg_score || 0),
+        attempts: Number(row.attempts || 0)
+    }));
+
+    const weakSubjects = weakSubjectsResult.rows.map((row) => ({
+        id: row.id,
+        subject_name: row.subject_name,
+        avg_score: Number(row.avg_score || 0),
+        attempts: Number(row.attempts || 0),
+        is_weak: Number(row.avg_score || 0) < 60
+    }));
+
+    const inactiveStudentsCount = Number(inactiveStudentsCountResult.rows[0]?.inactive_students_count || 0);
+
+    const alerts = {
+        low_score_classes: lowPerformanceClasses,
+        inactive_teachers: inactiveTeacherRows,
+        inactive_students_count: inactiveStudentsCount,
+        improved_classes: improvedClasses
+    };
+
+    const hasAlerts = Boolean(
+        lowPerformanceClasses.length
+        || inactiveTeacherRows.length
+        || inactiveStudentsCount > 0
+        || improvedClasses.length
+    );
+
+    return {
+        school_id: schoolId,
+        generated_at: ranges.now.toISOString(),
+        main_numbers: {
+            total_students: totalStudents,
+            total_teachers: Number(main.total_teachers || 0),
+            tests_completed_today: Number(main.tests_completed_today || 0),
+            avg_score: Number(avgCurrent.toFixed(2)),
+            avg_score_prev_month: Number(avgPrev.toFixed(2)),
+            avg_score_delta: Number(avgDelta.toFixed(2)),
+            avg_score_trend: computeTrend(avgDelta)
+        },
+        alerts: {
+            show: hasAlerts,
+            ...alerts
+        },
+        monthly_comparison: {
+            current_month_avg: Number(avgCurrent.toFixed(2)),
+            previous_month_avg: Number(avgPrev.toFixed(2)),
+            delta: Number(avgDelta.toFixed(2)),
+            trend: computeTrend(avgDelta)
+        },
+        class_ranking: classRanking,
+        teacher_activity: teacherActivity,
+        weak_subjects: weakSubjects,
+        risk_students: riskStudents,
+        today_activity: {
+            tests_completed_today: Number(today.tests_completed_today || 0),
+            tests_assigned_today: Number(today.tests_assigned_today || 0),
+            active_students_today: activeToday,
+            total_students: totalStudents,
+            active_students_ratio: totalStudents > 0
+                ? Number(((activeToday / totalStudents) * 100).toFixed(2))
+                : 0
+        }
+    };
+}
+
+async function buildDirectorPerformanceChartPayload(schoolId, mode = 'classes') {
+    const safeMode = mode === 'subjects' ? 'subjects' : 'classes';
+    const ranges = getDirectorDateRanges();
+    const startDate = ranges.threeMonthsAgo;
+    const attempt = await getAttemptOverviewExpressions('att');
+    const subjectColumns = await getTableColumns('subjects');
+    const subjectNameColumn = pickColumn(subjectColumns, ['name_ru', 'name', 'name_uz'], 'name');
+
+    let dimensionRowsResult;
+    if (safeMode === 'subjects') {
+        dimensionRowsResult = await query(
+            `
+            SELECT
+                DATE_TRUNC('week', ${attempt.completedAt})::date as week_start,
+                s.id as dimension_id,
+                s.${subjectNameColumn} as dimension_name,
+                AVG(${attempt.scoreExpr})::float as avg_score,
+                COUNT(att.id)::int as attempts
+            FROM test_attempts att
+            JOIN tests t ON t.id = att.test_id
+            JOIN subjects s ON s.id = t.subject_id
+            WHERE t.school_id = $1
+              AND ${attempt.completedFilter}
+              AND ${attempt.completedAt} >= $2
+            GROUP BY DATE_TRUNC('week', ${attempt.completedAt}), s.id, s.${subjectNameColumn}
+            ORDER BY week_start ASC, dimension_name ASC
+            `,
+            [schoolId, startDate]
+        );
+    } else {
+        dimensionRowsResult = await query(
+            `
+            SELECT
+                DATE_TRUNC('week', ${attempt.completedAt})::date as week_start,
+                c.id as dimension_id,
+                c.name as dimension_name,
+                AVG(${attempt.scoreExpr})::float as avg_score,
+                COUNT(att.id)::int as attempts
+            FROM test_attempts att
+            JOIN tests t ON t.id = att.test_id
+            JOIN class_students cs ON cs.student_id = att.student_id AND cs.is_active = true
+            JOIN classes c ON c.id = cs.class_id
+            WHERE t.school_id = $1
+              AND c.school_id = $1
+              AND ${attempt.completedFilter}
+              AND ${attempt.completedAt} >= $2
+            GROUP BY DATE_TRUNC('week', ${attempt.completedAt}), c.id, c.name
+            ORDER BY week_start ASC, dimension_name ASC
+            `,
+            [schoolId, startDate]
+        );
+    }
+
+    const schoolWeeklyResult = await query(
+        `
+        SELECT
+            DATE_TRUNC('week', ${attempt.completedAt})::date as week_start,
+            AVG(${attempt.scoreExpr})::float as avg_score,
+            COUNT(att.id)::int as attempts
+        FROM test_attempts att
+        JOIN tests t ON t.id = att.test_id
+        WHERE t.school_id = $1
+          AND ${attempt.completedFilter}
+          AND ${attempt.completedAt} >= $2
+        GROUP BY DATE_TRUNC('week', ${attempt.completedAt})
+        ORDER BY week_start ASC
+        `,
+        [schoolId, startDate]
+    );
+
+    const monthCompareResult = await query(
+        `
+        SELECT
+            AVG(${attempt.scoreExpr}) FILTER (
+                WHERE ${attempt.completedAt} >= $2 AND ${attempt.completedAt} < $3
+            )::float as current_month_avg,
+            AVG(${attempt.scoreExpr}) FILTER (
+                WHERE ${attempt.completedAt} >= $4 AND ${attempt.completedAt} < $2
+            )::float as previous_month_avg
+        FROM test_attempts att
+        JOIN tests t ON t.id = att.test_id
+        WHERE t.school_id = $1
+          AND ${attempt.completedFilter}
+          AND ${attempt.completedAt} >= $4
+          AND ${attempt.completedAt} < $3
+        `,
+        [schoolId, ranges.currentMonthStart, ranges.nextMonthStart, ranges.prevMonthStart]
+    );
+
+    const allWeeksSet = new Set();
+    schoolWeeklyResult.rows.forEach((row) => allWeeksSet.add(String(row.week_start)));
+    dimensionRowsResult.rows.forEach((row) => allWeeksSet.add(String(row.week_start)));
+    const weeklyLabels = Array.from(allWeeksSet).sort((left, right) => new Date(left) - new Date(right));
+
+    const totalAttemptsByDimension = new Map();
+    dimensionRowsResult.rows.forEach((row) => {
+        const id = String(row.dimension_id);
+        const prev = totalAttemptsByDimension.get(id) || { id, name: row.dimension_name, attempts: 0 };
+        prev.attempts += Number(row.attempts || 0);
+        totalAttemptsByDimension.set(id, prev);
+    });
+
+    const topDimensionIds = Array.from(totalAttemptsByDimension.values())
+        .sort((a, b) => b.attempts - a.attempts)
+        .slice(0, 6)
+        .map((item) => item.id);
+
+    const seriesMap = new Map();
+    topDimensionIds.forEach((id) => {
+        const dimension = totalAttemptsByDimension.get(id);
+        seriesMap.set(id, {
+            id,
+            name: dimension?.name || id,
+            attempts: dimension?.attempts || 0,
+            points: weeklyLabels.map((weekLabel) => ({
+                week_start: weekLabel,
+                avg_score: null
+            }))
+        });
+    });
+
+    dimensionRowsResult.rows.forEach((row) => {
+        const id = String(row.dimension_id);
+        if (!seriesMap.has(id)) return;
+        const weekLabel = String(row.week_start);
+        const target = seriesMap.get(id);
+        const point = target.points.find((item) => item.week_start === weekLabel);
+        if (point) {
+            point.avg_score = Number(Number(row.avg_score || 0).toFixed(2));
+        }
+    });
+
+    const schoolSeries = weeklyLabels.map((weekLabel) => {
+        const found = schoolWeeklyResult.rows.find((row) => String(row.week_start) === weekLabel);
+        return {
+            week_start: weekLabel,
+            avg_score: found ? Number(Number(found.avg_score || 0).toFixed(2)) : null
+        };
+    });
+
+    const monthCompare = monthCompareResult.rows[0] || {};
+    const currentMonthAvg = Number(monthCompare.current_month_avg || 0);
+    const previousMonthAvg = Number(monthCompare.previous_month_avg || 0);
+    const delta = currentMonthAvg - previousMonthAvg;
+
+    return {
+        mode: safeMode,
+        weekly_labels: weeklyLabels,
+        school_series: schoolSeries,
+        dimension_series: Array.from(seriesMap.values()),
+        month_comparison: {
+            current_month_avg: Number(currentMonthAvg.toFixed(2)),
+            previous_month_avg: Number(previousMonthAvg.toFixed(2)),
+            delta: Number(delta.toFixed(2)),
+            trend: computeTrend(delta)
+        }
+    };
+}
+
 /**
  * GET /api/admin/dashboard/overview
  * Get school admin dashboard overview
@@ -331,6 +975,192 @@ router.get('/dashboard/overview', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to fetch dashboard overview'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/director/overview
+ * Main school director overview dashboard payload
+ */
+router.get('/director/overview', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const payload = await buildDirectorOverviewPayload(schoolId);
+        res.json(payload);
+    } catch (error) {
+        console.error('Director overview error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch director overview'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/director/performance-chart
+ * Weekly performance chart for school director overview
+ */
+router.get('/director/performance-chart', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const mode = String(req.query.mode || 'classes').trim().toLowerCase();
+        const payload = await buildDirectorPerformanceChartPayload(schoolId, mode);
+        res.json(payload);
+    } catch (error) {
+        console.error('Director performance chart error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to fetch director performance chart'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/director/reports/monthly.pdf
+ * Quick report: monthly PDF for director
+ */
+router.get('/director/reports/monthly.pdf', async (req, res) => {
+    try {
+        let PDFDocument;
+        try {
+            PDFDocument = require('pdfkit');
+        } catch (error) {
+            return res.status(500).json({
+                error: 'dependency_missing',
+                message: 'pdfkit is not installed'
+            });
+        }
+
+        const schoolId = req.user.school_id;
+        const payload = await buildDirectorOverviewPayload(schoolId);
+        const now = new Date();
+        const filename = `director_monthly_report_${now.toISOString().slice(0, 10)}.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        const doc = new PDFDocument({ margin: 44, size: 'A4' });
+        doc.pipe(res);
+
+        doc.fontSize(18).text('ZEDLY: Отчёт директора за месяц');
+        doc.moveDown(0.4);
+        doc.fontSize(10).fillColor('#4b5563').text(`Дата формирования: ${now.toLocaleString('ru-RU')}`);
+        doc.fillColor('#111827');
+        doc.moveDown(1);
+
+        doc.fontSize(13).text('Главные цифры', { underline: true });
+        doc.fontSize(10)
+            .text(`Учеников: ${payload.main_numbers.total_students}`)
+            .text(`Учителей: ${payload.main_numbers.total_teachers}`)
+            .text(`Тестов пройдено сегодня: ${payload.main_numbers.tests_completed_today}`)
+            .text(`Средний балл: ${Number(payload.main_numbers.avg_score || 0).toFixed(1)}%`)
+            .text(`Динамика к прошлому месяцу: ${payload.main_numbers.avg_score_delta >= 0 ? '+' : ''}${Number(payload.main_numbers.avg_score_delta || 0).toFixed(1)}%`);
+        doc.moveDown(0.8);
+
+        doc.fontSize(13).text('Алерты', { underline: true });
+        if (!payload.alerts.show) {
+            doc.fontSize(10).text('Алертов нет.');
+        } else {
+            doc.fontSize(10);
+            if (payload.alerts.low_score_classes.length) {
+                doc.text(`Классы ниже 50% за 2 недели: ${payload.alerts.low_score_classes.length}`);
+            }
+            if (payload.alerts.inactive_teachers.length) {
+                doc.text(`Неактивные учителя (>14 дней): ${payload.alerts.inactive_teachers.length}`);
+            }
+            if (payload.alerts.inactive_students_count > 0) {
+                doc.text(`Ученики без активности >7 дней: ${payload.alerts.inactive_students_count}`);
+            }
+            if (payload.alerts.improved_classes.length) {
+                doc.text(`Классы с улучшением >10%: ${payload.alerts.improved_classes.length}`);
+            }
+        }
+        doc.moveDown(0.8);
+
+        doc.fontSize(13).text('Рейтинг классов (топ-10)', { underline: true });
+        payload.class_ranking.slice(0, 10).forEach((item, index) => {
+            const trendIcon = item.trend === 'up' ? '↑' : (item.trend === 'down' ? '↓' : '→');
+            doc.fontSize(10).text(
+                `${index + 1}. ${item.name}: ${Number(item.avg_score || 0).toFixed(1)}% (${trendIcon} ${Number(item.trend_delta || 0).toFixed(1)}%)`
+            );
+        });
+        doc.moveDown(0.8);
+
+        doc.fontSize(13).text('Слабые предметы (топ-10)', { underline: true });
+        payload.weak_subjects.slice(0, 10).forEach((item, index) => {
+            doc.fontSize(10).text(
+                `${index + 1}. ${item.subject_name}: ${Number(item.avg_score || 0).toFixed(1)}%`
+            );
+        });
+
+        doc.end();
+        return undefined;
+    } catch (error) {
+        console.error('Director monthly PDF report error:', error);
+        if (!res.headersSent) {
+            return res.status(500).json({
+                error: 'server_error',
+                message: 'Failed to generate monthly PDF report'
+            });
+        }
+        return undefined;
+    }
+});
+
+/**
+ * GET /api/admin/director/reports/class-ranking.xlsx
+ * Quick report: class ranking Excel for director
+ */
+router.get('/director/reports/class-ranking.xlsx', async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const payload = await buildDirectorOverviewPayload(schoolId);
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Class Ranking');
+
+        sheet.columns = [
+            { header: 'Class ID', key: 'id', width: 38 },
+            { header: 'Class Name', key: 'name', width: 24 },
+            { header: 'Avg Score (%)', key: 'avg_score', width: 16 },
+            { header: 'Prev Avg Score (%)', key: 'prev_avg_score', width: 18 },
+            { header: 'Trend Delta (%)', key: 'trend_delta', width: 16 },
+            { header: 'Trend', key: 'trend', width: 10 },
+            { header: 'Attempts (Month)', key: 'attempts_current_month', width: 18 },
+            { header: 'Below 50%', key: 'below_50', width: 12 }
+        ];
+
+        payload.class_ranking.forEach((item) => {
+            sheet.addRow({
+                id: item.id,
+                name: item.name,
+                avg_score: Number(item.avg_score || 0).toFixed(2),
+                prev_avg_score: Number(item.prev_avg_score || 0).toFixed(2),
+                trend_delta: Number(item.trend_delta || 0).toFixed(2),
+                trend: item.trend,
+                attempts_current_month: item.attempts_current_month || 0,
+                below_50: Number(item.avg_score || 0) < 50 ? 'YES' : 'NO'
+            });
+        });
+
+        sheet.getRow(1).font = { bold: true };
+        sheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+        const workbookBuffer = await workbook.xlsx.writeBuffer();
+        const buffer = Buffer.isBuffer(workbookBuffer)
+            ? workbookBuffer
+            : Buffer.from(workbookBuffer);
+
+        const now = new Date();
+        const filename = `class_ranking_${now.toISOString().slice(0, 10)}.xlsx`;
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Director class ranking Excel report error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to generate class ranking Excel report'
         });
     }
 });

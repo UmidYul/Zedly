@@ -5,6 +5,8 @@
     let currentUser = null;
     let teacherHasHomeroom = false;
     let currentPageId = 'overview';
+    let topNavDocumentBound = false;
+    let topUserMenuDocumentBound = false;
     const hiddenPages = new Set(['career-results']);
 
     // Navigation items for each role
@@ -213,11 +215,13 @@
         }
     }
 
-    // Update user info in sidebar
+    // Update user info in sidebar/header
     function updateUserInfo() {
         const userAvatar = document.getElementById('userAvatar');
         const userName = document.getElementById('userName');
         const userRole = document.getElementById('userRole');
+        const topUserBtnLabel = document.getElementById('topUserBtnLabel');
+        const topUserBtn = document.getElementById('topUserBtn');
 
         if (currentUser) {
             // Avatar icon is static in markup; no update needed.
@@ -239,76 +243,215 @@
                 userRole.textContent = roleNames[currentUser.role] || currentUser.role;
             }
 
+            if (topUserBtnLabel) {
+                const displayName = (currentUser.first_name || '').trim() || currentUser.username || 'Profile';
+                topUserBtnLabel.textContent = displayName;
+            }
+
+            if (topUserBtn) {
+                topUserBtn.setAttribute('title', currentUser.username || 'Profile');
+            }
         }
+    }
+
+    function getVisibleNavigationConfig() {
+        if (!currentUser || !navigationConfig[currentUser.role]) {
+            return [];
+        }
+
+        return navigationConfig[currentUser.role]
+            .map((section) => ({
+                ...section,
+                items: section.items.filter((item) => !(item.id === 'my-class'
+                    && currentUser.role === 'teacher'
+                    && !teacherHasHomeroom))
+            }))
+            .filter((section) => section.items.length > 0);
     }
 
     // Render navigation based on role
     function renderNavigation() {
-        const sidebarNav = document.getElementById('sidebarNav');
-        if (!sidebarNav || !currentUser || !navigationConfig[currentUser.role]) {
-            console.warn('[warn] Cannot render navigation: element or config missing');
+        if (!currentUser || !navigationConfig[currentUser.role]) {
+            console.warn('[warn] Cannot render navigation: user or config missing');
             return;
         }
 
-        const config = navigationConfig[currentUser.role];
-        let html = '';
-
-        // Helper function to get translation
+        const sidebarNav = document.getElementById('sidebarNav');
+        const topNav = document.getElementById('topNav');
         const t = (key) => {
             return window.ZedlyI18n?.translate(key) || key;
         };
+        const config = getVisibleNavigationConfig();
 
-        config.forEach(section => {
-            html += `<div class="nav-section">`;
-            html += `<div class="nav-section-title" data-i18n="${section.section}">${t(section.section)}</div>`;
+        if (sidebarNav) {
+            let sidebarHtml = '';
+            config.forEach((section) => {
+                sidebarHtml += `<div class="nav-section">`;
+                sidebarHtml += `<div class="nav-section-title" data-i18n="${section.section}">${t(section.section)}</div>`;
+                sidebarHtml += '<div class="nav-section-items">';
 
-            section.items.forEach(item => {
-                if (item.id === 'my-class' && currentUser.role === 'teacher' && !teacherHasHomeroom) {
-                    return;
-                }
-                const iconSvg = icons[item.icon] || icons.grid;
-                const itemHref = item.href;
-                html += `
-                    <a href="${itemHref}" class="nav-item" data-page="${item.id}">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            ${iconSvg}
-                        </svg>
-                        <span data-i18n="${item.label}">${t(item.label)}</span>
-                    </a>
-                `;
+                section.items.forEach((item) => {
+                    const iconSvg = icons[item.icon] || icons.grid;
+                    sidebarHtml += `
+                        <a href="${item.href}" class="nav-item" data-page="${item.id}">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                ${iconSvg}
+                            </svg>
+                            <span data-i18n="${item.label}">${t(item.label)}</span>
+                        </a>
+                    `;
+                });
+
+                sidebarHtml += '</div></div>';
             });
+            sidebarNav.innerHTML = sidebarHtml;
+        }
 
-            html += `</div>`;
-        });
+        if (topNav) {
+            let topHtml = '';
+            config.forEach((section) => {
+                const sectionTitle = t(section.section);
+                const hasDropdown = section.items.length > 1;
 
-        sidebarNav.innerHTML = html;
+                topHtml += `
+                    <div class="top-nav-group" data-section="${section.section}">
+                        <button class="top-nav-trigger" type="button" aria-expanded="false" data-has-dropdown="${hasDropdown ? '1' : '0'}" data-page="${section.items[0]?.id || ''}">
+                            <span class="top-nav-trigger-label" data-i18n="${section.section}">${sectionTitle}</span>
+                            ${hasDropdown ? `
+                                <svg class="top-nav-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            ` : ''}
+                        </button>
+                        <div class="top-nav-dropdown">
+                            ${section.items.map((item) => {
+                                const iconSvg = icons[item.icon] || icons.grid;
+                                return `
+                                    <a href="${item.href}" class="nav-item top-nav-item" data-page="${item.id}">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            ${iconSvg}
+                                        </svg>
+                                        <span data-i18n="${item.label}">${t(item.label)}</span>
+                                    </a>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+
+            });
+            topNav.innerHTML = topHtml;
+            bindTopNavDropdowns();
+        }
 
         // Restore active state for current page
         syncActiveNavItem(currentPageId);
 
         // Add click handlers
-        sidebarNav.querySelectorAll('.nav-item').forEach(item => {
+        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
             item.addEventListener('click', handleNavClick);
         });
     }
 
     function syncActiveNavItem(pageId) {
-        const sidebarNav = document.getElementById('sidebarNav');
-        if (!sidebarNav) return;
-
-        const navItems = sidebarNav.querySelectorAll('.nav-item');
+        const navItems = document.querySelectorAll('.nav-item[data-page]');
         navItems.forEach((item) => item.classList.remove('active'));
+        document.querySelectorAll('.top-nav-group').forEach((group) => group.classList.remove('active'));
 
-        const currentItem = sidebarNav.querySelector(`.nav-item[data-page="${pageId}"]`);
-        if (currentItem) {
-            currentItem.classList.add('active');
+        const currentItems = document.querySelectorAll(`.nav-item[data-page="${pageId}"]`);
+        if (currentItems.length) {
+            currentItems.forEach((item) => item.classList.add('active'));
+            const topGroup = currentItems[0].closest('.top-nav-group');
+            if (topGroup) {
+                topGroup.classList.add('active');
+            }
             return;
         }
 
-        const firstItem = sidebarNav.querySelector('.nav-item');
+        const firstItem = document.querySelector('.top-nav .nav-item, #sidebarNav .nav-item');
         if (firstItem) {
             firstItem.classList.add('active');
             currentPageId = firstItem.dataset.page || 'overview';
+        }
+    }
+
+    function closeTopNavDropdowns() {
+        document.querySelectorAll('.top-nav-group').forEach((group) => {
+            group.classList.remove('open');
+            const trigger = group.querySelector('.top-nav-trigger');
+            if (trigger) {
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    function bindTopNavDropdowns() {
+        const topNav = document.getElementById('topNav');
+        if (!topNav) return;
+
+        const isDesktop = () => window.matchMedia('(min-width: 969px)').matches;
+
+        topNav.querySelectorAll('.top-nav-group').forEach((group) => {
+            const trigger = group.querySelector('.top-nav-trigger');
+            if (!trigger) return;
+
+            group.addEventListener('mouseenter', () => {
+                if (!isDesktop() || trigger.dataset.hasDropdown !== '1') return;
+                closeTopNavDropdowns();
+                group.classList.add('open');
+                trigger.setAttribute('aria-expanded', 'true');
+            });
+
+            group.addEventListener('mouseleave', () => {
+                if (!isDesktop()) return;
+                group.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+            });
+        });
+
+        topNav.querySelectorAll('.top-nav-trigger').forEach((trigger) => {
+            trigger.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const group = trigger.closest('.top-nav-group');
+                if (!group) return;
+
+                if (trigger.dataset.hasDropdown !== '1') {
+                    const firstPage = String(trigger.dataset.page || '').trim();
+                    const fallbackItem = firstPage
+                        ? group.querySelector(`.nav-item[data-page="${firstPage}"]`)
+                        : group.querySelector('.nav-item[data-page]');
+                    if (fallbackItem) {
+                        fallbackItem.click();
+                    }
+                    return;
+                }
+
+                const isOpen = group.classList.contains('open');
+                closeTopNavDropdowns();
+
+                if (!isOpen) {
+                    group.classList.add('open');
+                    trigger.setAttribute('aria-expanded', 'true');
+                }
+            });
+        });
+
+        if (!topNavDocumentBound) {
+            document.addEventListener('click', (event) => {
+                const topNavRoot = document.getElementById('topNav');
+                if (!topNavRoot || !topNavRoot.contains(event.target)) {
+                    closeTopNavDropdowns();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeTopNavDropdowns();
+                }
+            });
+            topNavDocumentBound = true;
         }
     }
 
@@ -385,6 +528,9 @@
             window.location.hash = page;
         }
 
+        closeTopNavDropdowns();
+        closeTopUserMenu();
+
         // Close mobile menu
         closeMobileMenu();
     }
@@ -417,6 +563,86 @@
 
         // Show skeleton loading (faster visual feedback than spinner-only)
         content.innerHTML = getDashboardSkeletonMarkup();
+
+        if (page === 'overview' && currentUser && currentUser.role === 'student') {
+            content.innerHTML = `
+                <div class="student-overview-page" id="studentOverviewPage">
+                    <section class="dashboard-section student-overview-welcome">
+                        <h1 class="student-overview-greeting" id="studentOverviewGreeting">Здравствуйте</h1>
+                        <p class="student-overview-date" id="studentOverviewDate">-</p>
+                    </section>
+
+                    <section class="dashboard-section student-overview-grid">
+                        <div class="student-overview-card student-overview-card--urgent">
+                            <div class="section-header">
+                                <h2 class="section-title">Срочные тесты</h2>
+                            </div>
+                            <div id="studentOverviewUrgentTests"></div>
+                        </div>
+
+                        <div class="student-overview-card">
+                            <div class="section-header">
+                                <h2 class="section-title">Streak</h2>
+                            </div>
+                            <div id="studentOverviewStreak"></div>
+                        </div>
+
+                        <div class="student-overview-card">
+                            <div class="section-header">
+                                <h2 class="section-title">Мини-статистика</h2>
+                            </div>
+                            <div id="studentOverviewMiniStats"></div>
+                        </div>
+
+                        <div class="student-overview-card">
+                            <div class="section-header">
+                                <h2 class="section-title">Место в классе</h2>
+                            </div>
+                            <div id="studentOverviewClassRank"></div>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Прогресс по предметам</h2>
+                        </div>
+                        <div id="studentOverviewSubjectProgress"></div>
+                    </section>
+
+                    <section class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Рекомендованный тест</h2>
+                        </div>
+                        <div id="studentOverviewRecommendedTest"></div>
+                    </section>
+
+                    <section class="dashboard-section student-overview-badge-wrap" id="studentOverviewBadgeWrap" style="display:none;">
+                        <div id="studentOverviewBadge"></div>
+                    </section>
+
+                    <section class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Последняя активность</h2>
+                        </div>
+                        <div id="studentOverviewLastActivity"></div>
+                    </section>
+                </div>
+            `;
+            await loadPageScript('student-overview');
+            return;
+        }
+
+        if (page === 'overview' && currentUser && currentUser.role === 'school_admin') {
+            content.innerHTML = '<div id="schoolDirectorOverviewPage"></div>';
+            await loadPageScript('school-director-overview');
+            return;
+        }
+
+        if (page === 'overview' && currentUser && currentUser.role === 'teacher') {
+            content.innerHTML = '<div id="teacherOverviewPage"></div>';
+            await loadPageScript('teacher-overview');
+            return;
+        }
 
         // Load stats from API if overview page
         if (page === 'overview' && currentUser) {
@@ -523,7 +749,9 @@
             'school-admins': { src: '/js/school-admins.js', manager: 'SchoolAdminsManager' },
             'comparison': { src: '/js/school-comparison.js', manager: 'SchoolComparisonManager' },
             'statistics': { src: '/js/superadmin-stats.js', manager: 'SuperadminStats' },
-            'advanced': { src: '/js/advanced-analytics.js', manager: 'AdvancedAnalytics' },
+            'advanced': currentUser && currentUser.role === 'teacher'
+                ? { src: '/js/teacher-advanced-analytics.js', manager: 'TeacherAdvancedAnalytics' }
+                : { src: '/js/advanced-analytics.js', manager: 'AdvancedAnalytics' },
             'users': { src: '/js/users.js', manager: 'UsersManager' },
             'classes': { src: '/js/classes.js', manager: 'ClassesManager' },
             'subjects': { src: '/js/subjects.js', manager: 'SubjectsManager' },
@@ -540,7 +768,24 @@
             'assignments': { src: '/js/assignments.js', manager: 'AssignmentsManager' },
             'import': { src: '/js/import-export.js', manager: 'ImportExportManager' },
             'export': { src: '/js/import-export.js', manager: 'ImportExportManager' },
-            'progress': { src: '/js/student-progress.js', manager: 'StudentProgress' },
+            'student-overview': { src: '/js/student-overview.js', manager: 'StudentOverviewPage' },
+            'school-director-overview': {
+                src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/school-director-overview.js'],
+                manager: 'SchoolDirectorOverview'
+            },
+            'teacher-overview': {
+                src: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/js/teacher-overview.js'],
+                manager: 'TeacherOverviewPage'
+            },
+            'progress': {
+                src: [
+                    'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js',
+                    'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js',
+                    'https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js',
+                    '/js/student-progress.js'
+                ],
+                manager: 'StudentProgress'
+            },
             'leaderboard': { src: '/js/student-leaderboard.js', manager: 'StudentLeaderboard' },
             'career': { src: '/js/career.js', manager: 'CareerManager' },
             'career-admin': { src: '/js/career-admin.js', manager: 'CareerAdminManager' },
@@ -2051,18 +2296,58 @@
                         <button class="btn btn-outline" id="studentProgressRefresh">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>
                     </div>
                 </div>
-                <div class="stats-grid" id="studentProgressStats"></div>
-                <div class="dashboard-section">
-                    <div class="section-header">
-                        <h2 class="section-title">${t('progress.trendTitle', 'Р”РёРЅР°РјРёРєР° РїСЂРѕРіСЂРµСЃСЃР°')}</h2>
+                <div class="student-progress-page">
+                    <div class="stats-grid student-progress-stats" id="studentProgressStats"></div>
+
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Карта знаний по предметам</h2>
+                        </div>
+                        <div id="studentProgressKnowledge"></div>
                     </div>
-                    <div id="studentProgressTrend"></div>
-                </div>
-                <div class="dashboard-section">
-                    <div class="section-header">
-                        <h2 class="section-title">${t('progress.bySubjectTitle', 'РџРѕ РїСЂРµРґРјРµС‚Р°Рј')}</h2>
+
+                    <div class="dashboard-section">
+                        <div class="section-header progress-section-header">
+                            <h2 class="section-title">Прогресс во времени</h2>
+                            <div class="progress-chart-controls">
+                                <div class="progress-range-toggle" id="studentProgressRangeToggle">
+                                    <button class="progress-range-btn active" data-range="30" type="button">30 дней</button>
+                                    <button class="progress-range-btn" data-range="90" type="button">90 дней</button>
+                                    <button class="progress-range-btn" data-range="365" type="button">Год</button>
+                                </div>
+                                <select id="studentProgressChartSubjectFilter" class="filter-select">
+                                    <option value="all">Все предметы</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="studentProgressTrend"></div>
                     </div>
-                    <div id="studentProgressSubjects"></div>
+
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">⚠️ Темы, которые стоит повторить</h2>
+                        </div>
+                        <div id="studentProgressWeakTopics"></div>
+                    </div>
+
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Достижения</h2>
+                        </div>
+                        <div id="studentProgressAchievements"></div>
+                    </div>
+
+                    <div class="dashboard-section">
+                        <div class="section-header progress-section-header">
+                            <h2 class="section-title">История тестов</h2>
+                            <div class="toolbar-filters">
+                                <select id="studentProgressHistorySubjectFilter" class="filter-select">
+                                    <option value="all">Все предметы</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="studentProgressHistory"></div>
+                    </div>
                 </div>
             `;
         }
@@ -2870,6 +3155,103 @@
         `).join('');
     }
 
+    function closeTopUserMenu() {
+        const menu = document.getElementById('topUserMenu');
+        const button = document.getElementById('topUserBtn');
+
+        if (menu) menu.classList.remove('open');
+        if (button) button.setAttribute('aria-expanded', 'false');
+    }
+
+    function openPageFromTopMenu(pageId) {
+        if (!pageId) return;
+
+        if (!isPageAvailableForCurrentUser(pageId) && pageId !== 'profile') {
+            if (window.ZedlyDialog?.alert) {
+                window.ZedlyDialog.alert('Этот раздел недоступен для вашей роли.', { title: 'Недоступно' });
+            } else {
+                window.alert('Этот раздел недоступен для вашей роли.');
+            }
+            return;
+        }
+
+        loadPageContent(pageId);
+        window.location.hash = pageId;
+        syncActiveNavItem(pageId);
+        closeTopNavDropdowns();
+        closeTopUserMenu();
+    }
+
+    function initTopUserMenu() {
+        const menu = document.getElementById('topUserMenu');
+        const button = document.getElementById('topUserBtn');
+        const dropdown = document.getElementById('topUserDropdown');
+        if (!menu || !button || !dropdown) return;
+
+        const isDesktop = () => window.matchMedia('(min-width: 969px)').matches;
+
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const willOpen = !menu.classList.contains('open');
+            if (!willOpen) {
+                closeTopUserMenu();
+            } else {
+                menu.classList.add('open');
+                button.setAttribute('aria-expanded', 'true');
+            }
+        });
+
+        menu.addEventListener('mouseenter', () => {
+            if (!isDesktop()) return;
+            menu.classList.add('open');
+            button.setAttribute('aria-expanded', 'true');
+        });
+
+        menu.addEventListener('mouseleave', () => {
+            if (!isDesktop()) return;
+            closeTopUserMenu();
+        });
+
+        dropdown.querySelectorAll('[data-top-action]').forEach((item) => {
+            item.addEventListener('click', (event) => {
+                event.preventDefault();
+                const action = item.dataset.topAction;
+                closeTopUserMenu();
+
+                if (action === 'logout') {
+                    logout();
+                    return;
+                }
+
+                if (action === 'settings') {
+                    openPageFromTopMenu('settings');
+                    return;
+                }
+
+                openPageFromTopMenu('profile');
+            });
+        });
+
+        if (!topUserMenuDocumentBound) {
+            document.addEventListener('click', (event) => {
+                const currentMenu = document.getElementById('topUserMenu');
+                if (!currentMenu || !currentMenu.contains(event.target)) {
+                    closeTopUserMenu();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeTopUserMenu();
+                }
+            });
+
+            topUserMenuDocumentBound = true;
+        }
+    }
+
     // Refresh token
     async function refreshToken() {
         console.log('[auth] Attempting to refresh token...');
@@ -2952,6 +3334,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         initDashboard();
         initMobileMenu();
+        initTopUserMenu();
 
         // Logout button in sidebar
         const logoutBtn = document.getElementById('logoutBtn');

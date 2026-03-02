@@ -309,6 +309,186 @@
     border: 1px solid var(--border-color);
 }
 
+.test-editor-stepper {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 var(--spacing-xl) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.test-editor-step-indicator {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.test-editor-step-indicator:hover {
+    background: rgba(74, 144, 226, 0.12);
+    color: var(--text-primary);
+}
+
+.test-editor-step-index {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--bg-secondary);
+}
+
+.test-editor-step-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.test-editor-step-indicator.is-active {
+    color: var(--text-primary);
+}
+
+.test-editor-step-indicator.is-active .test-editor-step-index {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.test-editor-step-indicator.is-complete .test-editor-step-index {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.16);
+    color: #34d399;
+}
+
+.test-editor-step-divider {
+    width: 26px;
+    height: 1px;
+    background: var(--border-color);
+}
+
+.test-editor-step-page {
+    display: none;
+}
+
+.test-editor-step-page.is-active {
+    display: block;
+}
+
+.test-editor-question-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.test-editor-footer {
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.test-editor-footer-left,
+.test-editor-footer-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.test-publish-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.test-publish-summary-item {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+    min-width: 0;
+}
+
+.test-publish-summary-item-full {
+    grid-column: 1 / -1;
+}
+
+.test-publish-summary-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.test-publish-summary-value {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.test-publish-question-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.test-publish-question-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+}
+
+.test-publish-question-index {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.test-publish-question-content {
+    min-width: 0;
+}
+
+.test-publish-question-text {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.test-publish-question-meta {
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.test-publish-more {
+    margin-top: var(--spacing-sm);
+}
+
 /* Test editor: image upload input */
 #questionEditorModal #imageFileInput {
     padding: 8px 10px;
@@ -617,6 +797,37 @@
     .modal-xl,
     .modal-large {
         max-width: 100%;
+    }
+
+    .test-editor-stepper {
+        padding: 0 var(--spacing-lg) var(--spacing-md);
+    }
+
+    .test-editor-step-label {
+        display: none;
+    }
+
+    .test-editor-step-divider {
+        width: 16px;
+    }
+
+    .test-editor-footer-left,
+    .test-editor-footer-right {
+        width: 100%;
+    }
+
+    .test-editor-footer-right .btn,
+    .test-editor-footer-left .btn {
+        width: 100%;
+    }
+
+    .test-editor-question-actions {
+        justify-content: stretch;
+        width: 100%;
+    }
+
+    .test-editor-question-actions .btn {
+        width: 100%;
     }
 
     .question-types-grid {
