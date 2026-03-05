@@ -157,24 +157,27 @@ const loginLimiter = rateLimit({
 router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { username, password, remember } = req.body;
+        const normalizedUsername = String(username || '').trim();
+        const rawPassword = String(password || '');
+        const trimmedPassword = rawPassword.trim();
         const tokenFlow = isTokenAuthFlow(req);
 
         // Validation
-        if (!username || !password) {
+        if (!normalizedUsername || !rawPassword) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'Username and password are required'
             });
         }
 
-        if (username.length < 3) {
+        if (normalizedUsername.length < 3) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'Username must be at least 3 characters'
             });
         }
 
-        if (password.length < 6) {
+        if (trimmedPassword.length < 6) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'Password must be at least 6 characters'
@@ -186,7 +189,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             `SELECT id, username, password_hash, role, school_id, is_active, first_name, last_name, must_change_password, token_version
              FROM users
              WHERE username = $1`,
-            [username]
+            [normalizedUsername]
         );
 
         if (result.rows.length === 0) {
@@ -206,8 +209,11 @@ router.post('/login', loginLimiter, async (req, res) => {
             });
         }
 
-        // Verify password
-        const passwordMatch = await bcrypt.compare(password, user.password_hash);
+        // Verify password as-is first; if user pasted with extra spaces, retry trimmed value.
+        let passwordMatch = await bcrypt.compare(rawPassword, user.password_hash);
+        if (!passwordMatch && trimmedPassword !== rawPassword) {
+            passwordMatch = await bcrypt.compare(trimmedPassword, user.password_hash);
+        }
 
         if (!passwordMatch) {
             return res.status(401).json({
@@ -735,7 +741,7 @@ router.put('/profile/settings', authenticate, async (req, res) => {
 
 /**
  * POST /api/auth/profile/contact/request-change
- * Request email/phone change with verification code
+ * Request email change with verification code
  */
 router.post('/profile/contact/request-change', authenticate, async (req, res) => {
     try {
@@ -743,10 +749,10 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
         const contactType = String(type || '').trim().toLowerCase();
         const rawValue = String(value || '').trim();
 
-        if (!['email', 'phone'].includes(contactType)) {
+        if (contactType !== 'email') {
             return res.status(400).json({
                 error: 'validation_error',
-                message: 'Invalid contact type. Use "email" or "phone".'
+                message: 'Only email verification is supported'
             });
         }
 
@@ -764,17 +770,10 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
             });
         }
 
-        if (contactType === 'phone' && rawValue.length < 7) {
-            return res.status(400).json({
-                error: 'validation_error',
-                message: 'Invalid phone format'
-            });
-        }
-
         const duplicateResult = await query(
             `SELECT id
              FROM users
-             WHERE ${contactType} = $1 AND id != $2
+             WHERE email = $1 AND id != $2
              LIMIT 1`,
             [rawValue, req.user.id]
         );
@@ -782,7 +781,7 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
         if (duplicateResult.rows.length > 0) {
             return res.status(409).json({
                 error: 'duplicate_error',
-                message: `${contactType === 'email' ? 'Email' : 'Phone'} is already in use`
+                message: 'Email is already in use'
             });
         }
 
@@ -803,26 +802,53 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
         const profileSettings = settings.profile || {};
         const verification = profileSettings.contact_verification || {};
         const pending = verification.pending || {};
-        const verifiedFlag = !!verification[`${contactType}_verified`];
-        const currentValue = String(user[contactType] || '').trim();
-        const normalizedCurrent = contactType === 'email' ? currentValue.toLowerCase() : currentValue;
-        const normalizedInput = contactType === 'email' ? rawValue.toLowerCase() : rawValue;
+        const verifiedFlag = !!verification.email_verified;
+        const currentValue = String(user.email || '').trim();
+        const normalizedCurrent = currentValue.toLowerCase();
+        const normalizedInput = rawValue.toLowerCase();
 
         if (normalizedCurrent && normalizedCurrent === normalizedInput && verifiedFlag) {
             return res.status(409).json({
                 error: 'already_connected',
-                message: `${contactType === 'email' ? 'Email' : 'Phone'} is already connected to your account`
+                message: 'Email is already connected to your account'
+            });
+        }
+
+        if (!isEmailConfigured()) {
+            return res.status(503).json({
+                error: 'email_not_configured',
+                message: 'SMTP is not configured on server'
             });
         }
 
         const code = generateVerificationCode();
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
+        let emailSent = false;
+        try {
+            emailSent = await sendVerificationCodeEmail({
+                to: rawValue,
+                code,
+                firstName: user.first_name,
+                expiresMinutes: 10
+            });
+        } catch (emailError) {
+            console.error('Email verification send error:', emailError);
+            emailSent = false;
+        }
+
+        if (!emailSent) {
+            return res.status(502).json({
+                error: 'email_send_failed',
+                message: 'Failed to send verification code email'
+            });
+        }
+
         const nextVerification = {
             ...verification,
             pending: {
                 ...pending,
-                [contactType]: {
+                email: {
                     value: rawValue,
                     code_hash: hashVerificationCode(code),
                     expires_at: expiresAt
@@ -845,19 +871,6 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
             [nextSettings, req.user.id]
         );
 
-        if (contactType === 'email') {
-            try {
-                await sendVerificationCodeEmail({
-                    to: rawValue,
-                    code,
-                    firstName: user.first_name,
-                    expiresMinutes: 10
-                });
-            } catch (emailError) {
-                console.error('Email verification send error:', emailError);
-            }
-        }
-
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
@@ -866,20 +879,14 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
                 'update',
                 'user',
                 req.user.id,
-                { action_type: `${contactType}_change_requested` }
+                { action_type: 'email_change_requested' }
             ]
         );
 
-        const response = {
-            message: `${contactType === 'email' ? 'Email' : 'Phone'} verification code sent`,
+        res.json({
+            message: 'Email verification code sent',
             expires_at: expiresAt
-        };
-
-        if (process.env.NODE_ENV !== 'production') {
-            response.dev_verification_code = code;
-        }
-
-        res.json(response);
+        });
     } catch (error) {
         console.error('Request contact change error:', error);
         res.status(500).json({
@@ -891,7 +898,7 @@ router.post('/profile/contact/request-change', authenticate, async (req, res) =>
 
 /**
  * POST /api/auth/profile/contact/verify
- * Verify contact change code and apply new email/phone value
+ * Verify email change code and apply new email value
  */
 router.post('/profile/contact/verify', authenticate, async (req, res) => {
     try {
@@ -899,10 +906,10 @@ router.post('/profile/contact/verify', authenticate, async (req, res) => {
         const contactType = String(type || '').trim().toLowerCase();
         const codeValue = String(code || '').trim();
 
-        if (!['email', 'phone'].includes(contactType) || !codeValue) {
+        if (contactType !== 'email' || !codeValue) {
             return res.status(400).json({
                 error: 'validation_error',
-                message: 'Type and verification code are required'
+                message: 'Email type and verification code are required'
             });
         }
 
@@ -922,7 +929,7 @@ router.post('/profile/contact/verify', authenticate, async (req, res) => {
         const profileSettings = settings.profile || {};
         const verification = profileSettings.contact_verification || {};
         const pending = verification.pending || {};
-        const pendingEntry = pending[contactType];
+        const pendingEntry = pending.email;
 
         if (!pendingEntry || !pendingEntry.value || !pendingEntry.code_hash || !pendingEntry.expires_at) {
             return res.status(400).json({
@@ -949,9 +956,9 @@ router.post('/profile/contact/verify', authenticate, async (req, res) => {
             ...verification,
             pending: {
                 ...pending,
-                [contactType]: null
+                email: null
             },
-            [`${contactType}_verified`]: true
+            email_verified: true
         };
 
         const nextSettings = {
@@ -964,7 +971,7 @@ router.post('/profile/contact/verify', authenticate, async (req, res) => {
 
         await query(
             `UPDATE users
-             SET ${contactType} = $1,
+             SET email = $1,
                  settings = $2,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = $3`,
@@ -979,13 +986,13 @@ router.post('/profile/contact/verify', authenticate, async (req, res) => {
                 'update',
                 'user',
                 req.user.id,
-                { action_type: `${contactType}_verified_and_updated` }
+                { action_type: 'email_verified_and_updated' }
             ]
         );
 
         res.json({
-            message: `${contactType === 'email' ? 'Email' : 'Phone'} updated successfully`,
-            [contactType]: pendingEntry.value
+            message: 'Email updated successfully',
+            email: pendingEntry.value
         });
     } catch (error) {
         console.error('Verify contact change error:', error);

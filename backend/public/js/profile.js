@@ -802,7 +802,7 @@
         });
     }
 
-    function openContactVerifyModal({ type, value, devCode }) {
+    function openContactVerifyModal({ type, value }) {
         ensureContactVerifyModal();
         contactVerifyModalType = type;
         contactVerifyModalValue = value;
@@ -820,7 +820,7 @@
             targetText.textContent = `Код отправлен на: ${value}`;
         }
         if (hint) {
-            hint.textContent = devCode ? `DEV CODE: ${devCode}` : 'Код действует 10 минут';
+            hint.textContent = 'Код действует 10 минут';
         }
         if (codeInput) {
             codeInput.value = '';
@@ -838,6 +838,11 @@
     }
 
     async function requestContactCode(type) {
+        if (type !== 'email') {
+            await showAlert('Код подтверждения можно получить только по email', 'Информация');
+            return;
+        }
+
         const inputId = type === 'email' ? 'emailInput' : 'phoneInput';
         const value = document.getElementById(inputId)?.value?.trim() || '';
 
@@ -862,8 +867,7 @@
 
             openContactVerifyModal({
                 type,
-                value,
-                devCode: data.dev_verification_code || ''
+                value
             });
         } catch (error) {
             await showAlert(error.message || 'Не удалось отправить код', 'Ошибка');

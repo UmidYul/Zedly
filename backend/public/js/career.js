@@ -25,7 +25,8 @@
         answers: {},
         currentIndex: 0,
         latestResult: null,
-        radarChart: null
+        radarChart: null,
+        radarThemeObserver: null
     };
 
     function getLang() {
@@ -103,6 +104,100 @@
                 return truncateLabel(line, maxLineLen);
             }
             return line;
+        });
+    }
+
+    function getCareerRadarPalette() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        if (isLight) {
+            return {
+                borderColor: 'rgba(2, 132, 199, 1)',
+                backgroundColor: 'rgba(14, 116, 144, 0.20)',
+                pointBackgroundColor: 'rgba(3, 105, 161, 1)',
+                pointBorderColor: '#e2f2ff',
+                ticksColor: '#334155',
+                ticksBackdropColor: 'rgba(248, 250, 252, 0.85)',
+                pointLabelsColor: '#0f172a',
+                gridColor: 'rgba(100, 116, 139, 0.35)',
+                angleLinesColor: 'rgba(100, 116, 139, 0.30)',
+                legendColor: '#0f172a',
+                tooltipBackground: 'rgba(255, 255, 255, 0.96)',
+                tooltipTitleColor: '#0f172a',
+                tooltipBodyColor: '#1e293b',
+                tooltipBorderColor: 'rgba(15, 23, 42, 0.15)'
+            };
+        }
+
+        return {
+            borderColor: 'rgba(56, 189, 248, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.24)',
+            pointBackgroundColor: 'rgba(14, 165, 233, 1)',
+            pointBorderColor: '#0f172a',
+            ticksColor: '#93c5fd',
+            ticksBackdropColor: 'rgba(15, 23, 42, 0.72)',
+            pointLabelsColor: '#dbeafe',
+            gridColor: 'rgba(148, 163, 184, 0.25)',
+            angleLinesColor: 'rgba(148, 163, 184, 0.22)',
+            legendColor: '#dbeafe',
+            tooltipBackground: 'rgba(15, 23, 42, 0.95)',
+            tooltipTitleColor: '#e2e8f0',
+            tooltipBodyColor: '#bfdbfe',
+            tooltipBorderColor: 'rgba(96, 165, 250, 0.35)'
+        };
+    }
+
+    function applyRadarTheme(chart, palette) {
+        if (!chart) return;
+
+        const dataset = chart.data?.datasets?.[0];
+        if (dataset) {
+            dataset.borderColor = palette.borderColor;
+            dataset.backgroundColor = palette.backgroundColor;
+            dataset.pointBackgroundColor = palette.pointBackgroundColor;
+            dataset.pointBorderColor = palette.pointBorderColor;
+            dataset.pointHoverBackgroundColor = palette.pointBackgroundColor;
+            dataset.pointHoverBorderColor = palette.pointBorderColor;
+        }
+
+        const radarScale = chart.options?.scales?.r;
+        if (radarScale?.ticks) {
+            radarScale.ticks.color = palette.ticksColor;
+            radarScale.ticks.backdropColor = palette.ticksBackdropColor;
+        }
+        if (radarScale?.pointLabels) {
+            radarScale.pointLabels.color = palette.pointLabelsColor;
+        }
+        if (radarScale?.grid) {
+            radarScale.grid.color = palette.gridColor;
+        }
+        if (radarScale?.angleLines) {
+            radarScale.angleLines.color = palette.angleLinesColor;
+        }
+
+        const legendLabels = chart.options?.plugins?.legend?.labels;
+        if (legendLabels) {
+            legendLabels.color = palette.legendColor;
+        }
+
+        const tooltip = chart.options?.plugins?.tooltip;
+        if (tooltip) {
+            tooltip.backgroundColor = palette.tooltipBackground;
+            tooltip.titleColor = palette.tooltipTitleColor;
+            tooltip.bodyColor = palette.tooltipBodyColor;
+            tooltip.borderColor = palette.tooltipBorderColor;
+        }
+    }
+
+    function bindRadarThemeObserver() {
+        if (state.radarThemeObserver) return;
+        state.radarThemeObserver = new MutationObserver(() => {
+            if (!state.radarChart) return;
+            applyRadarTheme(state.radarChart, getCareerRadarPalette());
+            state.radarChart.update('none');
+        });
+        state.radarThemeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme']
         });
     }
 
@@ -246,6 +341,7 @@
             return wrapLabel(raw, 13);
         });
         const values = interests.map((it) => Number(it.score || 0));
+        const palette = getCareerRadarPalette();
         state.radarChart = new Chart(radarEl, {
             type: 'radar',
             data: {
@@ -253,48 +349,84 @@
                 datasets: [{
                     label: t('career.chartLabel', 'Уровень интереса'),
                     data: values,
-                    borderColor: 'rgba(56, 189, 248, 1)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.24)',
-                    pointBackgroundColor: 'rgba(14, 165, 233, 1)'
+                    borderColor: palette.borderColor,
+                    backgroundColor: palette.backgroundColor,
+                    pointBackgroundColor: palette.pointBackgroundColor,
+                    pointBorderColor: palette.pointBorderColor,
+                    borderWidth: 2,
+                    pointRadius: 2.5,
+                    pointHoverRadius: 4,
+                    pointBorderWidth: 1.5
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'nearest',
+                    intersect: false
+                },
                 scales: {
                     r: {
                         beginAtZero: true,
                         max: 100,
                         ticks: {
                             stepSize: 20,
-                            color: '#93c5fd',
-                            showLabelBackdrop: false,
+                            color: palette.ticksColor,
+                            showLabelBackdrop: true,
+                            backdropColor: palette.ticksBackdropColor,
+                            backdropPadding: 4,
                             z: 1,
                             font: {
-                                size: 12,
-                                family: 'Inter, Segoe UI, Arial, sans-serif',
+                                size: 11,
+                                family: 'Manrope, Inter, Segoe UI, Arial, sans-serif',
                                 weight: '600'
                             }
                         },
                         pointLabels: {
-                            color: '#dbeafe',
+                            color: palette.pointLabelsColor,
                             font: {
-                                size: 12,
-                                family: 'Inter, Segoe UI, Arial, sans-serif',
+                                size: 11,
+                                family: 'Manrope, Inter, Segoe UI, Arial, sans-serif',
                                 weight: '500'
                             }
                         },
                         grid: {
-                            color: 'rgba(148, 163, 184, 0.25)'
+                            color: palette.gridColor
                         },
                         angleLines: {
-                            color: 'rgba(148, 163, 184, 0.22)'
+                            color: palette.angleLinesColor
                         }
                     }
                 },
-                plugins: { legend: { display: false } }
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: palette.legendColor,
+                            boxWidth: 28,
+                            boxHeight: 12,
+                            padding: 12,
+                            font: {
+                                size: 12,
+                                family: 'Manrope, Inter, Segoe UI, Arial, sans-serif',
+                                weight: '600'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: palette.tooltipBackground,
+                        titleColor: palette.tooltipTitleColor,
+                        bodyColor: palette.tooltipBodyColor,
+                        borderColor: palette.tooltipBorderColor,
+                        borderWidth: 1,
+                        padding: 10
+                    }
+                }
             }
         });
+        bindRadarThemeObserver();
     }
 
     function renderDashboardCards(latestResult) {

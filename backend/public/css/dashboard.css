@@ -42,7 +42,7 @@
 
 .mobile-shell-enabled .dashboard-main,
 .mobile-shell-enabled .main-content {
-    margin-left: 0;
+    margin-left: var(--sidebar-fixed-width);
     min-height: 100vh;
 }
 
@@ -188,7 +188,7 @@
 /* Main Content */
 .dashboard-main {
     flex: 1;
-    margin-left: 0;
+    margin-left: var(--sidebar-fixed-width);
     display: flex;
     flex-direction: column;
     background: var(--bg-main);
@@ -643,7 +643,8 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-lg);
-    flex: 1;
+    flex: 0 0 auto;
+    min-width: 44px;
 }
 
 .header-center {
@@ -657,6 +658,12 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    pointer-events: none;
 }
 
 .header-logo img {
@@ -675,7 +682,8 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
-    flex: 1;
+    flex: 0 0 auto;
+    margin-left: auto;
     justify-content: flex-end;
 }
 
@@ -686,6 +694,8 @@
     color: var(--text-primary);
     cursor: pointer;
     padding: var(--spacing-sm);
+    position: relative;
+    z-index: 2;
 }
 
 .menu-toggle svg {
@@ -2897,46 +2907,6 @@
     }
 }
 
-@media (min-width: 969px) {
-    .sidebar,
-    .sidebar.open {
-        display: none !important;
-    }
-
-    .sidebar-overlay {
-        display: none !important;
-    }
-
-    .dashboard-main {
-        margin-left: 0 !important;
-    }
-
-    .menu-toggle {
-        display: none !important;
-    }
-
-    .dashboard-header {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        gap: 18px;
-    }
-
-    .header-left {
-        flex: 0 0 auto;
-    }
-
-    .header-center {
-        flex: 1 1 auto;
-        justify-content: flex-start;
-        min-width: 0;
-    }
-
-    .header-right {
-        flex: 0 0 auto;
-    }
-}
-
 @media (max-width: 768px) {
     .dashboard-header {
         position: fixed;
@@ -5008,6 +4978,7 @@ body.page-leave-active {
     display: grid;
     gap: 12px;
     grid-template-columns: 1fr;
+    align-items: stretch;
 }
 
 .student-overview-card {
@@ -5015,6 +4986,13 @@ body.page-leave-active {
     border-radius: 14px;
     padding: 14px;
     background: rgba(15, 23, 42, 0.38);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.student-overview-grid > .student-overview-card > [id^="studentOverview"] {
+    flex: 1;
 }
 
 .student-overview-card--urgent {
@@ -5075,6 +5053,7 @@ body.page-leave-active {
     border-radius: 12px;
     padding: 14px;
     background: rgba(30, 41, 59, 0.35);
+    height: 100%;
 }
 
 .student-overview-streak-box.is-active {
@@ -5100,7 +5079,8 @@ body.page-leave-active {
 .student-overview-mini-grid {
     display: grid;
     gap: 10px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    height: 100%;
 }
 
 .student-overview-mini-card {
@@ -5108,6 +5088,7 @@ body.page-leave-active {
     border-radius: 10px;
     padding: 10px;
     background: rgba(15, 23, 42, 0.48);
+    height: 100%;
 }
 
 .student-overview-mini-value {
@@ -5126,6 +5107,7 @@ body.page-leave-active {
     border-radius: 12px;
     padding: 14px;
     background: rgba(37, 99, 235, 0.12);
+    height: 100%;
 }
 
 .student-overview-rank-value {
@@ -5272,16 +5254,69 @@ body.page-leave-active {
     font-size: 0.82rem;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1360px) {
     .student-overview-grid {
-        grid-template-columns: 2fr 1fr 1fr 1fr;
+        grid-template-columns: minmax(0, 2.1fr) repeat(3, minmax(0, 1fr));
         align-items: stretch;
     }
 }
 
+@media (min-width: 769px) and (max-width: 1359px) {
+    .student-overview-page {
+        gap: var(--spacing-lg);
+    }
+
+    .student-overview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .student-overview-grid > .student-overview-card:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .student-overview-urgent-item {
+        align-items: flex-start;
+    }
+
+    .student-overview-urgent-item .btn {
+        flex: 0 0 auto;
+        min-width: 108px;
+    }
+}
+
 @media (max-width: 768px) {
+    .student-overview-page {
+        gap: 14px;
+    }
+
+    .student-overview-greeting {
+        font-size: clamp(1.15rem, 7vw, 1.65rem);
+    }
+
+    .student-overview-date {
+        font-size: 0.86rem;
+    }
+
+    .student-overview-card {
+        padding: 12px;
+    }
+
     .student-overview-mini-grid {
         grid-template-columns: 1fr;
+    }
+
+    .student-overview-mini-value {
+        font-size: 1rem;
+        overflow-wrap: anywhere;
+    }
+
+    .student-overview-rank-value {
+        font-size: 1.15rem;
+    }
+
+    .student-overview-subject-top {
+        flex-wrap: wrap;
+        row-gap: 4px;
     }
 
     .student-overview-urgent-item {
@@ -5289,8 +5324,103 @@ body.page-leave-active {
         align-items: flex-start;
     }
 
-    .student-overview-urgent-item .btn {
+    .student-overview-urgent-title {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .student-overview-urgent-item .btn,
+    .student-overview-recommend-actions .btn {
         width: 100%;
+    }
+
+    .student-overview-badge-card {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 640px) {
+    .student-overview-activity-table {
+        min-width: 0;
+    }
+
+    .student-overview-activity-table thead {
+        display: none;
+    }
+
+    .student-overview-activity-table tbody,
+    .student-overview-activity-table tr,
+    .student-overview-activity-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .student-overview-activity-table tr {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-secondary);
+        padding: 10px;
+    }
+
+    .student-overview-activity-table tr + tr {
+        margin-top: 10px;
+    }
+
+    .student-overview-activity-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 6px 0;
+        white-space: normal;
+        border: 0;
+    }
+
+    .student-overview-activity-table td::before {
+        content: '';
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .student-overview-activity-table td:nth-child(1)::before {
+        content: 'Название';
+    }
+
+    .student-overview-activity-table td:nth-child(2)::before {
+        content: 'Предмет';
+    }
+
+    .student-overview-activity-table td:nth-child(3)::before {
+        content: 'Балл';
+    }
+
+    .student-overview-activity-table td:nth-child(4)::before {
+        content: 'Дата';
+    }
+}
+
+@media (max-width: 430px) {
+    .student-overview-card {
+        border-radius: 12px;
+        padding: 10px;
+    }
+
+    .student-overview-streak-value {
+        font-size: 1.45rem;
+    }
+
+    .student-overview-chip {
+        font-size: 0.68rem;
+    }
+
+    .student-overview-deadline {
+        font-size: 0.75rem;
     }
 }
 

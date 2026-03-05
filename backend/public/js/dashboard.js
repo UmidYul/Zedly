@@ -2358,11 +2358,10 @@
                     <div class="toolbar-filters">
                         <select id="leaderboardScope" class="filter-select">
                             <option value="class">${t('leaderboard.scopeClass', 'РљР»Р°СЃСЃ')}</option>
-                            <option value="school">${t('leaderboard.scopeSchool', 'РЁРєРѕР»Р°')}</option>
-                            <option value="subject">${t('leaderboard.scopeSubject', 'РџСЂРµРґРјРµС‚')}</option>
+                            <option value="school">${t('leaderboard.scopeSchool', 'Школа (параллель)')}</option>
                         </select>
-                        <select id="leaderboardClass" class="filter-select" style="display: none;"></select>
-                        <select id="leaderboardSubject" class="filter-select" style="display: none;"></select>
+                        <select id="leaderboardClass" class="filter-select"></select>
+                        <select id="leaderboardSubject" class="filter-select"></select>
                     </div>
                     <div class="toolbar-right">
                         <button class="btn btn-outline" id="leaderboardRefresh">${t('common.refresh', 'РћР±РЅРѕРІРёС‚СЊ')}</button>

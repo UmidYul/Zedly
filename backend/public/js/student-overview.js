@@ -221,13 +221,14 @@
             const urgentTests = Array.isArray(this.state.data?.urgent_tests)
                 ? this.state.data.urgent_tests
                 : [];
+            const visibleUrgentTests = urgentTests.slice(0, 2);
 
-            if (!urgentTests.length) {
+            if (!visibleUrgentTests.length) {
                 container.innerHTML = '<p class="text-secondary">Нет срочных непройденных тестов.</p>';
                 return;
             }
 
-            const items = urgentTests.map((test) => {
+            const items = visibleUrgentTests.map((test) => {
                 const subject = test.subject_name ? `<span class="student-overview-chip">${escapeHtml(test.subject_name)}</span>` : '';
                 return `
                     <div class="student-overview-urgent-item">
@@ -274,7 +275,6 @@
             const avgScore = toNumber(mini.avg_score, 0);
             const testsCompleted = toNumber(mini.tests_completed, 0);
             const testsAssigned = toNumber(mini.tests_assigned, 0);
-            const bestSubject = mini.best_subject?.subject_name || '—';
 
             container.innerHTML = `
                 <div class="student-overview-mini-grid">
@@ -285,10 +285,6 @@
                     <div class="student-overview-mini-card">
                         <div class="student-overview-mini-value">${testsCompleted} / ${testsAssigned}</div>
                         <div class="student-overview-mini-label">Пройдено тестов</div>
-                    </div>
-                    <div class="student-overview-mini-card">
-                        <div class="student-overview-mini-value">${escapeHtml(bestSubject)}</div>
-                        <div class="student-overview-mini-label">Лучший предмет</div>
                     </div>
                 </div>
             `;
@@ -322,7 +318,15 @@
             if (!container) return;
 
             const rows = Array.isArray(this.state.data?.subject_progress)
-                ? this.state.data.subject_progress
+                ? [...this.state.data.subject_progress]
+                    .sort((a, b) => {
+                        const scoreDiff = toNumber(b?.avg_score, 0) - toNumber(a?.avg_score, 0);
+                        if (Math.abs(scoreDiff) > 0.0001) return scoreDiff;
+                        const attemptsDiff = toNumber(b?.attempts, 0) - toNumber(a?.attempts, 0);
+                        if (attemptsDiff !== 0) return attemptsDiff;
+                        return String(a?.subject_name || '').localeCompare(String(b?.subject_name || ''), 'ru');
+                    })
+                    .slice(0, 5)
                 : [];
 
             if (!rows.length) {
@@ -330,7 +334,7 @@
                 return;
             }
 
-            const html = rows.slice(0, 4).map((row) => {
+            const html = rows.map((row) => {
                 const score = clamp(toNumber(row.avg_score, 0), 0, 100);
                 const toneClass = getScoreToneClass(score);
                 return `

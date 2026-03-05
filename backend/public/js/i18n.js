@@ -876,6 +876,7 @@
         'common.saving': 'РЎРѕС…СЂР°РЅРµРЅРёРµ...',
         'common.saved': 'РЎРѕС…СЂР°РЅРµРЅРѕ',
         'common.refresh': 'РћР±РЅРѕРІРёС‚СЊ',
+        'common.allSubjects': 'Все предметы',
         'common.export': 'Р­РєСЃРїРѕСЂС‚',
         'common.search': 'РџРѕРёСЃРє',
         'common.status': 'РЎС‚Р°С‚СѓСЃ',
@@ -1091,6 +1092,7 @@
         'common.saving': 'Saqlanmoqda...',
         'common.saved': 'Saqlandi',
         'common.refresh': 'Yangilash',
+        'common.allSubjects': 'Barcha fanlar',
         'common.export': 'Eksport',
         'common.search': 'Qidiruv',
         'common.status': 'Holat',
@@ -2295,41 +2297,30 @@
         'takeTest.finish': 'Yakunlash'
     });
 
-    function normalizeRuMojibake() {
-        const decoder = typeof TextDecoder !== 'undefined'
+    function createMojibakeTools() {
+        const utf8Decoder = typeof TextDecoder !== 'undefined'
             ? new TextDecoder('utf-8', { fatal: false })
             : null;
-        if (!decoder || !translations?.ru) return;
-
-        const cp1251High = [
-            '\u0402', '\u0403', '\u201A', '\u0453', '\u201E', '\u2026', '\u2020', '\u2021',
-            '\u20AC', '\u2030', '\u0409', '\u2039', '\u040A', '\u040C', '\u040B', '\u040F',
-            '\u0452', '\u2018', '\u2019', '\u201C', '\u201D', '\u2022', '\u2013', '\u2014',
-            '\u0098', '\u2122', '\u0459', '\u203A', '\u045A', '\u045C', '\u045B', '\u045F',
-            '\u00A0', '\u040E', '\u045E', '\u0408', '\u00A4', '\u0490', '\u00A6', '\u00A7',
-            '\u0401', '\u00A9', '\u0404', '\u00AB', '\u00AC', '\u00AD', '\u00AE', '\u0407',
-            '\u00B0', '\u00B1', '\u0406', '\u0456', '\u0491', '\u00B5', '\u00B6', '\u00B7',
-            '\u0451', '\u2116', '\u0454', '\u00BB', '\u0458', '\u0405', '\u0455', '\u0457',
-            '\u0410', '\u0411', '\u0412', '\u0413', '\u0414', '\u0415', '\u0416', '\u0417',
-            '\u0418', '\u0419', '\u041A', '\u041B', '\u041C', '\u041D', '\u041E', '\u041F',
-            '\u0420', '\u0421', '\u0422', '\u0423', '\u0424', '\u0425', '\u0426', '\u0427',
-            '\u0428', '\u0429', '\u042A', '\u042B', '\u042C', '\u042D', '\u042E', '\u042F',
-            '\u0430', '\u0431', '\u0432', '\u0433', '\u0434', '\u0435', '\u0436', '\u0437',
-            '\u0438', '\u0439', '\u043A', '\u043B', '\u043C', '\u043D', '\u043E', '\u043F',
-            '\u0440', '\u0441', '\u0442', '\u0443', '\u0444', '\u0445', '\u0446', '\u0447',
-            '\u0448', '\u0449', '\u044A', '\u044B', '\u044C', '\u044D', '\u044E', '\u044F'
-        ];
+        const cp1251Decoder = typeof TextDecoder !== 'undefined'
+            ? new TextDecoder('windows-1251', { fatal: false })
+            : null;
 
         const cp1251Map = new Map();
-        cp1251High.forEach((ch, idx) => cp1251Map.set(ch, idx + 0x80));
+        if (cp1251Decoder) {
+            for (let i = 0x80; i <= 0xFF; i += 1) {
+                const char = cp1251Decoder.decode(Uint8Array.of(i));
+                cp1251Map.set(char, i);
+            }
+        }
 
         function looksLikeMojibake(value) {
             if (typeof value !== 'string' || value.length < 4) return false;
-            const suspicious = (value.match(/[Р РЎРІ]/g) || []).length;
-            return suspicious >= 3 && suspicious / value.length > 0.22;
+            const chunks = (value.match(/(?:Р.|С.)/g) || []).length;
+            return chunks >= 2 && chunks / value.length > 0.16;
         }
 
         function decodeCp1251AsUtf8(value) {
+            if (!utf8Decoder || !cp1251Map.size || typeof value !== 'string') return value;
             const bytes = [];
             for (const ch of value) {
                 const code = ch.charCodeAt(0);
@@ -2344,17 +2335,127 @@
                 bytes.push(mapped);
             }
             try {
-                return decoder.decode(new Uint8Array(bytes));
+                return utf8Decoder.decode(new Uint8Array(bytes));
             } catch (error) {
                 return value;
             }
         }
 
+        function fixText(value) {
+            if (!looksLikeMojibake(value)) return value;
+            const decoded = decodeCp1251AsUtf8(value);
+            if (typeof decoded !== 'string' || !decoded) return value;
+            return decoded;
+        }
+
+        return {
+            looksLikeMojibake,
+            fixText
+        };
+    }
+
+    const mojibakeTools = createMojibakeTools();
+
+    function normalizeRuMojibake() {
+        if (!translations?.ru) return;
         Object.keys(translations.ru).forEach((key) => {
             const value = translations.ru[key];
-            if (!looksLikeMojibake(value)) return;
-            translations.ru[key] = decodeCp1251AsUtf8(value);
+            if (typeof value !== 'string') return;
+            const fixed = mojibakeTools.fixText(value);
+            if (fixed !== value) {
+                translations.ru[key] = fixed;
+            }
         });
+    }
+
+    function normalizeDomMojibake(root) {
+        if (!root || typeof Node === 'undefined') return;
+        const scope = root.nodeType === Node.ELEMENT_NODE ? root : document.body;
+        if (!scope) return;
+
+        const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+                if (!node || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+                const parent = node.parentElement;
+                if (!parent) return NodeFilter.FILTER_REJECT;
+                const tag = parent.tagName;
+                if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+
+        const textUpdates = [];
+        while (walker.nextNode()) {
+            const textNode = walker.currentNode;
+            const fixed = mojibakeTools.fixText(textNode.nodeValue);
+            if (fixed !== textNode.nodeValue) {
+                textUpdates.push({ node: textNode, value: fixed });
+            }
+        }
+        textUpdates.forEach((item) => {
+            item.node.nodeValue = item.value;
+        });
+
+        scope.querySelectorAll?.('[placeholder],[title],[aria-label]').forEach((el) => {
+            ['placeholder', 'title', 'aria-label'].forEach((attr) => {
+                if (!el.hasAttribute(attr)) return;
+                const raw = el.getAttribute(attr);
+                const fixed = mojibakeTools.fixText(raw);
+                if (fixed !== raw) {
+                    el.setAttribute(attr, fixed);
+                }
+            });
+        });
+    }
+
+    let domMojibakeObserver = null;
+    function initDomMojibakeNormalization() {
+        if (!document.body) return;
+        normalizeDomMojibake(document.body);
+
+        if (!domMojibakeObserver) {
+            domMojibakeObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'characterData' && mutation.target?.nodeValue) {
+                        const fixedText = mojibakeTools.fixText(mutation.target.nodeValue);
+                        if (fixedText !== mutation.target.nodeValue) {
+                            mutation.target.nodeValue = fixedText;
+                        }
+                    }
+
+                    if (mutation.type === 'attributes' && mutation.target?.nodeType === Node.ELEMENT_NODE) {
+                        const attr = mutation.attributeName;
+                        if (!attr) return;
+                        const raw = mutation.target.getAttribute(attr);
+                        const fixed = mojibakeTools.fixText(raw);
+                        if (fixed !== raw) {
+                            mutation.target.setAttribute(attr, fixed);
+                        }
+                    }
+
+                    mutation.addedNodes?.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            normalizeDomMojibake(node);
+                        } else if (node.nodeType === Node.TEXT_NODE && node.parentElement) {
+                            normalizeDomMojibake(node.parentElement);
+                        }
+                    });
+                });
+            });
+
+            domMojibakeObserver.observe(document.body, {
+                childList: true,
+                subtree: true,
+                characterData: true,
+                attributes: true,
+                attributeFilter: ['placeholder', 'title', 'aria-label']
+            });
+        }
+
+        const rerun = () => setTimeout(() => normalizeDomMojibake(document.body), 0);
+        window.addEventListener('zedly:lang-changed', rerun);
     }
 
     Object.assign(translations.ru, {
@@ -2862,6 +2963,7 @@
     window.ZedlyI18n = {
         setLang,
         getCurrentLang,
+        fixMojibake: (value) => mojibakeTools.fixText(value),
         /**
          * @param {string} key - translation key
          * @param {object|string} [paramsOrLang] - params object for template or language code
@@ -2902,4 +3004,12 @@
         setLang,
         getCurrentLang
     };
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDomMojibakeNormalization);
+        } else {
+            initDomMojibakeNormalization();
+        }
+    }
 })();

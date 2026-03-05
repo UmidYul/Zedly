@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
     <title>Take Test - Zedly</title>
@@ -14,7 +15,7 @@
 <script src="/js/console-silence.js"></script>
 </head>
 
-<body>
+<body class="take-test-page">
     <!-- Test Header -->
     <div class="test-header">
         <div class="test-header-content">
@@ -22,12 +23,28 @@
                 <h1 class="test-title" id="testTitle">Loading test...</h1>
                 <div class="test-meta" id="testMeta"></div>
             </div>
-            <div class="test-timer" id="testTimer">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span id="timerDisplay">--:--</span>
+            <div class="test-header-right">
+                <div class="test-timer" id="testTimer">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="timerDisplay">--:--</span>
+                </div>
+                <div class="test-header-controls">
+                    <div class="lang-switch">
+                        <button class="lang-btn active" data-lang="ru">RU</button>
+                        <button class="lang-btn" data-lang="uz">UZ</button>
+                    </div>
+                    <button class="theme-toggle icon-btn" id="themeToggle" data-i18n-title="theme.toggle" title="Тема" aria-label="Toggle theme">
+                        <svg class="theme-icon" width="20" height="20" viewBox="0 0 20 20">
+                            <path class="sun"
+                                d="M10 2v2m0 12v2M4.22 4.22l1.42 1.42m8.72 8.72l1.42 1.42M2 10h2m12 0h2M4.22 15.78l1.42-1.42m8.72-8.72l1.42-1.42M10 5.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z" />
+                            <path class="moon"
+                                d="M10 2c1.34 0 2.62.26 3.77.74A6 6 0 017.5 14a6 6 0 01-5.26-6.49A8 8 0 0010 2z" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -84,10 +101,10 @@
     </div>
 
     <script src="/js/auth-interceptor.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/theme.js"></script>
     <script src="/js/take-test.js"></script>
     <script src="/js/alert-modal.js"></script>
 </body>
 
 </html>
-
-

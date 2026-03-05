@@ -349,11 +349,26 @@
 }
 
 /* Keep masked password glyphs visible across WebKit/Blink browsers */
+:root {
+    --login-password-text: #f8fafc;
+    --login-password-autofill-bg: rgba(15, 23, 42, 0.65);
+}
+
+[data-theme="light"] {
+    --login-password-text: #0f172a;
+    --login-password-autofill-bg: #f1f5f9;
+}
+
+[data-theme="dark"] {
+    --login-password-text: #f8fafc;
+    --login-password-autofill-bg: rgba(15, 23, 42, 0.65);
+}
+
 #password {
-    color: #f8fafc !important;
-    -webkit-text-fill-color: #f8fafc !important;
-    caret-color: #f8fafc;
-    text-shadow: 0 0 0 #f8fafc;
+    color: var(--login-password-text) !important;
+    -webkit-text-fill-color: var(--login-password-text) !important;
+    caret-color: var(--login-password-text);
+    text-shadow: none;
 }
 
 #password::placeholder {
@@ -372,10 +387,17 @@
 #password:-webkit-autofill,
 #password:-webkit-autofill:hover,
 #password:-webkit-autofill:focus {
-    -webkit-text-fill-color: #f8fafc !important;
-    box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.65) inset !important;
-    -webkit-box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.65) inset !important;
-    caret-color: #f8fafc;
+    -webkit-text-fill-color: var(--login-password-text) !important;
+    box-shadow: 0 0 0 1000px var(--login-password-autofill-bg) inset !important;
+    -webkit-box-shadow: 0 0 0 1000px var(--login-password-autofill-bg) inset !important;
+    caret-color: var(--login-password-text);
+    transition: background-color 9999s ease-out 0s;
+}
+
+#password::selection {
+    background: rgba(37, 99, 235, 0.28);
+    color: var(--login-password-text);
+    -webkit-text-fill-color: var(--login-password-text);
 }
 
 /* Hide native password reveal/clear controls (Edge/IE/Chromium variants)

@@ -3,7 +3,11 @@
     'use strict';
 
     function t(key, fallback) {
-        return window.ZedlyI18n?.translate(key) || fallback || key;
+        const translated = window.ZedlyI18n?.translate?.(key);
+        if (!translated || translated === key) {
+            return fallback || key;
+        }
+        return translated;
     }
 
     function formatPercent(value) {
@@ -38,11 +42,12 @@
         scope: 'class',
         currentUserId: null,
 
-        init: function () {
+        init: async function () {
             this.currentUserId = getCurrentUserId();
             this.bindEvents();
-            this.loadFilters();
-            this.loadLeaderboard();
+            await this.loadFilters();
+            this.toggleFilters();
+            await this.loadLeaderboard();
         },
 
         bindEvents: function () {
@@ -80,7 +85,7 @@
                 classSelect.style.display = this.scope === 'class' ? 'inline-block' : 'none';
             }
             if (subjectSelect) {
-                subjectSelect.style.display = this.scope === 'subject' ? 'inline-block' : 'none';
+                subjectSelect.style.display = 'inline-block';
             }
         },
 
@@ -128,14 +133,11 @@
             const select = document.getElementById('leaderboardSubject');
             if (!select) return;
 
-            if (!subjects.length) {
-                select.innerHTML = '';
-                return;
-            }
-
-            select.innerHTML = subjects.map(subject => `
-                <option value="${subject.id}">${subject.name}</option>
-            `).join('');
+            const options = [
+                `<option value="all">${t('common.allSubjects', 'Все предметы')}</option>`,
+                ...subjects.map(subject => `<option value="${subject.id}">${subject.name}</option>`)
+            ];
+            select.innerHTML = options.join('');
         },
 
         loadLeaderboard: async function () {
@@ -151,7 +153,7 @@
                 }
 
                 const subjectSelect = document.getElementById('leaderboardSubject');
-                if (this.scope === 'subject' && subjectSelect && subjectSelect.value) {
+                if (subjectSelect && subjectSelect.value && subjectSelect.value !== 'all') {
                     params.set('subject_id', subjectSelect.value);
                 }
 
@@ -278,4 +280,3 @@
         }
     };
 })();
-

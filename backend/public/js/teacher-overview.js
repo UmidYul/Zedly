@@ -156,6 +156,24 @@
         return groups;
     }
 
+    function navigateToDashboardPage(pageId) {
+        const safePageId = String(pageId || '').trim();
+        if (!safePageId) return;
+
+        const navItem = document.querySelector(`.nav-item[data-page="${safePageId}"]`);
+        if (navItem && typeof navItem.click === 'function') {
+            navItem.click();
+            return;
+        }
+
+        if (window.location.pathname === '/dashboard' || window.location.pathname === '/dashboard.html') {
+            window.location.hash = safePageId;
+            return;
+        }
+
+        window.location.href = `/dashboard#${encodeURIComponent(safePageId)}`;
+    }
+
     window.TeacherOverviewPage = {
         state: {
             overview: null,
@@ -283,14 +301,14 @@
             const createBtn = document.getElementById('teacherOverviewCreateTestBtn');
             if (createBtn) {
                 createBtn.addEventListener('click', () => {
-                    window.location.href = '/dashboard#tests';
+                    navigateToDashboardPage('tests');
                 });
             }
 
             const assignBtn = document.getElementById('teacherOverviewAssignTestBtn');
             if (assignBtn) {
                 assignBtn.addEventListener('click', () => {
-                    window.location.href = '/dashboard#assignments';
+                    navigateToDashboardPage('assignments');
                 });
             }
 
@@ -337,7 +355,7 @@
 
                 const createFirstBtn = event.target.closest('.js-teacher-overview-create-first-test');
                 if (createFirstBtn) {
-                    window.location.href = '/dashboard#tests';
+                    navigateToDashboardPage('tests');
                 }
             });
         },

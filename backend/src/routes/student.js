@@ -1745,9 +1745,16 @@ router.get('/progress/overview', async (req, res) => {
             ? 'AND cs.is_active = true'
             : '';
         const subjectColumns = await getTableColumns('subjects');
+        const hasTeacherClassSubjects = await tableExists('teacher_class_subjects');
+        const teacherClassSubjectColumns = hasTeacherClassSubjects
+            ? await getTableColumns('teacher_class_subjects')
+            : new Set();
         const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
         const subjectActiveFilter = subjectColumns.has('is_active')
             ? 'AND s.is_active = true'
+            : '';
+        const teacherClassSubjectActiveFilter = teacherClassSubjectColumns.has('is_active')
+            ? 'AND tcs.is_active = true'
             : '';
         const attempt = await getAttemptStatsExpressions();
 
@@ -1804,14 +1811,29 @@ router.get('/progress/overview', async (req, res) => {
             ORDER BY period ASC
         `, trendParams);
 
+        const taughtSubjectsSource = hasTeacherClassSubjects
+            ? `SELECT DISTINCT s.id, s.${subjectNameColumn} as subject_name, s.color as subject_color
+               FROM class_students cs
+               JOIN teacher_class_subjects tcs ON tcs.class_id = cs.class_id
+               JOIN subjects s ON s.id = tcs.subject_id
+               WHERE cs.student_id = $1 ${classStudentActiveFilter} ${teacherClassSubjectActiveFilter} ${subjectActiveFilter}
+               UNION
+               SELECT DISTINCT s.id, s.${subjectNameColumn} as subject_name, s.color as subject_color
+               FROM class_students cs
+               JOIN test_assignments ta ON ta.class_id = cs.class_id
+               JOIN tests t ON t.id = ta.test_id
+               JOIN subjects s ON s.id = t.subject_id
+               WHERE cs.student_id = $1 ${classStudentActiveFilter} ${subjectActiveFilter}`
+            : `SELECT DISTINCT s.id, s.${subjectNameColumn} as subject_name, s.color as subject_color
+               FROM class_students cs
+               JOIN test_assignments ta ON ta.class_id = cs.class_id
+               JOIN tests t ON t.id = ta.test_id
+               JOIN subjects s ON s.id = t.subject_id
+               WHERE cs.student_id = $1 ${classStudentActiveFilter} ${subjectActiveFilter}`;
+
         const subjectResult = await query(`
             WITH subject_pool AS (
-                SELECT DISTINCT s.id, s.${subjectNameColumn} as subject_name, s.color as subject_color
-                FROM class_students cs
-                JOIN test_assignments ta ON ta.class_id = cs.class_id
-                JOIN tests t ON t.id = ta.test_id
-                JOIN subjects s ON s.id = t.subject_id
-                WHERE cs.student_id = $1 ${classStudentActiveFilter} ${subjectActiveFilter}
+                ${taughtSubjectsSource}
                 UNION
                 SELECT DISTINCT s.id, s.${subjectNameColumn} as subject_name, s.color as subject_color
                 FROM test_attempts att
@@ -2030,79 +2052,114 @@ router.get('/progress/overview', async (req, res) => {
 
 /**
  * GET /api/student/leaderboard
- * Get leaderboard for class, school, or subject
+ * Get leaderboard for class or school parallel with optional subject filter
  */
 router.get('/leaderboard', async (req, res) => {
     try {
         const studentId = req.user.id;
-        const { scope = 'class', subject_id, class_id } = req.query;
+        const schoolId = req.user.school_id;
+        const rawScope = String(req.query.scope || 'class').trim().toLowerCase();
+        const scope = rawScope === 'subject' ? 'school' : rawScope;
+        const subjectId = String(req.query.subject_id || '').trim() || null;
+        const requestedClassId = String(req.query.class_id || '').trim() || null;
         const attempt = await getAttemptStatsExpressions();
 
-        let joinClause = '';
-        let whereClause = "u.role = 'student' AND u.is_active = true";
-        const params = [];
-
-        if (scope === 'class') {
-            const classStudentColumns = await getTableColumns('class_students');
-            const classStudentActiveFilter = classStudentColumns.has('is_active')
-                ? 'AND cs.is_active = true'
-                : '';
-
-            let classId = class_id;
-            if (!classId) {
-                const classResult = await query(
-                    `SELECT class_id FROM class_students cs
-                     WHERE cs.student_id = $1 ${classStudentActiveFilter}
-                     ORDER BY cs.class_id ASC
-                     LIMIT 1`,
-                    [studentId]
-                );
-                classId = classResult.rows[0]?.class_id;
-            }
-
-            if (!classId) {
-                return res.json({ scope, leaderboard: [], user_rank: null });
-            }
-
-            // Prevent access to foreign classes via arbitrary class_id in query.
-            const classAccessCheck = await query(
-                `SELECT 1
-                 FROM class_students cs
-                 WHERE cs.student_id = $1
-                   AND cs.class_id = $2
-                   ${classStudentColumns.has('is_active') ? 'AND cs.is_active = true' : ''}
-                 LIMIT 1`,
-                [studentId, classId]
-            );
-
-            if (classAccessCheck.rows.length === 0) {
-                return res.status(403).json({
-                    error: 'forbidden',
-                    message: 'You do not have access to this class leaderboard'
-                });
-            }
-
-            params.push(classId, req.user.school_id);
-            joinClause = `JOIN class_students cs ON cs.student_id = u.id AND cs.class_id = $1 ${classStudentActiveFilter}`;
-            whereClause += ' AND u.school_id = $2';
-        } else if (scope === 'school') {
-            params.push(req.user.school_id);
-            whereClause += ' AND u.school_id = $1';
-        } else if (scope === 'subject') {
-            if (!subject_id) {
-                return res.status(400).json({
-                    error: 'validation_error',
-                    message: 'subject_id is required for subject leaderboard'
-                });
-            }
-            params.push(req.user.school_id, subject_id);
-            joinClause = `JOIN tests t ON t.id = att.test_id AND t.subject_id = $2`;
-            whereClause += ' AND u.school_id = $1';
-        } else {
+        if (scope !== 'class' && scope !== 'school') {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'Invalid leaderboard scope'
             });
+        }
+
+        const classStudentColumns = await getTableColumns('class_students');
+        const classColumns = await getTableColumns('classes');
+        const classStudentActiveFilter = classStudentColumns.has('is_active')
+            ? 'AND cs.is_active = true'
+            : '';
+        const gradeColumn = pickColumn(classColumns, ['grade_level', 'grade'], null);
+        const classSchoolFilter = classColumns.has('school_id')
+            ? 'AND c.school_id = $2'
+            : '';
+
+        const studentClassesResult = await query(
+            `SELECT
+                c.id,
+                c.name,
+                ${gradeColumn ? `c.${gradeColumn}` : 'NULL'} as grade_level
+             FROM class_students cs
+             JOIN classes c ON c.id = cs.class_id
+             WHERE cs.student_id = $1
+               ${classStudentActiveFilter}
+               ${classSchoolFilter}
+             ORDER BY cs.class_id ASC`,
+            classColumns.has('school_id') ? [studentId, schoolId] : [studentId]
+        );
+        const studentClasses = studentClassesResult.rows || [];
+        if (!studentClasses.length) {
+            return res.json({ scope, leaderboard: [], user_rank: null });
+        }
+
+        const studentClassIds = new Set(studentClasses.map((row) => String(row.id)));
+        let classId = requestedClassId || studentClasses[0].id;
+
+        if (scope === 'class' && !studentClassIds.has(String(classId))) {
+            return res.status(403).json({
+                error: 'forbidden',
+                message: 'You do not have access to this class leaderboard'
+            });
+        }
+
+        let joinClause = '';
+        const whereClause = "u.role = 'student' AND u.is_active = true AND u.school_id = $1";
+        const params = [];
+        params.push(schoolId);
+
+        if (scope === 'class') {
+            if (!classId) {
+                return res.json({ scope, leaderboard: [], user_rank: null });
+            }
+
+            params.push(classId);
+            joinClause = `JOIN (
+                SELECT DISTINCT cs.student_id
+                FROM class_students cs
+                WHERE cs.class_id = $2
+                  ${classStudentActiveFilter}
+            ) cohort ON cohort.student_id = u.id`;
+        } else if (scope === 'school') {
+            if (!gradeColumn) {
+                return res.json({ scope, leaderboard: [], user_rank: null });
+            }
+
+            const studentParallel = studentClasses.find((row) => row.grade_level !== null && row.grade_level !== undefined)
+                || studentClasses[0];
+            const parallelValue = studentParallel?.grade_level;
+
+            if (parallelValue === null || parallelValue === undefined || String(parallelValue).trim() === '') {
+                return res.json({ scope, leaderboard: [], user_rank: null });
+            }
+
+            params.push(parallelValue);
+            joinClause = `JOIN (
+                SELECT DISTINCT cs.student_id
+                FROM class_students cs
+                JOIN classes c ON c.id = cs.class_id
+                WHERE c.school_id = $1
+                  AND c.${gradeColumn} = $2
+                  ${classStudentActiveFilter}
+            ) cohort ON cohort.student_id = u.id`;
+        }
+
+        let subjectFilter = '';
+        if (subjectId) {
+            params.push(subjectId);
+            const subjectParamIndex = params.length;
+            subjectFilter = `AND EXISTS (
+                SELECT 1
+                FROM tests t_subject
+                WHERE t_subject.id = att.test_id
+                  AND t_subject.subject_id = $${subjectParamIndex}
+            )`;
         }
 
         const leaderboardQuery = `
@@ -2115,8 +2172,11 @@ router.get('/leaderboard', async (req, res) => {
                     COUNT(att.id) as attempts,
                     AVG(${attempt.scoreExpr})::float as avg_score
                 FROM users u
-                LEFT JOIN test_attempts att ON att.student_id = u.id AND ${attempt.completedFilter}
                 ${joinClause}
+                LEFT JOIN test_attempts att
+                    ON att.student_id = u.id
+                   AND ${attempt.completedFilter}
+                   ${subjectFilter}
                 WHERE ${whereClause}
                 GROUP BY u.id, u.first_name, u.last_name, u.username
                 HAVING COUNT(att.id) > 0
@@ -2138,8 +2198,11 @@ router.get('/leaderboard', async (req, res) => {
                     COUNT(att.id) as attempts,
                     AVG(${attempt.scoreExpr})::float as avg_score
                 FROM users u
-                LEFT JOIN test_attempts att ON att.student_id = u.id AND ${attempt.completedFilter}
                 ${joinClause}
+                LEFT JOIN test_attempts att
+                    ON att.student_id = u.id
+                   AND ${attempt.completedFilter}
+                   ${subjectFilter}
                 WHERE ${whereClause}
                 GROUP BY u.id
                 HAVING COUNT(att.id) > 0
@@ -2782,6 +2845,10 @@ router.get('/dashboard/overview', async (req, res) => {
         const subjectNameColumn = pickColumn(subjectColumns, ['name', 'name_ru', 'name_uz'], 'name');
         const assignmentColumns = await getTableColumns('test_assignments');
         const classStudentColumns = await getTableColumns('class_students');
+        const hasTeacherClassSubjects = await tableExists('teacher_class_subjects');
+        const teacherClassSubjectColumns = hasTeacherClassSubjects
+            ? await getTableColumns('teacher_class_subjects')
+            : new Set();
 
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
         const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
@@ -2791,6 +2858,9 @@ router.get('/dashboard/overview', async (req, res) => {
             ? `AND ${alias}.is_active = true`
             : '';
         const subjectActiveFilter = (alias = 's') => subjectColumns.has('is_active')
+            ? `AND ${alias}.is_active = true`
+            : '';
+        const teacherClassSubjectActiveFilter = (alias = 'tcs') => teacherClassSubjectColumns.has('is_active')
             ? `AND ${alias}.is_active = true`
             : '';
         const assignmentActiveFilter = (alias = 'ta') => assignmentIsActiveColumn
@@ -2872,12 +2942,25 @@ router.get('/dashboard/overview', async (req, res) => {
         const subjectPerformanceResult = classIds.length
             ? await query(
                 `WITH assigned_subjects AS (
-                    SELECT DISTINCT t.subject_id
-                    FROM test_assignments ta
-                    JOIN tests t ON t.id = ta.test_id
-                    WHERE ta.class_id = ANY($1)
-                      ${assignmentActiveFilter('ta')}
-                      AND t.subject_id IS NOT NULL
+                    ${hasTeacherClassSubjects
+                        ? `SELECT DISTINCT tcs.subject_id
+                           FROM teacher_class_subjects tcs
+                           WHERE tcs.class_id = ANY($1)
+                             ${teacherClassSubjectActiveFilter('tcs')}
+                             AND tcs.subject_id IS NOT NULL
+                           UNION
+                           SELECT DISTINCT t.subject_id
+                           FROM test_assignments ta
+                           JOIN tests t ON t.id = ta.test_id
+                           WHERE ta.class_id = ANY($1)
+                             ${assignmentActiveFilter('ta')}
+                             AND t.subject_id IS NOT NULL`
+                        : `SELECT DISTINCT t.subject_id
+                           FROM test_assignments ta
+                           JOIN tests t ON t.id = ta.test_id
+                           WHERE ta.class_id = ANY($1)
+                             ${assignmentActiveFilter('ta')}
+                             AND t.subject_id IS NOT NULL`}
                     UNION
                     SELECT DISTINCT t.subject_id
                     FROM test_attempts att
@@ -3197,13 +3280,12 @@ router.get('/dashboard/overview', async (req, res) => {
         }
 
         const classRank = classRankThisMonth;
-        const subjectProgressTop = [...subjects]
+        const subjectProgress = [...subjects]
             .sort((a, b) => {
                 if (b.attempts !== a.attempts) return b.attempts - a.attempts;
                 if (b.avg_score !== a.avg_score) return b.avg_score - a.avg_score;
                 return String(a.subject_name || '').localeCompare(String(b.subject_name || ''), 'ru');
-            })
-            .slice(0, 4);
+            });
 
         const recentActivity = [
             ...lastActivity.map((item) => ({
@@ -3256,7 +3338,7 @@ router.get('/dashboard/overview', async (req, res) => {
                 period: 'current_month'
             },
             urgent_tests: urgentTests,
-            subject_progress: subjectProgressTop,
+            subject_progress: subjectProgress,
             recommended_test: recommendedTest,
             last_activity: lastActivity,
             recent_badge: recentBadge
