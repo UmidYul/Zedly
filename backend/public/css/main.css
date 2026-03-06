@@ -304,6 +304,10 @@ body {
     --bg-header: #FFFFFF;
 
     /* Text Colors - Light Theme */
+    --text-primary: #0F172A;
+    --text-secondary: #334155;
+    --text-tertiary: #475569;
+    --text-muted: #64748B;
     --text-primary: #1E293B;
     --text-secondary: #334155;
     --text-tertiary: #475569;
@@ -815,6 +819,7 @@ input[type="checkbox"]:focus-visible {
    ============================================== */
 
 @media (max-width: 768px) {
+
     html,
     body {
         overflow-x: hidden;
@@ -905,6 +910,7 @@ input[type="checkbox"]:focus-visible {
 }
 
 @media (max-width: 430px) {
+
     .dashboard-content,
     .content-wrapper,
     .page-content,
