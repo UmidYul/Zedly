@@ -44,6 +44,15 @@ copy .env.docker.example .env.docker.local
 docker compose --env-file .env.docker.local up --build -d
 ```
 
+If Docker Hub auth is timing out (`auth.docker.io`), this project already defaults to ECR Public mirrors.
+You can override image registries via env vars:
+
+```bash
+NODE_IMAGE=public.ecr.aws/docker/library/node:20-alpine
+POSTGRES_IMAGE=public.ecr.aws/docker/library/postgres:16-alpine
+NGINX_IMAGE=public.ecr.aws/docker/library/nginx:1.27-alpine
+```
+
 Open:
 - `http://localhost:5000`
 

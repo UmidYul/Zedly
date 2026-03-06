@@ -1213,7 +1213,7 @@
                 if (prevBtn) prevBtn.disabled = true;
                 if (nextBtn) {
                     nextBtn.disabled = true;
-                    nextBtn.innerHTML = '<span class="spinner"></span> РћС‚РїСЂР°РІРєР°...';
+                    nextBtn.innerHTML = '<span class="spinner"></span> Отправка...';
                 }
 
                 const response = await fetch(`/api/student/attempts/${this.attemptId}/submit`, {

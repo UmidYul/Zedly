@@ -2,7 +2,7 @@ name: ${COMPOSE_PROJECT_NAME:-zedly_local}
 
 services:
   db:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-public.ecr.aws/docker/library/postgres:16-alpine}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${ZEDLY_DB_NAME:-zedly_local}
@@ -25,6 +25,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-public.ecr.aws/docker/library/node:20-alpine}
     restart: unless-stopped
     depends_on:
       db:

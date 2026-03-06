@@ -76,7 +76,7 @@
     }
 
     function showAlert(message, title = null) {
-        const dialogTitle = title || t('common.error', 'РћС€РёР±РєР°');
+        const dialogTitle = title || t('common.error', 'Ошибка');
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title: dialogTitle });
         }
@@ -85,7 +85,7 @@
     }
 
     function showConfirm(message, title = null) {
-        const dialogTitle = title || t('common.confirmation', 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ');
+        const dialogTitle = title || t('common.confirmation', 'Подтверждение');
         if (window.ZedlyDialog?.confirm) {
             return window.ZedlyDialog.confirm(message, { title: dialogTitle });
         }

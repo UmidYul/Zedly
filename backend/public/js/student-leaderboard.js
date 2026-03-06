@@ -164,7 +164,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(t('leaderboard.failedLoad', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР№С‚РёРЅРі'));
+                    throw new Error(t('leaderboard.failedLoad', 'Не удалось загрузить рейтинг'));
                 }
 
                 const data = await response.json();
@@ -172,7 +172,7 @@
                 this.renderTable(data.leaderboard || []);
             } catch (error) {
                 console.error('Load leaderboard error:', error);
-                this.renderError(error.message || t('leaderboard.unableLoad', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР№С‚РёРЅРі.'));
+                this.renderError(error.message || t('leaderboard.unableLoad', 'Не удалось загрузить рейтинг.'));
             }
         },
 
@@ -184,7 +184,7 @@
                 stats.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">${t('common.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</div>
+                            <div class="stat-label">${t('common.loading', 'Загрузка...')}</div>
                             <div class="stat-value">--</div>
                         </div>
                     </div>
@@ -192,7 +192,7 @@
             }
 
             if (table) {
-                table.innerHTML = `<p style="color: var(--text-secondary);">${t('leaderboard.loading', 'Р—Р°РіСЂСѓР·РєР° СЂРµР№С‚РёРЅРіР°...')}</p>`;
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('leaderboard.loading', 'Загрузка рейтинга...')}</p>`;
             }
         },
 
@@ -219,19 +219,19 @@
             stats.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('leaderboard.yourRank', 'Р’Р°С€Рµ РјРµСЃС‚Рѕ')}</div>
+                        <div class="stat-label">${t('leaderboard.yourRank', 'Ваше место')}</div>
                         <div class="stat-value">${userRank || '-'}</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('leaderboard.topScore', 'Р›СѓС‡С€РёР№ Р±Р°Р»Р»')}</div>
+                        <div class="stat-label">${t('leaderboard.topScore', 'Лучший балл')}</div>
                         <div class="stat-value">${topScore}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('leaderboard.participants', 'РЈС‡Р°СЃС‚РЅРёРєРё')}</div>
+                        <div class="stat-label">${t('leaderboard.participants', 'Участники')}</div>
                         <div class="stat-value">${count}</div>
                     </div>
                 </div>
@@ -243,7 +243,7 @@
             if (!table) return;
 
             if (!leaderboard.length) {
-                table.innerHTML = `<p style="color: var(--text-secondary);">${t('leaderboard.noData', 'РџРѕРєР° РЅРµС‚ РґР°РЅРЅС‹С… СЂРµР№С‚РёРЅРіР°.')}</p>`;
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('leaderboard.noData', 'Пока нет данных рейтинга.')}</p>`;
                 return;
             }
 
@@ -265,10 +265,10 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>${t('leaderboard.colRank', 'РњРµСЃС‚Рѕ')}</th>
-                                <th>${t('leaderboard.colStudent', 'РЈС‡РµРЅРёРє')}</th>
-                                <th>${t('leaderboard.colAttempts', 'РџРѕРїС‹С‚РєРё')}</th>
-                                <th>${t('leaderboard.colAvgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»')}</th>
+                                <th>${t('leaderboard.colRank', 'Место')}</th>
+                                <th>${t('leaderboard.colStudent', 'Ученик')}</th>
+                                <th>${t('leaderboard.colAttempts', 'Попытки')}</th>
+                                <th>${t('leaderboard.colAvgScore', 'Средний балл')}</th>
                             </tr>
                         </thead>
                         <tbody>

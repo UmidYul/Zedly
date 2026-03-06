@@ -39,7 +39,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
-                    <span data-i18n="testResults.backToDashboard">РќР°Р·Р°Рґ РІ РґР°С€Р±РѕСЂРґ</span>
+                    <span data-i18n="testResults.backToDashboard">Назад в дашборд</span>
                 </button>
                 <h1 class="results-title" id="resultsTitle">Test Results</h1>
             </div>
@@ -73,7 +73,7 @@
         <!-- Loading State -->
         <div id="loadingState" class="loading-state">
             <div class="spinner-large"></div>
-            <p data-i18n="testResults.loading">Р—Р°РіСЂСѓР·РєР° СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ...</p>
+            <p data-i18n="testResults.loading">Загрузка результатов...</p>
         </div>
 
         <!-- Results Content -->
@@ -82,7 +82,7 @@
             <!-- Summary Card -->
             <div class="summary-card">
                 <div class="summary-header">
-                    <h2 data-i18n="testResults.summaryTitle">РЎРІРѕРґРєР° С‚РµСЃС‚Р°</h2>
+                    <h2 data-i18n="testResults.summaryTitle">Сводка теста</h2>
                     <div class="test-badge" id="testBadge"></div>
                 </div>
 
@@ -97,7 +97,7 @@
                             </svg>
                         </div>
                         <div class="summary-details">
-                            <div class="summary-label" data-i18n="testResults.yourScore">Р’Р°С€ Р±Р°Р»Р»</div>
+                            <div class="summary-label" data-i18n="testResults.yourScore">Ваш балл</div>
                             <div class="summary-value" id="scoreValue">-</div>
                         </div>
                     </div>
@@ -111,7 +111,7 @@
                             </svg>
                         </div>
                         <div class="summary-details">
-                            <div class="summary-label" data-i18n="testResults.percentage">РџСЂРѕС†РµРЅС‚</div>
+                            <div class="summary-label" data-i18n="testResults.percentage">Процент</div>
                             <div class="summary-value" id="percentageValue">-</div>
                         </div>
                     </div>
@@ -125,7 +125,7 @@
                             </svg>
                         </div>
                         <div class="summary-details">
-                            <div class="summary-label" data-i18n="testResults.timeTaken">Р’СЂРµРјСЏ</div>
+                            <div class="summary-label" data-i18n="testResults.timeTaken">Время</div>
                             <div class="summary-value" id="timeValue">-</div>
                         </div>
                     </div>
@@ -138,7 +138,7 @@
                             </svg>
                         </div>
                         <div class="summary-details">
-                            <div class="summary-label" data-i18n="testResults.correctAnswers">Р’РµСЂРЅС‹С… РѕС‚РІРµС‚РѕРІ</div>
+                            <div class="summary-label" data-i18n="testResults.correctAnswers">Верных ответов</div>
                             <div class="summary-value" id="correctValue">-</div>
                         </div>
                     </div>
@@ -146,13 +146,13 @@
 
                 <div class="summary-footer">
                     <div class="test-info-item">
-                        <strong data-i18n="testResults.testLabel">РўРµСЃС‚:</strong> <span id="testName">-</span>
+                        <strong data-i18n="testResults.testLabel">Тест:</strong> <span id="testName">-</span>
                     </div>
                     <div class="test-info-item">
-                        <strong data-i18n="testResults.subjectLabel">РџСЂРµРґРјРµС‚:</strong> <span id="subjectName">-</span>
+                        <strong data-i18n="testResults.subjectLabel">Предмет:</strong> <span id="subjectName">-</span>
                     </div>
                     <div class="test-info-item">
-                        <strong data-i18n="testResults.dateLabel">Р”Р°С‚Р°:</strong> <span id="testDate">-</span>
+                        <strong data-i18n="testResults.dateLabel">Дата:</strong> <span id="testDate">-</span>
                     </div>
                 </div>
             </div>
@@ -160,19 +160,19 @@
             <!-- Questions Review -->
             <div class="questions-review">
                 <div class="review-header">
-                    <h2 data-i18n="testResults.questionsReview">Р Р°Р·Р±РѕСЂ РІРѕРїСЂРѕСЃРѕРІ</h2>
+                    <h2 data-i18n="testResults.questionsReview">Разбор вопросов</h2>
                     <div class="filter-buttons">
                         <button class="filter-btn active" data-filter="all" data-i18n="testResults.filterAll"
                             onclick="ResultsViewer.filterQuestions('all')">
-                            Р’СЃРµ РІРѕРїСЂРѕСЃС‹
+                            Все вопросы
                         </button>
                         <button class="filter-btn" data-filter="correct" data-i18n="testResults.filterCorrect"
                             onclick="ResultsViewer.filterQuestions('correct')">
-                            Р’РµСЂРЅС‹Рµ
+                            Верные
                         </button>
                         <button class="filter-btn" data-filter="incorrect" data-i18n="testResults.filterIncorrect"
                             onclick="ResultsViewer.filterQuestions('incorrect')">
-                            РќРµРІРµСЂРЅС‹Рµ
+                            Неверные
                         </button>
                     </div>
                 </div>
@@ -186,11 +186,11 @@
 
         <!-- Error State -->
         <div id="errorState" class="error-state" style="display: none;">
-            <div class="error-icon">вќЊ</div>
-            <h3 data-i18n="testResults.failedTitle">РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹</h3>
-            <p id="errorMessage" data-i18n="testResults.failedMessage">РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ С‚РµСЃС‚Р°.</p>
+            <div class="error-icon">❌</div>
+            <h3 data-i18n="testResults.failedTitle">Не удалось загрузить результаты</h3>
+            <p id="errorMessage" data-i18n="testResults.failedMessage">Произошла ошибка при загрузке результатов теста.</p>
             <button class="btn btn-primary" onclick="window.location.href='/dashboard.html'">
-                <span data-i18n="testResults.backToDashboard">РќР°Р·Р°Рґ РІ РґР°С€Р±РѕСЂРґ</span>
+                <span data-i18n="testResults.backToDashboard">Назад в дашборд</span>
             </button>
         </div>
     </div>

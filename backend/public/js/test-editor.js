@@ -18,7 +18,7 @@
     }
 
     function showConfirm(message, title = null) {
-        const dialogTitle = title || t('common.confirmation', 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ');
+        const dialogTitle = title || t('common.confirmation', 'Подтверждение');
         if (window.ZedlyDialog?.confirm) {
             return window.ZedlyDialog.confirm(message, { title: dialogTitle });
         }
@@ -111,11 +111,11 @@
                     this.currentTest = data.test;
                     this.questions = data.questions || [];
                 } else {
-                    throw new Error(t('tests.failedLoadTest', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С‚РµСЃС‚'));
+                    throw new Error(t('tests.failedLoadTest', 'Не удалось загрузить тест'));
                 }
             } catch (error) {
                 console.error('Load test error:', error);
-                alert(t('tests.failedLoadTest', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С‚РµСЃС‚'));
+                alert(t('tests.failedLoadTest', 'Не удалось загрузить тест'));
             }
         },
 
@@ -529,7 +529,7 @@
             if (this.questions.length === 0) {
                 return `
                     <div class="empty-state">
-                        <p>${t('testEditor.noQuestionsAdded', 'РџРѕРєР° РЅРµС‚ РІРѕРїСЂРѕСЃРѕРІ. РќР°Р¶РјРёС‚Рµ "Р”РѕР±Р°РІРёС‚СЊ РІРѕРїСЂРѕСЃ", С‡С‚РѕР±С‹ РЅР°С‡Р°С‚СЊ СЃРѕР·РґР°РЅРёРµ С‚РµСЃС‚Р°.')}</p>
+                        <p>${t('testEditor.noQuestionsAdded', 'Пока нет вопросов. Нажмите "Добавить вопрос", чтобы начать создание теста.')}</p>
                     </div>
                 `;
             }
@@ -540,7 +540,7 @@
             return this.questions.map((q, index) => `
                 <div class="question-item" data-index="${index}" draggable="true">
                     <div class="question-header">
-                        <div class="drag-handle" title="${t('testEditor.dragToReorder', 'РџРµСЂРµС‚Р°С‰РёС‚Рµ РґР»СЏ РёР·РјРµРЅРµРЅРёСЏ РїРѕСЂСЏРґРєР°')}">
+                        <div class="drag-handle" title="${t('testEditor.dragToReorder', 'Перетащите для изменения порядка')}">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="10" y1="6" x2="21" y2="6"></line>
                                 <line x1="10" y1="12" x2="21" y2="12"></line>
@@ -552,15 +552,15 @@
                         </div>
                         <div class="question-number">${questionShortLabel} ${index + 1}</div>
                         <div class="question-type-badge">${Object.values(QUESTION_TYPES).find(t => t.id === q.question_type)?.name || q.question_type}</div>
-                        <div class="question-marks">${q.marks || 1} ${t('testEditor.points', 'Р±Р°Р»Р»(РѕРІ)')}</div>
+                        <div class="question-marks">${q.marks || 1} ${t('testEditor.points', 'балл(ов)')}</div>
                         <div class="question-actions">
-                            <button class="btn-icon" onclick="TestEditor.editQuestion(${index})" title="${t('tests.edit', 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ')}">
+                            <button class="btn-icon" onclick="TestEditor.editQuestion(${index})" title="${t('tests.edit', 'Редактировать')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </button>
-                            <button class="btn-icon btn-danger" onclick="TestEditor.deleteQuestion(${index})" title="${t('tests.delete', 'РЈРґР°Р»РёС‚СЊ')}">
+                            <button class="btn-icon btn-danger" onclick="TestEditor.deleteQuestion(${index})" title="${t('tests.delete', 'Удалить')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -581,7 +581,7 @@
                 <div class="modal-overlay" id="questionTypeSelector">
                     <div class="modal">
                         <div class="modal-header">
-                            <h2 class="modal-title">${t('testEditor.selectQuestionType', 'Р’С‹Р±РµСЂРёС‚Рµ С‚РёРї РІРѕРїСЂРѕСЃР°')}</h2>
+                            <h2 class="modal-title">${t('testEditor.selectQuestionType', 'Выберите тип вопроса')}</h2>
                             <button class="modal-close" onclick="TestEditor.closeQuestionTypeSelector()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -637,7 +637,7 @@
 
         // Delete question
         deleteQuestion: async function (index) {
-            const confirmed = await showConfirm(t('testEditor.deleteQuestionConfirm', 'РЈРґР°Р»РёС‚СЊ СЌС‚РѕС‚ РІРѕРїСЂРѕСЃ?'));
+            const confirmed = await showConfirm(t('testEditor.deleteQuestionConfirm', 'Удалить этот вопрос?'));
             if (!confirmed) return;
 
             this.questions.splice(index, 1);
@@ -657,17 +657,17 @@
             const commonFieldsHtml = `
                 ${showQuestionTextField ? `
                 <div class="form-group">
-                    <label class="form-label">${t('testEditor.questionText', 'РўРµРєСЃС‚ РІРѕРїСЂРѕСЃР°')} <span class="required">*</span></label>
-                    <textarea id="questionText" class="form-textarea" rows="3" placeholder="${t('testEditor.questionTextPlaceholder', 'Р’РІРµРґРёС‚Рµ С‚РµРєСЃС‚ РІРѕРїСЂРѕСЃР°')}" required>${question.question_text || ''}</textarea>
+                    <label class="form-label">${t('testEditor.questionText', 'Текст вопроса')} <span class="required">*</span></label>
+                    <textarea id="questionText" class="form-textarea" rows="3" placeholder="${t('testEditor.questionTextPlaceholder', 'Введите текст вопроса')}" required>${question.question_text || ''}</textarea>
                 </div>
                 ` : ''}
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">${t('tests.marks', 'Р‘Р°Р»Р»С‹')} <span class="required">*</span></label>
+                        <label class="form-label">${t('tests.marks', 'Баллы')} <span class="required">*</span></label>
                         <input type="number" id="questionMarks" class="form-input" value="${question.marks || 1}" min="1" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">${t('testEditor.imageMediaUrlOptional', 'URL РёР·РѕР±СЂР°Р¶РµРЅРёСЏ/РјРµРґРёР° (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)')}</label>
+                        <label class="form-label">${t('testEditor.imageMediaUrlOptional', 'URL изображения/медиа (необязательно)')}</label>
                         <input type="url" id="questionMediaUrl" class="form-input" value="${question.media_url || ''}" placeholder="https://...">
                     </div>
                 </div>
@@ -705,7 +705,7 @@
                 <div class="modal-overlay" id="questionEditorModal">
                     <div class="modal modal-large">
                         <div class="modal-header">
-                            <h2 class="modal-title">${isEdit ? t('tests.edit', 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ') : t('testEditor.add', 'Р”РѕР±Р°РІРёС‚СЊ')} ${typeConfig.name} ${t('testEditor.question', 'РІРѕРїСЂРѕСЃ')}</h2>
+                            <h2 class="modal-title">${isEdit ? t('tests.edit', 'Редактировать') : t('testEditor.add', 'Добавить')} ${typeConfig.name} ${t('testEditor.question', 'вопрос')}</h2>
                             <button class="modal-close" onclick="TestEditor.closeQuestionEditor()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -722,7 +722,7 @@
                         <div class="modal-footer">
                             <button class="btn btn-outline" onclick="TestEditor.closeQuestionEditor()">${t('common.close', 'Закрыть')}</button>
                             <button class="btn btn-primary" onclick="TestEditor.saveQuestion('${question.question_type}')">
-                                ${isEdit ? t('testEditor.update', 'РћР±РЅРѕРІРёС‚СЊ') : t('testEditor.add', 'Р”РѕР±Р°РІРёС‚СЊ')} ${t('testEditor.question', 'РІРѕРїСЂРѕСЃ')}
+                                ${isEdit ? t('testEditor.update', 'Обновить') : t('testEditor.add', 'Добавить')} ${t('testEditor.question', 'вопрос')}
                             </button>
                         </div>
                     </div>
@@ -961,7 +961,7 @@
                     <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
                         <input type="file" id="imageFileInput" accept="image/*" class="form-input" style="max-width: 320px;">
                         <button type="button" class="btn btn-outline btn-sm" onclick="TestEditor.uploadImageForQuestion()">
-                            ${t('testEditor.uploadImage', 'Р—Р°РіСЂСѓР·РёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ')}
+                            ${t('testEditor.uploadImage', 'Загрузить изображение')}
                         </button>
                         <span id="imageUploadStatus" style="font-size: 12px; color: var(--text-secondary);"></span>
                     </div>
@@ -970,10 +970,10 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">${t('testEditor.answerType', 'РўРёРї РѕС‚РІРµС‚Р°')}</label>
+                    <label class="form-label">${t('testEditor.answerType', 'Тип ответа')}</label>
                     <select id="imageAnswerType" class="form-input">
-                        <option value="single" ${answerType === 'single' ? 'selected' : ''}>${t('testEditor.typeSingleChoice', 'РћРґРёРЅ РІС‹Р±РѕСЂ')}</option>
-                        <option value="multiple" ${answerType === 'multiple' ? 'selected' : ''}>${t('testEditor.typeMultipleChoice', 'РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№ РІС‹Р±РѕСЂ')}</option>
+                        <option value="single" ${answerType === 'single' ? 'selected' : ''}>${t('testEditor.typeSingleChoice', 'Один выбор')}</option>
+                        <option value="multiple" ${answerType === 'multiple' ? 'selected' : ''}>${t('testEditor.typeMultipleChoice', 'Множественный выбор')}</option>
                     </select>
                 </div>
                 <div id="imageAnswerOptions">
@@ -1054,7 +1054,7 @@
 
                 const data = await response.json();
                 if (!response.ok) {
-                    throw new Error(data.message || t('testEditor.failedUploadImage', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ'));
+                    throw new Error(data.message || t('testEditor.failedUploadImage', 'Не удалось загрузить изображение'));
                 }
 
                 if (imageUrlInput) imageUrlInput.value = data.url;
@@ -1062,11 +1062,11 @@
                     preview.src = data.url;
                     preview.style.display = 'block';
                 }
-                if (status) status.textContent = t('testEditor.uploadedSuccessfully', 'РЈСЃРїРµС€РЅРѕ Р·Р°РіСЂСѓР¶РµРЅРѕ');
+                if (status) status.textContent = t('testEditor.uploadedSuccessfully', 'Успешно загружено');
             } catch (error) {
                 console.error('Question image upload error:', error);
                 if (status) status.textContent = '';
-                alert(error.message || t('testEditor.failedUploadImage', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ'));
+                alert(error.message || t('testEditor.failedUploadImage', 'Не удалось загрузить изображение'));
             }
         },
 
@@ -1216,7 +1216,7 @@
 
             // Validation
             if (questionType !== 'fillblanks' && !questionText) {
-                alert(t('testEditor.enterQuestionText', 'Р’РІРµРґРёС‚Рµ С‚РµРєСЃС‚ РІРѕРїСЂРѕСЃР°'));
+                alert(t('testEditor.enterQuestionText', 'Введите текст вопроса'));
                 return;
             }
 
@@ -1370,7 +1370,7 @@
             // Also update the question count in the section header
             const header = document.getElementById('questionsSectionTitle');
             if (header) {
-                header.textContent = `${t('testEditor.questions', 'Р’РѕРїСЂРѕСЃС‹')} (${this.questions.length})`;
+                header.textContent = `${t('testEditor.questions', 'Вопросы')} (${this.questions.length})`;
             }
 
             this.refreshPublishPreview();
@@ -1450,7 +1450,7 @@
         // Publish test
         publish: async function () {
             if (this.questions.length === 0) {
-                alert(t('testEditor.addOneQuestionBeforePublish', 'Р”РѕР±Р°РІСЊС‚Рµ С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ РІРѕРїСЂРѕСЃ РїРµСЂРµРґ РїСѓР±Р»РёРєР°С†РёРµР№.'));
+                alert(t('testEditor.addOneQuestionBeforePublish', 'Добавьте хотя бы один вопрос перед публикацией.'));
                 return;
             }
             await this.save(true);
@@ -1470,7 +1470,7 @@
             const fullscreen_required = document.getElementById('testFullscreenRequired')?.checked === true;
 
             if (!title || !subject_id) {
-                alert(t('testEditor.fillRequiredFields', 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ.'));
+                alert(t('testEditor.fillRequiredFields', 'Заполните все обязательные поля.'));
                 return;
             }
 
@@ -1507,8 +1507,8 @@
                 if (response.ok) {
                     alert(
                         isPublished
-                            ? t('testEditor.publishSuccess', 'РўРµСЃС‚ СѓСЃРїРµС€РЅРѕ РѕРїСѓР±Р»РёРєРѕРІР°РЅ!')
-                            : t('testEditor.draftSavedSuccess', 'РўРµСЃС‚ СѓСЃРїРµС€РЅРѕ СЃРѕС…СЂР°РЅРµРЅ РєР°Рє С‡РµСЂРЅРѕРІРёРє!')
+                            ? t('testEditor.publishSuccess', 'Тест успешно опубликован!')
+                            : t('testEditor.draftSavedSuccess', 'Тест успешно сохранен как черновик!')
                     );
                     this.close();
                     if (window.TestsManager) {
@@ -1516,11 +1516,11 @@
                     }
                 } else {
                     const error = await response.json();
-                    alert(error.message || t('testEditor.failedSaveTest', 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ С‚РµСЃС‚'));
+                    alert(error.message || t('testEditor.failedSaveTest', 'Не удалось сохранить тест'));
                 }
             } catch (error) {
                 console.error('Save test error:', error);
-                alert(t('testEditor.failedSaveTest', 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ С‚РµСЃС‚'));
+                alert(t('testEditor.failedSaveTest', 'Не удалось сохранить тест'));
             }
         },
 

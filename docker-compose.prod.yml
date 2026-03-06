@@ -2,7 +2,7 @@ name: ${COMPOSE_PROJECT_NAME:-zedly_prod}
 
 services:
   db:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-public.ecr.aws/docker/library/postgres:16-alpine}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
@@ -20,6 +20,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-public.ecr.aws/docker/library/node:20-alpine}
     env_file:
       - ./.env.prod
     restart: unless-stopped
@@ -64,6 +66,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-public.ecr.aws/docker/library/node:20-alpine}
     env_file:
       - ./.env.prod
     restart: unless-stopped
@@ -86,6 +90,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-public.ecr.aws/docker/library/node:20-alpine}
     env_file:
       - ./.env.prod
     restart: unless-stopped
@@ -107,7 +113,7 @@ services:
       - zedly_prod_backups:/app/backups
 
   reverse-proxy:
-    image: nginx:1.27-alpine
+    image: ${NGINX_IMAGE:-public.ecr.aws/docker/library/nginx:1.27-alpine}
     restart: unless-stopped
     depends_on:
       api:

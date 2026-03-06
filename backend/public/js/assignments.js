@@ -4,7 +4,7 @@
 
     function looksLikeMojibake(value) {
         if (typeof value !== 'string' || value.length < 4) return false;
-        const chunks = value.match(/(?:Р .|РЎ.)/g) || [];
+        const chunks = value.match(/(?:Р .|С.)/g) || [];
         return chunks.length >= 3 && chunks.length / value.length > 0.2;
     }
 
@@ -17,7 +17,7 @@
     }
 
     function showAlert(message, title = null) {
-        const dialogTitle = title || t('common.error', 'РћС€РёР±РєР°');
+        const dialogTitle = title || t('common.error', 'Ошибка');
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title: dialogTitle });
         }
@@ -26,7 +26,7 @@
     }
 
     function showConfirm(message, title = null) {
-        const dialogTitle = title || t('common.confirmation', 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ');
+        const dialogTitle = title || t('common.confirmation', 'Подтверждение');
         if (window.ZedlyDialog?.confirm) {
             return window.ZedlyDialog.confirm(message, { title: dialogTitle });
         }
@@ -122,7 +122,7 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--spacing-3xl);">
                     <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('assignments.loading', 'Р—Р°РіСЂСѓР·РєР° РЅР°Р·РЅР°С‡РµРЅРёР№...')}</p>
+                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('assignments.loading', 'Загрузка назначений...')}</p>
                 </div>
             `;
 
@@ -143,7 +143,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(t('assignments.failedLoad', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РЅР°Р·РЅР°С‡РµРЅРёСЏ'));
+                    throw new Error(t('assignments.failedLoad', 'Не удалось загрузить назначения'));
                 }
 
                 const data = await response.json();
@@ -152,7 +152,7 @@
                 console.error('Load assignments error:', error);
                 container.innerHTML = `
                     <div class="error-message">
-                        <p>${t('assignments.failedLoadTryAgain', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РЅР°Р·РЅР°С‡РµРЅРёСЏ. РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°.')}</p>
+                        <p>${t('assignments.failedLoadTryAgain', 'Не удалось загрузить назначения. Попробуйте снова.')}</p>
                     </div>
                 `;
             }
@@ -166,7 +166,7 @@
             if (assignments.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">${t('assignments.noAssignments', 'РќР°Р·РЅР°С‡РµРЅРёСЏ РЅРµ РЅР°Р№РґРµРЅС‹.')}</p>
+                        <p style="color: var(--text-secondary);">${t('assignments.noAssignments', 'Назначения не найдены.')}</p>
                     </div>
                 `;
                 return;
@@ -207,17 +207,17 @@
                 const endDate = new Date(assignment.end_date);
 
                 let statusClass = 'status-inactive';
-                let statusText = t('assignments.statusUpcoming', 'РЎРєРѕСЂРѕ');
+                let statusText = t('assignments.statusUpcoming', 'Скоро');
 
                 if (!assignment.is_active) {
                     statusClass = 'status-inactive';
-                    statusText = t('assignments.statusInactive', 'РќРµР°РєС‚РёРІРЅРѕ');
+                    statusText = t('assignments.statusInactive', 'Неактивно');
                 } else if (now > endDate) {
                     statusClass = 'status-completed';
-                    statusText = t('assignments.statusCompleted', 'Р—Р°РІРµСЂС€РµРЅРѕ');
+                    statusText = t('assignments.statusCompleted', 'Завершено');
                 } else if (now >= startDate && now <= endDate) {
                     statusClass = 'status-active';
-                    statusText = t('assignments.statusActive', 'РђРєС‚РёРІРЅРѕ');
+                    statusText = t('assignments.statusActive', 'Активно');
                 }
 
                 const progress = assignment.student_count > 0
@@ -228,7 +228,7 @@
                     <tr>
                         <td data-label="${colTest}">
                             <div class="user-name">${assignment.test_title}</div>
-                            <div class="user-email">${assignment.passing_score}% ${t('assignments.passingScore', 'РїСЂРѕС…РѕРґРЅРѕР№ Р±Р°Р»Р»')}</div>
+                            <div class="user-email">${assignment.passing_score}% ${t('assignments.passingScore', 'проходной балл')}</div>
                         </td>
                         <td data-label="${colClass}">
                             <div>${assignment.class_name}</div>
@@ -241,12 +241,12 @@
                                 </span>
                             ` : '-'}
                         </td>
-                        <td data-label="${colDuration}">${assignment.duration_minutes} ${t('assignments.minShort', 'РјРёРЅ')}</td>
+                        <td data-label="${colDuration}">${assignment.duration_minutes} ${t('assignments.minShort', 'мин')}</td>
                         <td data-label="${colStartDate}">${this.formatDate(assignment.start_date)}</td>
                         <td data-label="${colEndDate}">${this.formatDate(assignment.end_date)}</td>
                         <td data-label="${colProgress}">
                             <div class="progress-info">
-                                <span>${assignment.attempt_count}/${assignment.student_count} ${t('assignments.students', 'СѓС‡РµРЅРёРєРѕРІ')}</span>
+                                <span>${assignment.attempt_count}/${assignment.student_count} ${t('assignments.students', 'учеников')}</span>
                                 <div class="progress-bar">
                                     <div class="progress-fill" style="width: ${progress}%"></div>
                                 </div>
@@ -255,25 +255,25 @@
                         <td data-label="${colStatus}"><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td data-label="${colActions}">
                             <div class="action-buttons">
-                                <button class="btn-icon" onclick="AssignmentsManager.viewDetails('${assignment.id}')" title="${t('assignments.viewDetails', 'Р”РµС‚Р°Р»Рё')}">
+                                <button class="btn-icon" onclick="AssignmentsManager.viewDetails('${assignment.id}')" title="${t('assignments.viewDetails', 'Детали')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                         <circle cx="12" cy="12" r="3"></circle>
                                     </svg>
                                 </button>
-                                <button class="btn-icon btn-success" onclick="AssignmentsManager.viewResults('${assignment.id}')" title="${t('assignments.viewResults', 'Р РµР·СѓР»СЊС‚Р°С‚С‹')}">
+                                <button class="btn-icon btn-success" onclick="AssignmentsManager.viewResults('${assignment.id}')" title="${t('assignments.viewResults', 'Результаты')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M9 11l3 3L22 4"></path>
                                         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon" onclick="AssignmentsManager.editAssignment('${assignment.id}')" title="${t('tests.edit', 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ')}">
+                                <button class="btn-icon" onclick="AssignmentsManager.editAssignment('${assignment.id}')" title="${t('tests.edit', 'Редактировать')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                 </button>
-                                <button class="btn-icon btn-danger" onclick="AssignmentsManager.deleteAssignment('${assignment.id}', '${assignment.test_title}')" title="${t('tests.delete', 'РЈРґР°Р»РёС‚СЊ')}">
+                                <button class="btn-icon btn-danger" onclick="AssignmentsManager.deleteAssignment('${assignment.id}', '${assignment.test_title}')" title="${t('tests.delete', 'Удалить')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"></polyline>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -304,7 +304,7 @@
             let html = '<div class="pagination">';
 
             if (pagination.page > 1) {
-                html += `<button class="pagination-btn" onclick="AssignmentsManager.goToPage(${pagination.page - 1})">${t('common.prev', 'РќР°Р·Р°Рґ')}</button>`;
+                html += `<button class="pagination-btn" onclick="AssignmentsManager.goToPage(${pagination.page - 1})">${t('common.prev', 'Назад')}</button>`;
             }
 
             for (let i = 1; i <= pagination.pages; i++) {
@@ -316,7 +316,7 @@
             }
 
             if (pagination.page < pagination.pages) {
-                html += `<button class="pagination-btn" onclick="AssignmentsManager.goToPage(${pagination.page + 1})">${t('common.next', 'Р”Р°Р»РµРµ')}</button>`;
+                html += `<button class="pagination-btn" onclick="AssignmentsManager.goToPage(${pagination.page + 1})">${t('common.next', 'Далее')}</button>`;
             }
 
             html += '</div>';
@@ -359,12 +359,12 @@
                         const data = await response.json();
                         assignmentData = data.assignment;
                     } else {
-                        showAlert(t('assignments.failedLoadAssignmentData', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ РЅР°Р·РЅР°С‡РµРЅРёСЏ'));
+                        showAlert(t('assignments.failedLoadAssignmentData', 'Не удалось загрузить данные назначения'));
                         return;
                     }
                 } catch (error) {
                     console.error('Load assignment error:', error);
-                    showAlert(t('assignments.failedLoadAssignmentData', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ РЅР°Р·РЅР°С‡РµРЅРёСЏ'));
+                    showAlert(t('assignments.failedLoadAssignmentData', 'Не удалось загрузить данные назначения'));
                     return;
                 }
             }
@@ -404,7 +404,7 @@
                 <div class="modal-overlay" id="assignmentModal">
                     <div class="modal">
                         <div class="modal-header">
-                            <h2 class="modal-title">${isEdit ? t('assignments.editAssignment', 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РЅР°Р·РЅР°С‡РµРЅРёРµ') : t('assignments.createNewAssignment', 'РЎРѕР·РґР°С‚СЊ РЅР°Р·РЅР°С‡РµРЅРёРµ')}</h2>
+                            <h2 class="modal-title">${isEdit ? t('assignments.editAssignment', 'Редактировать назначение') : t('assignments.createNewAssignment', 'Создать назначение')}</h2>
                             <button class="modal-close" onclick="AssignmentsManager.closeModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -417,10 +417,10 @@
                                 ${!isEdit ? `
                                 <div class="form-group">
                                     <label class="form-label">
-                                        ${t('assignments.colTest', 'РўРµСЃС‚')} <span class="required">*</span>
+                                        ${t('assignments.colTest', 'Тест')} <span class="required">*</span>
                                     </label>
                                     <select class="form-input" name="test_id" required ${isEdit ? 'disabled' : ''}>
-                                        <option value="">${t('assignments.selectTest', 'Р’С‹Р±РµСЂРёС‚Рµ С‚РµСЃС‚')}</option>
+                                        <option value="">${t('assignments.selectTest', 'Выберите тест')}</option>
                                         ${testsList.map(test =>
                 `<option value="${test.id}" data-subject-id="${test.subject_id || ''}" ${assignmentData?.test_id === test.id ? 'selected' : ''}>${test.title} (${test.subject_name})</option>`
             ).join('')}
@@ -429,26 +429,26 @@
 
                                 <div class="form-group">
                                     <label class="form-label">
-                                        ${t('assignments.classes', 'РљР»Р°СЃСЃС‹')} <span class="required">*</span>
+                                        ${t('assignments.classes', 'Классы')} <span class="required">*</span>
                                     </label>
                                     <label class="multi-choice-option" for="assignmentSelectAllClasses" style="margin-bottom: 8px;">
                                         <input type="checkbox" id="assignmentSelectAllClasses" />
                                         <span>${t('assignments.selectAllClasses', 'Select all')}</span>
                                     </label>
                                     <div class="multi-choice-list" id="assignmentClassList"></div>
-                                    <span class="form-hint">${t('assignments.allClassesHint', 'РћРїС†РёСЏ "Р’СЃРµ РєР»Р°СЃСЃС‹" РІС‹Р±РёСЂР°РµС‚ СЃСЂР°Р·Сѓ РІСЃРµ РґРѕСЃС‚СѓРїРЅС‹Рµ РєР»Р°СЃСЃС‹.')}</span>
+                                    <span class="form-hint">${t('assignments.allClassesHint', 'Опция "Все классы" выбирает сразу все доступные классы.')}</span>
                                 </div>
                                 ` : `
                                 <div class="alert alert-info">
-                                    <strong>${t('assignments.colTest', 'РўРµСЃС‚')}:</strong> ${assignmentData.test_title}<br>
-                                    <strong>${t('assignments.colClass', 'РљР»Р°СЃСЃ')}:</strong> ${assignmentData.class_name}
+                                    <strong>${t('assignments.colTest', 'Тест')}:</strong> ${assignmentData.test_title}<br>
+                                    <strong>${t('assignments.colClass', 'Класс')}:</strong> ${assignmentData.class_name}
                                 </div>
                                 `}
 
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">
-                                            ${t('assignments.startDateTime', 'Р”Р°С‚Р° Рё РІСЂРµРјСЏ РЅР°С‡Р°Р»Р°')} <span class="required">*</span>
+                                            ${t('assignments.startDateTime', 'Дата и время начала')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -461,7 +461,7 @@
 
                                     <div class="form-group">
                                         <label class="form-label">
-                                            ${t('assignments.endDateTime', 'Р”Р°С‚Р° Рё РІСЂРµРјСЏ РѕРєРѕРЅС‡Р°РЅРёСЏ')} <span class="required">*</span>
+                                            ${t('assignments.endDateTime', 'Дата и время окончания')} <span class="required">*</span>
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -484,7 +484,7 @@
                                             ${assignmentData?.is_active ? 'checked' : ''}
                                         />
                                         <label class="form-check-label" for="assignmentActive">
-                                            ${t('assignments.statusActive', 'РђРєС‚РёРІРЅРѕ')}
+                                            ${t('assignments.statusActive', 'Активно')}
                                         </label>
                                     </div>
                                 </div>
@@ -495,10 +495,10 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="AssignmentsManager.closeModal()">
-                                ${t('common.close', 'Р—Р°РєСЂС‹С‚СЊ')}
+                                ${t('common.close', 'Закрыть')}
                             </button>
                             <button type="submit" form="assignmentForm" class="btn btn-primary" id="submitBtn">
-                                ${isEdit ? t('assignments.updateAssignment', 'РћР±РЅРѕРІРёС‚СЊ РЅР°Р·РЅР°С‡РµРЅРёРµ') : t('assignments.createAssignment', 'РЎРѕР·РґР°С‚СЊ РЅР°Р·РЅР°С‡РµРЅРёРµ')}
+                                ${isEdit ? t('assignments.updateAssignment', 'Обновить назначение') : t('assignments.createAssignment', 'Создать назначение')}
                             </button>
                         </div>
                     </div>
@@ -725,19 +725,19 @@
             // Validation
             if (!resolvedAssignmentId && (!data.test_id || !Array.isArray(data.class_ids) || data.class_ids.length === 0)) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = t('assignments.validationTestAndClass', 'Р’С‹Р±РµСЂРёС‚Рµ С‚РµСЃС‚ Рё С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ РєР»Р°СЃСЃ');
+                formAlert.textContent = t('assignments.validationTestAndClass', 'Выберите тест и хотя бы один класс');
                 return;
             }
 
             if (!data.start_date || !data.end_date) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = t('assignments.validationDatesRequired', 'Р—Р°РїРѕР»РЅРёС‚Рµ РґР°С‚Сѓ РЅР°С‡Р°Р»Р° Рё РѕРєРѕРЅС‡Р°РЅРёСЏ');
+                formAlert.textContent = t('assignments.validationDatesRequired', 'Заполните дату начала и окончания');
                 return;
             }
 
             if (new Date(data.start_date) >= new Date(data.end_date)) {
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = t('assignments.validationEndAfterStart', 'Р”Р°С‚Р° РѕРєРѕРЅС‡Р°РЅРёСЏ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РїРѕР·Р¶Рµ РґР°С‚С‹ РЅР°С‡Р°Р»Р°');
+                formAlert.textContent = t('assignments.validationEndAfterStart', 'Дата окончания должна быть позже даты начала');
                 return;
             }
 
@@ -776,12 +776,12 @@
                 } else {
                     // Show error
                     formAlert.className = 'alert alert-error';
-                    formAlert.textContent = result.message || t('assignments.errorGeneric', 'РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР°');
+                    formAlert.textContent = result.message || t('assignments.errorGeneric', 'Произошла ошибка');
                 }
             } catch (error) {
                 console.error('Submit assignment error:', error);
                 formAlert.className = 'alert alert-error';
-                formAlert.textContent = t('assignments.errorNetwork', 'РћС€РёР±РєР° СЃРµС‚Рё. РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°.');
+                formAlert.textContent = t('assignments.errorNetwork', 'Ошибка сети. Попробуйте снова.');
             } finally {
                 submitBtn.classList.remove('loading');
                 submitBtn.disabled = false;
@@ -802,14 +802,14 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(t('assignments.failedLoadDetails', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґРµС‚Р°Р»Рё РЅР°Р·РЅР°С‡РµРЅРёСЏ'));
+                    throw new Error(t('assignments.failedLoadDetails', 'Не удалось загрузить детали назначения'));
                 }
 
                 const data = await response.json();
                 this.showDetailsModal(data.assignment, data.students);
             } catch (error) {
                 console.error('Load assignment details error:', error);
-                showAlert(t('assignments.failedLoadDetails', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґРµС‚Р°Р»Рё РЅР°Р·РЅР°С‡РµРЅРёСЏ'));
+                showAlert(t('assignments.failedLoadDetails', 'Не удалось загрузить детали назначения'));
             }
         },
 
@@ -823,7 +823,7 @@
                 <div class="modal-overlay" id="assignmentDetailsModal">
                     <div class="modal modal-large">
                         <div class="modal-header">
-                            <h2 class="modal-title">${t('assignments.assignmentDetails', 'Р”РµС‚Р°Р»Рё РЅР°Р·РЅР°С‡РµРЅРёСЏ')}</h2>
+                            <h2 class="modal-title">${t('assignments.assignmentDetails', 'Детали назначения')}</h2>
                             <button class="modal-close" onclick="AssignmentsManager.closeModal()">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -834,70 +834,70 @@
                         <div class="modal-body">
                             <div class="assignment-details">
                                 <div class="detail-section">
-                                    <h3>${t('assignments.testInformation', 'РРЅС„РѕСЂРјР°С†РёСЏ Рѕ С‚РµСЃС‚Рµ')}</h3>
+                                    <h3>${t('assignments.testInformation', 'Информация о тесте')}</h3>
                                     <div class="detail-grid">
                                         <div class="detail-item">
-                                            <label>${t('assignments.colTest', 'РўРµСЃС‚')}:</label>
+                                            <label>${t('assignments.colTest', 'Тест')}:</label>
                                             <span>${assignment.test_title}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>${t('assignments.colSubject', 'РџСЂРµРґРјРµС‚')}:</label>
+                                            <label>${t('assignments.colSubject', 'Предмет')}:</label>
                                             <span>${assignment.subject_name || '-'}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>${t('assignments.colDuration', 'Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ')}:</label>
-                                            <span>${assignment.duration_minutes} ${t('assignments.minutes', 'РјРёРЅСѓС‚')}</span>
+                                            <label>${t('assignments.colDuration', 'Длительность')}:</label>
+                                            <span>${assignment.duration_minutes} ${t('assignments.minutes', 'минут')}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>${t('assignments.questions', 'Р’РѕРїСЂРѕСЃС‹')}:</label>
+                                            <label>${t('assignments.questions', 'Вопросы')}:</label>
                                             <span>${assignment.question_count}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>${t('assignments.passingScoreLabel', 'РџСЂРѕС…РѕРґРЅРѕР№ Р±Р°Р»Р»')}:</label>
+                                            <label>${t('assignments.passingScoreLabel', 'Проходной балл')}:</label>
                                             <span>${assignment.passing_score}%</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>${t('assignments.maxAttempts', 'РњР°РєСЃ. РїРѕРїС‹С‚РѕРє')}:</label>
+                                            <label>${t('assignments.maxAttempts', 'Макс. попыток')}:</label>
                                             <span>${assignment.max_attempts}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="detail-section">
-                                    <h3>${t('assignments.assignmentDetails', 'Р”РµС‚Р°Р»Рё РЅР°Р·РЅР°С‡РµРЅРёСЏ')}</h3>
+                                    <h3>${t('assignments.assignmentDetails', 'Детали назначения')}</h3>
                                     <div class="detail-grid">
                                         <div class="detail-item">
-                                            <label>${t('assignments.colClass', 'РљР»Р°СЃСЃ')}:</label>
+                                            <label>${t('assignments.colClass', 'Класс')}:</label>
                                             <span>${assignment.class_name} (${assignment.grade_level} ${t('results.grade', 'класс')})</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>${t('assignments.colStartDate', 'Р”Р°С‚Р° РЅР°С‡Р°Р»Р°')}:</label>
+                                            <label>${t('assignments.colStartDate', 'Дата начала')}:</label>
                                             <span>${this.formatDate(assignment.start_date)}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>${t('assignments.colEndDate', 'Р”Р°С‚Р° РѕРєРѕРЅС‡Р°РЅРёСЏ')}:</label>
+                                            <label>${t('assignments.colEndDate', 'Дата окончания')}:</label>
                                             <span>${this.formatDate(assignment.end_date)}</span>
                                         </div>
                                         <div class="detail-item">
-                                            <label>${t('assignments.colStatus', 'РЎС‚Р°С‚СѓСЃ')}:</label>
+                                            <label>${t('assignments.colStatus', 'Статус')}:</label>
                                             <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
-                                                ${isActive ? t('assignments.statusActive', 'РђРєС‚РёРІРЅРѕ') : t('assignments.statusInactive', 'РќРµР°РєС‚РёРІРЅРѕ')}
+                                                ${isActive ? t('assignments.statusActive', 'Активно') : t('assignments.statusInactive', 'Неактивно')}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="detail-section">
-                                    <h3>${t('assignments.studentProgress', 'РџСЂРѕРіСЂРµСЃСЃ СѓС‡РµРЅРёРєРѕРІ')} (${students.length} ${t('assignments.students', 'СѓС‡РµРЅРёРєРѕРІ')})</h3>
+                                    <h3>${t('assignments.studentProgress', 'Прогресс учеников')} (${students.length} ${t('assignments.students', 'учеников')})</h3>
                                     <div class="table-responsive">
                                         <table class="data-table">
                                             <thead>
                                                 <tr>
-                                                    <th>${t('assignments.rollNumber', 'в„– РІ Р¶СѓСЂРЅР°Р»Рµ')}</th>
-                                                    <th>${t('assignments.studentName', 'РРјСЏ СѓС‡РµРЅРёРєР°')}</th>
-                                                    <th>${t('assignments.attemptsMade', 'РџРѕРїС‹С‚РѕРє')}</th>
-                                                    <th>${t('assignments.bestScore', 'Р›СѓС‡С€РёР№ Р±Р°Р»Р»')}</th>
-                                                    <th>${t('assignments.lastAttempt', 'РџРѕСЃР»РµРґРЅСЏСЏ РїРѕРїС‹С‚РєР°')}</th>
+                                                    <th>${t('assignments.rollNumber', '№ в журнале')}</th>
+                                                    <th>${t('assignments.studentName', 'Имя ученика')}</th>
+                                                    <th>${t('assignments.attemptsMade', 'Попыток')}</th>
+                                                    <th>${t('assignments.bestScore', 'Лучший балл')}</th>
+                                                    <th>${t('assignments.lastAttempt', 'Последняя попытка')}</th>
                                                     <th></th>
                                                 </tr>
                                             </thead>
@@ -907,8 +907,8 @@
                 const isPassed = student.best_score !== null && student.best_score >= assignment.passing_score;
                 const statusClass = student.attempts_made === 0 ? 'status-inactive' : (isPassed ? 'status-active' : 'status-warning');
                 const statusText = student.attempts_made === 0
-                    ? t('assignments.statusNotStarted', 'РќРµ РЅР°С‡Р°С‚Рѕ')
-                    : (isPassed ? t('assignments.statusPassed', 'РЎРґР°РЅРѕ') : t('assignments.statusInProgress', 'Р’ РїСЂРѕС†РµСЃСЃРµ'));
+                    ? t('assignments.statusNotStarted', 'Не начато')
+                    : (isPassed ? t('assignments.statusPassed', 'Сдано') : t('assignments.statusInProgress', 'В процессе'));
 
                 return `
                                                     <tr>
@@ -929,7 +929,7 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="AssignmentsManager.closeModal()">
-                                ${t('common.close', 'Р—Р°РєСЂС‹С‚СЊ')}
+                                ${t('common.close', 'Закрыть')}
                             </button>
                         </div>
                     </div>
@@ -949,7 +949,7 @@
         // Delete assignment
         deleteAssignment: async function (assignmentId, testTitle) {
             const confirmed = await showConfirm(
-                t('assignments.deleteConfirm', 'Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ РЅР°Р·РЅР°С‡РµРЅРёРµ "{title}"?').replace('{title}', testTitle)
+                t('assignments.deleteConfirm', 'Вы уверены, что хотите удалить назначение "{title}"?').replace('{title}', testTitle)
             );
             if (!confirmed) {
                 return;
@@ -967,11 +967,11 @@
                 if (response.ok) {
                     this.loadAssignments();
                 } else {
-                    showAlert(t('assignments.failedDeleteAssignment', 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РЅР°Р·РЅР°С‡РµРЅРёРµ'));
+                    showAlert(t('assignments.failedDeleteAssignment', 'Не удалось удалить назначение'));
                 }
             } catch (error) {
                 console.error('Delete assignment error:', error);
-                showAlert(t('assignments.failedDeleteAssignment', 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РЅР°Р·РЅР°С‡РµРЅРёРµ'));
+                showAlert(t('assignments.failedDeleteAssignment', 'Не удалось удалить назначение'));
             }
         },
 

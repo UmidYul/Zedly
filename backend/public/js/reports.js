@@ -173,12 +173,12 @@
             const s = state.overview?.stats || {};
             const geoCoverage = state.geoOverview?.coverage || {};
             setHtml('reportsSummaryGrid', [
-                buildKpiCard(t('reports.schools', 'РЁРєРѕР»С‹'), fmtInt(s.schools), 'tone-blue'),
-                buildKpiCard(t('reports.students', 'РЈС‡РµРЅРёРєРё'), fmtInt(s.students), 'tone-green'),
-                buildKpiCard(t('reports.teachers', 'РЈС‡РёС‚РµР»СЏ'), fmtInt(s.teachers), 'tone-cyan'),
-                buildKpiCard(t('reports.tests', 'РўРµСЃС‚С‹'), fmtInt(s.tests), 'tone-orange'),
-                buildKpiCard(t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»'), fmtPct(s.avg_score), 'tone-violet'),
-                buildKpiCard(t('reports.careerTests', 'РџСЂРѕС„РѕСЂРёРµРЅС‚Р°С†РёРѕРЅРЅС‹Рµ С‚РµСЃС‚С‹'), fmtInt(s.career_tests_completed), 'tone-rose'),
+                buildKpiCard(t('reports.schools', 'Школы'), fmtInt(s.schools), 'tone-blue'),
+                buildKpiCard(t('reports.students', 'Ученики'), fmtInt(s.students), 'tone-green'),
+                buildKpiCard(t('reports.teachers', 'Учителя'), fmtInt(s.teachers), 'tone-cyan'),
+                buildKpiCard(t('reports.tests', 'Тесты'), fmtInt(s.tests), 'tone-orange'),
+                buildKpiCard(t('reports.avgScore', 'Средний балл'), fmtPct(s.avg_score), 'tone-violet'),
+                buildKpiCard(t('reports.careerTests', 'Профориентационные тесты'), fmtInt(s.career_tests_completed), 'tone-rose'),
                 buildKpiCard(t('statistics.geoCoverage', 'Geo coverage'), fmtPct(geoCoverage.geo_fill_rate), 'tone-green'),
                 buildKpiCard(t('statistics.profileCoverage', 'Profile coverage'), fmtPct(geoCoverage.profile_fill_rate), 'tone-cyan')
             ].join(''));
@@ -187,12 +187,12 @@
 
         const o = state.overview?.overview || {};
         setHtml('reportsSummaryGrid', [
-            buildKpiCard(t('reports.students', 'РЈС‡РµРЅРёРєРё'), fmtInt(o.total_students), 'tone-blue'),
-            buildKpiCard(t('reports.teachers', 'РЈС‡РёС‚РµР»СЏ'), fmtInt(o.total_teachers), 'tone-cyan'),
-            buildKpiCard(t('reports.classes', 'РљР»Р°СЃСЃС‹'), fmtInt(o.total_classes), 'tone-green'),
-            buildKpiCard(t('dashboard.stats.subjects', 'РџСЂРµРґРјРµС‚С‹'), fmtInt(o.total_subjects), 'tone-orange'),
-            buildKpiCard(t('reports.tests', 'РўРµСЃС‚С‹'), fmtInt(o.total_tests), 'tone-violet'),
-            buildKpiCard(t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»'), fmtPct(o.average_score), 'tone-rose')
+            buildKpiCard(t('reports.students', 'Ученики'), fmtInt(o.total_students), 'tone-blue'),
+            buildKpiCard(t('reports.teachers', 'Учителя'), fmtInt(o.total_teachers), 'tone-cyan'),
+            buildKpiCard(t('reports.classes', 'Классы'), fmtInt(o.total_classes), 'tone-green'),
+            buildKpiCard(t('dashboard.stats.subjects', 'Предметы'), fmtInt(o.total_subjects), 'tone-orange'),
+            buildKpiCard(t('reports.tests', 'Тесты'), fmtInt(o.total_tests), 'tone-violet'),
+            buildKpiCard(t('reports.avgScore', 'Средний балл'), fmtPct(o.average_score), 'tone-rose')
         ].join(''));
     }
 
@@ -200,19 +200,19 @@
         if (state.role === 'superadmin') {
             const top = state.overview?.top_schools || [];
             if (!top.length) {
-                setHtml('reportsTopTable', `<p class="text-secondary">${t('reports.noData', 'РќРµС‚ РґР°РЅРЅС‹С…')}</p>`);
+                setHtml('reportsTopTable', `<p class="text-secondary">${t('reports.noData', 'Нет данных')}</p>`);
                 return;
             }
             setHtml('reportsTopTable', `
                 <div class="table-responsive">
                     <table class="data-table">
-                        <thead><tr><th>${t('reports.school', 'РЁРєРѕР»Р°')}</th><th>${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}</th><th>${t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»')}</th></tr></thead>
+                        <thead><tr><th>${t('reports.school', 'Школа')}</th><th>${t('reports.attempts', 'Попытки')}</th><th>${t('reports.avgScore', 'Средний балл')}</th></tr></thead>
                         <tbody>
                             ${top.map((row) => `
                                 <tr>
-                                    <td data-label="${t('reports.school', 'РЁРєРѕР»Р°')}">${escapeHtml(row.school_name || '-')}</td>
-                                    <td data-label="${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}">${fmtInt(row.attempts)}</td>
-                                    <td data-label="${t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»')}">${fmtPct(row.avg_score)}</td>
+                                    <td data-label="${t('reports.school', 'Школа')}">${escapeHtml(row.school_name || '-')}</td>
+                                    <td data-label="${t('reports.attempts', 'Попытки')}">${fmtInt(row.attempts)}</td>
+                                    <td data-label="${t('reports.avgScore', 'Средний балл')}">${fmtPct(row.avg_score)}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -224,20 +224,20 @@
 
         const topClasses = state.overview?.top_classes || [];
         if (!topClasses.length) {
-            setHtml('reportsTopTable', `<p class="text-secondary">${t('reports.noData', 'РќРµС‚ РґР°РЅРЅС‹С…')}</p>`);
+            setHtml('reportsTopTable', `<p class="text-secondary">${t('reports.noData', 'Нет данных')}</p>`);
             return;
         }
         setHtml('reportsTopTable', `
             <div class="table-responsive">
                 <table class="data-table">
-                    <thead><tr><th>${t('reports.class', 'РљР»Р°СЃСЃ')}</th><th>${t('reports.students', 'РЈС‡РµРЅРёРєРё')}</th><th>${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}</th><th>${t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»')}</th></tr></thead>
+                    <thead><tr><th>${t('reports.class', 'Класс')}</th><th>${t('reports.students', 'Ученики')}</th><th>${t('reports.attempts', 'Попытки')}</th><th>${t('reports.avgScore', 'Средний балл')}</th></tr></thead>
                     <tbody>
                         ${topClasses.map((row) => `
                             <tr>
-                                <td data-label="${t('reports.class', 'РљР»Р°СЃСЃ')}">${escapeHtml(row.name || '-')}</td>
-                                <td data-label="${t('reports.students', 'РЈС‡РµРЅРёРєРё')}">${fmtInt(row.student_count)}</td>
-                                <td data-label="${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}">${fmtInt(row.total_attempts)}</td>
-                                <td data-label="${t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»')}">${fmtPct(row.avg_score)}</td>
+                                <td data-label="${t('reports.class', 'Класс')}">${escapeHtml(row.name || '-')}</td>
+                                <td data-label="${t('reports.students', 'Ученики')}">${fmtInt(row.student_count)}</td>
+                                <td data-label="${t('reports.attempts', 'Попытки')}">${fmtInt(row.total_attempts)}</td>
+                                <td data-label="${t('reports.avgScore', 'Средний балл')}">${fmtPct(row.avg_score)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -249,7 +249,7 @@
     function renderActivity() {
         const activity = state.overview?.recent_activity || [];
         if (!activity.length) {
-            setHtml('reportsActivityList', `<p class="text-secondary">${t('reports.noRecentActivity', 'РќРµС‚ РЅРµРґР°РІРЅРµР№ Р°РєС‚РёРІРЅРѕСЃС‚Рё')}</p>`);
+            setHtml('reportsActivityList', `<p class="text-secondary">${t('reports.noRecentActivity', 'Нет недавней активности')}</p>`);
             return;
         }
 
@@ -258,7 +258,7 @@
                 ${activity.slice(0, 12).map((item) => `
                     <div class="reports-activity-item">
                         <div>
-                            <strong>${escapeHtml(item.title || item.type || t('reports.recentActivity', 'РќРµРґР°РІРЅСЏСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ'))}</strong>
+                            <strong>${escapeHtml(item.title || item.type || t('reports.recentActivity', 'Недавняя активность'))}</strong>
                             <p>${escapeHtml(item.subtitle || '')}</p>
                         </div>
                         <span>${new Date(item.date).toLocaleDateString('ru-RU')}</span>
@@ -274,7 +274,7 @@
             : (state.comparison?.data || []);
 
         if (!rows.length) {
-            setHtml('reportsCompareTable', `<p class="text-secondary">${t('reports.noComparisonData', 'РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ СЃСЂР°РІРЅРµРЅРёСЏ')}</p>`);
+            setHtml('reportsCompareTable', `<p class="text-secondary">${t('reports.noComparisonData', 'Нет данных для сравнения')}</p>`);
             return;
         }
 
@@ -284,7 +284,7 @@
         const isPercentMetric = ['avg_score', 'test_completion'].includes(state.metric);
         const nameHeader = state.role === 'superadmin'
             ? getDimensionLabel(state.dimension)
-            : t('reports.name', 'РќР°Р·РІР°РЅРёРµ');
+            : t('reports.name', 'Название');
 
         setHtml('reportsCompareTable', `
             <div class="table-responsive">
@@ -292,16 +292,16 @@
                     <thead>
                         <tr>
                             <th>${nameHeader}</th>
-                            <th>${t('reports.mainMetric', 'РћСЃРЅРѕРІРЅР°СЏ РјРµС‚СЂРёРєР°')}</th>
-                            <th>${t('common.details', 'Р”РµС‚Р°Р»Рё')}</th>
+                            <th>${t('reports.mainMetric', 'Основная метрика')}</th>
+                            <th>${t('common.details', 'Детали')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${rows.slice(0, 50).map((row) => `
                             <tr>
                                 <td data-label="${nameHeader}">${escapeHtml(row.dimension_name_ru || row.dimension_name_uz || row[keyName] || row.name_ru || row.subject || '-')}</td>
-                                <td data-label="${t('reports.mainMetric', 'РћСЃРЅРѕРІРЅР°СЏ РјРµС‚СЂРёРєР°')}">${typeof row[keyValue] === 'number' ? (isPercentMetric ? fmtPct(row[keyValue]) : fmtInt(row[keyValue])) : escapeHtml(String(row[keyValue] ?? '-'))}</td>
-                                <td data-label="${t('common.details', 'Р”РµС‚Р°Р»Рё')}">${escapeHtml(buildRowDetails(row))}</td>
+                                <td data-label="${t('reports.mainMetric', 'Основная метрика')}">${typeof row[keyValue] === 'number' ? (isPercentMetric ? fmtPct(row[keyValue]) : fmtInt(row[keyValue])) : escapeHtml(String(row[keyValue] ?? '-'))}</td>
+                                <td data-label="${t('common.details', 'Детали')}">${escapeHtml(buildRowDetails(row))}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -311,10 +311,10 @@
     }
 
     function riskLevelLabel(level) {
-        if (level === 'critical') return t('reports.riskCritical', 'РљСЂРёС‚РёС‡РµСЃРєРёР№');
-        if (level === 'high') return t('reports.riskHigh', 'Р’С‹СЃРѕРєРёР№');
-        if (level === 'medium') return t('reports.riskMedium', 'РЎСЂРµРґРЅРёР№');
-        return t('reports.riskSafe', 'Р‘РµР·РѕРїР°СЃРЅС‹Р№');
+        if (level === 'critical') return t('reports.riskCritical', 'Критический');
+        if (level === 'high') return t('reports.riskHigh', 'Высокий');
+        if (level === 'medium') return t('reports.riskMedium', 'Средний');
+        return t('reports.riskSafe', 'Безопасный');
     }
 
     function buildCompactPaginationHtml(currentPage, totalPages, onClickHandler) {
@@ -334,7 +334,7 @@
 
         let html = '';
         if (safeCurrent > 1) {
-            html += `<button class="pagination-btn" type="button" data-risk-page="${safeCurrent - 1}" onclick="${onClickHandler}">${t('reports.previous', 'РќР°Р·Р°Рґ')}</button>`;
+            html += `<button class="pagination-btn" type="button" data-risk-page="${safeCurrent - 1}" onclick="${onClickHandler}">${t('reports.previous', 'Назад')}</button>`;
         }
 
         let prevPage = null;
@@ -351,7 +351,7 @@
         }
 
         if (safeCurrent < safeTotal) {
-            html += `<button class="pagination-btn" type="button" data-risk-page="${safeCurrent + 1}" onclick="${onClickHandler}">${t('reports.next', 'Р”Р°Р»РµРµ')}</button>`;
+            html += `<button class="pagination-btn" type="button" data-risk-page="${safeCurrent + 1}" onclick="${onClickHandler}">${t('reports.next', 'Далее')}</button>`;
         }
 
         return html;
@@ -395,7 +395,7 @@
         card.style.display = '';
         const rows = Array.isArray(state.notifications) ? state.notifications : [];
         if (!rows.length) {
-            tableEl.innerHTML = `<p class="text-secondary">${t('reports.noNotificationLogs', 'РќРµС‚ Р»РѕРіРѕРІ СѓРІРµРґРѕРјР»РµРЅРёР№ РґР»СЏ РІС‹Р±СЂР°РЅРЅС‹С… С„РёР»СЊС‚СЂРѕРІ.')}</p>`;
+            tableEl.innerHTML = `<p class="text-secondary">${t('reports.noNotificationLogs', 'Нет логов уведомлений для выбранных фильтров.')}</p>`;
             return;
         }
 
@@ -409,44 +409,44 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>${t('common.date', 'Р”Р°С‚Р°')}</th>
-                            ${state.role === 'superadmin' ? `<th>${t('reports.school', 'РЁРєРѕР»Р°')}</th>` : ''}
-                            <th>${t('reports.user', 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ')}</th>
-                            <th>${t('common.role', 'Р РѕР»СЊ')}</th>
-                            <th>${t('common.channel', 'РљР°РЅР°Р»')}</th>
-                            <th>${t('common.event', 'РЎРѕР±С‹С‚РёРµ')}</th>
-                            <th>${t('common.status', 'РЎС‚Р°С‚СѓСЃ')}</th>
-                            <th>${t('reports.recipient', 'РџРѕР»СѓС‡Р°С‚РµР»СЊ')}</th>
-                            <th>${t('reports.errorField', 'РћС€РёР±РєР°')}</th>
+                            <th>${t('common.date', 'Дата')}</th>
+                            ${state.role === 'superadmin' ? `<th>${t('reports.school', 'Школа')}</th>` : ''}
+                            <th>${t('reports.user', 'Пользователь')}</th>
+                            <th>${t('common.role', 'Роль')}</th>
+                            <th>${t('common.channel', 'Канал')}</th>
+                            <th>${t('common.event', 'Событие')}</th>
+                            <th>${t('common.status', 'Статус')}</th>
+                            <th>${t('reports.recipient', 'Получатель')}</th>
+                            <th>${t('reports.errorField', 'Ошибка')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${rows.map((row) => `
                             <tr>
-                                <td data-label="${t('common.date', 'Р”Р°С‚Р°')}">${row.created_at ? new Date(row.created_at).toLocaleString('ru-RU') : '-'}</td>
-                                ${state.role === 'superadmin' ? `<td data-label="${t('reports.school', 'РЁРєРѕР»Р°')}">${escapeHtml(row.school_name || '-')}</td>` : ''}
-                                <td data-label="${t('reports.user', 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ')}">${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
-                                <td data-label="${t('common.role', 'Р РѕР»СЊ')}">${escapeHtml(row.role || '-')}</td>
-                                <td data-label="${t('common.channel', 'РљР°РЅР°Р»')}">${escapeHtml(row.channel || '-')}</td>
-                                <td data-label="${t('common.event', 'РЎРѕР±С‹С‚РёРµ')}">${escapeHtml(row.event_key || '-')}</td>
-                                <td data-label="${t('common.status', 'РЎС‚Р°С‚СѓСЃ')}">
+                                <td data-label="${t('common.date', 'Дата')}">${row.created_at ? new Date(row.created_at).toLocaleString('ru-RU') : '-'}</td>
+                                ${state.role === 'superadmin' ? `<td data-label="${t('reports.school', 'Школа')}">${escapeHtml(row.school_name || '-')}</td>` : ''}
+                                <td data-label="${t('reports.user', 'Пользователь')}">${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
+                                <td data-label="${t('common.role', 'Роль')}">${escapeHtml(row.role || '-')}</td>
+                                <td data-label="${t('common.channel', 'Канал')}">${escapeHtml(row.channel || '-')}</td>
+                                <td data-label="${t('common.event', 'Событие')}">${escapeHtml(row.event_key || '-')}</td>
+                                <td data-label="${t('common.status', 'Статус')}">
                                     <span class="reports-notification-status ${(row.status || '').toLowerCase() === 'sent' ? 'sent' : 'failed'}">
                                         ${(String(row.status || '').toLowerCase() === 'sent')
-                                            ? t('reports.statusSent', 'РћС‚РїСЂР°РІР»РµРЅРѕ')
+                                            ? t('reports.statusSent', 'Отправлено')
                                             : (String(row.status || '').toLowerCase() === 'failed')
-                                                ? t('reports.statusFailed', 'РћС€РёР±РєР°')
+                                                ? t('reports.statusFailed', 'Ошибка')
                                                 : escapeHtml(row.status || '-')}
                                     </span>
                                 </td>
-                                <td data-label="${t('reports.recipient', 'РџРѕР»СѓС‡Р°С‚РµР»СЊ')}">${escapeHtml(buildNotificationRecipientLabel(row))}</td>
-                                <td data-label="${t('reports.errorField', 'РћС€РёР±РєР°')}">${escapeHtml(row.error_message || '-')}</td>
+                                <td data-label="${t('reports.recipient', 'Получатель')}">${escapeHtml(buildNotificationRecipientLabel(row))}</td>
+                                <td data-label="${t('reports.errorField', 'Ошибка')}">${escapeHtml(row.error_message || '-')}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
             <div class="reports-notification-footer">
-                <span class="text-secondary">${t('common.page', 'РЎС‚СЂР°РЅРёС†Р°')} ${fmtInt(currentPage)} / ${fmtInt(totalPages)} В· ${t('common.total', 'Р’СЃРµРіРѕ')}: ${fmtInt(total)}</span>
+                <span class="text-secondary">${t('common.page', 'Страница')} ${fmtInt(currentPage)} / ${fmtInt(totalPages)} В· ${t('common.total', 'Всего')}: ${fmtInt(total)}</span>
                 <div class="pagination">
                     ${buildCompactPaginationHtml(currentPage, totalPages, 'window.ReportsManager.goToNotificationPageFromEvent(event)')}
                 </div>
@@ -460,7 +460,7 @@
         if (!summaryEl || !tableEl) return;
 
         if (state.role === 'superadmin') {
-            summaryEl.innerHTML = `<p class="text-secondary">${t('reports.riskDashboardUnavailable', 'Р РёСЃРє-РґР°С€Р±РѕСЂРґ РґРѕСЃС‚СѓРїРµРЅ С‚РѕР»СЊРєРѕ РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР° С€РєРѕР»С‹ Рё СѓС‡РёС‚РµР»СЏ.')}</p>`;
+            summaryEl.innerHTML = `<p class="text-secondary">${t('reports.riskDashboardUnavailable', 'Риск-дашборд доступен только для администратора школы и учителя.')}</p>`;
             tableEl.innerHTML = '';
             return;
         }
@@ -470,15 +470,15 @@
 
         summaryEl.innerHTML = `
             <div class="reports-risk-kpi-grid">
-                ${buildKpiCard(t('reports.riskCritical', 'РљСЂРёС‚РёС‡РµСЃРєРёР№'), fmtInt(summary.critical_count), 'tone-rose')}
-                ${buildKpiCard(t('reports.riskHigh', 'Р’С‹СЃРѕРєРёР№'), fmtInt(summary.high_count), 'tone-orange')}
-                ${buildKpiCard(t('reports.riskMedium', 'РЎСЂРµРґРЅРёР№'), fmtInt(summary.medium_count), 'tone-violet')}
-                ${buildKpiCard(t('reports.noAttempts', 'Р‘РµР· РїРѕРїС‹С‚РѕРє'), fmtInt(summary.no_data_count), 'tone-cyan')}
+                ${buildKpiCard(t('reports.riskCritical', 'Критический'), fmtInt(summary.critical_count), 'tone-rose')}
+                ${buildKpiCard(t('reports.riskHigh', 'Высокий'), fmtInt(summary.high_count), 'tone-orange')}
+                ${buildKpiCard(t('reports.riskMedium', 'Средний'), fmtInt(summary.medium_count), 'tone-violet')}
+                ${buildKpiCard(t('reports.noAttempts', 'Без попыток'), fmtInt(summary.no_data_count), 'tone-cyan')}
             </div>
         `;
 
         if (!students.length) {
-            tableEl.innerHTML = `<p class="text-secondary">${t('reports.noStudentsAtRisk', 'РќРµС‚ СѓС‡РµРЅРёРєРѕРІ РІ Р·РѕРЅРµ СЂРёСЃРєР° РґР»СЏ РІС‹Р±СЂР°РЅРЅС‹С… С„РёР»СЊС‚СЂРѕРІ.')}</p>`;
+            tableEl.innerHTML = `<p class="text-secondary">${t('reports.noStudentsAtRisk', 'Нет учеников в зоне риска для выбранных фильтров.')}</p>`;
             return;
         }
 
@@ -487,32 +487,32 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>${t('reports.students', 'РЈС‡РµРЅРёРєРё')}</th>
-                            <th>${t('reports.class', 'РљР»Р°СЃСЃ')}</th>
-                            <th>${t('reports.score', 'Р‘Р°Р»Р»')}</th>
-                            <th>${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}</th>
-                            <th>${t('reports.risk', 'Р РёСЃРє')}</th>
-                            <th>${t('reports.lastAttempt', 'РџРѕСЃР»РµРґРЅСЏСЏ РїРѕРїС‹С‚РєР°')}</th>
+                            <th>${t('reports.students', 'Ученики')}</th>
+                            <th>${t('reports.class', 'Класс')}</th>
+                            <th>${t('reports.score', 'Балл')}</th>
+                            <th>${t('reports.attempts', 'Попытки')}</th>
+                            <th>${t('reports.risk', 'Риск')}</th>
+                            <th>${t('reports.lastAttempt', 'Последняя попытка')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${students.map((row) => `
                             <tr>
-                                <td data-label="${t('reports.students', 'РЈС‡РµРЅРёРєРё')}">${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
-                                <td data-label="${t('reports.class', 'РљР»Р°СЃСЃ')}">${escapeHtml(row.class_name || '-')}</td>
-                                <td data-label="${t('reports.score', 'Р‘Р°Р»Р»')}">${fmtPct(row.avg_score)}</td>
-                                <td data-label="${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}">${fmtInt(row.attempts_completed)}</td>
-                                <td data-label="${t('reports.risk', 'Р РёСЃРє')}"><span class="reports-risk-badge ${escapeHtml(String(row.risk_level || 'safe'))}">${riskLevelLabel(row.risk_level)}</span></td>
-                                <td data-label="${t('reports.lastAttempt', 'РџРѕСЃР»РµРґРЅСЏСЏ РїРѕРїС‹С‚РєР°')}">${row.last_attempt_at ? new Date(row.last_attempt_at).toLocaleDateString('ru-RU') : '-'}</td>
+                                <td data-label="${t('reports.students', 'Ученики')}">${escapeHtml(`${row.first_name || ''} ${row.last_name || ''}`.trim() || row.username || '-')}</td>
+                                <td data-label="${t('reports.class', 'Класс')}">${escapeHtml(row.class_name || '-')}</td>
+                                <td data-label="${t('reports.score', 'Балл')}">${fmtPct(row.avg_score)}</td>
+                                <td data-label="${t('reports.attempts', 'Попытки')}">${fmtInt(row.attempts_completed)}</td>
+                                <td data-label="${t('reports.risk', 'Риск')}"><span class="reports-risk-badge ${escapeHtml(String(row.risk_level || 'safe'))}">${riskLevelLabel(row.risk_level)}</span></td>
+                                <td data-label="${t('reports.lastAttempt', 'Последняя попытка')}">${row.last_attempt_at ? new Date(row.last_attempt_at).toLocaleDateString('ru-RU') : '-'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
             <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-                <span class="text-secondary">${t('common.page', 'РЎС‚СЂР°РЅРёС†Р°')} ${fmtInt(state.riskPagination.page || 1)} / ${fmtInt(Math.max(1, Math.ceil((state.riskPagination.total || 0) / (state.riskPagination.limit || 20))))} В· ${t('common.total', 'Р’СЃРµРіРѕ')}: ${fmtInt(state.riskPagination.total || 0)}</span>
+                <span class="text-secondary">${t('common.page', 'Страница')} ${fmtInt(state.riskPagination.page || 1)} / ${fmtInt(Math.max(1, Math.ceil((state.riskPagination.total || 0) / (state.riskPagination.limit || 20))))} В· ${t('common.total', 'Всего')}: ${fmtInt(state.riskPagination.total || 0)}</span>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <label for="reportsRiskLimitSelect" class="text-secondary">${t('common.perPage', 'РќР° СЃС‚СЂР°РЅРёС†Рµ')}</label>
+                    <label for="reportsRiskLimitSelect" class="text-secondary">${t('common.perPage', 'На странице')}</label>
                     <select id="reportsRiskLimitSelect" class="filter-select" style="width:auto; min-width: 90px;">
                         <option value="20" ${(state.riskPagination.limit || 20) === 20 ? 'selected' : ''}>20</option>
                         <option value="50" ${(state.riskPagination.limit || 20) === 50 ? 'selected' : ''}>50</option>
@@ -550,12 +550,12 @@
         const parts = [];
         if (row.region_code) parts.push(`${t('schools.region', 'Область')}: ${getRegionName(row.region_code)}`);
         if (row.city_code) parts.push(`${t('schools.city', 'Город / район')}: ${getCityName(row.region_code, row.city_code)}`);
-        if (row.attempts !== undefined) parts.push(`${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}: ${fmtInt(row.attempts)}`);
-        if (row.total_attempts !== undefined) parts.push(`${t('common.total', 'Р’СЃРµРіРѕ')}: ${fmtInt(row.total_attempts)}`);
-        if (row.student_count !== undefined) parts.push(`${t('reports.students', 'РЈС‡РµРЅРёРєРё')}: ${fmtInt(row.student_count)}`);
-        if (row.attempt_count !== undefined) parts.push(`${t('reports.attempts', 'РџРѕРїС‹С‚РєРё')}: ${fmtInt(row.attempt_count)}`);
-        if (row.test_count !== undefined) parts.push(`${t('reports.tests', 'РўРµСЃС‚С‹')}: ${fmtInt(row.test_count)}`);
-        if (row.completed !== undefined) parts.push(`${t('dashboard.stats.testsCompleted', 'Р—Р°РІРµСЂС€РµРЅРѕ')}: ${fmtInt(row.completed)}`);
+        if (row.attempts !== undefined) parts.push(`${t('reports.attempts', 'Попытки')}: ${fmtInt(row.attempts)}`);
+        if (row.total_attempts !== undefined) parts.push(`${t('common.total', 'Всего')}: ${fmtInt(row.total_attempts)}`);
+        if (row.student_count !== undefined) parts.push(`${t('reports.students', 'Ученики')}: ${fmtInt(row.student_count)}`);
+        if (row.attempt_count !== undefined) parts.push(`${t('reports.attempts', 'Попытки')}: ${fmtInt(row.attempt_count)}`);
+        if (row.test_count !== undefined) parts.push(`${t('reports.tests', 'Тесты')}: ${fmtInt(row.test_count)}`);
+        if (row.completed !== undefined) parts.push(`${t('dashboard.stats.testsCompleted', 'Завершено')}: ${fmtInt(row.completed)}`);
         return parts.length ? parts.join(' • ') : '-';
     }
 
@@ -565,9 +565,9 @@
             const summary = state.comparison?.summary || {};
             const geo = state.geoOverview?.coverage || {};
             const topRegion = (state.geoOverview?.by_region || [])[0];
-            insights.push(`${t('reports.insights.topPerformer', 'Р›СѓС‡С€РёР№ СЂРµР·СѓР»СЊС‚Р°С‚')}: ${summary.top_performer || 'N/A'}`);
-            if (summary.average !== undefined) insights.push(`${t('reports.insights.networkAverage', 'РЎСЂРµРґРЅРµРµ РїРѕ СЃРµС‚Рё')}: ${summary.average}`);
-            if (summary.total_attempts !== undefined) insights.push(`${t('reports.insights.totalAttempts', 'Р’СЃРµРіРѕ РїРѕРїС‹С‚РѕРє')}: ${fmtInt(summary.total_attempts)}`);
+            insights.push(`${t('reports.insights.topPerformer', 'Лучший результат')}: ${summary.top_performer || 'N/A'}`);
+            if (summary.average !== undefined) insights.push(`${t('reports.insights.networkAverage', 'Среднее по сети')}: ${summary.average}`);
+            if (summary.total_attempts !== undefined) insights.push(`${t('reports.insights.totalAttempts', 'Всего попыток')}: ${fmtInt(summary.total_attempts)}`);
             if (geo.geo_fill_rate !== undefined) insights.push(`${t('statistics.geoCoverage', 'Geo coverage')}: ${fmtPct(geo.geo_fill_rate)}`);
             if (geo.profile_fill_rate !== undefined) insights.push(`${t('statistics.profileCoverage', 'Profile coverage')}: ${fmtPct(geo.profile_fill_rate)}`);
             if (topRegion) {
@@ -580,11 +580,11 @@
                 const risk = subjects.reduce((a, b) => Number(a.avg_score || 0) < Number(b.avg_score || 0) ? a : b);
                 const bestName = best.name_ru || best.name_uz || best.subject || 'N/A';
                 const riskName = risk.name_ru || risk.name_uz || risk.subject || 'N/A';
-                insights.push(`${t('reports.insights.bestSubject', 'Р›СѓС‡С€РёР№ РїСЂРµРґРјРµС‚')}: ${bestName} (${fmtPct(best.avg_score)})`);
-                insights.push(`${t('reports.insights.riskSubject', 'РџСЂРµРґРјРµС‚ РІ Р·РѕРЅРµ СЂРёСЃРєР°')}: ${riskName} (${fmtPct(risk.avg_score)})`);
+                insights.push(`${t('reports.insights.bestSubject', 'Лучший предмет')}: ${bestName} (${fmtPct(best.avg_score)})`);
+                insights.push(`${t('reports.insights.riskSubject', 'Предмет в зоне риска')}: ${riskName} (${fmtPct(risk.avg_score)})`);
             }
             const activity = state.overview?.recent_activity || [];
-            insights.push(`${t('reports.insights.activityPoints', 'РўРѕС‡РµРє Р°РєС‚РёРІРЅРѕСЃС‚Рё')}: ${fmtInt(activity.length)}`);
+            insights.push(`${t('reports.insights.activityPoints', 'Точек активности')}: ${fmtInt(activity.length)}`);
         }
 
         setHtml('reportsInsights', `
@@ -620,7 +620,7 @@
                 labels,
                 datasets: [
                     {
-                        label: t('reports.recentActivity', 'РќРµРґР°РІРЅСЏСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ'),
+                        label: t('reports.recentActivity', 'Недавняя активность'),
                         data: attemptsSeries,
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59,130,246,0.15)',
@@ -628,7 +628,7 @@
                         yAxisID: 'y'
                     },
                     {
-                        label: t('reports.avgScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»'),
+                        label: t('reports.avgScore', 'Средний балл'),
                         data: scoreSeries,
                         borderColor: '#22c55e',
                         backgroundColor: 'rgba(34,197,94,0.15)',
@@ -644,7 +644,7 @@
                 scales: {
                     y: {
                         beginAtZero: true,
-                        title: { display: true, text: t('reports.recentActivity', 'РќРµРґР°РІРЅСЏСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ') }
+                        title: { display: true, text: t('reports.recentActivity', 'Недавняя активность') }
                     },
                     y1: {
                         beginAtZero: true,
@@ -875,7 +875,7 @@
         const response = await fetch(`${API}/analytics/export/school`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
-        if (!response.ok) throw new Error(t('reports.exportFailed', 'РќРµ СѓРґР°Р»РѕСЃСЊ СЌРєСЃРїРѕСЂС‚РёСЂРѕРІР°С‚СЊ РѕС‚С‡РµС‚С‹'));
+        if (!response.ok) throw new Error(t('reports.exportFailed', 'Не удалось экспортировать отчеты'));
         const blob = await response.blob();
         downloadBlob(blob, `school_reports_${Date.now()}.xlsx`);
     }
@@ -895,7 +895,7 @@
 
         const printWindow = window.open('', '_blank', 'width=1200,height=800');
         if (!printWindow) {
-            alert(t('reports.popupBlocked', 'Р’СЃРїР»С‹РІР°СЋС‰РµРµ РѕРєРЅРѕ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРѕ. Р Р°Р·СЂРµС€РёС‚Рµ pop-up РґР»СЏ СЌРєСЃРїРѕСЂС‚Р° PDF.'));
+            alert(t('reports.popupBlocked', 'Всплывающее окно заблокировано. Разрешите pop-up для экспорта PDF.'));
             return;
         }
 
@@ -908,7 +908,7 @@
         if (sourceChartCanvas && targetChartCanvas) {
             try {
                 const image = document.createElement('img');
-                image.alt = t('reports.chartAlt', 'Р“СЂР°С„РёРє С‚СЂРµРЅРґРѕРІ РѕС‚С‡РµС‚РѕРІ');
+                image.alt = t('reports.chartAlt', 'График трендов отчетов');
                 image.src = sourceChartCanvas.toDataURL('image/png', 1.0);
                 image.style.width = '100%';
                 image.style.maxHeight = '360px';
@@ -922,7 +922,7 @@
         printWindow.document.write(`
             <html>
             <head>
-                <title>${t('reports.pdfTitle', 'РћС‚С‡РµС‚С‹ PDF')}</title>
+                <title>${t('reports.pdfTitle', 'Отчеты PDF')}</title>
                 ${styles}
                 <style>
                     :root {
@@ -1032,14 +1032,14 @@
             exportBtn.addEventListener('click', async () => {
                 try {
                     exportBtn.disabled = true;
-                    exportBtn.textContent = t('reports.exporting', 'Р­РєСЃРїРѕСЂС‚...');
+                    exportBtn.textContent = t('reports.exporting', 'Экспорт...');
                     await handleDataExport();
                 } catch (error) {
                     console.error('Export reports error:', error);
-                    alert(t('reports.exportFailed', 'РќРµ СѓРґР°Р»РѕСЃСЊ СЌРєСЃРїРѕСЂС‚РёСЂРѕРІР°С‚СЊ РѕС‚С‡РµС‚С‹'));
+                    alert(t('reports.exportFailed', 'Не удалось экспортировать отчеты'));
                 } finally {
                     exportBtn.disabled = false;
-                    exportBtn.textContent = t('reports.exportData', 'Р­РєСЃРїРѕСЂС‚ РґР°РЅРЅС‹С…');
+                    exportBtn.textContent = t('reports.exportData', 'Экспорт данных');
                 }
             });
         }
@@ -1052,12 +1052,12 @@
             state.notificationsFilters.from = notificationsFrom?.value || '';
             state.notificationsFilters.to = notificationsTo?.value || '';
             try {
-                setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</p>`);
+                setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.loading', 'Загрузка...')}</p>`);
                 await loadNotificationLogs(1);
                 renderNotificationLogs();
             } catch (error) {
                 console.error('Notification logs filter error:', error);
-                setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.failedLoadNotificationLogs', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р»РѕРіРё СѓРІРµРґРѕРјР»РµРЅРёР№.')}</p>`);
+                setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.failedLoadNotificationLogs', 'Не удалось загрузить логи уведомлений.')}</p>`);
             }
         };
 
@@ -1077,14 +1077,14 @@
     }
 
     async function refreshView() {
-        setHtml('reportsSummaryGrid', `<div class="report-kpi"><span>${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</span><strong>-</strong></div>`);
-        setHtml('reportsTopTable', `<p class="text-secondary">${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</p>`);
-        setHtml('reportsActivityList', `<p class="text-secondary">${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</p>`);
-        setHtml('reportsCompareTable', `<p class="text-secondary">${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</p>`);
-        setHtml('reportsInsights', `<p class="text-secondary">${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</p>`);
-        setHtml('reportsRiskSummary', `<p class="text-secondary">${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</p>`);
-        setHtml('reportsRiskTable', `<p class="text-secondary">${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</p>`);
-        setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</p>`);
+        setHtml('reportsSummaryGrid', `<div class="report-kpi"><span>${t('reports.loading', 'Загрузка...')}</span><strong>-</strong></div>`);
+        setHtml('reportsTopTable', `<p class="text-secondary">${t('reports.loading', 'Загрузка...')}</p>`);
+        setHtml('reportsActivityList', `<p class="text-secondary">${t('reports.loading', 'Загрузка...')}</p>`);
+        setHtml('reportsCompareTable', `<p class="text-secondary">${t('reports.loading', 'Загрузка...')}</p>`);
+        setHtml('reportsInsights', `<p class="text-secondary">${t('reports.loading', 'Загрузка...')}</p>`);
+        setHtml('reportsRiskSummary', `<p class="text-secondary">${t('reports.loading', 'Загрузка...')}</p>`);
+        setHtml('reportsRiskTable', `<p class="text-secondary">${t('reports.loading', 'Загрузка...')}</p>`);
+        setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.loading', 'Загрузка...')}</p>`);
         const empty = document.getElementById('reportsTrendsEmpty');
         if (empty) empty.style.display = 'none';
 
@@ -1100,10 +1100,10 @@
             renderNotificationLogs();
         } catch (error) {
             console.error('Reports load error:', error);
-            setHtml('reportsInsights', `<p class="text-secondary">${t('reports.failedLoad', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚С‡РµС‚РѕРІ.')}</p>`);
-            setHtml('reportsRiskSummary', `<p class="text-secondary">${t('reports.failedLoadRisk', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРёСЃРє-РґР°С€Р±РѕСЂРґ.')}</p>`);
+            setHtml('reportsInsights', `<p class="text-secondary">${t('reports.failedLoad', 'Не удалось загрузить данные отчетов.')}</p>`);
+            setHtml('reportsRiskSummary', `<p class="text-secondary">${t('reports.failedLoadRisk', 'Не удалось загрузить риск-дашборд.')}</p>`);
             setHtml('reportsRiskTable', '');
-            setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.failedLoadNotificationLogs', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р»РѕРіРё СѓРІРµРґРѕРјР»РµРЅРёР№.')}</p>`);
+            setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.failedLoadNotificationLogs', 'Не удалось загрузить логи уведомлений.')}</p>`);
         }
     }
 
@@ -1181,7 +1181,7 @@
                 renderNotificationLogs();
             } catch (error) {
                 console.error('Notification page switch error:', error);
-                setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.failedLoadNotificationLogs', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р»РѕРіРё СѓРІРµРґРѕРјР»РµРЅРёР№.')}</p>`);
+                setHtml('reportsNotificationsTable', `<p class="text-secondary">${t('reports.failedLoadNotificationLogs', 'Не удалось загрузить логи уведомлений.')}</p>`);
             }
         }
     };

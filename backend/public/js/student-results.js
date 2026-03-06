@@ -72,7 +72,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(t('results.failedLoad', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹'));
+                    throw new Error(t('results.failedLoad', 'Не удалось загрузить результаты'));
                 }
 
                 const data = await response.json();
@@ -83,7 +83,7 @@
                 this.renderTable();
             } catch (error) {
                 console.error('Load student results error:', error);
-                this.renderError(error.message || t('results.unableLoad', 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹.'));
+                this.renderError(error.message || t('results.unableLoad', 'Не удалось загрузить результаты.'));
             }
         },
 
@@ -95,7 +95,7 @@
                 stats.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-label">${t('common.loading', 'Р—Р°РіСЂСѓР·РєР°...')}</div>
+                            <div class="stat-label">${t('common.loading', 'Загрузка...')}</div>
                             <div class="stat-value">--</div>
                         </div>
                     </div>
@@ -103,7 +103,7 @@
             }
 
             if (table) {
-                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.loadingResults', 'Р—Р°РіСЂСѓР·РєР° СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ...')}</p>`;
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.loadingResults', 'Загрузка результатов...')}</p>`;
             }
         },
 
@@ -135,25 +135,25 @@
             stats.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('results.testsCompleted', 'РўРµСЃС‚РѕРІ Р·Р°РІРµСЂС€РµРЅРѕ')}</div>
+                        <div class="stat-label">${t('results.testsCompleted', 'Тестов завершено')}</div>
                         <div class="stat-value">${completed}</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('results.averageScore', 'РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»')}</div>
+                        <div class="stat-label">${t('results.averageScore', 'Средний балл')}</div>
                         <div class="stat-value">${avg}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('results.passRate', 'РџСЂРѕС†РµРЅС‚ СЃРґР°С‡Рё')}</div>
+                        <div class="stat-label">${t('results.passRate', 'Процент сдачи')}</div>
                         <div class="stat-value">${passRate}%</div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">${t('results.totalAttempts', 'Р’СЃРµРіРѕ РїРѕРїС‹С‚РѕРє')}</div>
+                        <div class="stat-label">${t('results.totalAttempts', 'Всего попыток')}</div>
                         <div class="stat-value">${total}</div>
                     </div>
                 </div>
@@ -165,7 +165,7 @@
             if (!table) return;
 
             if (this.filteredResults.length === 0) {
-                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.noCompletedTests', 'РџРѕРєР° РЅРµС‚ Р·Р°РІРµСЂС€РµРЅРЅС‹С… С‚РµСЃС‚РѕРІ.')}</p>`;
+                table.innerHTML = `<p style="color: var(--text-secondary);">${t('results.noCompletedTests', 'Пока нет завершенных тестов.')}</p>`;
                 return;
             }
 
@@ -198,7 +198,7 @@
                 const percentage = parseFloat(result.percentage || 0);
                 const passed = this.isPassed(result);
                 const statusClass = passed ? 'status-active' : 'status-warning';
-                const statusText = passed ? t('results.passed', 'РЎРґР°РЅРѕ') : t('results.failed', 'РќРµ СЃРґР°РЅРѕ');
+                const statusText = passed ? t('results.passed', 'Сдано') : t('results.failed', 'Не сдано');
                 const attemptId = String(result.attempt_id || '');
                 const testTitle = this.escapeHtml(result.test_title || '-');
                 const className = this.escapeHtml(result.class_name || '-');
@@ -238,7 +238,7 @@
                             ${statusBadgeHtml}
                         </td>
                         <td data-label="${this.escapeHtml(colActions)}" class="sr-d">
-                            <button class="btn-icon js-view-attempt" data-attempt-id="${this.escapeHtml(attemptId)}" title="${t('results.viewDetails', 'РџСЂРѕСЃРјРѕС‚СЂ РґРµС‚Р°Р»РµР№')}">
+                            <button class="btn-icon js-view-attempt" data-attempt-id="${this.escapeHtml(attemptId)}" title="${t('results.viewDetails', 'Просмотр деталей')}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
