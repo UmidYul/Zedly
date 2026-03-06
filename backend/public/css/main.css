@@ -305,9 +305,9 @@ body {
 
     /* Text Colors - Light Theme */
     --text-primary: #1E293B;
-    --text-secondary: #475569;
-    --text-tertiary: #64748B;
-    --text-muted: #94A3B8;
+    --text-secondary: #334155;
+    --text-tertiary: #475569;
+    --text-muted: #64748B;
 
     /* Borders - Light Theme */
     --border: rgba(15, 23, 42, 0.12);

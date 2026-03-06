@@ -1110,3 +1110,27 @@
     padding: var(--spacing-sm) var(--spacing-lg);
     font-size: 0.875rem;
 }
+
+[data-theme="light"] .assignment-remove-btn,
+[data-theme="light"] .btn-remove {
+    border-color: rgba(220, 38, 38, 0.3);
+    background: rgba(239, 68, 68, 0.14);
+    color: #dc2626;
+}
+
+[data-theme="light"] .assignment-remove-btn:hover,
+[data-theme="light"] .btn-remove:hover {
+    border-color: #dc2626;
+    background: #dc2626;
+    color: #ffffff;
+}
+
+[data-theme="light"] .assignment-row select.form-input {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .assignment-row select.form-input option {
+    background: #ffffff;
+    color: var(--text-primary);
+}
