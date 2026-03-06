@@ -2268,11 +2268,11 @@
     });
 
     Object.assign(translations.ru, {
-        'takeTest.fullscreenRequiredTitle': 'РўСЂРµР±СѓРµС‚СЃСЏ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј',
-        'takeTest.fullscreenRequiredBody': 'Р”Р»СЏ СЌС‚РѕРіРѕ С‚РµСЃС‚Р° РЅРµРѕР±С…РѕРґРёРј РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј.',
-        'takeTest.enterFullscreen': 'Р’РѕР№С‚Рё РІ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј',
-        'takeTest.enableFullscreenNotice': 'РџРѕР¶Р°Р»СѓР№СЃС‚Р°, РІРєР»СЋС‡РёС‚Рµ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј, С‡С‚РѕР±С‹ РїСЂРѕРґРѕР»Р¶РёС‚СЊ С‚РµСЃС‚.',
-        'takeTest.returnToFullscreenNotice': 'РџРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј РѕР±СЏР·Р°С‚РµР»РµРЅ. Р’РµСЂРЅРёС‚РµСЃСЊ РІ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј.'
+        'takeTest.fullscreenRequiredTitle': 'Требуется полноэкранный режим',
+        'takeTest.fullscreenRequiredBody': 'Для этого теста необходим полноэкранный режим.',
+        'takeTest.enterFullscreen': 'Войти в полноэкранный режим',
+        'takeTest.enableFullscreenNotice': 'Пожалуйста, включите полноэкранный режим, чтобы продолжить тест.',
+        'takeTest.returnToFullscreenNotice': 'Полноэкранный режим обязателен. Вернитесь в полноэкранный режим.'
     });
 
     Object.assign(translations.uz, {
@@ -2284,10 +2284,10 @@
     });
 
     Object.assign(translations.ru, {
-        'takeTest.metaQuestions': 'РІРѕРїСЂРѕСЃРѕРІ',
-        'takeTest.metaMinutes': 'РјРёРЅСѓС‚',
-        'takeTest.next': 'Р’РїРµСЂРµРґ',
-        'takeTest.finish': 'Р—Р°РІРµСЂС€РёС‚СЊ'
+        'takeTest.metaQuestions': 'вопросов',
+        'takeTest.metaMinutes': 'минут',
+        'takeTest.next': 'Вперед',
+        'takeTest.finish': 'Завершить'
     });
 
     Object.assign(translations.uz, {
