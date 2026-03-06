@@ -308,6 +308,10 @@ body {
     --text-secondary: #334155;
     --text-tertiary: #475569;
     --text-muted: #64748B;
+    --text-primary: #1E293B;
+    --text-secondary: #334155;
+    --text-tertiary: #475569;
+    --text-muted: #64748B;
 
     /* Borders - Light Theme */
     --border: rgba(15, 23, 42, 0.12);
