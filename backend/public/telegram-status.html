@@ -1,12 +1,27 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 
 <head>
     <meta charset="UTF-8">
-        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+
+    <title>🤖 Статус Telegram-бота | ZEDLY</title>
+    <meta name="description" content="📲 Контроль подключения и состояния Telegram-бота для школьных уведомлений.">
+    <meta name="keywords" content="telegram бот, уведомления школы, интеграция telegram, ZEDLY">
+    <link rel="canonical" href="https://zedly.uz/telegram-status.html">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="🤖 Статус Telegram-бота | ZEDLY">
+    <meta property="og:description" content="📲 Контроль подключения и состояния Telegram-бота для школьных уведомлений.">
+    <meta property="og:url" content="https://zedly.uz/telegram-status.html">
+    <meta property="og:image" content="https://zedly.uz/images/zedly_logo_bg.png">
+    <meta property="og:site_name" content="ZEDLY">
+    <meta property="og:locale" content="ru_RU">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="🤖 Статус Telegram-бота | ZEDLY">
+    <meta name="twitter:description" content="📲 Контроль подключения и состояния Telegram-бота для школьных уведомлений.">
+    <meta name="twitter:image" content="https://zedly.uz/images/zedly_logo_bg.png">
+    <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title>Telegram Bot - ZEDLY</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <style>
@@ -240,17 +255,17 @@
 
 <body>
     <div class="telegram-container">
-        <h1>🤖 Telegram Bot Status</h1>
+        <h1>рџ¤– Telegram Bot Status</h1>
 
         <!-- Status Card -->
         <div class="status-card">
             <div class="status-header">
                 <div class="status-indicator">
                     <span class="status-dot checking" id="statusDot"></span>
-                    <span id="statusText">Проверка подключения...</span>
+                    <span id="statusText">РџСЂРѕРІРµСЂРєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ...</span>
                 </div>
                 <button class="refresh-btn" onclick="checkStatus()">
-                    🔄 Обновить
+                    рџ”„ РћР±РЅРѕРІРёС‚СЊ
                 </button>
             </div>
 
@@ -258,7 +273,7 @@
 
             <!-- Bot Info -->
             <div class="bot-info" id="botInfo" style="display: none;">
-                <h3>Информация о боте</h3>
+                <h3>РРЅС„РѕСЂРјР°С†РёСЏ Рѕ Р±РѕС‚Рµ</h3>
                 <div class="bot-info-row">
                     <span class="bot-info-label">Username:</span>
                     <span class="bot-info-value" id="botUsername">-</span>
@@ -279,14 +294,14 @@
 
             <!-- Configuration Status -->
             <div class="config-section">
-                <h3>Конфигурация</h3>
+                <h3>РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ</h3>
                 <div class="config-item">
                     <span class="config-icon" id="tokenIcon">?</span>
-                    <span id="tokenStatus">Проверка токена...</span>
+                    <span id="tokenStatus">РџСЂРѕРІРµСЂРєР° С‚РѕРєРµРЅР°...</span>
                 </div>
                 <div class="config-item">
                     <span class="config-icon" id="botIcon">?</span>
-                    <span id="botStatus">Проверка бота...</span>
+                    <span id="botStatus">РџСЂРѕРІРµСЂРєР° Р±РѕС‚Р°...</span>
                 </div>
             </div>
         </div>
@@ -294,17 +309,17 @@
         <!-- Test Message Section -->
         <div class="status-card">
             <div class="test-section">
-                <h3>Отправить тестовое сообщение</h3>
+                <h3>РћС‚РїСЂР°РІРёС‚СЊ С‚РµСЃС‚РѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ</h3>
                 <p class="help-text">
-                    Введите ваш Telegram Chat ID для получения тестового сообщения.
-                    Чтобы узнать свой Chat ID, напишите боту /start
+                    Р’РІРµРґРёС‚Рµ РІР°С€ Telegram Chat ID РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ С‚РµСЃС‚РѕРІРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ.
+                    Р§С‚РѕР±С‹ СѓР·РЅР°С‚СЊ СЃРІРѕР№ Chat ID, РЅР°РїРёС€РёС‚Рµ Р±РѕС‚Сѓ /start
                 </p>
 
                 <div class="test-form">
                     <input type="text" class="test-input" id="chatIdInput"
-                        placeholder="Введите Chat ID (например: 123456789)">
+                        placeholder="Р’РІРµРґРёС‚Рµ Chat ID (РЅР°РїСЂРёРјРµСЂ: 123456789)">
                     <button class="btn btn-primary" onclick="sendTestMessage()" id="sendBtn">
-                        📤 Отправить
+                        рџ“¤ РћС‚РїСЂР°РІРёС‚СЊ
                     </button>
                 </div>
 
@@ -314,7 +329,7 @@
 
         <div style="text-align: center; margin-top: 20px;">
             <button class="btn btn-success" onclick="window.location.href='/dashboard'">
-                ← Назад к панели
+                в†ђ РќР°Р·Р°Рґ Рє РїР°РЅРµР»Рё
             </button>
         </div>
     </div>
@@ -335,7 +350,7 @@
 
             // Set checking state
             statusDot.className = 'status-dot checking';
-            statusText.textContent = 'Проверка подключения...';
+            statusText.textContent = 'РџСЂРѕРІРµСЂРєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ...';
             statusMessage.innerHTML = '';
 
             try {
@@ -354,8 +369,8 @@
                 // Update status indicator
                 if (statusData.connected) {
                     statusDot.className = 'status-dot connected';
-                    statusText.textContent = 'Подключено';
-                    statusMessage.innerHTML = `<div class="alert alert-success">✅ ${statusData.message}</div>`;
+                    statusText.textContent = 'РџРѕРґРєР»СЋС‡РµРЅРѕ';
+                    statusMessage.innerHTML = `<div class="alert alert-success">вњ… ${statusData.message}</div>`;
 
                     // Show bot info
                     if (statusData.details && statusData.details.info) {
@@ -364,16 +379,16 @@
                         document.getElementById('botName').textContent = statusData.details.info.first_name;
                         document.getElementById('botId').textContent = statusData.details.info.id;
                         document.getElementById('botCanJoinGroups').textContent =
-                            statusData.details.info.can_join_groups ? 'Да' : 'Нет';
+                            statusData.details.info.can_join_groups ? 'Р”Р°' : 'РќРµС‚';
                     }
                 } else {
                     statusDot.className = 'status-dot disconnected';
-                    statusText.textContent = 'Не подключено';
+                    statusText.textContent = 'РќРµ РїРѕРґРєР»СЋС‡РµРЅРѕ';
 
                     if (!statusData.configured) {
-                        statusMessage.innerHTML = `<div class="alert alert-warning">⚠️ ${statusData.message}</div>`;
+                        statusMessage.innerHTML = `<div class="alert alert-warning">вљ пёЏ ${statusData.message}</div>`;
                     } else {
-                        statusMessage.innerHTML = `<div class="alert alert-error">❌ ${statusData.message}${statusData.error ? '<br>' + statusData.error : ''}</div>`;
+                        statusMessage.innerHTML = `<div class="alert alert-error">вќЊ ${statusData.message}${statusData.error ? '<br>' + statusData.error : ''}</div>`;
                     }
 
                     document.getElementById('botInfo').style.display = 'none';
@@ -385,8 +400,8 @@
             } catch (error) {
                 console.error('Status check error:', error);
                 statusDot.className = 'status-dot disconnected';
-                statusText.textContent = 'Ошибка проверки';
-                statusMessage.innerHTML = `<div class="alert alert-error">❌ Не удалось проверить статус: ${error.message}</div>`;
+                statusText.textContent = 'РћС€РёР±РєР° РїСЂРѕРІРµСЂРєРё';
+                statusMessage.innerHTML = `<div class="alert alert-error">вќЊ РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ СЃС‚Р°С‚СѓСЃ: ${error.message}</div>`;
 
                 updateConfigStatus({ token: false, bot: false });
             }
@@ -400,22 +415,22 @@
 
             if (details && details.token) {
                 tokenIcon.className = 'config-icon ok';
-                tokenIcon.textContent = '✓';
-                tokenStatus.textContent = 'TELEGRAM_BOT_TOKEN настроен';
+                tokenIcon.textContent = 'вњ“';
+                tokenStatus.textContent = 'TELEGRAM_BOT_TOKEN РЅР°СЃС‚СЂРѕРµРЅ';
             } else {
                 tokenIcon.className = 'config-icon error';
-                tokenIcon.textContent = '✗';
-                tokenStatus.textContent = 'TELEGRAM_BOT_TOKEN не найден в .env';
+                tokenIcon.textContent = 'вњ—';
+                tokenStatus.textContent = 'TELEGRAM_BOT_TOKEN РЅРµ РЅР°Р№РґРµРЅ РІ .env';
             }
 
             if (details && details.bot) {
                 botIcon.className = 'config-icon ok';
-                botIcon.textContent = '✓';
-                botStatus.textContent = 'Бот инициализирован и отвечает';
+                botIcon.textContent = 'вњ“';
+                botStatus.textContent = 'Р‘РѕС‚ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ Рё РѕС‚РІРµС‡Р°РµС‚';
             } else {
                 botIcon.className = 'config-icon error';
-                botIcon.textContent = '✗';
-                botStatus.textContent = 'Бот не инициализирован или не отвечает';
+                botIcon.textContent = 'вњ—';
+                botStatus.textContent = 'Р‘РѕС‚ РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ РёР»Рё РЅРµ РѕС‚РІРµС‡Р°РµС‚';
             }
         }
 
@@ -427,18 +442,18 @@
             const chatId = chatIdInput.value.trim();
 
             if (!chatId) {
-                testResult.innerHTML = '<div class="alert alert-warning">⚠️ Введите Chat ID</div>';
+                testResult.innerHTML = '<div class="alert alert-warning">вљ пёЏ Р’РІРµРґРёС‚Рµ Chat ID</div>';
                 return;
             }
 
             if (!statusData || !statusData.connected) {
-                testResult.innerHTML = '<div class="alert alert-error">❌ Бот не подключен. Сначала настройте подключение.</div>';
+                testResult.innerHTML = '<div class="alert alert-error">вќЊ Р‘РѕС‚ РЅРµ РїРѕРґРєР»СЋС‡РµРЅ. РЎРЅР°С‡Р°Р»Р° РЅР°СЃС‚СЂРѕР№С‚Рµ РїРѕРґРєР»СЋС‡РµРЅРёРµ.</div>';
                 return;
             }
 
             // Disable button
             sendBtn.disabled = true;
-            sendBtn.textContent = '⏳ Отправка...';
+            sendBtn.textContent = 'вЏі РћС‚РїСЂР°РІРєР°...';
             testResult.innerHTML = '';
 
             try {
@@ -454,19 +469,19 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    testResult.innerHTML = '<div class="alert alert-success">✅ Тестовое сообщение отправлено! Проверьте ваш Telegram.</div>';
+                    testResult.innerHTML = '<div class="alert alert-success">вњ… РўРµСЃС‚РѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РѕС‚РїСЂР°РІР»РµРЅРѕ! РџСЂРѕРІРµСЂСЊС‚Рµ РІР°С€ Telegram.</div>';
                     chatIdInput.value = '';
                 } else {
-                    testResult.innerHTML = `<div class="alert alert-error">❌ Не удалось отправить сообщение: ${data.message || 'Неизвестная ошибка'}</div>`;
+                    testResult.innerHTML = `<div class="alert alert-error">вќЊ РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ: ${data.message || 'РќРµРёР·РІРµСЃС‚РЅР°СЏ РѕС€РёР±РєР°'}</div>`;
                 }
 
             } catch (error) {
                 console.error('Test message error:', error);
-                testResult.innerHTML = `<div class="alert alert-error">❌ Ошибка: ${error.message}</div>`;
+                testResult.innerHTML = `<div class="alert alert-error">вќЊ РћС€РёР±РєР°: ${error.message}</div>`;
             } finally {
                 // Re-enable button
                 sendBtn.disabled = false;
-                sendBtn.textContent = '📤 Отправить';
+                sendBtn.textContent = 'рџ“¤ РћС‚РїСЂР°РІРёС‚СЊ';
             }
         }
 
@@ -481,5 +496,9 @@
 </body>
 
 </html>
+
+
+
+
 
 

@@ -1,11 +1,27 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+
+    <title>🛠️ Диагностика авторизации | ZEDLY</title>
+    <meta name="description" content="⚙️ Техническая страница для проверки и диагностики авторизации в ZEDLY.">
+    <meta name="keywords" content="диагностика авторизации, auth debug, техническая страница ZEDLY">
+    <link rel="canonical" href="https://zedly.uz/debug-auth.html">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="🛠️ Диагностика авторизации | ZEDLY">
+    <meta property="og:description" content="⚙️ Техническая страница для проверки и диагностики авторизации в ZEDLY.">
+    <meta property="og:url" content="https://zedly.uz/debug-auth.html">
+    <meta property="og:image" content="https://zedly.uz/images/zedly_logo_bg.png">
+    <meta property="og:site_name" content="ZEDLY">
+    <meta property="og:locale" content="ru_RU">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="🛠️ Диагностика авторизации | ZEDLY">
+    <meta name="twitter:description" content="⚙️ Техническая страница для проверки и диагностики авторизации в ZEDLY.">
+    <meta name="twitter:image" content="https://zedly.uz/images/zedly_logo_bg.png">
     <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title>Auth Debug - ZEDLY</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -58,22 +74,22 @@
 <body>
 <div class="container">
     <h1>Auth Debug</h1>
-    <p>Проверка cookie-based авторизации (без чтения access token из localStorage).</p>
+    <p>РџСЂРѕРІРµСЂРєР° cookie-based Р°РІС‚РѕСЂРёР·Р°С†РёРё (Р±РµР· С‡С‚РµРЅРёСЏ access token РёР· localStorage).</p>
 
-    <h2>Статус</h2>
+    <h2>РЎС‚Р°С‚СѓСЃ</h2>
     <div id="status"></div>
 
-    <h2>Пользователь</h2>
+    <h2>РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ</h2>
     <div id="user"></div>
 
-    <h2>API тесты</h2>
+    <h2>API С‚РµСЃС‚С‹</h2>
     <div id="api"></div>
 
     <div class="actions">
-        <button onclick="testAuthMe()">Проверить /api/auth/me</button>
-        <button onclick="testRefresh()">Проверить /api/auth/refresh</button>
-        <button onclick="clearLocalCache()">Очистить localStorage кеш</button>
-        <button onclick="location.reload()">Обновить</button>
+        <button onclick="testAuthMe()">РџСЂРѕРІРµСЂРёС‚СЊ /api/auth/me</button>
+        <button onclick="testRefresh()">РџСЂРѕРІРµСЂРёС‚СЊ /api/auth/refresh</button>
+        <button onclick="clearLocalCache()">РћС‡РёСЃС‚РёС‚СЊ localStorage РєРµС€</button>
+        <button onclick="location.reload()">РћР±РЅРѕРІРёС‚СЊ</button>
     </div>
 </div>
 
@@ -86,9 +102,9 @@
     function renderStatus() {
         const root = document.getElementById('status');
         const rows = [
-            { ok: hasCookie('zedly_access_token'), okText: 'Access cookie найден', errText: 'Access cookie не найден' },
-            { ok: hasCookie('zedly_refresh_token'), okText: 'Refresh cookie найден', errText: 'Refresh cookie не найден' },
-            { ok: hasCookie('zedly_csrf_token'), okText: 'CSRF cookie найден', errText: 'CSRF cookie не найден' }
+            { ok: hasCookie('zedly_access_token'), okText: 'Access cookie РЅР°Р№РґРµРЅ', errText: 'Access cookie РЅРµ РЅР°Р№РґРµРЅ' },
+            { ok: hasCookie('zedly_refresh_token'), okText: 'Refresh cookie РЅР°Р№РґРµРЅ', errText: 'Refresh cookie РЅРµ РЅР°Р№РґРµРЅ' },
+            { ok: hasCookie('zedly_csrf_token'), okText: 'CSRF cookie РЅР°Р№РґРµРЅ', errText: 'CSRF cookie РЅРµ РЅР°Р№РґРµРЅ' }
         ];
 
         root.innerHTML = rows.map((row) => (
@@ -100,37 +116,37 @@
         const root = document.getElementById('user');
         const raw = localStorage.getItem('user');
         if (!raw) {
-            root.innerHTML = '<div class="status warn">localStorage.user не найден</div>';
+            root.innerHTML = '<div class="status warn">localStorage.user РЅРµ РЅР°Р№РґРµРЅ</div>';
             return;
         }
         try {
             root.innerHTML = '<pre>' + JSON.stringify(JSON.parse(raw), null, 2) + '</pre>';
         } catch (e) {
-            root.innerHTML = '<div class="status err">Невалидный JSON в localStorage.user</div>';
+            root.innerHTML = '<div class="status err">РќРµРІР°Р»РёРґРЅС‹Р№ JSON РІ localStorage.user</div>';
         }
     }
 
     async function testAuthMe() {
         const root = document.getElementById('api');
-        root.innerHTML = '<div class="status warn">Запрос /api/auth/me...</div>';
+        root.innerHTML = '<div class="status warn">Р—Р°РїСЂРѕСЃ /api/auth/me...</div>';
         try {
             const res = await fetch('/api/auth/me', { credentials: 'include' });
             const body = await res.json().catch(() => ({}));
             root.innerHTML = '<div class="status ' + (res.ok ? 'ok' : 'err') + '">/api/auth/me: ' + res.status + '</div><pre>' + JSON.stringify(body, null, 2) + '</pre>';
         } catch (e) {
-            root.innerHTML = '<div class="status err">Ошибка: ' + e.message + '</div>';
+            root.innerHTML = '<div class="status err">РћС€РёР±РєР°: ' + e.message + '</div>';
         }
     }
 
     async function testRefresh() {
         const root = document.getElementById('api');
-        root.innerHTML = '<div class="status warn">Запрос /api/auth/refresh...</div>';
+        root.innerHTML = '<div class="status warn">Р—Р°РїСЂРѕСЃ /api/auth/refresh...</div>';
         try {
             const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
             const body = await res.json().catch(() => ({}));
             root.innerHTML = '<div class="status ' + (res.ok ? 'ok' : 'err') + '">/api/auth/refresh: ' + res.status + '</div><pre>' + JSON.stringify(body, null, 2) + '</pre>';
         } catch (e) {
-            root.innerHTML = '<div class="status err">Ошибка: ' + e.message + '</div>';
+            root.innerHTML = '<div class="status err">РћС€РёР±РєР°: ' + e.message + '</div>';
         }
     }
 
@@ -142,7 +158,7 @@
         localStorage.removeItem('user');
         renderStatus();
         renderUserCache();
-        alert('Локальный кеш очищен');
+        alert('Р›РѕРєР°Р»СЊРЅС‹Р№ РєРµС€ РѕС‡РёС‰РµРЅ');
     }
 
     renderStatus();
@@ -151,5 +167,11 @@
 <script src="/js/alert-modal.js"></script>
 </body>
 </html>
+
+
+
+
+
+
 
 

@@ -1,11 +1,26 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+
+    <title>📚 История ученика | ZEDLY</title>
+    <meta name="description" content="🕒 Полная история тестов, баллов и прогресса ученика в образовательной системе ZEDLY.">
+    <meta name="keywords" content="история ученика, прогресс обучения, результаты тестов">
+    <link rel="canonical" href="https://zedly.uz/student-history.html">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="📚 История ученика | ZEDLY">
+    <meta property="og:description" content="🕒 Полная история тестов, баллов и прогресса ученика в образовательной системе ZEDLY.">
+    <meta property="og:url" content="https://zedly.uz/student-history.html">
+    <meta property="og:image" content="https://zedly.uz/images/zedly_logo_bg.png">
+    <meta property="og:site_name" content="ZEDLY">
+    <meta property="og:locale" content="ru_RU">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="📚 История ученика | ZEDLY">
+    <meta name="twitter:description" content="🕒 Полная история тестов, баллов и прогресса ученика в образовательной системе ZEDLY.">
+    <meta name="twitter:image" content="https://zedly.uz/images/zedly_logo_bg.png">
+    <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title data-i18n="studentHistory.title">Моя история - ZEDLY</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/tables.css">
@@ -29,7 +44,7 @@
         </div>
         <div class="header-right">
             <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
-                <span class="icon">🌙</span>
+                <span class="icon">рџЊ™</span>
             </button>
             <button class="lang-toggle" id="langToggle" aria-label="Toggle Language">
                 <span class="lang-text">RU</span>
@@ -52,7 +67,7 @@
                     </div>
                 </div>
                 <button class="logout-btn" id="logoutBtn" data-i18n="dashboard.logout">
-                    Выйти
+                    Р’С‹Р№С‚Рё
                 </button>
             </div>
         </div>
@@ -66,53 +81,53 @@
             <!-- Back Button -->
             <div class="back-button-container">
                 <button class="back-btn" onclick="history.back()">
-                    <span>←</span>
-                    <span data-i18n="common.back">Назад</span>
+                    <span>в†ђ</span>
+                    <span data-i18n="common.back">РќР°Р·Р°Рґ</span>
                 </button>
             </div>
 
             <!-- Page Header -->
             <div class="page-header">
-                <h1 data-i18n="studentHistory.myHistory">Моя история</h1>
-                <p data-i18n="studentHistory.subtitle">История попыток и аналитика успеваемости</p>
+                <h1 data-i18n="studentHistory.myHistory">РњРѕСЏ РёСЃС‚РѕСЂРёСЏ</h1>
+                <p data-i18n="studentHistory.subtitle">РСЃС‚РѕСЂРёСЏ РїРѕРїС‹С‚РѕРє Рё Р°РЅР°Р»РёС‚РёРєР° СѓСЃРїРµРІР°РµРјРѕСЃС‚Рё</p>
             </div>
 
             <!-- Stats Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-icon">📝</div>
+                    <div class="stat-icon">рџ“ќ</div>
                     <div class="stat-content">
                         <div class="stat-value" id="totalAttempts">0</div>
-                        <div class="stat-label" data-i18n="studentHistory.totalAttempts">Всего попыток</div>
+                        <div class="stat-label" data-i18n="studentHistory.totalAttempts">Р’СЃРµРіРѕ РїРѕРїС‹С‚РѕРє</div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon">✅</div>
+                    <div class="stat-icon">вњ…</div>
                     <div class="stat-content">
                         <div class="stat-value" id="completedTests">0</div>
-                        <div class="stat-label" data-i18n="studentHistory.completedTests">Завершено тестов</div>
+                        <div class="stat-label" data-i18n="studentHistory.completedTests">Р—Р°РІРµСЂС€РµРЅРѕ С‚РµСЃС‚РѕРІ</div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon">📊</div>
+                    <div class="stat-icon">рџ“Љ</div>
                     <div class="stat-content">
                         <div class="stat-value" id="avgScore">0%</div>
-                        <div class="stat-label" data-i18n="studentHistory.avgScore">Средний балл</div>
+                        <div class="stat-label" data-i18n="studentHistory.avgScore">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon">🏆</div>
+                    <div class="stat-icon">рџЏ†</div>
                     <div class="stat-content">
                         <div class="stat-value" id="classRank">-</div>
-                        <div class="stat-label" data-i18n="studentHistory.classRank">Место в классе</div>
+                        <div class="stat-label" data-i18n="studentHistory.classRank">РњРµСЃС‚Рѕ РІ РєР»Р°СЃСЃРµ</div>
                     </div>
                 </div>
             </div>
 
             <!-- Performance Chart -->
             <div class="analytics-card">
-                <h2 class="card-title" data-i18n="studentHistory.performanceChart">График успеваемости</h2>
-                <p class="card-subtitle" data-i18n="studentHistory.performanceDesc">Средний балл по предметам</p>
+                <h2 class="card-title" data-i18n="studentHistory.performanceChart">Р“СЂР°С„РёРє СѓСЃРїРµРІР°РµРјРѕСЃС‚Рё</h2>
+                <p class="card-subtitle" data-i18n="studentHistory.performanceDesc">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р» РїРѕ РїСЂРµРґРјРµС‚Р°Рј</p>
                 <div class="chart-container">
                     <canvas id="performanceChart"></canvas>
                 </div>
@@ -120,31 +135,31 @@
 
             <!-- History Table -->
             <div class="analytics-card">
-                <h2 class="card-title" data-i18n="studentHistory.historyTitle">История попыток</h2>
+                <h2 class="card-title" data-i18n="studentHistory.historyTitle">РСЃС‚РѕСЂРёСЏ РїРѕРїС‹С‚РѕРє</h2>
 
                 <!-- Filters -->
                 <div class="filters-section">
                     <div class="filter-group">
-                        <label data-i18n="studentHistory.filterSubject">Предмет:</label>
+                        <label data-i18n="studentHistory.filterSubject">РџСЂРµРґРјРµС‚:</label>
                         <select id="subjectFilter" class="form-select">
-                            <option value="" data-i18n="studentHistory.allSubjects">Все предметы</option>
+                            <option value="" data-i18n="studentHistory.allSubjects">Р’СЃРµ РїСЂРµРґРјРµС‚С‹</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label data-i18n="studentHistory.filterStatus">Статус:</label>
+                        <label data-i18n="studentHistory.filterStatus">РЎС‚Р°С‚СѓСЃ:</label>
                         <select id="statusFilter" class="form-select">
-                            <option value="" data-i18n="studentHistory.allStatuses">Все статусы</option>
-                            <option value="completed" data-i18n="studentHistory.completed">Завершено</option>
-                            <option value="in_progress" data-i18n="studentHistory.inProgress">В процессе</option>
+                            <option value="" data-i18n="studentHistory.allStatuses">Р’СЃРµ СЃС‚Р°С‚СѓСЃС‹</option>
+                            <option value="completed" data-i18n="studentHistory.completed">Р—Р°РІРµСЂС€РµРЅРѕ</option>
+                            <option value="in_progress" data-i18n="studentHistory.inProgress">Р’ РїСЂРѕС†РµСЃСЃРµ</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label data-i18n="studentHistory.sortBy">Сортировка:</label>
+                        <label data-i18n="studentHistory.sortBy">РЎРѕСЂС‚РёСЂРѕРІРєР°:</label>
                         <select id="sortBy" class="form-select">
-                            <option value="date_desc" data-i18n="studentHistory.dateDesc">Сначала новые</option>
-                            <option value="date_asc" data-i18n="studentHistory.dateAsc">Сначала старые</option>
-                            <option value="score_desc" data-i18n="studentHistory.scoreDesc">По баллу (убыв.)</option>
-                            <option value="score_asc" data-i18n="studentHistory.scoreAsc">По баллу (возр.)</option>
+                            <option value="date_desc" data-i18n="studentHistory.dateDesc">РЎРЅР°С‡Р°Р»Р° РЅРѕРІС‹Рµ</option>
+                            <option value="date_asc" data-i18n="studentHistory.dateAsc">РЎРЅР°С‡Р°Р»Р° СЃС‚Р°СЂС‹Рµ</option>
+                            <option value="score_desc" data-i18n="studentHistory.scoreDesc">РџРѕ Р±Р°Р»Р»Сѓ (СѓР±С‹РІ.)</option>
+                            <option value="score_asc" data-i18n="studentHistory.scoreAsc">РџРѕ Р±Р°Р»Р»Сѓ (РІРѕР·СЂ.)</option>
                         </select>
                     </div>
                 </div>
@@ -154,19 +169,19 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th data-i18n="studentHistory.testName">Название теста</th>
-                                <th data-i18n="studentHistory.subject">Предмет</th>
-                                <th data-i18n="studentHistory.date">Дата</th>
-                                <th data-i18n="studentHistory.score">Балл</th>
-                                <th data-i18n="studentHistory.status">Статус</th>
-                                <th data-i18n="studentHistory.actions">Действия</th>
+                                <th data-i18n="studentHistory.testName">РќР°Р·РІР°РЅРёРµ С‚РµСЃС‚Р°</th>
+                                <th data-i18n="studentHistory.subject">РџСЂРµРґРјРµС‚</th>
+                                <th data-i18n="studentHistory.date">Р”Р°С‚Р°</th>
+                                <th data-i18n="studentHistory.score">Р‘Р°Р»Р»</th>
+                                <th data-i18n="studentHistory.status">РЎС‚Р°С‚СѓСЃ</th>
+                                <th data-i18n="studentHistory.actions">Р”РµР№СЃС‚РІРёСЏ</th>
                             </tr>
                         </thead>
                         <tbody id="historyTableBody">
                             <tr>
                                 <td colspan="6" class="text-center">
                                     <div class="loading-spinner"></div>
-                                    <p data-i18n="common.loading">Загрузка...</p>
+                                    <p data-i18n="common.loading">Р—Р°РіСЂСѓР·РєР°...</p>
                                 </td>
                             </tr>
                         </tbody>
@@ -190,5 +205,9 @@
     <script src="/js/alert-modal.js"></script>
 </body>
 </html>
+
+
+
+
 
 

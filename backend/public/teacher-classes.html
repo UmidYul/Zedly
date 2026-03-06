@@ -1,11 +1,26 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-        <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
+
+    <title>👩‍🏫 Классы учителя | ZEDLY</title>
+    <meta name="description" content="🏫 Управляйте классами и отслеживайте учебный прогресс учеников в одном месте.">
+    <meta name="keywords" content="классы учителя, управление классами, аналитика учеников, ZEDLY">
+    <link rel="canonical" href="https://zedly.uz/teacher-classes.html">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="👩‍🏫 Классы учителя | ZEDLY">
+    <meta property="og:description" content="🏫 Управляйте классами и отслеживайте учебный прогресс учеников в одном месте.">
+    <meta property="og:url" content="https://zedly.uz/teacher-classes.html">
+    <meta property="og:image" content="https://zedly.uz/images/zedly_logo_bg.png">
+    <meta property="og:site_name" content="ZEDLY">
+    <meta property="og:locale" content="ru_RU">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="👩‍🏫 Классы учителя | ZEDLY">
+    <meta name="twitter:description" content="🏫 Управляйте классами и отслеживайте учебный прогресс учеников в одном месте.">
+    <meta name="twitter:image" content="https://zedly.uz/images/zedly_logo_bg.png">
+    <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title data-i18n="teacherAnalytics.title">Мои классы - ZEDLY</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/tables.css">
@@ -29,7 +44,7 @@
         </div>
         <div class="header-right">
             <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
-                <span class="icon">🌙</span>
+                <span class="icon">рџЊ™</span>
             </button>
             <button class="lang-toggle" id="langToggle" aria-label="Toggle Language">
                 <span class="lang-text">RU</span>
@@ -52,7 +67,7 @@
                     </div>
                 </div>
                 <button class="logout-btn" id="logoutBtn" data-i18n="dashboard.logout">
-                    Выйти
+                    Р’С‹Р№С‚Рё
                 </button>
             </div>
         </div>
@@ -66,37 +81,37 @@
             <!-- Back Button -->
             <div class="back-button-container">
                 <button class="back-btn" onclick="history.back()">
-                    <span>←</span>
-                    <span data-i18n="common.back">Назад</span>
+                    <span>в†ђ</span>
+                    <span data-i18n="common.back">РќР°Р·Р°Рґ</span>
                 </button>
             </div>
 
             <!-- Page Header -->
             <div class="page-header">
-                <h1 data-i18n="teacherAnalytics.myClasses">Мои классы</h1>
-                <p data-i18n="teacherAnalytics.subtitle">Подробная аналитика по классам и ученикам</p>
+                <h1 data-i18n="teacherAnalytics.myClasses">РњРѕРё РєР»Р°СЃСЃС‹</h1>
+                <p data-i18n="teacherAnalytics.subtitle">РџРѕРґСЂРѕР±РЅР°СЏ Р°РЅР°Р»РёС‚РёРєР° РїРѕ РєР»Р°СЃСЃР°Рј Рё СѓС‡РµРЅРёРєР°Рј</p>
             </div>
 
             <!-- Class Selector & Subject Filter -->
             <div class="filters-section">
                 <div class="filter-group">
-                    <label data-i18n="teacherAnalytics.selectClass">Выберите класс:</label>
+                    <label data-i18n="teacherAnalytics.selectClass">Р’С‹Р±РµСЂРёС‚Рµ РєР»Р°СЃСЃ:</label>
                     <select id="classFilter" class="form-select">
-                        <option value="" data-i18n="teacherAnalytics.allClasses">Все классы</option>
+                        <option value="" data-i18n="teacherAnalytics.allClasses">Р’СЃРµ РєР»Р°СЃСЃС‹</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label data-i18n="teacherAnalytics.selectSubject">Выберите предмет:</label>
+                    <label data-i18n="teacherAnalytics.selectSubject">Р’С‹Р±РµСЂРёС‚Рµ РїСЂРµРґРјРµС‚:</label>
                     <select id="subjectFilter" class="form-select">
-                        <option value="" data-i18n="teacherAnalytics.allSubjects">Все предметы</option>
+                        <option value="" data-i18n="teacherAnalytics.allSubjects">Р’СЃРµ РїСЂРµРґРјРµС‚С‹</option>
                     </select>
                 </div>
             </div>
 
             <!-- Overall Class Performance Chart -->
             <div class="analytics-card">
-                <h2 class="card-title" data-i18n="teacherAnalytics.overallPerformance">Общая успеваемость класса</h2>
-                <p class="card-subtitle" data-i18n="teacherAnalytics.performanceDesc">Средний балл по предметам</p>
+                <h2 class="card-title" data-i18n="teacherAnalytics.overallPerformance">РћР±С‰Р°СЏ СѓСЃРїРµРІР°РµРјРѕСЃС‚СЊ РєР»Р°СЃСЃР°</h2>
+                <p class="card-subtitle" data-i18n="teacherAnalytics.performanceDesc">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р» РїРѕ РїСЂРµРґРјРµС‚Р°Рј</p>
                 <div class="chart-container">
                     <canvas id="classPerformanceChart"></canvas>
                 </div>
@@ -104,8 +119,8 @@
 
             <!-- Performance by Topics/Modules -->
             <div class="analytics-card">
-                <h2 class="card-title" data-i18n="teacherAnalytics.performanceByTopics">Успеваемость по темам</h2>
-                <p class="card-subtitle" data-i18n="teacherAnalytics.topicsDesc">Средний балл по темам выбранного предмета</p>
+                <h2 class="card-title" data-i18n="teacherAnalytics.performanceByTopics">РЈСЃРїРµРІР°РµРјРѕСЃС‚СЊ РїРѕ С‚РµРјР°Рј</h2>
+                <p class="card-subtitle" data-i18n="teacherAnalytics.topicsDesc">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р» РїРѕ С‚РµРјР°Рј РІС‹Р±СЂР°РЅРЅРѕРіРѕ РїСЂРµРґРјРµС‚Р°</p>
                 <div class="chart-container">
                     <canvas id="topicsPerformanceChart"></canvas>
                 </div>
@@ -113,7 +128,7 @@
 
             <!-- Students Table -->
             <div class="analytics-card">
-                <h2 class="card-title" data-i18n="teacherAnalytics.studentsList">Список учеников</h2>
+                <h2 class="card-title" data-i18n="teacherAnalytics.studentsList">РЎРїРёСЃРѕРє СѓС‡РµРЅРёРєРѕРІ</h2>
                 
                 <!-- Search -->
                 <div class="table-controls">
@@ -121,11 +136,11 @@
                         type="text"
                         id="studentSearch"
                         class="search-input"
-                        placeholder="Поиск учеников..."
+                        placeholder="РџРѕРёСЃРє СѓС‡РµРЅРёРєРѕРІ..."
                         data-i18n-placeholder="teacherAnalytics.searchStudents"
                     />
                     <div class="table-info">
-                        <span data-i18n="teacherAnalytics.totalStudents">Всего учеников:</span>
+                        <span data-i18n="teacherAnalytics.totalStudents">Р’СЃРµРіРѕ СѓС‡РµРЅРёРєРѕРІ:</span>
                         <strong id="totalStudents">0</strong>
                     </div>
                 </div>
@@ -135,12 +150,12 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th data-i18n="teacherAnalytics.rank">Место</th>
-                                <th data-i18n="teacherAnalytics.studentName">Имя ученика</th>
-                                <th data-i18n="teacherAnalytics.login">Логин</th>
-                                <th data-i18n="teacherAnalytics.avgScore">Средний балл</th>
-                                <th data-i18n="teacherAnalytics.testsCompleted">Тестов пройдено</th>
-                                <th data-i18n="teacherAnalytics.actions">Действия</th>
+                                <th data-i18n="teacherAnalytics.rank">РњРµСЃС‚Рѕ</th>
+                                <th data-i18n="teacherAnalytics.studentName">РРјСЏ СѓС‡РµРЅРёРєР°</th>
+                                <th data-i18n="teacherAnalytics.login">Р›РѕРіРёРЅ</th>
+                                <th data-i18n="teacherAnalytics.avgScore">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</th>
+                                <th data-i18n="teacherAnalytics.testsCompleted">РўРµСЃС‚РѕРІ РїСЂРѕР№РґРµРЅРѕ</th>
+                                <th data-i18n="teacherAnalytics.actions">Р”РµР№СЃС‚РІРёСЏ</th>
                             </tr>
                         </thead>
                         <tbody id="studentsTableBody">
@@ -148,7 +163,7 @@
                             <tr>
                                 <td colspan="6" class="text-center">
                                     <div class="loading-spinner"></div>
-                                    <p data-i18n="common.loading">Загрузка...</p>
+                                    <p data-i18n="common.loading">Р—Р°РіСЂСѓР·РєР°...</p>
                                 </td>
                             </tr>
                         </tbody>
@@ -174,5 +189,9 @@
     <script src="/js/alert-modal.js"></script>
 </body>
 </html>
+
+
+
+
 
 

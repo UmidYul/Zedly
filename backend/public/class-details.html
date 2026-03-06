@@ -1,13 +1,28 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>🏫 Информация о классе | ZEDLY</title>
+    <meta name="description" content="📚 Подробная информация о классе: ученики, задания, результаты и учебная активность.">
+    <meta name="keywords" content="информация о классе, ученики, задания, школьная аналитика">
+    <link rel="canonical" href="https://zedly.uz/class-details.html">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="🏫 Информация о классе | ZEDLY">
+    <meta property="og:description" content="📚 Подробная информация о классе: ученики, задания, результаты и учебная активность.">
+    <meta property="og:url" content="https://zedly.uz/class-details.html">
+    <meta property="og:image" content="https://zedly.uz/images/zedly_logo_bg.png">
+    <meta property="og:site_name" content="ZEDLY">
+    <meta property="og:locale" content="ru_RU">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="🏫 Информация о классе | ZEDLY">
+    <meta name="twitter:description" content="📚 Подробная информация о классе: ученики, задания, результаты и учебная активность.">
+    <meta name="twitter:image" content="https://zedly.uz/images/zedly_logo_bg.png">
     <link rel="icon" type="image/png" href="/images/zedly_logo_bg.png">
     <link rel="apple-touch-icon" href="/images/pwa-icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title>Информация о классе - ZEDLY</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/tables.css">
     <link rel="stylesheet" href="css/dashboard.css">
@@ -59,25 +74,25 @@
     <main class="main-content">
         <div class="content-wrapper">
             <div class="class-top-actions">
-                <button class="btn btn-outline class-back-btn" id="backBtn" type="button" aria-label="Назад">
-                    <span aria-hidden="true">←</span>
-                    <span>Назад</span>
+                <button class="btn btn-outline class-back-btn" id="backBtn" type="button" aria-label="РќР°Р·Р°Рґ">
+                    <span aria-hidden="true">в†ђ</span>
+                    <span>РќР°Р·Р°Рґ</span>
                 </button>
             </div>
 
             <section class="class-hero card">
                 <div class="hero-main">
-                    <p class="hero-label">Карточка класса</p>
-                    <h1 id="className">Класс</h1>
-                    <p id="classInfo">Загрузка данных о классе...</p>
+                    <p class="hero-label">РљР°СЂС‚РѕС‡РєР° РєР»Р°СЃСЃР°</p>
+                    <h1 id="className">РљР»Р°СЃСЃ</h1>
+                    <p id="classInfo">Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С… Рѕ РєР»Р°СЃСЃРµ...</p>
                 </div>
                 <div class="hero-stats">
                     <article class="mini-stat">
-                        <p class="mini-stat-label">Предметов</p>
+                        <p class="mini-stat-label">РџСЂРµРґРјРµС‚РѕРІ</p>
                         <p class="mini-stat-value" id="subjectCount">0</p>
                     </article>
                     <article class="mini-stat">
-                        <p class="mini-stat-label">Учеников</p>
+                        <p class="mini-stat-label">РЈС‡РµРЅРёРєРѕРІ</p>
                         <p class="mini-stat-value" id="studentCount">0</p>
                     </article>
                 </div>
@@ -85,15 +100,15 @@
 
             <section class="details-card card subjects-section">
                 <div class="section-heading">
-                    <h2>Предметы и учителя</h2>
-                    <p>Какие дисциплины ведутся в этом классе</p>
+                    <h2>РџСЂРµРґРјРµС‚С‹ Рё СѓС‡РёС‚РµР»СЏ</h2>
+                    <p>РљР°РєРёРµ РґРёСЃС†РёРїР»РёРЅС‹ РІРµРґСѓС‚СЃСЏ РІ СЌС‚РѕРј РєР»Р°СЃСЃРµ</p>
                 </div>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Предмет</th>
-                                <th>Учитель</th>
+                                <th>РџСЂРµРґРјРµС‚</th>
+                                <th>РЈС‡РёС‚РµР»СЊ</th>
                             </tr>
                         </thead>
                         <tbody id="subjectsTableBody"></tbody>
@@ -103,16 +118,16 @@
 
             <section class="details-card card students-section">
                 <div class="section-heading">
-                    <h2>Список учеников</h2>
-                    <p>Быстрый переход к странице каждого ученика</p>
+                    <h2>РЎРїРёСЃРѕРє СѓС‡РµРЅРёРєРѕРІ</h2>
+                    <p>Р‘С‹СЃС‚СЂС‹Р№ РїРµСЂРµС…РѕРґ Рє СЃС‚СЂР°РЅРёС†Рµ РєР°Р¶РґРѕРіРѕ СѓС‡РµРЅРёРєР°</p>
                 </div>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Имя</th>
-                                <th>Логин</th>
-                                <th>Действия</th>
+                                <th>РРјСЏ</th>
+                                <th>Р›РѕРіРёРЅ</th>
+                                <th>Р”РµР№СЃС‚РІРёСЏ</th>
                             </tr>
                         </thead>
                         <tbody id="studentsTableBody"></tbody>
@@ -132,5 +147,9 @@
 </body>
 
 </html>
+
+
+
+
 
 
