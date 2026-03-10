@@ -522,6 +522,84 @@
     }
 }
 
+@media (max-width: 640px) {
+    .table-wrap {
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .table-wrap .data-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        background: transparent;
+    }
+
+    .table-wrap .data-table thead {
+        display: none;
+    }
+
+    .table-wrap .data-table tbody,
+    .table-wrap .data-table tr,
+    .table-wrap .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .table-wrap .data-table tr {
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 10px 12px;
+    }
+
+    .table-wrap .data-table tr + tr {
+        margin-top: 10px;
+    }
+
+    .table-wrap .data-table td {
+        border: 0;
+        border-bottom: 1px dashed var(--border-light);
+        padding: 8px 0;
+        white-space: normal;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        text-align: right;
+    }
+
+    .table-wrap .data-table td:last-child {
+        border-bottom: 0;
+    }
+
+    .table-wrap .data-table td::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        line-height: 1.25;
+        text-align: left;
+        max-width: 45%;
+        flex: 0 0 45%;
+    }
+
+    .table-wrap .data-table td[colspan] {
+        text-align: center;
+        display: block;
+        padding: 12px 0;
+    }
+
+    .table-wrap .data-table td[colspan]::before {
+        content: none;
+    }
+}
+
 @media (max-width: 480px) {
     .student-main-content {
         padding: calc(60px + env(safe-area-inset-top)) 0.55rem 1.5rem;

@@ -369,6 +369,12 @@
     function renderSubjects() {
         const body = document.getElementById('subjectsBody');
         const rows = getFilteredSubjects();
+        const subjectLabel = t('studentDetails.colSubject', 'Предмет');
+        const attemptsLabel = t('studentDetails.colAttempts', 'Попытки');
+        const avgScoreLabel = t('studentDetails.colAvgScore', 'Средний балл');
+        const bestLabel = t('studentDetails.colBest', 'Лучший');
+        const worstLabel = t('studentDetails.colWorst', 'Худший');
+        const passRateLabel = t('studentDetails.colPassRate', 'Прохождение');
 
         if (!rows.length) {
             body.innerHTML = `<tr><td class="empty-row" colspan="6">${escapeHtml(t('studentDetails.noSubjectRecords', 'No subject records found.'))}</td></tr>`;
@@ -377,12 +383,12 @@
 
         body.innerHTML = rows.map((row) => `
             <tr>
-                <td>${escapeHtml(row.subject || '-')}</td>
-                <td>${toNumber(row.attempts)}</td>
-                <td>${toPercent(row.avg_score)}</td>
-                <td>${toPercent(row.best_score)}</td>
-                <td>${toPercent(row.worst_score)}</td>
-                <td>${toPercent(row.pass_rate)}</td>
+                <td data-label="${subjectLabel}">${escapeHtml(row.subject || '-')}</td>
+                <td data-label="${attemptsLabel}">${toNumber(row.attempts)}</td>
+                <td data-label="${avgScoreLabel}">${toPercent(row.avg_score)}</td>
+                <td data-label="${bestLabel}">${toPercent(row.best_score)}</td>
+                <td data-label="${worstLabel}">${toPercent(row.worst_score)}</td>
+                <td data-label="${passRateLabel}">${toPercent(row.pass_rate)}</td>
             </tr>
         `).join('');
     }
@@ -618,6 +624,10 @@
         const career = state.report?.career || {};
         const latest = career.latest || null;
         const history = Array.isArray(career.history) ? career.history : [];
+        const indexLabel = '#';
+        const dateLabel = t('common.date', 'Дата');
+        const reliabilityLabel = t('career.reliability', 'Достоверность');
+        const interestsLabel = t('career.topInterests', 'Топ интересы');
 
         if (!latest) {
             if (careerChart) {
@@ -658,10 +668,10 @@
                 const topAttempt = Array.isArray(attempt.top_interests) ? attempt.top_interests.slice(0, 3).join(', ') : '-';
                 return `
                     <tr>
-                        <td>${idx + 1}</td>
-                        <td>${escapeHtml(formatDateTime(attempt.completed_at))}</td>
-                        <td>${escapeHtml(rel)}</td>
-                        <td>${escapeHtml(topAttempt || '-')}</td>
+                        <td data-label="${indexLabel}">${idx + 1}</td>
+                        <td data-label="${dateLabel}">${escapeHtml(formatDateTime(attempt.completed_at))}</td>
+                        <td data-label="${reliabilityLabel}">${escapeHtml(rel)}</td>
+                        <td data-label="${interestsLabel}">${escapeHtml(topAttempt || '-')}</td>
                     </tr>
                 `;
             }).join('')

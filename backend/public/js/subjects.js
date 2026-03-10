@@ -226,6 +226,10 @@
             `;
 
             const currentLang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+            const codeLabel = t('subjects.colCode', 'Код');
+            const nameLabel = t('subjects.colSubjectName', 'Название предмета');
+            const statusLabel = t('subjects.colStatus', 'Статус');
+            const actionsLabel = t('subjects.colActions', 'Действия');
             subjects.forEach(subject => {
                 const statusClass = subject.is_active ? 'status-active' : 'status-inactive';
                 const statusText = subject.is_active ? t('users.active', 'Активный') : t('users.inactive', 'Неактивный');
@@ -237,7 +241,7 @@
 
                 html += `
                     <tr data-subject-id="${subject.id}" class="${isSelected ? 'bulk-row-selected' : ''}">
-                        <td class="bulk-checkbox-cell">
+                        <td class="bulk-checkbox-cell" data-label="">
                             <input
                                 type="checkbox"
                                 class="bulk-row-checkbox"
@@ -246,16 +250,16 @@
                                 aria-label="${t('subjects.selectSubject', 'Выбрать предмет')} ${subject.name || ''}"
                             >
                         </td>
-                        <td>
+                        <td data-label="${codeLabel}">
                             <span class="role-badge" style="background: ${subject.color}15; color: ${subject.color};">
                                 ${subject.code}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="${nameLabel}">
                             <div class="user-name">${subjectDisplayName}</div>
                         </td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td>
+                        <td data-label="${statusLabel}"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td data-label="${actionsLabel}">
                             <div class="action-buttons">
                                 <button class="btn-icon" onclick="SubjectsManager.editSubject('${subject.id}')" title="${t('users.edit', 'Редактировать')}">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

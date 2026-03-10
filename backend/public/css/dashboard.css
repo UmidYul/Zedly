@@ -3002,6 +3002,18 @@
     .dashboard-main>.dashboard-header .header-left {
         width: auto;
         flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .dashboard-main>.dashboard-header .header-left .menu-toggle {
+        order: 0;
+    }
+
+    .dashboard-main>.dashboard-header .header-left .header-logo {
+        order: 1;
     }
 
     .header-center {
@@ -3999,6 +4011,105 @@
 
     #classesContainer .status-badge {
         white-space: nowrap;
+    }
+
+    #subjectsContainer {
+        margin-top: 16px;
+    }
+
+    #subjectsContainer .bulk-toolbar {
+        gap: 8px;
+        padding: 10px;
+    }
+
+    #subjectsContainer .bulk-toolbar-left,
+    #subjectsContainer .bulk-toolbar-right {
+        width: 100%;
+    }
+
+    #subjectsContainer .bulk-toolbar .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #subjectsContainer .table-responsive {
+        overflow: visible;
+        margin: 16px 0 10px;
+    }
+
+    #subjectsContainer .data-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+        background: transparent;
+    }
+
+    #subjectsContainer .data-table thead {
+        display: none;
+    }
+
+    #subjectsContainer .data-table tbody,
+    #subjectsContainer .data-table tr,
+    #subjectsContainer .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    #subjectsContainer .data-table tr {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card);
+        padding: 12px 14px;
+    }
+
+    #subjectsContainer .data-table tr+tr {
+        margin-top: 12px;
+    }
+
+    #subjectsContainer .data-table td {
+        border: 0;
+        border-bottom: 1px dashed var(--border);
+        padding: 10px 0;
+        white-space: normal;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        text-align: right;
+    }
+
+    #subjectsContainer .data-table td:last-child {
+        border-bottom: 0;
+    }
+
+    #subjectsContainer .data-table td::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: left;
+        max-width: 45%;
+        flex: 0 0 45%;
+    }
+
+    #subjectsContainer .data-table td.bulk-checkbox-cell::before {
+        content: none;
+    }
+
+    #subjectsContainer .bulk-checkbox-cell {
+        width: auto;
+        text-align: left;
+        padding: 4px 0 !important;
+        border-bottom: 1px dashed var(--border) !important;
+    }
+
+    #subjectsContainer .action-buttons {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 }
 
@@ -5713,9 +5824,119 @@ body.page-leave-active {
     font-size: 0.84rem;
 }
 
+@media (max-width: 1024px) {
+    .director-chart-header {
+        align-items: flex-start;
+    }
+
+    .director-switch {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .director-switch .btn {
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
+    .director-overview-page {
+        gap: 12px;
+    }
+
+    .director-alert-grid,
+    .director-today-grid {
+        grid-template-columns: 1fr;
+    }
+
     #directorPerformanceChart {
-        height: 260px;
+        height: 240px;
+    }
+
+    .director-overview-page .table-responsive {
+        overflow: visible;
+        margin-top: 10px;
+    }
+
+    .director-overview-page .director-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        background: transparent;
+    }
+
+    .director-overview-page .director-table thead {
+        display: none;
+    }
+
+    .director-overview-page .director-table tbody,
+    .director-overview-page .director-table tr,
+    .director-overview-page .director-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .director-overview-page .director-table tr {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card);
+        padding: 12px;
+    }
+
+    .director-overview-page .director-table tr+tr {
+        margin-top: 10px;
+    }
+
+    .director-overview-page .director-table td {
+        border: 0;
+        border-bottom: 1px dashed var(--border);
+        padding: 8px 0;
+        white-space: normal;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        text-align: right;
+    }
+
+    .director-overview-page .director-table td:last-child {
+        border-bottom: 0;
+    }
+
+    .director-overview-page .director-table td[colspan] {
+        text-align: left;
+    }
+
+    .director-overview-page .director-table td::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.25;
+        text-align: left;
+        max-width: 46%;
+        flex: 0 0 46%;
+    }
+
+    .director-overview-page .director-table td[colspan]::before {
+        content: none;
+    }
+
+    #directorClassRankingTable .director-progress-cell {
+        display: block;
+        text-align: left;
+    }
+
+    #directorClassRankingTable .director-progress-cell::before {
+        display: block;
+        max-width: 100%;
+        flex-basis: auto;
+        margin-bottom: 8px;
     }
 
     .director-report-actions {

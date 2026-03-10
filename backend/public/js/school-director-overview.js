@@ -9,7 +9,8 @@
         chart: null,
         chartMode: 'classes',
         overview: null,
-        performance: null
+        performance: null,
+        themeListenerBound: false
     };
 
     function getRoot() {
@@ -43,6 +44,16 @@
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return '—';
         return date.toLocaleString('ru-RU');
+    }
+
+    function getChartThemePalette() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        return {
+            schoolLine: isLight ? '#0f172a' : '#60a5fa',
+            schoolFill: isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(96, 165, 250, 0.16)',
+            text: isLight ? '#334155' : '#cbd5e1',
+            grid: isLight ? 'rgba(15, 23, 42, 0.12)' : 'rgba(148, 163, 184, 0.18)'
+        };
     }
 
     async function apiGet(path) {
@@ -179,7 +190,7 @@
                         <h2 class="section-title">Активность учителей</h2>
                     </div>
                     <div class="table-responsive">
-                        <table class="data-table director-table">
+                        <table class="data-table director-table" id="directorTeacherActivityTable">
                             <thead>
                                 <tr>
                                     <th>Учитель</th>
@@ -197,7 +208,7 @@
                         <h2 class="section-title">Слабые предметы по школе</h2>
                     </div>
                     <div class="table-responsive">
-                        <table class="data-table director-table">
+                        <table class="data-table director-table" id="directorWeakSubjectsTable">
                             <thead>
                                 <tr>
                                     <th>Предмет</th>
@@ -215,7 +226,7 @@
                         <h2 class="section-title">Ученики в зоне риска (закрытый блок директора)</h2>
                     </div>
                     <div class="table-responsive">
-                        <table class="data-table director-table">
+                        <table class="data-table director-table" id="directorRiskStudentsTable">
                             <thead>
                                 <tr>
                                     <th>Ученик</th>
@@ -352,14 +363,14 @@
             const dangerClass = score < 50 ? 'is-danger' : '';
             return `
                 <tr class="director-class-row ${dangerClass}" data-class-id="${escapeHtml(item.id)}">
-                    <td>${escapeHtml(item.name)}</td>
-                    <td>${formatPercent(score)}</td>
-                    <td>
+                    <td data-label="Класс">${escapeHtml(item.name)}</td>
+                    <td data-label="Средний балл">${formatPercent(score)}</td>
+                    <td data-label="Прогресс" class="director-progress-cell">
                         <div class="director-progress-bar">
                             <div class="director-progress-fill ${dangerClass}" style="width:${Math.max(0, Math.min(100, score)).toFixed(1)}%"></div>
                         </div>
                     </td>
-                    <td>${trendArrow} ${trendDelta > 0 ? '+' : ''}${trendDelta.toFixed(1)}%</td>
+                    <td data-label="Тренд">${trendArrow} ${trendDelta > 0 ? '+' : ''}${trendDelta.toFixed(1)}%</td>
                 </tr>
             `;
         }).join('');
@@ -387,9 +398,9 @@
             const inactiveClass = item.is_inactive_14_days ? 'is-warning' : '';
             return `
                 <tr class="${inactiveClass}">
-                    <td>${escapeHtml(item.name)}</td>
-                    <td>${Number(item.tests_created_month || 0)}</td>
-                    <td>${formatDateTime(item.last_activity_at)}</td>
+                    <td data-label="Учитель">${escapeHtml(item.name)}</td>
+                    <td data-label="Тестов за месяц">${Number(item.tests_created_month || 0)}</td>
+                    <td data-label="Последняя активность">${formatDateTime(item.last_activity_at)}</td>
                 </tr>
             `;
         }).join('');
@@ -409,9 +420,9 @@
             const weakClass = Number(item.avg_score || 0) < 60 ? 'is-warning' : '';
             return `
                 <tr class="${weakClass}">
-                    <td>${escapeHtml(item.subject_name)}</td>
-                    <td>${formatPercent(item.avg_score)}</td>
-                    <td>${Number(item.attempts || 0)}</td>
+                    <td data-label="Предмет">${escapeHtml(item.subject_name)}</td>
+                    <td data-label="Средний балл">${formatPercent(item.avg_score)}</td>
+                    <td data-label="Попыток">${Number(item.attempts || 0)}</td>
                 </tr>
             `;
         }).join('');
@@ -429,10 +440,10 @@
 
         tbody.innerHTML = rows.map((item) => `
             <tr>
-                <td>${escapeHtml(item.name)}</td>
-                <td>${escapeHtml(item.class_name)}</td>
-                <td>${formatPercent(item.avg_score)}</td>
-                <td>${item.inactive_days === null || item.inactive_days === undefined ? '—' : Number(item.inactive_days)}</td>
+                <td data-label="Ученик">${escapeHtml(item.name)}</td>
+                <td data-label="Класс">${escapeHtml(item.class_name)}</td>
+                <td data-label="Средний балл">${formatPercent(item.avg_score)}</td>
+                <td data-label="Дней без тестов">${item.inactive_days === null || item.inactive_days === undefined ? '—' : Number(item.inactive_days)}</td>
             </tr>
         `).join('');
     }
@@ -474,6 +485,7 @@
         await ensureChartJs();
         const canvas = document.getElementById('directorPerformanceChart');
         if (!canvas || !state.performance) return;
+        const palette = getChartThemePalette();
 
         if (state.chart) {
             state.chart.destroy();
@@ -490,8 +502,8 @@
         datasets.push({
             label: 'Школа (средний балл)',
             data: schoolSeries.map((item) => item.avg_score),
-            borderColor: '#111827',
-            backgroundColor: 'rgba(17, 24, 39, 0.1)',
+            borderColor: palette.schoolLine,
+            backgroundColor: palette.schoolFill,
             borderWidth: 3,
             tension: 0.2
         });
@@ -522,9 +534,30 @@
                     intersect: false
                 },
                 scales: {
+                    x: {
+                        ticks: {
+                            color: palette.text
+                        },
+                        grid: {
+                            color: palette.grid
+                        }
+                    },
                     y: {
                         beginAtZero: true,
-                        max: 100
+                        max: 100,
+                        ticks: {
+                            color: palette.text
+                        },
+                        grid: {
+                            color: palette.grid
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: palette.text
+                        }
                     }
                 }
             }
@@ -609,6 +642,16 @@
 
         renderLayout();
         bindEvents();
+        if (!state.themeListenerBound) {
+            document.addEventListener('themeChanged', () => {
+                if (state.performance) {
+                    renderPerformanceChart().catch((error) => {
+                        console.error('Failed to re-render director chart on theme change:', error);
+                    });
+                }
+            });
+            state.themeListenerBound = true;
+        }
 
         try {
             await loadData();

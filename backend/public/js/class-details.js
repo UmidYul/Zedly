@@ -118,7 +118,12 @@
             subjBody.innerHTML = subjects.map((subject) => {
                 const subjName = subject.subject_name || subject.name || subject.name_ru || subject.name_uz || '';
                 const teacherName = subject.teacher_name || (subject.first_name ? `${subject.first_name} ${subject.last_name || ''}` : '') || 'Не назначен';
-                return `<tr><td>${escapeHtml(subjName)}</td><td>${escapeHtml(teacherName)}</td></tr>`;
+                return `
+                    <tr>
+                        <td data-label="Предмет">${escapeHtml(subjName)}</td>
+                        <td data-label="Учитель">${escapeHtml(teacherName)}</td>
+                    </tr>
+                `;
             }).join('');
         }
 
@@ -140,16 +145,16 @@
                 if (canViewStudentLogin) {
                     return `
                         <tr>
-                            <td>${escapeHtml(name)}</td>
-                            <td>${escapeHtml(login)}</td>
-                            <td class="actions-cell"><a href="${profileHref}">Профиль ученика</a></td>
+                            <td data-label="Имя">${escapeHtml(name)}</td>
+                            <td data-label="Логин">${escapeHtml(login)}</td>
+                            <td class="actions-cell" data-label="Действия"><a href="${profileHref}">Профиль ученика</a></td>
                         </tr>
                     `;
                 }
                 return `
                     <tr>
-                        <td>${escapeHtml(name)}</td>
-                        <td class="actions-cell"><a href="${profileHref}">Профиль ученика</a></td>
+                        <td data-label="Имя">${escapeHtml(name)}</td>
+                        <td class="actions-cell" data-label="Действия"><a href="${profileHref}">Профиль ученика</a></td>
                     </tr>
                 `;
             }).join('');
