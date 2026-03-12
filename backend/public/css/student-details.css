@@ -1,9 +1,3 @@
-.student-page-header {
-    position: sticky;
-    top: var(--spacing-lg);
-    z-index: 50;
-}
-
 .student-back-btn {
     min-height: 38px;
     padding: 0.45rem 0.8rem;
@@ -409,9 +403,10 @@
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
     .student-page-header {
         top: 0;
+        border-radius: 0;
     }
 
     .student-main-content {
@@ -631,6 +626,12 @@
 
     .kpi-value {
         font-size: 1.6rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
     }
 }
 

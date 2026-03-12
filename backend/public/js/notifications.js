@@ -400,11 +400,6 @@
                     </div>`
                 }
             </div>
-            ${visibleNotifications.length > 0 ? `
-                <div class="notifications-footer">
-                    <button onclick="window.ZedlyNotifications.viewAll()">${escapeHtml(t('notifications.viewAll', 'Посмотреть все'))}</button>
-                </div>
-            ` : ''}
         `;
 
         positionDropdown();

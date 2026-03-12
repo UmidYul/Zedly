@@ -844,18 +844,18 @@
 
                 return `
                     <tr>
-                        <td>${testTitle}</td>
-                        <td>${subjectName}</td>
-                        <td>${formatDate(row.submitted_at || row.started_at)}</td>
-                        <td><span class="${tone.badgeClass}">${formatPercent(score)}</span></td>
-                        <td>${formatDurationRow(timeSeconds)}</td>
-                        <td><button type="button" class="btn btn-outline progress-history-action" disabled>Подробнее</button></td>
+                        <td data-label="Название теста">${testTitle}</td>
+                        <td data-label="Предмет">${subjectName}</td>
+                        <td data-label="Дата">${formatDate(row.submitted_at || row.started_at)}</td>
+                        <td data-label="Балл"><span class="${tone.badgeClass}">${formatPercent(score)}</span></td>
+                        <td data-label="Время">${formatDurationRow(timeSeconds)}</td>
+                        <td data-label="Действие"><button type="button" class="btn btn-outline progress-history-action" disabled>Подробнее</button></td>
                     </tr>
                 `;
             }).join('');
 
             container.innerHTML = `
-                <div class="table-responsive">
+                <div class="table-responsive mobile-stack-table">
                     <table class="data-table progress-history-table">
                         <thead>
                             <tr>

@@ -282,6 +282,48 @@
     align-items: center;
 }
 
+.toolbar-filters {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.assignments-page .page-toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto auto;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.assignments-page .search-box {
+    max-width: none;
+}
+
+.assignments-page .toolbar-filters {
+    justify-content: flex-start;
+}
+
+.assignments-page .toolbar-right {
+    justify-self: end;
+}
+
 .page-size-control {
     display: inline-flex;
     align-items: center;
@@ -419,6 +461,28 @@
         width: 100%;
     }
 
+    .assignments-page .page-toolbar {
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+    }
+
+    .assignments-page .toolbar-right {
+        justify-self: stretch;
+        width: 100%;
+    }
+
+    .assignments-page .toolbar-right .btn {
+        width: 100%;
+    }
+
+    .assignments-page .toolbar-filters {
+        width: 100%;
+    }
+
+    .assignments-page .search-box {
+        max-width: 100%;
+    }
+
     .page-toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -433,6 +497,11 @@
         align-items: stretch;
     }
 
+    .toolbar-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
     .page-size-control {
         width: 100%;
         justify-content: space-between;
@@ -440,6 +509,10 @@
 
     .select-input,
     .toolbar-right .btn {
+        width: 100%;
+    }
+
+    .filter-select {
         width: 100%;
     }
 
@@ -561,6 +634,10 @@
         padding: 12px;
     }
 
+    #studentResultsTable .mobile-stack-table .data-table tr + tr {
+        margin-top: 10px;
+    }
+
     #studentResultsTable .mobile-stack-table .data-table td {
         width: auto;
         border-bottom: 0;
@@ -606,6 +683,90 @@
 
     #studentResultsTable .mobile-stack-table .data-table td.sr-d .btn-icon {
         margin: 0 auto;
+    }
+
+    /* Teacher overview tables mobile layout */
+    #teacherOverviewActiveTests .mobile-stack-table .data-table tr,
+    #teacherOverviewClassRanking .mobile-stack-table .data-table tr,
+    #teacherOverviewRiskStudents .mobile-stack-table .data-table tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+        padding: 12px;
+    }
+
+    #teacherOverviewActiveTests .mobile-stack-table .data-table tr + tr,
+    #teacherOverviewClassRanking .mobile-stack-table .data-table tr + tr,
+    #teacherOverviewRiskStudents .mobile-stack-table .data-table tr + tr {
+        margin-top: 10px;
+    }
+
+    #teacherOverviewActiveTests .mobile-stack-table .data-table td,
+    #teacherOverviewClassRanking .mobile-stack-table .data-table td,
+    #teacherOverviewRiskStudents .mobile-stack-table .data-table td {
+        width: auto;
+        border-bottom: 0;
+        padding: 6px 0;
+        min-width: 0;
+    }
+
+    #teacherOverviewActiveTests .mobile-stack-table .data-table td::before,
+    #teacherOverviewClassRanking .mobile-stack-table .data-table td::before,
+    #teacherOverviewRiskStudents .mobile-stack-table .data-table td::before {
+        margin-bottom: 6px;
+    }
+
+    #teacherOverviewActiveTests .mobile-stack-table .data-table td:last-child,
+    #teacherOverviewRiskStudents .mobile-stack-table .data-table td:last-child {
+        grid-column: 1 / -1;
+    }
+
+    #teacherOverviewActiveTests .mobile-stack-table .data-table td:last-child .btn,
+    #teacherOverviewActiveTests .mobile-stack-table .data-table td:last-child .btn-icon {
+        width: 100%;
+    }
+
+    #teacherOverviewClassRanking .mobile-stack-table .data-table td:nth-child(3),
+    #teacherOverviewRiskStudents .mobile-stack-table .data-table td:nth-child(4) {
+        grid-column: 1 / -1;
+    }
+
+    #teacherOverviewClassRanking .mobile-stack-table .data-table tr.is-danger {
+        border-color: rgba(239, 68, 68, 0.35);
+        background: rgba(239, 68, 68, 0.08);
+    }
+
+    #teacherOverviewClassRanking .mobile-stack-table .data-table tr.is-danger td {
+        background: transparent;
+    }
+
+    /* Student Progress history mobile layout */
+    #studentProgressHistory .mobile-stack-table .data-table tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+        padding: 12px;
+    }
+
+    #studentProgressHistory .mobile-stack-table .data-table tr + tr {
+        margin-top: 10px;
+    }
+
+    #studentProgressHistory .mobile-stack-table .data-table td {
+        width: auto;
+        border-bottom: 0;
+        padding: 0;
+        min-width: 0;
+    }
+
+    #studentProgressHistory .mobile-stack-table .data-table td::before {
+        margin-bottom: 6px;
+    }
+
+    #studentProgressHistory .mobile-stack-table .data-table td:last-child {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: flex-start;
     }
 
     /* Student tests (completed tab) mobile layout */

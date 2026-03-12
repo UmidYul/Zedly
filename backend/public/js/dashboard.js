@@ -2461,37 +2461,39 @@
         // Test Assignments Management (Teacher)
         if (page === 'assignments') {
             return `
-                <div class="page-toolbar">
-                    <div class="search-box">
-                        <input
-                            type="text"
-                            id="assignmentsSearch"
-                            class="search-input"
-                            placeholder="${t('assignments.searchPlaceholder', 'Поиск назначений...')}"
-                        />
+                <div class="assignments-page">
+                    <div class="page-toolbar">
+                        <div class="search-box">
+                            <input
+                                type="text"
+                                id="assignmentsSearch"
+                                class="search-input"
+                                placeholder="${t('assignments.searchPlaceholder', 'Поиск назначений...')}"
+                            />
+                        </div>
+                        <div class="toolbar-filters">
+                            <select id="classFilter" class="filter-select">
+                                <option value="all">${t('assignments.allClasses', 'Все классы')}</option>
+                            </select>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="all">${t('assignments.allStatuses', 'Все статусы')}</option>
+                                <option value="active">${t('assignments.statusActive', 'Активно')}</option>
+                                <option value="completed">${t('assignments.statusCompleted', 'Завершено')}</option>
+                                <option value="inactive">${t('assignments.statusInactive', 'Неактивно')}</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn btn-primary" id="addAssignmentBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                ${t('assignments.createAssignment', 'Создать назначение')}
+                            </button>
+                        </div>
                     </div>
-                    <div class="toolbar-filters">
-                        <select id="classFilter" class="filter-select">
-                            <option value="all">${t('assignments.allClasses', 'Все классы')}</option>
-                        </select>
-                        <select id="statusFilter" class="filter-select">
-                            <option value="all">${t('assignments.allStatuses', 'Все статусы')}</option>
-                            <option value="active">${t('assignments.statusActive', 'Активно')}</option>
-                            <option value="completed">${t('assignments.statusCompleted', 'Завершено')}</option>
-                            <option value="inactive">${t('assignments.statusInactive', 'Неактивно')}</option>
-                        </select>
-                    </div>
-                    <div class="toolbar-right">
-                        <button class="btn btn-primary" id="addAssignmentBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            ${t('assignments.createAssignment', 'Создать назначение')}
-                        </button>
-                    </div>
+                    <div id="assignmentsContainer"></div>
                 </div>
-                <div id="assignmentsContainer"></div>
             `;
         }
 

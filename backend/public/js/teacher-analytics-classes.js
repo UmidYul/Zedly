@@ -379,6 +379,17 @@
     function renderStudentsTable() {
         const tbody = document.getElementById('studentsTableBody');
         const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+        const lang = getCurrentLang();
+        const tr = (key, fallback) => {
+            const value = window.i18n?.translate?.(key, lang);
+            return value && value !== key ? value : (fallback || key);
+        };
+        const colRank = tr('teacherAnalytics.rank', 'Место');
+        const colName = tr('teacherAnalytics.studentName', 'Имя ученика');
+        const colLogin = tr('teacherAnalytics.login', 'Логин');
+        const colAvgScore = tr('teacherAnalytics.avgScore', 'Средний балл');
+        const colTests = tr('teacherAnalytics.testsCompleted', 'Тестов пройдено');
+        const colActions = tr('teacherAnalytics.actions', 'Действия');
 
         // Filter students
         let filteredStudents = students.filter(student => {
@@ -412,20 +423,20 @@
         } else {
             tbody.innerHTML = paginatedStudents.map(student => `
                 <tr>
-                    <td>
+                    <td data-label="${colRank}">
                         <div class="rank-badge ${getRankClass(student.rank)}">
                             ${student.rank}
                         </div>
                     </td>
-                    <td>${student.first_name} ${student.last_name}</td>
-                    <td>${student.username}</td>
-                    <td>
+                    <td data-label="${colName}">${student.first_name} ${student.last_name}</td>
+                    <td data-label="${colLogin}">${student.username}</td>
+                    <td data-label="${colAvgScore}">
                         <span class="score-badge ${getScoreClass(student.avg_score || 0)}">
                             ${Math.round(student.avg_score || 0)}%
                         </span>
                     </td>
-                    <td>${student.tests_completed || 0}</td>
-                    <td>
+                    <td data-label="${colTests}">${student.tests_completed || 0}</td>
+                    <td data-label="${colActions}">
                         <button class="btn-view-profile" onclick="viewProfile('${student.id}')">
                             <span>👤</span>
                             <span data-i18n="users.viewProfile">Профиль</span>

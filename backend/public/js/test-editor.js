@@ -226,7 +226,7 @@
             const steps = this.getEditorSteps();
             const modalTitle = test.id
                 ? t('testEditor.editTest', 'Редактировать тест')
-                : t('testEditor.createTest', 'Создать тест');
+                : t('testEditor.createNewTest', 'Создать новый тест');
             const modalHtml = `
                 <div class="modal-overlay" id="testEditorModal">
                     <div class="modal modal-xl test-editor">

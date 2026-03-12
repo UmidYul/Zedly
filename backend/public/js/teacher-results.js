@@ -127,16 +127,23 @@
                 return;
             }
 
+            const colName = 'Student Name';
+            const colStatus = 'Status';
+            const colScore = 'Score';
+            const colPercentage = 'Percentage';
+            const colSubmitted = 'Submitted At';
+            const colActions = 'Actions';
+
             let html = `
                 <table class="results-table">
                     <thead>
                         <tr>
-                            <th>Student Name</th>
-                            <th>Status</th>
-                            <th>Score</th>
-                            <th>Percentage</th>
-                            <th>Submitted At</th>
-                            <th>Actions</th>
+                            <th>${colName}</th>
+                            <th>${colStatus}</th>
+                            <th>${colScore}</th>
+                            <th>${colPercentage}</th>
+                            <th>${colSubmitted}</th>
+                            <th>${colActions}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -155,14 +162,14 @@
 
                 html += `
                     <tr>
-                        <td class="student-name">${result.student_name}</td>
-                        <td>
+                        <td class="student-name" data-label="${colName}">${result.student_name}</td>
+                        <td data-label="${colStatus}">
                             <span class="status-badge ${statusClass}">${statusText}</span>
                         </td>
-                        <td>${score}</td>
-                        <td class="${percentageClass}">${percentage}</td>
-                        <td>${submittedAt}</td>
-                        <td>
+                        <td data-label="${colScore}">${score}</td>
+                        <td data-label="${colPercentage}" class="${percentageClass}">${percentage}</td>
+                        <td data-label="${colSubmitted}">${submittedAt}</td>
+                        <td data-label="${colActions}">
                             ${result.is_completed ? `
                                 <button class="btn-icon btn-view" onclick="TeacherResults.viewAttempt(${this.toJsArg(result.attempt_id)})" title="View Details">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
