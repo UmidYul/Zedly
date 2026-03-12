@@ -572,36 +572,6 @@
                         <p class="student-overview-date" id="studentOverviewDate">-</p>
                     </section>
 
-                    <section class="dashboard-section student-overview-grid">
-                        <div class="student-overview-card student-overview-card--urgent">
-                            <div class="section-header">
-                                <h2 class="section-title">Срочные тесты</h2>
-                            </div>
-                            <div id="studentOverviewUrgentTests"></div>
-                        </div>
-
-                        <div class="student-overview-card">
-                            <div class="section-header">
-                                <h2 class="section-title">Streak</h2>
-                            </div>
-                            <div id="studentOverviewStreak"></div>
-                        </div>
-
-                        <div class="student-overview-card">
-                            <div class="section-header">
-                                <h2 class="section-title">Мини-статистика</h2>
-                            </div>
-                            <div id="studentOverviewMiniStats"></div>
-                        </div>
-
-                        <div class="student-overview-card">
-                            <div class="section-header">
-                                <h2 class="section-title">Место в классе</h2>
-                            </div>
-                            <div id="studentOverviewClassRank"></div>
-                        </div>
-                    </section>
-
                     <section class="dashboard-section">
                         <div class="section-header">
                             <h2 class="section-title">Прогресс по предметам</h2>

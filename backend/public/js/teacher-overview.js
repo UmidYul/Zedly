@@ -109,46 +109,21 @@
         return '→';
     }
 
-    async function apiGet(path = '') {
-        const response = await fetch(`${API_BASE}${path}`, {
-            method: 'GET',
-            headers: getAuthHeaders()
-        });
-        if (!response.ok) {
-            const payload = await response.json().catch(() => ({}));
-            throw new Error(payload.message || t('teacherOverview.failedLoad', 'Не удалось загрузить данные'));
-        }
-        return response.json();
-    }
+	    async function apiGet(path = '') {
+	        const response = await fetch(`${API_BASE}${path}`, {
+	            method: 'GET',
+	            headers: getAuthHeaders()
+	        });
+	        if (!response.ok) {
+	            const payload = await response.json().catch(() => ({}));
+	            throw new Error(payload.message || t('teacherOverview.failedLoad', 'Не удалось загрузить данные'));
+	        }
+	        return response.json();
+	    }
 
-    async function apiDownload(path, fallbackName) {
-        const response = await fetch(`${API_BASE}${path}`, {
-            method: 'GET',
-            headers: getAuthHeaders()
-        });
-        if (!response.ok) {
-            const payload = await response.json().catch(() => ({}));
-            throw new Error(payload.message || t('teacherOverview.failedDownload', 'Не удалось скачать отчёт'));
-        }
-
-        const disposition = response.headers.get('content-disposition') || '';
-        const matchedName = disposition.match(/filename="?([^\"]+)"?/i)?.[1];
-        const filename = matchedName || fallbackName;
-
-        const blob = await response.blob();
-        const objectUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = objectUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(objectUrl);
-    }
-
-    function groupEventsByDay(events) {
-        const groups = [];
-        const byKey = new Map();
+	    function groupEventsByDay(events) {
+	        const groups = [];
+	        const byKey = new Map();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const yesterday = new Date(today);
@@ -211,66 +186,22 @@
             await this.loadAll();
         },
 
-        renderLayout: function () {
-            const root = getRoot();
-            if (!root) return;
+	        renderLayout: function () {
+	            const root = getRoot();
+	            if (!root) return;
 
-            root.innerHTML = `
-                <div class="teacher-overview-page">
-                    <section class="dashboard-section teacher-overview-welcome">
-                        <h1 class="teacher-overview-greeting" id="teacherOverviewGreeting">${t('teacherOverview.greetingHello', 'Здравствуйте')}</h1>
-                        <p class="teacher-overview-date" id="teacherOverviewDate">—</p>
-                        <p class="teacher-overview-subtitle" id="teacherOverviewSubtitle">${t('teacherOverview.loadingData', 'Загрузка данных...')}</p>
-                    </section>
+		            root.innerHTML = `
+		                <div class="teacher-overview-page">
+		                    <section class="dashboard-section teacher-overview-welcome">
+		                        <h1 class="teacher-overview-greeting" id="teacherOverviewGreeting">${t('teacherOverview.greetingHello', 'Здравствуйте')}</h1>
+		                        <p class="teacher-overview-date" id="teacherOverviewDate">—</p>
+		                        <p class="teacher-overview-subtitle" id="teacherOverviewSubtitle">${t('teacherOverview.loadingData', 'Загрузка данных...')}</p>
+		                    </section>
 
-                    <section class="teacher-overview-top-grid">
-                        <article class="dashboard-section teacher-overview-card">
-                            <div class="section-header">
-                                <h2 class="section-title">${t('teacherOverview.miniStats', 'Мини-статистика')}</h2>
-                            </div>
-                            <div id="teacherOverviewMiniStats"></div>
-                        </article>
-
-                        <article class="dashboard-section teacher-overview-card">
-                            <div class="section-header">
-                                <h2 class="section-title">${t('teacherOverview.quickActions', 'Быстрые действия')}</h2>
-                            </div>
-                            <div class="teacher-overview-actions">
-                                <button type="button" class="btn btn-primary" id="teacherOverviewCreateTestBtn">${t('teacherOverview.createTest', 'Создать тест')}</button>
-                                <button type="button" class="btn btn-secondary" id="teacherOverviewAssignTestBtn">${t('teacherOverview.assignTest', 'Назначить тест')}</button>
-                                <button type="button" class="btn btn-outline" id="teacherOverviewDownloadReportBtn">${t('teacherOverview.downloadReport', 'Скачать отчёт')}</button>
-                            </div>
-                        </article>
-                    </section>
-
-                    <section class="dashboard-section" id="teacherOverviewAlertsSection" style="display:none;">
-                        <div class="section-header">
-                            <h2 class="section-title">${t('teacherOverview.attention', 'Требуют внимания')}</h2>
-                        </div>
-                        <div class="teacher-overview-alert-grid">
-                            <div class="teacher-overview-alert-card">
-                                <h3>${t('teacherOverview.urgentTests', 'Срочные тесты (&lt; 2 дней, &lt; 50%)')}</h3>
-                                <div id="teacherOverviewAlertUrgentTests"></div>
-                            </div>
-                            <div class="teacher-overview-alert-card">
-                                <h3>${t('teacherOverview.lowClasses', 'Классы ниже 50% (2 недели)')}</h3>
-                                <div id="teacherOverviewAlertLowClasses"></div>
-                            </div>
-                            <div class="teacher-overview-alert-card">
-                                <h3>${t('teacherOverview.inactiveStudents', 'Неактивные ученики (&gt; 5 дней)')}</h3>
-                                <div id="teacherOverviewAlertInactiveStudents"></div>
-                            </div>
-                            <div class="teacher-overview-alert-card positive">
-                                <h3>${t('teacherOverview.improvedClasses', 'Классы с улучшением &gt; 10%')}</h3>
-                                <div id="teacherOverviewAlertImprovedClasses"></div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="dashboard-section">
-                        <div class="section-header">
-                            <h2 class="section-title">${t('teacherOverview.activeTests', 'Активные тесты')}</h2>
-                        </div>
+	                    <section class="dashboard-section">
+	                        <div class="section-header">
+	                            <h2 class="section-title">${t('teacherOverview.activeTests', 'Активные тесты')}</h2>
+	                        </div>
                         <div id="teacherOverviewActiveTests"></div>
                     </section>
 
@@ -340,36 +271,11 @@
                 await this.loadPerformance(classId);
             });
 
-            root.addEventListener('click', async (event) => {
-                const createBtn = event.target.closest('#teacherOverviewCreateTestBtn');
-                if (createBtn) {
-                    navigateToDashboardPage('tests');
-                    return;
-                }
-
-                const assignBtn = event.target.closest('#teacherOverviewAssignTestBtn');
-                if (assignBtn) {
-                    navigateToDashboardPage('assignments');
-                    return;
-                }
-
-                const downloadBtn = event.target.closest('#teacherOverviewDownloadReportBtn');
-                if (downloadBtn) {
-                    try {
-                        downloadBtn.disabled = true;
-                        await apiDownload('/report.pdf', `teacher_classes_summary_${new Date().toISOString().slice(0, 10)}.pdf`);
-                    } catch (error) {
-                        console.error('Teacher overview report download error:', error);
-                    } finally {
-                        downloadBtn.disabled = false;
-                    }
-                    return;
-                }
-
-                const detailsBtn = event.target.closest('.js-teacher-overview-details');
-                if (detailsBtn) {
-                    const assignmentId = detailsBtn.dataset.assignmentId;
-                    if (assignmentId) {
+	            root.addEventListener('click', async (event) => {
+	                const detailsBtn = event.target.closest('.js-teacher-overview-details');
+	                if (detailsBtn) {
+	                    const assignmentId = detailsBtn.dataset.assignmentId;
+	                    if (assignmentId) {
                         window.location.href = `/teacher-results.html?assignment_id=${encodeURIComponent(assignmentId)}`;
                     }
                     return;
@@ -428,14 +334,13 @@
             }
         },
 
-        renderLoading: function () {
-            const ids = [
-                'teacherOverviewMiniStats',
-                'teacherOverviewActiveTests',
-                'teacherOverviewClassRanking',
-                'teacherOverviewRiskStudents',
-                'teacherOverviewLastActivity'
-            ];
+	        renderLoading: function () {
+	            const ids = [
+	                'teacherOverviewActiveTests',
+	                'teacherOverviewClassRanking',
+	                'teacherOverviewRiskStudents',
+	                'teacherOverviewLastActivity'
+	            ];
 
             ids.forEach((id) => {
                 const node = document.getElementById(id);
@@ -443,14 +348,13 @@
             });
         },
 
-        renderError: function (message) {
-            const ids = [
-                'teacherOverviewMiniStats',
-                'teacherOverviewActiveTests',
-                'teacherOverviewClassRanking',
-                'teacherOverviewRiskStudents',
-                'teacherOverviewLastActivity'
-            ];
+	        renderError: function (message) {
+	            const ids = [
+	                'teacherOverviewActiveTests',
+	                'teacherOverviewClassRanking',
+	                'teacherOverviewRiskStudents',
+	                'teacherOverviewLastActivity'
+	            ];
 
             ids.forEach((id) => {
                 const node = document.getElementById(id);
@@ -461,15 +365,13 @@
             if (subtitle) subtitle.textContent = t('teacherOverview.failedLoadSubtitle', 'Не удалось загрузить данные обзора.');
         },
 
-        renderOverview: function () {
-            this.renderGreeting();
-            this.renderMiniStats();
-            this.renderAlerts();
-            this.renderActiveTests();
-            this.renderClassRanking();
-            this.renderRiskStudents();
-            this.renderLastActivity();
-        },
+		        renderOverview: function () {
+		            this.renderGreeting();
+		            this.renderActiveTests();
+		            this.renderClassRanking();
+		            this.renderRiskStudents();
+		            this.renderLastActivity();
+		        },
 
         renderGreeting: function () {
             const greetingNode = document.getElementById('teacherOverviewGreeting');
@@ -498,97 +400,9 @@
             }
         },
 
-        renderMiniStats: function () {
-            const container = document.getElementById('teacherOverviewMiniStats');
-            if (!container) return;
-
-            const stats = this.state.overview?.mini_stats || {};
-            container.innerHTML = `
-                <div class="teacher-overview-mini-grid">
-                    <div class="teacher-overview-mini-card">
-                        <div class="teacher-overview-mini-value">${toNumber(stats.classes_count, 0)}</div>
-                        <div class="teacher-overview-mini-label">${t('teacherOverview.miniMyClasses', 'Мои классы')}</div>
-                    </div>
-                    <div class="teacher-overview-mini-card">
-                        <div class="teacher-overview-mini-value">${toNumber(stats.active_tests_count, 0)}</div>
-                        <div class="teacher-overview-mini-label">${t('teacherOverview.miniActiveTests', 'Активные тесты')}</div>
-                    </div>
-                    <div class="teacher-overview-mini-card">
-                        <div class="teacher-overview-mini-value">${formatPercent(stats.avg_score_30d, 1)}</div>
-                        <div class="teacher-overview-mini-label">${t('teacherOverview.miniAvgScore', 'Средний балл (30 дней)')}</div>
-                    </div>
-                    <div class="teacher-overview-mini-card">
-                        <div class="teacher-overview-mini-value">${toNumber(stats.tests_created_total, 0)}</div>
-                        <div class="teacher-overview-mini-label">${t('teacherOverview.miniTestsCreated', 'Создано тестов')}</div>
-                    </div>
-                </div>
-            `;
-        },
-
-        renderAlerts: function () {
-            const section = document.getElementById('teacherOverviewAlertsSection');
-            if (!section) return;
-
-            const alerts = this.state.overview?.alerts || {};
-            if (!alerts.show) {
-                section.style.display = 'none';
-                return;
-            }
-
-            section.style.display = '';
-
-            const urgentWrap = document.getElementById('teacherOverviewAlertUrgentTests');
-            const lowWrap = document.getElementById('teacherOverviewAlertLowClasses');
-            const inactiveWrap = document.getElementById('teacherOverviewAlertInactiveStudents');
-            const improvedWrap = document.getElementById('teacherOverviewAlertImprovedClasses');
-
-            const urgentRows = Array.isArray(alerts.urgent_tests) ? alerts.urgent_tests : [];
-            if (urgentWrap) {
-                urgentWrap.innerHTML = urgentRows.length
-                    ? urgentRows.map((item) => `
-                        <div class="teacher-overview-alert-row">
-                            <strong>${escapeHtml(item.test_title || t('teacherOverview.test', 'Тест'))}</strong>
-                            <span>${escapeHtml(item.class_name || t('teacherOverview.class', 'Класс'))} · ${toNumber(item.completed_students, 0)}/${toNumber(item.total_students, 0)} · ${formatDaysLeft(item.days_left)}</span>
-                        </div>
-                    `).join('')
-                    : `<div class="teacher-overview-empty">${t('teacherOverview.noUrgentTests', 'Нет срочных тестов')}</div>`;
-            }
-
-            const lowRows = Array.isArray(alerts.low_score_classes) ? alerts.low_score_classes : [];
-            if (lowWrap) {
-                lowWrap.innerHTML = lowRows.length
-                    ? lowRows.map((item) => `
-                        <div class="teacher-overview-alert-row">
-                            <strong>${escapeHtml(item.class_name || t('teacherOverview.class', 'Класс'))}</strong>
-                            <span>${formatPercent(item.avg_score, 1)}</span>
-                        </div>
-                    `).join('')
-                    : `<div class="teacher-overview-empty">${t('teacherOverview.noLowClasses', 'Нет проблемных классов')}</div>`;
-            }
-
-            if (inactiveWrap) {
-                inactiveWrap.innerHTML = `
-                    <div class="teacher-overview-alert-count">${toNumber(alerts.inactive_students_count, 0)}</div>
-                    <div class="teacher-overview-alert-sub">${t('teacherOverview.inactiveStudentsSub', 'учеников без активности более 5 дней')}</div>
-                `;
-            }
-
-            const improvedRows = Array.isArray(alerts.improved_classes) ? alerts.improved_classes : [];
-            if (improvedWrap) {
-                improvedWrap.innerHTML = improvedRows.length
-                    ? improvedRows.map((item) => `
-                        <div class="teacher-overview-alert-row">
-                            <strong>${escapeHtml(item.class_name || t('teacherOverview.class', 'Класс'))}</strong>
-                            <span>+${toNumber(item.improvement, 0).toFixed(1)}%</span>
-                        </div>
-                    `).join('')
-                    : `<div class="teacher-overview-empty">${t('teacherOverview.noImprovements', 'Нет улучшений &gt; 10%')}</div>`;
-            }
-        },
-
-        renderActiveTests: function () {
-            const container = document.getElementById('teacherOverviewActiveTests');
-            if (!container) return;
+	        renderActiveTests: function () {
+	            const container = document.getElementById('teacherOverviewActiveTests');
+	            if (!container) return;
 
             const rows = Array.isArray(this.state.overview?.active_tests)
                 ? this.state.overview.active_tests

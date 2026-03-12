@@ -3269,10 +3269,6 @@
     .reports-grid-kpi {
         grid-template-columns: 1fr;
     }
-
-    .teacher-overview-mini-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (max-width: 768px) {
@@ -3346,14 +3342,6 @@
 
     .reports-notification-filters {
         grid-template-columns: 1fr;
-    }
-
-    .teacher-overview-top-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .teacher-overview-mini-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     /* Calendar stays readable on narrow phones by enabling horizontal scroll */
@@ -5789,6 +5777,16 @@ body.page-leave-active {
     border-bottom: 0;
 }
 
+.director-alert-row.is-last {
+    border-bottom: 0;
+}
+
+.director-alert-more {
+    margin-top: 10px;
+    width: 100%;
+    justify-content: center;
+}
+
 .director-alert-empty {
     color: var(--text-secondary);
     font-size: 0.84rem;
@@ -6074,98 +6072,6 @@ body.page-leave-active {
     font-size: 0.96rem;
 }
 
-.teacher-overview-top-grid {
-    display: grid;
-    grid-template-columns: 1.5fr 1fr;
-    gap: 16px;
-}
-
-.teacher-overview-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.teacher-overview-actions .btn {
-    width: 100%;
-}
-
-.teacher-overview-mini-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: 10px;
-}
-
-.teacher-overview-mini-card {
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
-    padding: 12px;
-    background: rgba(15, 23, 42, 0.35);
-}
-
-.teacher-overview-mini-value {
-    font-size: 1.4rem;
-    font-weight: 800;
-    line-height: 1.1;
-}
-
-.teacher-overview-mini-label {
-    margin-top: 6px;
-    color: var(--text-secondary);
-    font-size: 0.82rem;
-}
-
-.teacher-overview-alert-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
-}
-
-.teacher-overview-alert-card {
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
-    padding: 12px;
-    background: rgba(15, 23, 42, 0.35);
-}
-
-.teacher-overview-alert-card h3 {
-    margin: 0 0 10px;
-    font-size: 0.9rem;
-}
-
-.teacher-overview-alert-card.positive {
-    border-color: rgba(34, 197, 94, 0.34);
-    background: rgba(22, 163, 74, 0.14);
-}
-
-.teacher-overview-alert-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 6px 0;
-    border-bottom: 1px dashed var(--border-light);
-    font-size: 0.86rem;
-}
-
-.teacher-overview-alert-row:last-child {
-    border-bottom: 0;
-}
-
-.teacher-overview-alert-row span {
-    color: var(--text-secondary);
-}
-
-.teacher-overview-alert-count {
-    font-size: 1.6rem;
-    font-weight: 800;
-}
-
-.teacher-overview-alert-sub {
-    margin-top: 6px;
-    color: var(--text-secondary);
-    font-size: 0.84rem;
-}
-
 .teacher-overview-table td.is-danger {
     color: #ef4444;
     font-weight: 700;
@@ -6289,35 +6195,11 @@ body.page-leave-active {
 }
 
 @media (max-width: 1024px) {
-    .teacher-overview-top-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .teacher-overview-actions {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-
-    .teacher-overview-actions .btn {
-        width: auto;
-    }
-
-    .teacher-overview-mini-grid {
-        grid-template-columns: repeat(2, minmax(120px, 1fr));
-    }
 }
 
 @media (max-width: 768px) {
     .teacher-overview-greeting {
         font-size: 1.55rem;
-    }
-
-    .teacher-overview-actions {
-        flex-direction: column;
-    }
-
-    .teacher-overview-actions .btn {
-        width: 100%;
     }
 
     .teacher-overview-chart-wrap {
@@ -6326,14 +6208,6 @@ body.page-leave-active {
 }
 
 @media (max-width: 640px) {
-    .teacher-overview-mini-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .teacher-overview-alert-grid {
-        grid-template-columns: 1fr;
-    }
-
     .teacher-overview-chart-header {
         flex-direction: column;
         align-items: flex-start;
@@ -6355,8 +6229,6 @@ body.page-leave-active {
     }
 }
 
-[data-theme="light"] .teacher-overview-mini-card,
-[data-theme="light"] .teacher-overview-alert-card,
 [data-theme="light"] .teacher-overview-activity-item {
     background: rgba(248, 250, 252, 0.95);
     border-color: rgba(15, 23, 42, 0.12);

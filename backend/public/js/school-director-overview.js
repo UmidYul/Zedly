@@ -5,13 +5,14 @@
     const API_BASE = '/api/admin/director';
     const CHART_COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
 
-    const state = {
-        chart: null,
-        chartMode: 'classes',
-        overview: null,
-        performance: null,
-        themeListenerBound: false
-    };
+	    const state = {
+	        chart: null,
+	        chartMode: 'classes',
+	        overview: null,
+	        performance: null,
+	        themeListenerBound: false,
+	        inactiveTeachersLimit: 10
+	    };
 
     function getRoot() {
         return document.getElementById('schoolDirectorOverviewPage');
@@ -323,12 +324,27 @@
                 : '<div class="director-alert-empty">Нет проблемных классов</div>';
         }
 
-        if (inactiveTeachers) {
-            const rows = Array.isArray(alerts.inactive_teachers) ? alerts.inactive_teachers : [];
-            inactiveTeachers.innerHTML = rows.length
-                ? rows.map((item) => `<div class="director-alert-row">${escapeHtml(item.name)} — ${formatDate(item.last_assigned_at)}</div>`).join('')
-                : '<div class="director-alert-empty">Нет неактивных учителей</div>';
-        }
+	        if (inactiveTeachers) {
+	            const rows = Array.isArray(alerts.inactive_teachers) ? alerts.inactive_teachers : [];
+	            if (!rows.length) {
+	                inactiveTeachers.innerHTML = '<div class="director-alert-empty">Нет неактивных учителей</div>';
+	            } else {
+	                const limit = Math.max(10, Number(state.inactiveTeachersLimit || 0));
+	                const visible = rows.slice(0, limit);
+	                const remaining = Math.max(0, rows.length - visible.length);
+	
+	                const listHtml = visible.map((item, index) => {
+	                    const isLast = index === visible.length - 1;
+	                    return `<div class="director-alert-row${isLast ? ' is-last' : ''}">${escapeHtml(item.name)} — ${formatDate(item.last_assigned_at)}</div>`;
+	                }).join('');
+	
+	                const moreHtml = remaining > 0
+	                    ? `<button type="button" class="btn btn-outline director-alert-more" id="directorInactiveTeachersMoreBtn">Смотреть еще (+${Math.min(10, remaining)})</button>`
+	                    : '';
+	
+	                inactiveTeachers.innerHTML = `${listHtml}${moreHtml}`;
+	            }
+	        }
 
         if (inactiveStudents) {
             inactiveStudents.innerHTML = `
@@ -566,10 +582,21 @@
         renderMonthComparisonCaption();
     }
 
-    function bindEvents() {
-        const switchRoot = document.getElementById('directorChartSwitch');
-        if (switchRoot) {
-            switchRoot.querySelectorAll('[data-mode]').forEach((button) => {
+	    function bindEvents() {
+	        const root = getRoot();
+	        if (root && root.dataset.inactiveTeachersBound !== '1') {
+	            root.dataset.inactiveTeachersBound = '1';
+	            root.addEventListener('click', (event) => {
+	                const moreBtn = event.target.closest('#directorInactiveTeachersMoreBtn');
+	                if (!moreBtn) return;
+	                state.inactiveTeachersLimit = Math.max(10, Number(state.inactiveTeachersLimit || 0)) + 10;
+	                renderAlerts();
+	            });
+	        }
+
+	        const switchRoot = document.getElementById('directorChartSwitch');
+	        if (switchRoot) {
+	            switchRoot.querySelectorAll('[data-mode]').forEach((button) => {
                 button.addEventListener('click', async () => {
                     const mode = String(button.dataset.mode || 'classes');
                     if (mode === state.chartMode) return;
@@ -627,14 +654,15 @@
         renderTodayActivity();
     }
 
-    async function loadData() {
-        const [overview, performance] = await Promise.all([
-            apiGet('/overview'),
-            apiGet(`/performance-chart?mode=${encodeURIComponent(state.chartMode)}`)
-        ]);
-        state.overview = overview;
-        state.performance = performance;
-    }
+	    async function loadData() {
+	        const [overview, performance] = await Promise.all([
+	            apiGet('/overview'),
+	            apiGet(`/performance-chart?mode=${encodeURIComponent(state.chartMode)}`)
+	        ]);
+	        state.overview = overview;
+	        state.performance = performance;
+	        state.inactiveTeachersLimit = 10;
+	    }
 
     async function init() {
         const root = getRoot();

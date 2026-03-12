@@ -63,18 +63,6 @@
         return 'is-high';
     }
 
-    function formatDaysLeft(daysLeft) {
-        if (daysLeft === null || daysLeft === undefined) {
-            return 'Без дедлайна';
-        }
-        const safe = Number(daysLeft);
-        if (!Number.isFinite(safe)) return 'Без дедлайна';
-        if (safe < 0) return `Просрочен на ${Math.abs(safe)} дн.`;
-        if (safe === 0) return 'Дедлайн сегодня';
-        if (safe === 1) return 'Остался 1 день';
-        return `Осталось ${safe} дн.`;
-    }
-
     async function showAlert(message, title = 'Информация') {
         if (window.ZedlyDialog?.alert) {
             await window.ZedlyDialog.alert(message, { title });
@@ -136,10 +124,6 @@
 
         renderLoading: function () {
             const ids = [
-                'studentOverviewUrgentTests',
-                'studentOverviewStreak',
-                'studentOverviewMiniStats',
-                'studentOverviewClassRank',
                 'studentOverviewSubjectProgress',
                 'studentOverviewRecommendedTest',
                 'studentOverviewLastActivity'
@@ -157,10 +141,6 @@
 
         renderError: function (message) {
             const ids = [
-                'studentOverviewUrgentTests',
-                'studentOverviewStreak',
-                'studentOverviewMiniStats',
-                'studentOverviewClassRank',
                 'studentOverviewSubjectProgress',
                 'studentOverviewRecommendedTest',
                 'studentOverviewLastActivity'
@@ -178,10 +158,6 @@
 
         renderAll: function () {
             this.renderGreeting();
-            this.renderUrgentTests();
-            this.renderStreak();
-            this.renderMiniStats();
-            this.renderClassRank();
             this.renderSubjectProgress();
             this.renderRecommendedTest();
             this.renderLastActivity();
@@ -212,105 +188,6 @@
                 });
                 dateEl.textContent = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
             }
-        },
-
-        renderUrgentTests: function () {
-            const container = document.getElementById('studentOverviewUrgentTests');
-            if (!container) return;
-
-            const urgentTests = Array.isArray(this.state.data?.urgent_tests)
-                ? this.state.data.urgent_tests
-                : [];
-            const visibleUrgentTests = urgentTests.slice(0, 2);
-
-            if (!visibleUrgentTests.length) {
-                container.innerHTML = '<p class="text-secondary">Нет срочных непройденных тестов.</p>';
-                return;
-            }
-
-            const items = visibleUrgentTests.map((test) => {
-                const subject = test.subject_name ? `<span class="student-overview-chip">${escapeHtml(test.subject_name)}</span>` : '';
-                return `
-                    <div class="student-overview-urgent-item">
-                        <div class="student-overview-urgent-main">
-                            <div class="student-overview-urgent-title">${escapeHtml(test.test_title || 'Тест')}</div>
-                            <div class="student-overview-urgent-meta">
-                                ${subject}
-                                <span class="student-overview-deadline">${formatDaysLeft(test.days_left)}</span>
-                            </div>
-                        </div>
-                        <button class="btn btn-primary js-student-overview-start" data-assignment-id="${escapeHtml(test.assignment_id || '')}" type="button">
-                            Начать
-                        </button>
-                    </div>
-                `;
-            }).join('');
-
-            container.innerHTML = `<div class="student-overview-urgent-list">${items}</div>`;
-        },
-
-        renderStreak: function () {
-            const container = document.getElementById('studentOverviewStreak');
-            if (!container) return;
-
-            const streakDays = toNumber(this.state.data?.streak?.days, 0);
-            const motivation = this.state.data?.streak?.motivation || null;
-
-            container.innerHTML = `
-                <div class="student-overview-streak-box ${streakDays > 0 ? 'is-active' : ''}">
-                    <div class="student-overview-streak-value">🔥 ${streakDays}</div>
-                    <div class="student-overview-streak-label">дней подряд</div>
-                    ${streakDays > 0 && motivation
-                        ? `<p class="student-overview-streak-message">${escapeHtml(motivation)}</p>`
-                        : '<p class="student-overview-streak-message">Начни серию сегодня.</p>'}
-                </div>
-            `;
-        },
-
-        renderMiniStats: function () {
-            const container = document.getElementById('studentOverviewMiniStats');
-            if (!container) return;
-
-            const mini = this.state.data?.mini_stats || {};
-            const avgScore = toNumber(mini.avg_score, 0);
-            const testsCompleted = toNumber(mini.tests_completed, 0);
-            const testsAssigned = toNumber(mini.tests_assigned, 0);
-
-            container.innerHTML = `
-                <div class="student-overview-mini-grid">
-                    <div class="student-overview-mini-card">
-                        <div class="student-overview-mini-value">${formatPercent(avgScore)}</div>
-                        <div class="student-overview-mini-label">Средний балл</div>
-                    </div>
-                    <div class="student-overview-mini-card">
-                        <div class="student-overview-mini-value">${testsCompleted} / ${testsAssigned}</div>
-                        <div class="student-overview-mini-label">Пройдено тестов</div>
-                    </div>
-                </div>
-            `;
-        },
-
-        renderClassRank: function () {
-            const container = document.getElementById('studentOverviewClassRank');
-            if (!container) return;
-
-            const classPosition = this.state.data?.class_position || {};
-            const rank = classPosition.rank !== null && classPosition.rank !== undefined
-                ? toNumber(classPosition.rank, 0)
-                : null;
-            const total = toNumber(classPosition.total_students, 0);
-
-            if (!rank || !total) {
-                container.innerHTML = '<p class="text-secondary">Недостаточно данных за текущий месяц.</p>';
-                return;
-            }
-
-            container.innerHTML = `
-                <div class="student-overview-rank-box">
-                    <div class="student-overview-rank-value">${rank} из ${total}</div>
-                    <div class="student-overview-rank-label">место по среднему баллу за текущий месяц</div>
-                </div>
-            `;
         },
 
         renderSubjectProgress: function () {
