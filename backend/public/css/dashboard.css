@@ -3712,6 +3712,29 @@
     }
 }
 
+/* Short desktop viewports (e.g. 1280x656): reduce vertical chrome */
+@media (max-height: 720px) and (min-width: 769px) {
+    .dashboard-header {
+        margin: 10px;
+        top: 10px;
+        padding: 10px 16px;
+        border-radius: 14px;
+    }
+
+    .dashboard-content {
+        padding: 16px;
+    }
+
+    .page-header-section {
+        padding-top: 0;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .dashboard-section {
+        padding: 14px;
+    }
+}
+
 @media (max-width: 600px) {
     .page-toolbar {
         gap: 12px;

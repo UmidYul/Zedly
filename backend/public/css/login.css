@@ -1,9 +1,19 @@
 /* Login Page Styles */
 
+html,
+body {
+    height: 100%;
+}
+
+body {
+    background: #0F1729;
+}
+
 .login-page {
     display: grid;
     grid-template-columns: 1fr 1fr;
     min-height: 100vh;
+    min-height: 100dvh;
     background: #0F1729;
 }
 
@@ -612,5 +622,58 @@
 
     .form-title {
         font-size: 1.5rem;
+    }
+}
+
+/* Short desktop viewports (e.g. 1280x656): keep layout readable */
+@media (max-height: 720px) and (min-width: 969px) {
+    .login-left {
+        padding: var(--spacing-2xl);
+    }
+
+    .login-right {
+        padding: var(--spacing-xl);
+    }
+
+    .login-header {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .login-brand .logo {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .brand-title {
+        font-size: 2.1rem;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .brand-desc {
+        font-size: 1.05rem;
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .login-features {
+        gap: var(--spacing-md);
+    }
+
+    .feature-item {
+        padding: 12px;
+    }
+
+    .form-title {
+        font-size: 1.75rem;
+    }
+
+    .form-subtitle {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .login-form {
+        gap: var(--spacing-md);
+    }
+
+    .login-form button[type="submit"] {
+        margin-top: var(--spacing-sm);
     }
 }
