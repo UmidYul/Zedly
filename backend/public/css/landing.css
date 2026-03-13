@@ -49,6 +49,29 @@ html {
     flex-direction: column;
     scroll-behavior: smooth;
     overflow-x: hidden;
+    position: relative;
+}
+
+.landing-page > main,
+.landing-footer {
+    position: relative;
+    z-index: 1;
+}
+
+.landing-bg-visual {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.9;
+}
+
+.landing-bg-visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 45%, rgba(147, 197, 253, 0.10) 0%, rgba(147, 197, 253, 0) 62%);
+    animation: landingPulse 10s ease-in-out infinite;
 }
 
 .landing-nav {
@@ -156,6 +179,96 @@ html {
     align-items: center;
     padding: 80px 6vw 60px;
     animation: landingFadeUp 0.7s ease both;
+    position: relative;
+    overflow: hidden;
+}
+
+.landing-hero-content,
+.landing-hero-card {
+    position: relative;
+    z-index: 2;
+}
+
+.landing-visual-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(148, 163, 184, 0.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.10) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(circle at 55% 45%, rgba(0, 0, 0, 1) 32%, rgba(0, 0, 0, 0) 82%);
+    animation: landingGridDrift 28s linear infinite;
+    opacity: 0.38;
+}
+
+.landing-visual-orbit {
+    position: absolute;
+    border: 1px dashed rgba(148, 163, 184, 0.22);
+    border-radius: 999px;
+}
+
+.landing-visual-orbit-1 {
+    width: 520px;
+    height: 520px;
+    left: -180px;
+    bottom: -140px;
+    animation: landingOrbitRotate 24s linear infinite;
+}
+
+.landing-visual-orbit-2 {
+    width: 360px;
+    height: 360px;
+    right: 120px;
+    top: 40px;
+    animation: landingOrbitRotateReverse 20s linear infinite;
+}
+
+.landing-visual-orbit-3 {
+    width: 240px;
+    height: 240px;
+    right: -70px;
+    bottom: 140px;
+    animation: landingOrbitRotate 18s linear infinite;
+}
+
+@keyframes landingPulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.58;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 0.35;
+    }
+}
+
+@keyframes landingGridDrift {
+    0% {
+        transform: translate(0, 0);
+    }
+    100% {
+        transform: translate(56px, 56px);
+    }
+}
+
+@keyframes landingOrbitRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes landingOrbitRotateReverse {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(-360deg);
+    }
 }
 
 .landing-hero-content h1 {
@@ -257,6 +370,7 @@ html {
         border-color 220ms ease,
         background-color 220ms ease,
         box-shadow 280ms ease;
+    cursor: pointer;
 }
 
 .landing-card::before {
@@ -684,5 +798,15 @@ html {
 
     .landing-footer-copy {
         text-align: center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-bg-visual::before,
+    .landing-visual-grid,
+    .landing-visual-orbit-1,
+    .landing-visual-orbit-2,
+    .landing-visual-orbit-3 {
+        animation: none !important;
     }
 }

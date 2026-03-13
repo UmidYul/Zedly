@@ -366,6 +366,45 @@ body {
     min-height: 100vh;
 }
 
+/* Global animated background (opt-in via body.zedly-animated-bg) */
+.zedly-animated-bg {
+    position: relative;
+    isolation: isolate;
+}
+
+.zedly-animated-bg::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.38;
+    background-image:
+        linear-gradient(rgba(148, 163, 184, 0.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.10) 1px, transparent 1px),
+        radial-gradient(circle at 18% 82%, transparent 0 210px, rgba(148, 163, 184, 0.10) 211px 212px, transparent 213px),
+        radial-gradient(circle at 82% 20%, transparent 0 160px, rgba(148, 163, 184, 0.08) 161px 162px, transparent 163px),
+        radial-gradient(circle at 50% 45%, rgba(96, 165, 250, 0.10) 0%, rgba(96, 165, 250, 0) 62%);
+    background-size: 56px 56px, 56px 56px, 100% 100%, 100% 100%, 100% 100%;
+    background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
+    animation: zedlyBgDrift 28s linear infinite;
+}
+
+@keyframes zedlyBgDrift {
+    0% {
+        background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
+    }
+    100% {
+        background-position: 56px 56px, 56px 56px, 0 0, 0 0, 0 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .zedly-animated-bg::before {
+        animation: none !important;
+    }
+}
+
 h1,
 h2,
 h3,

@@ -58,6 +58,10 @@
 
     // Initialize theme on page load
     function initTheme() {
+        if (document.body) {
+            document.body.classList.add('zedly-animated-bg');
+        }
+
         const theme = getCurrentTheme();
         setTheme(theme);
         console.log('🎨 Theme initialized:', theme);
