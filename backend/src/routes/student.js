@@ -747,6 +747,8 @@ router.get('/assignments', async (req, res) => {
                 ta.id,
                 ta.test_id,
                 ta.class_id,
+                ${assignmentColumns.has('assignment_type') ? 'ta.assignment_type' : "'test'"} as assignment_type,
+                ${assignmentColumns.has('reveal_answers_after_deadline') ? 'ta.reveal_answers_after_deadline' : 'false'} as reveal_answers_after_deadline,
                 t.subject_id,
                 ${startDateColumn ? `ta.${startDateColumn}` : 'NULL'} as start_date,
                 ${endDateColumn ? `ta.${endDateColumn}` : 'NULL'} as end_date,
@@ -754,7 +756,10 @@ router.get('/assignments', async (req, res) => {
                 ${testDescriptionColumn ? `t.${testDescriptionColumn}` : 'NULL'} as test_description,
                 ${durationColumn ? `t.${durationColumn}` : 'NULL'} as duration_minutes,
                 ${passingScoreColumn ? `t.${passingScoreColumn}` : 'NULL'} as passing_score,
-                ${maxAttemptsColumn ? `t.${maxAttemptsColumn}` : 'NULL'} as max_attempts,
+                CASE
+                    WHEN ${assignmentColumns.has('assignment_type') ? 'ta.assignment_type' : "'test'"} = 'control' THEN 1
+                    ELSE ${maxAttemptsColumn ? `t.${maxAttemptsColumn}` : '1'}
+                END as max_attempts,
                 c.name as class_name,
                 s.${subjectNameColumn} as subject_name,
                 ${subjectColorColumn ? `s.${subjectColorColumn}` : 'NULL'} as subject_color,
@@ -770,7 +775,7 @@ router.get('/assignments', async (req, res) => {
                         AND ${completedFilter}
                         AND EXISTS (
                             SELECT 1 FROM jsonb_each(att.answers) AS answer_entry
-                            WHERE (answer_entry.value->>'is_correct')::text = 'null'
+                            WHERE answer_entry.value->'is_correct' = 'null'::jsonb
                         )
                     ) THEN true ELSE false END
                 ) as has_pending_grading
@@ -845,7 +850,10 @@ router.get('/assignments/:id', async (req, res) => {
                 ${testDescriptionColumn ? `t.${testDescriptionColumn}` : 'NULL'} as test_description,
                 ${durationColumn ? `t.${durationColumn}` : 'NULL'} as duration_minutes,
                 ${passingScoreColumn ? `t.${passingScoreColumn}` : 'NULL'} as passing_score,
-                ${maxAttemptsColumn ? `t.${maxAttemptsColumn}` : 'NULL'} as max_attempts,
+                CASE
+                    WHEN ${assignmentColumns.has('assignment_type') ? 'ta.assignment_type' : "'test'"} = 'control' THEN 1
+                    ELSE ${maxAttemptsColumn ? `t.${maxAttemptsColumn}` : '1'}
+                END as max_attempts,
                 c.name as class_name,
                 s.${subjectNameColumn} as subject_name,
                 ${subjectColorColumn ? `s.${subjectColorColumn}` : 'NULL'} as subject_color,
@@ -915,6 +923,8 @@ router.post('/attempts', async (req, res) => {
         }
 
         const assignment = assignmentResult.rows[0];
+        const assignmentType = String(assignment.assignment_type || 'test').trim().toLowerCase();
+        const effectiveMaxAttempts = assignmentType === 'control' ? 1 : assignment.max_attempts;
 
         // Check if assignment is active
         const now = new Date();
@@ -954,7 +964,7 @@ router.post('/attempts', async (req, res) => {
             [assignment_id, studentId]
         );
 
-        if (parseInt(attemptsCount.rows[0].count) >= assignment.max_attempts) {
+        if (parseInt(attemptsCount.rows[0].count) >= effectiveMaxAttempts) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'You have reached the maximum number of attempts'
@@ -1021,7 +1031,7 @@ router.get('/attempts/:id', async (req, res) => {
             `SELECT
             ta.*, t.title as test_title, t.duration_minutes, t.passing_score,
             t.shuffle_questions, t.block_copy_paste, t.track_tab_switches, t.fullscreen_required,
-                tass.start_date, tass.end_date,
+                tass.start_date, tass.end_date, tass.assignment_type, tass.reveal_answers_after_deadline,
                 s.name as subject_name, s.color as subject_color
              FROM test_attempts ta
              JOIN tests t ON ta.test_id = t.id
@@ -1110,8 +1120,43 @@ router.get('/attempts/:id', async (req, res) => {
                 : questionsResult.rows;
         }
 
+        // Control works: hide correct answers until after deadline (and strip them from snapshots too).
+        const now = new Date();
+        const assignmentType = String(attempt.assignment_type || 'test').trim().toLowerCase();
+        const revealAfterDeadline = attempt.reveal_answers_after_deadline === true;
+        const endDate = attempt.end_date ? new Date(attempt.end_date) : null;
+        const shouldHideCorrectAnswers = assignmentType === 'control'
+            && revealAfterDeadline
+            && endDate instanceof Date
+            && !Number.isNaN(endDate.getTime())
+            && now < endDate;
+
+        if (shouldHideCorrectAnswers) {
+            questions = questions.map((q) => ({
+                ...q,
+                correct_answer: null
+            }));
+
+            for (const [qid, meta] of Object.entries(answersMap)) {
+                if (!meta || typeof meta !== 'object') continue;
+                if (meta.question_snapshot && typeof meta.question_snapshot === 'object') {
+                    meta.question_snapshot = { ...meta.question_snapshot, correct_answer: null };
+                }
+                answersMap[qid] = meta;
+            }
+        }
+
+        // Expose grading status for UI (derived from answers JSON null flags).
+        const hasPendingGrading = Object.values(answersMap).some((entry) =>
+            entry && typeof entry === 'object' && entry.is_correct === null
+        );
+
         res.json({
-            attempt: attempt,
+            attempt: {
+                ...attempt,
+                answers: answersMap,
+                has_pending_grading: hasPendingGrading
+            },
             questions: questions
         });
     } catch (error) {
@@ -1181,7 +1226,7 @@ router.put('/attempts/:id/submit', async (req, res) => {
 
         // Get questions with full data to store immutable snapshot in attempt answers
         const questionsResult = await query(
-            `SELECT id, question_type, question_text, options, correct_answer, marks, media_url
+            `SELECT id, question_type, question_text, options, correct_answer, marks, media_url, requires_manual_review
              FROM test_questions
              WHERE test_id = $1
              ORDER BY order_number ASC`,
@@ -1190,15 +1235,32 @@ router.put('/attempts/:id/submit', async (req, res) => {
 
         // Grade the test
         let totalScore = 0;
+        let pendingManualCount = 0;
         const gradedAnswers = {};
 
         questionsResult.rows.forEach(question => {
             const studentAnswer = submittedAnswers[question.id];
             const correctAnswer = question.correct_answer;
+            const questionType = String(question.question_type || '').trim().toLowerCase();
+            const requiresManual = question.requires_manual_review === true || questionType === 'essay';
+            const hasStudentResponse = (() => {
+                if (studentAnswer === undefined || studentAnswer === null) return false;
+                if (typeof studentAnswer === 'string') return studentAnswer.trim().length > 0;
+                if (Array.isArray(studentAnswer)) return studentAnswer.some((v) => String(v ?? '').trim().length > 0);
+                return true;
+            })();
+
             let isCorrect = false;
             let earnedMarks = 0;
 
-            if (studentAnswer !== undefined && studentAnswer !== null) {
+            if (requiresManual) {
+                if (hasStudentResponse) {
+                    isCorrect = null;
+                    pendingManualCount += 1;
+                } else {
+                    isCorrect = false;
+                }
+            } else if (studentAnswer !== undefined && studentAnswer !== null) {
                 switch (question.question_type) {
                     case 'singlechoice':
                     case 'imagebased': {
@@ -1317,24 +1379,27 @@ router.put('/attempts/:id/submit', async (req, res) => {
         );
 
         try {
-            const recipient = await getStudentNotificationRecipient(studentId);
-            if (recipient) {
-                const language = resolveLanguageFromSettings(recipient.settings);
-                const testMeta = await getTestMetaForNotification(attempt.test_id);
-                await notifyTestResults(
-                    recipient,
-                    {
-                        type: 'subject',
-                        test_id: attempt.test_id,
-                        test_title: testMeta?.title || 'Тест',
-                        subject_name: testMeta?.subject_name || null,
-                        score: totalScore,
-                        max_score: attempt.max_score,
-                        percentage,
-                        passed: percentage >= attempt.passing_score
-                    },
-                    language
-                );
+            // Only notify student about final results (auto-graded only attempts are final).
+            if (pendingManualCount === 0) {
+                const recipient = await getStudentNotificationRecipient(studentId);
+                if (recipient) {
+                    const language = resolveLanguageFromSettings(recipient.settings);
+                    const testMeta = await getTestMetaForNotification(attempt.test_id);
+                    await notifyTestResults(
+                        recipient,
+                        {
+                            type: 'subject',
+                            test_id: attempt.test_id,
+                            test_title: testMeta?.title || 'Тест',
+                            subject_name: testMeta?.subject_name || null,
+                            score: totalScore,
+                            max_score: attempt.max_score,
+                            percentage,
+                            passed: percentage >= attempt.passing_score
+                        },
+                        language
+                    );
+                }
             }
         } catch (notifyError) {
             console.error('Subject test results notification error:', notifyError);
@@ -1345,7 +1410,9 @@ router.put('/attempts/:id/submit', async (req, res) => {
             score: totalScore,
             max_score: attempt.max_score,
             percentage: percentage.toFixed(2),
-            passed: percentage >= attempt.passing_score,
+            passed: pendingManualCount === 0 ? (percentage >= attempt.passing_score) : null,
+            pending_manual_review: pendingManualCount > 0,
+            pending_manual_count: pendingManualCount,
             time_spent_seconds: timeSpentSeconds
         });
     } catch (error) {
@@ -1414,6 +1481,10 @@ router.put('/attempts/:id/save', async (req, res) => {
 router.get('/results', async (req, res) => {
     try {
         const studentId = req.user.id;
+        const assignmentColumns = await getTableColumns('test_assignments');
+        const assignmentTypeSelect = assignmentColumns.has('assignment_type')
+            ? 'COALESCE(tass.assignment_type, \'test\') as assignment_type'
+            : '\'test\' as assignment_type';
 
         const result = await query(
             `SELECT
@@ -1422,6 +1493,7 @@ router.get('/results', async (req, res) => {
                 t.title as test_title, t.passing_score,
                 s.name as subject_name, s.color as subject_color,
                 tass.id as assignment_id,
+                ${assignmentTypeSelect},
                 c.name as class_name
              FROM test_attempts ta
              JOIN tests t ON ta.test_id = t.id

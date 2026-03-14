@@ -91,6 +91,24 @@
     background: rgba(248, 250, 252, 0.9);
 }
 
+.test-type-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+    background: rgba(239, 68, 68, 0.12);
+    color: rgba(185, 28, 28, 0.95);
+    border: 1px solid rgba(239, 68, 68, 0.24);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+[data-theme="dark"] .test-type-badge {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.28);
+    color: rgba(254, 202, 202, 0.95);
+}
+
 .test-subject {
     font-size: 0.72rem;
     font-weight: 700;
@@ -516,6 +534,38 @@
 }
 
 @media (max-width: 640px) {
+    .page-tabs {
+        padding: var(--spacing-sm);
+    }
+
+    .page-tabs .tabs {
+        margin-bottom: var(--spacing-sm);
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-sm);
+    }
+
+    .page-tabs .tabs:last-child {
+        margin-bottom: 0;
+    }
+
+    .page-tabs .tab {
+        width: 100%;
+        padding: 10px 12px;
+        text-align: center;
+        justify-content: center;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .test-card-header {
+        padding-right: var(--spacing-lg);
+        gap: 10px;
+    }
+
     .test-card-footer {
         flex-direction: column;
     }

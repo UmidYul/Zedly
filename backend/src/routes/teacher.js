@@ -8,7 +8,7 @@ const ExcelJS = require('exceljs');
 const { query } = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const bcrypt = require('bcrypt');
-const { notifyNewTest, notifyPasswordReset } = require('../utils/notifications');
+const { notifyNewTest, notifyPasswordReset, notifyTestResults } = require('../utils/notifications');
 
 function generateOtp() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -4209,9 +4209,9 @@ router.post('/tests', async (req, res) => {
                 await query(
                     `INSERT INTO test_questions (
                         test_id, question_type, question_text, options,
-                        correct_answer, marks, order_number, media_url
+                        correct_answer, marks, order_number, media_url, requires_manual_review
                      )
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
                     [
                         testId,
                         q.question_type,
@@ -4220,7 +4220,8 @@ router.post('/tests', async (req, res) => {
                         JSON.stringify(q.correct_answer),
                         q.marks || 1,
                         i + 1,
-                        q.media_url || null
+                        q.media_url || null,
+                        q.requires_manual_review === true || String(q.question_type || '').toLowerCase() === 'essay'
                     ]
                 );
             }
@@ -4316,14 +4317,15 @@ router.put('/tests/:id', async (req, res) => {
                 await query(
                     `INSERT INTO test_questions (
                         test_id, question_type, question_text, options,
-                        correct_answer, marks, order_number, media_url
+                        correct_answer, marks, order_number, media_url, requires_manual_review
                      )
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
                     [
                         id, q.question_type, q.question_text,
                         JSON.stringify(q.options || []),
                         JSON.stringify(q.correct_answer), q.marks || 1, i + 1,
-                        q.media_url || null
+                        q.media_url || null,
+                        q.requires_manual_review === true || String(q.question_type || '').toLowerCase() === 'essay'
                     ]
                 );
             }
@@ -5846,6 +5848,8 @@ router.get('/assignments', async (req, res) => {
         const result = await query(
             `SELECT
                 ta.id, ta.test_id, ta.class_id, ta.start_date, ta.end_date, ta.is_active, ta.created_at,
+                COALESCE(ta.assignment_type, 'test') as assignment_type,
+                COALESCE(ta.reveal_answers_after_deadline, false) as reveal_answers_after_deadline,
                 t.title as test_title, t.duration_minutes, t.passing_score,
                 c.name as class_name, c.grade_level,
                 s.name as subject_name, s.color as subject_color,
@@ -5954,10 +5958,16 @@ router.post('/assignments', async (req, res) => {
     let testId = null;
     let classIdsContext = [];
     try {
-        const { test_id, class_id, class_ids, start_date, end_date } = req.body;
+        const { test_id, class_id, class_ids, start_date, end_date, assignment_type, reveal_answers_after_deadline } = req.body;
         testId = test_id;
         teacherId = req.user.id;
         schoolId = req.user.school_id;
+        const normalizedAssignmentType = String(assignment_type || 'test').trim().toLowerCase() === 'control'
+            ? 'control'
+            : 'test';
+        const normalizedRevealAnswers = typeof reveal_answers_after_deadline === 'boolean'
+            ? reveal_answers_after_deadline
+            : normalizedAssignmentType === 'control';
         const normalizedClassIds = Array.from(new Set(
             (Array.isArray(class_ids) && class_ids.length > 0 ? class_ids : [class_id])
                 .map((id) => String(id || '').trim())
@@ -6029,10 +6039,13 @@ router.post('/assignments', async (req, res) => {
 
         for (const targetClassId of classIdsToCreate) {
             const result = await query(
-                `INSERT INTO test_assignments (test_id, class_id, assigned_by, start_date, end_date, is_active)
-                 VALUES ($1, $2, $3, $4, $5, true)
+                `INSERT INTO test_assignments (
+                    test_id, class_id, assigned_by, start_date, end_date, is_active,
+                    assignment_type, reveal_answers_after_deadline
+                 )
+                 VALUES ($1, $2, $3, $4, $5, true, $6, $7)
                  RETURNING id, class_id, created_at`,
-                [test_id, targetClassId, teacherId, start_date, end_date]
+                [test_id, targetClassId, teacherId, start_date, end_date, normalizedAssignmentType, normalizedRevealAnswers]
             );
             const assignment = result.rows[0];
             createdAssignments.push(assignment);
@@ -6040,7 +6053,7 @@ router.post('/assignments', async (req, res) => {
             await query(
                 `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
                  VALUES ($1, $2, $3, $4, $5)`,
-                [teacherId, 'create', 'test_assignment', assignment.id, { test_id, class_id: targetClassId }]
+                [teacherId, 'create', 'test_assignment', assignment.id, { test_id, class_id: targetClassId, assignment_type: normalizedAssignmentType }]
             );
         }
 
@@ -6124,9 +6137,15 @@ router.put('/assignments/:id', async (req, res) => {
     try {
         const { id } = req.params;
         assignmentId = id;
-        const { start_date, end_date, is_active } = req.body;
+        const { start_date, end_date, is_active, assignment_type, reveal_answers_after_deadline } = req.body;
         teacherId = req.user.id;
         const schoolId = req.user.school_id;
+        const normalizedAssignmentType = assignment_type === undefined || assignment_type === null
+            ? null
+            : (String(assignment_type).trim().toLowerCase() === 'control' ? 'control' : 'test');
+        const normalizedRevealAnswers = typeof reveal_answers_after_deadline === 'boolean'
+            ? reveal_answers_after_deadline
+            : null;
 
         // Check ownership
         const assignmentCheck = await query(
@@ -6149,16 +6168,20 @@ router.put('/assignments/:id', async (req, res) => {
         // Update assignment
         await query(
             `UPDATE test_assignments SET
-                start_date = $1, end_date = $2, is_active = $3
-             WHERE id = $4`,
-            [start_date, end_date, is_active, id]
+                start_date = $1,
+                end_date = $2,
+                is_active = $3,
+                assignment_type = COALESCE($4, assignment_type),
+                reveal_answers_after_deadline = COALESCE($5, reveal_answers_after_deadline)
+             WHERE id = $6`,
+            [start_date, end_date, is_active, normalizedAssignmentType, normalizedRevealAnswers, id]
         );
 
         // Log action
         await query(
             `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
-            [teacherId, 'update', 'test_assignment', id, { start_date, end_date, is_active }]
+            [teacherId, 'update', 'test_assignment', id, { start_date, end_date, is_active, assignment_type: normalizedAssignmentType, reveal_answers_after_deadline: normalizedRevealAnswers }]
         );
 
         res.json({ message: 'Assignment updated successfully' });
@@ -6286,7 +6309,12 @@ router.get('/assignments/:id/results', async (req, res) => {
                 att.score,
                 att.max_score,
                 att.percentage,
-                att.is_completed
+                att.is_completed,
+                EXISTS (
+                    SELECT 1
+                    FROM jsonb_each(att.answers) AS answer_entry
+                    WHERE answer_entry.value->'is_correct' = 'null'::jsonb
+                ) as has_pending_grading
              FROM test_attempts att
              JOIN users u ON att.student_id = u.id
              LEFT JOIN class_students cs ON cs.student_id = u.id AND cs.class_id = $2
@@ -6436,6 +6464,250 @@ router.get('/attempts/:id', async (req, res) => {
         res.status(500).json({
             error: 'server_error',
             message: 'Failed to fetch attempt details'
+        });
+    }
+});
+
+/**
+ * PUT /api/teacher/attempts/:id/grade
+ * Manual grading for attempts (control works / short answers / essays)
+ *
+ * Body:
+ *  {
+ *    "grades": {
+ *      "<question_id>": { "earned_marks": 1.5, "is_correct": true },
+ *      "<question_id2>": 0
+ *    }
+ *  }
+ */
+router.put('/attempts/:id/grade', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user.id;
+        const schoolId = req.user.school_id;
+        const grades = req.body?.grades;
+
+        if (!grades || typeof grades !== 'object' || Array.isArray(grades)) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Grades payload is required'
+            });
+        }
+
+        const attemptResult = await query(
+            `SELECT att.*, ta.assigned_by, c.school_id
+             FROM test_attempts att
+             JOIN test_assignments ta ON att.assignment_id = ta.id
+             JOIN classes c ON ta.class_id = c.id
+             WHERE att.id = $1 AND ta.assigned_by = $2 AND c.school_id = $3`,
+            [id, teacherId, schoolId]
+        );
+
+        if (attemptResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'not_found',
+                message: 'Attempt not found'
+            });
+        }
+
+        const attempt = attemptResult.rows[0];
+
+        // Normalize answers map
+        const rawAnswers = attempt.answers;
+        let answersMap = {};
+        if (rawAnswers && typeof rawAnswers === 'object' && !Array.isArray(rawAnswers)) {
+            answersMap = rawAnswers;
+        } else if (typeof rawAnswers === 'string') {
+            try {
+                const parsed = JSON.parse(rawAnswers);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    answersMap = parsed;
+                }
+            } catch (_) {
+                answersMap = {};
+            }
+        }
+
+        const answeredQuestionIds = Object.keys(answersMap);
+        if (answeredQuestionIds.length === 0) {
+            return res.status(400).json({
+                error: 'validation_error',
+                message: 'Attempt has no answers to grade'
+            });
+        }
+
+        // Load question meta (marks + manual flag) for answered questions.
+        const questionsResult = await query(
+            `SELECT id, question_type, marks, requires_manual_review
+             FROM test_questions
+             WHERE id::text = ANY($1::text[])`,
+            [answeredQuestionIds]
+        );
+        const byId = new Map(questionsResult.rows.map((q) => [String(q.id), q]));
+
+        const clampNumber = (value, min, max) => {
+            const num = Number(value);
+            if (!Number.isFinite(num)) return min;
+            return Math.max(min, Math.min(max, num));
+        };
+
+        const normalizeBool = (value) => {
+            if (value === true || value === false) return value;
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'string') {
+                const v = value.trim().toLowerCase();
+                if (['true', '1', 'yes'].includes(v)) return true;
+                if (['false', '0', 'no'].includes(v)) return false;
+            }
+            return null;
+        };
+
+        // Apply grades
+        for (const [questionIdRaw, gradeValue] of Object.entries(grades)) {
+            const questionId = String(questionIdRaw);
+            const question = byId.get(questionId);
+
+            // If question was removed, allow grading using snapshot marks.
+            const snapshotMarks = Number(answersMap[questionId]?.question_snapshot?.marks);
+            const maxMarks = Number.isFinite(Number(question?.marks))
+                ? Number(question.marks)
+                : (Number.isFinite(snapshotMarks) ? snapshotMarks : 0);
+
+            const questionType = String(question?.question_type || answersMap[questionId]?.question_snapshot?.question_type || '').toLowerCase();
+            const requiresManual = (question?.requires_manual_review === true) || questionType === 'essay';
+
+            if (!requiresManual) {
+                return res.status(400).json({
+                    error: 'validation_error',
+                    message: `Question ${questionId} does not require manual grading`
+                });
+            }
+
+            const earned = (gradeValue && typeof gradeValue === 'object' && !Array.isArray(gradeValue))
+                ? gradeValue.earned_marks
+                : gradeValue;
+            const isCorrectRaw = (gradeValue && typeof gradeValue === 'object' && !Array.isArray(gradeValue))
+                ? gradeValue.is_correct
+                : undefined;
+
+            const earnedMarks = clampNumber(earned, 0, maxMarks);
+            const isCorrect = normalizeBool(isCorrectRaw);
+
+            const existing = answersMap[questionId] && typeof answersMap[questionId] === 'object'
+                ? answersMap[questionId]
+                : {};
+
+            answersMap[questionId] = {
+                ...existing,
+                earned_marks: earnedMarks,
+                // Ensure pending-grading flag is cleared.
+                is_correct: isCorrect !== null ? isCorrect : (earnedMarks > 0)
+            };
+        }
+
+        // Recalculate total score from stored earned_marks (auto + manual).
+        let totalScore = 0;
+        for (const entry of Object.values(answersMap)) {
+            const earned = Number(entry?.earned_marks);
+            if (Number.isFinite(earned)) totalScore += earned;
+        }
+
+        const maxScore = Number(attempt.max_score) || 0;
+        const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+        const stillPending = Object.values(answersMap).some((entry) => entry && typeof entry === 'object' && entry.is_correct === null);
+
+        await query(
+            `UPDATE test_attempts SET
+                answers = $1,
+                score = $2,
+                percentage = $3,
+                graded_at = CURRENT_TIMESTAMP,
+                graded_by = $4
+             WHERE id = $5`,
+            [JSON.stringify(answersMap), totalScore, percentage, teacherId, id]
+        );
+
+        // Notify student about final results when manual grading is complete.
+        if (!stillPending) {
+            try {
+                const studentResult = await query(
+                    `SELECT id, first_name, last_name, email, telegram_id, settings
+                     FROM users
+                     WHERE id = $1
+                     LIMIT 1`,
+                    [attempt.student_id]
+                );
+
+                const testMetaResult = await query(
+                    `SELECT t.id, t.title, t.passing_score, s.name as subject_name
+                     FROM tests t
+                     LEFT JOIN subjects s ON s.id = t.subject_id
+                     WHERE t.id = $1
+                     LIMIT 1`,
+                    [attempt.test_id]
+                );
+
+                const recipient = studentResult.rows[0] || null;
+                const testMeta = testMetaResult.rows[0] || null;
+
+                const parseSettings = (raw) => {
+                    if (!raw) return {};
+                    if (typeof raw === 'object' && !Array.isArray(raw)) return raw;
+                    if (typeof raw === 'string') {
+                        try {
+                            const parsed = JSON.parse(raw);
+                            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+                        } catch (_) {
+                            return {};
+                        }
+                    }
+                    return {};
+                };
+
+                const resolveLang = (rawSettings) => {
+                    const settings = parseSettings(rawSettings);
+                    const profileLanguage = String(settings?.profile?.language || '').trim().toLowerCase();
+                    const rootLanguage = String(settings?.language || '').trim().toLowerCase();
+                    return profileLanguage === 'uz' || rootLanguage === 'uz' ? 'uz' : 'ru';
+                };
+
+                if (recipient && (recipient.email || recipient.telegram_id)) {
+                    const passing = Number(testMeta?.passing_score);
+                    const passingScore = Number.isFinite(passing) ? passing : 0;
+                    const passed = passingScore > 0 ? (percentage >= passingScore) : undefined;
+                    const language = resolveLang(recipient.settings);
+
+                    await notifyTestResults(
+                        recipient,
+                        {
+                            type: 'subject',
+                            test_id: attempt.test_id,
+                            test_title: testMeta?.title || 'Тест',
+                            subject_name: testMeta?.subject_name || null,
+                            score: totalScore,
+                            max_score: maxScore,
+                            percentage,
+                            passed
+                        },
+                        language
+                    );
+                }
+            } catch (notifyError) {
+                console.error('Manual grading notification error:', notifyError);
+            }
+        }
+
+        res.json({
+            message: 'Attempt graded successfully',
+            score: totalScore,
+            max_score: maxScore,
+            percentage: percentage.toFixed(2)
+        });
+    } catch (error) {
+        console.error('Grade attempt error:', error);
+        res.status(500).json({
+            error: 'server_error',
+            message: 'Failed to grade attempt'
         });
     }
 });

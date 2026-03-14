@@ -111,6 +111,14 @@
             if (addBtn) {
                 addBtn.addEventListener('click', () => this.showAssignmentModal());
             }
+
+            const controlBtn = document.getElementById('addControlWorkBtn');
+            if (controlBtn) {
+                controlBtn.addEventListener('click', () => this.showAssignmentModal(null, {
+                    assignment_type: 'control',
+                    reveal_answers_after_deadline: true
+                }));
+            }
         },
 
         // Load assignments from API
@@ -205,6 +213,7 @@
             assignments.forEach(assignment => {
                 const startDate = new Date(assignment.start_date);
                 const endDate = new Date(assignment.end_date);
+                const isControl = String(assignment.assignment_type || 'test').trim().toLowerCase() === 'control';
 
                 let statusClass = 'status-inactive';
                 let statusText = t('assignments.statusUpcoming', 'Скоро');
@@ -228,6 +237,7 @@
                     <tr>
                         <td data-label="${colTest}">
                             <div class="user-name">${assignment.test_title}</div>
+                            ${isControl ? `<div><span class="assignment-type-badge">${t('assignments.assignmentTypeControl', 'Контрольная работа')}</span></div>` : ''}
                             <div class="user-email">${assignment.passing_score}% ${t('assignments.passingScore', 'проходной балл')}</div>
                         </td>
                         <td data-label="${colClass}">
@@ -341,7 +351,7 @@
         },
 
         // Show assignment modal (create/edit)
-        showAssignmentModal: async function (assignmentId = null) {
+        showAssignmentModal: async function (assignmentId = null, preset = null) {
             const isEdit = assignmentId !== null;
             let assignmentData = null;
 
@@ -400,6 +410,19 @@
             };
 
             // Create modal HTML
+            const presetType = preset && typeof preset === 'object'
+                ? String(preset.assignment_type || '').trim().toLowerCase()
+                : '';
+            const presetReveal = preset && typeof preset === 'object' && typeof preset.reveal_answers_after_deadline === 'boolean'
+                ? preset.reveal_answers_after_deadline
+                : null;
+            const initialType = isEdit
+                ? String(assignmentData?.assignment_type || 'test')
+                : (presetType === 'control' ? 'control' : 'test');
+            const initialReveal = isEdit
+                ? (assignmentData?.reveal_answers_after_deadline === true)
+                : (presetReveal === true || initialType === 'control');
+
             const modalHtml = `
                 <div class="modal-overlay" id="assignmentModal">
                     <div class="modal">
@@ -444,6 +467,30 @@
                                     <strong>${t('assignments.colClass', 'Класс')}:</strong> ${assignmentData.class_name}
                                 </div>
                                 `}
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">${t('assignments.assignmentType', 'Тип')}</label>
+                                        <select class="form-input" name="assignment_type" id="assignmentTypeSelect">
+                                            <option value="test" ${initialType === 'test' ? 'selected' : ''}>${t('assignments.assignmentTypeTest', 'Обычный тест')}</option>
+                                            <option value="control" ${initialType === 'control' ? 'selected' : ''}>${t('assignments.assignmentTypeControl', 'Контрольная работа')}</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="form-check" style="margin-top: 28px;">
+                                            <input
+                                                type="checkbox"
+                                                class="form-check-input"
+                                                id="assignmentRevealAnswers"
+                                                name="reveal_answers_after_deadline"
+                                                ${initialReveal ? 'checked' : ''}
+                                            />
+                                            <label class="form-check-label" for="assignmentRevealAnswers">
+                                                ${t('assignments.revealAnswersAfterDeadline', 'Показывать правильные ответы после дедлайна')}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div class="form-row">
                                     <div class="form-group">
@@ -514,6 +561,16 @@
                 const selectAllClasses = document.getElementById('assignmentSelectAllClasses');
                 const selectedClassIds = new Set();
                 this.activeModalClassSelection = selectedClassIds;
+
+                const assignmentTypeSelect = document.getElementById('assignmentTypeSelect');
+                const revealBox = document.getElementById('assignmentRevealAnswers');
+                if (assignmentTypeSelect && revealBox) {
+                    assignmentTypeSelect.addEventListener('change', () => {
+                        if (assignmentTypeSelect.value === 'control') {
+                            revealBox.checked = true;
+                        }
+                    });
+                }
 
                 const getCheckedClassIds = () => {
                     if (!classList) return [];
@@ -717,6 +774,8 @@
 
             data.start_date = toIso(formData.get('start_date'));
             data.end_date = toIso(formData.get('end_date'));
+            data.assignment_type = String(formData.get('assignment_type') || 'test');
+            data.reveal_answers_after_deadline = formData.get('reveal_answers_after_deadline') === 'on';
 
             if (resolvedAssignmentId) {
                 data.is_active = formData.get('is_active') === 'on';
@@ -981,4 +1040,3 @@
         }
     };
 })();
-

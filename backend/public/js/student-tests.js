@@ -3,13 +3,19 @@
     'use strict';
 
     function t(key, fallback) {
-        return window.ZedlyI18n?.translate(key) || fallback || key;
+        const translated = window.ZedlyI18n?.translate?.(key);
+        if (!translated || translated === key) {
+            return fallback || key;
+        }
+        return translated;
     }
 
     window.StudentTestsManager = {
         currentTab: 'available', // available, completed
+        currentType: 'test', // test, control
         assignments: [],
         subjects: [],
+        results: [],
         selectedSubjectId: null,
         focusAssignmentId: null,
         focusSubjectId: null,
@@ -43,10 +49,14 @@
             this.focusSubjectId = params.get('subject_id');
             this.selectedSubjectId = this.focusSubjectId ? String(this.focusSubjectId) : null;
             this.applyTabTranslations();
+            this.applyTypeTranslations();
             this.setupEventListeners();
             this.loadAssignments();
             if (!this.langListenerBound) {
-                window.addEventListener('zedly:lang-changed', () => this.applyTabTranslations());
+                window.addEventListener('zedly:lang-changed', () => {
+                    this.applyTabTranslations();
+                    this.applyTypeTranslations();
+                });
                 this.langListenerBound = true;
             }
         },
@@ -62,12 +72,30 @@
             }
         },
 
+        applyTypeTranslations: function () {
+            const testsTab = document.querySelector('[data-type="test"]');
+            const controlTab = document.querySelector('[data-type="control"]');
+            if (testsTab) {
+                testsTab.textContent = t('tests.typeTests', 'Тесты');
+            }
+            if (controlTab) {
+                controlTab.textContent = t('tests.typeControlWorks', 'Контрольные работы');
+            }
+        },
+
         // Setup event listeners
         setupEventListeners: function () {
             document.querySelectorAll('[data-tab]').forEach(tab => {
                 tab.addEventListener('click', (e) => {
                     const tabName = e.currentTarget.dataset.tab;
                     this.switchTab(tabName);
+                });
+            });
+
+            document.querySelectorAll('[data-type]').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const typeName = e.currentTarget.dataset.type;
+                    this.switchType(typeName);
                 });
             });
         },
@@ -86,7 +114,39 @@
             if (tabName === 'available') {
                 this.loadAssignments();
             } else if (tabName === 'completed') {
-                this.loadResults();
+                if (Array.isArray(this.results) && this.results.length > 0) {
+                    this.renderResults(this.results);
+                } else {
+                    this.loadResults();
+                }
+            }
+        },
+
+        switchType: function (typeName) {
+            this.currentType = typeName === 'control' ? 'control' : 'test';
+
+            document.querySelectorAll('[data-type]').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.type === this.currentType) {
+                    tab.classList.add('active');
+                }
+            });
+
+            // If current subject has no items in this type, go back to catalog.
+            if (this.selectedSubjectId) {
+                const selectedSubject = this.subjects.find(subject => String(subject.id) === String(this.selectedSubjectId));
+                if (selectedSubject) {
+                    const items = this.getAssignmentsBySubjectId(selectedSubject.id);
+                    if (items.length === 0) {
+                        this.selectedSubjectId = null;
+                    }
+                }
+            }
+
+            if (this.currentTab === 'available') {
+                this.renderAssignments();
+            } else {
+                this.renderResults(this.results);
             }
         },
 
@@ -194,15 +254,27 @@
 
         getAssignmentsBySubjectId: function (subjectId) {
             const id = String(subjectId);
-            return this.assignments.filter(assignment => String(assignment.subject_id) === id);
+            return this.getFilteredAssignments().filter(assignment => String(assignment.subject_id) === id);
+        },
+
+        normalizeAssignmentType: function (assignment) {
+            const normalized = String(assignment?.assignment_type || 'test').trim().toLowerCase();
+            return normalized === 'control' ? 'control' : 'test';
+        },
+
+        getFilteredAssignments: function () {
+            return this.assignments.filter((assignment) => this.normalizeAssignmentType(assignment) === this.currentType);
         },
 
         renderSubjectsCatalog: function () {
+            const hint = this.currentType === 'control'
+                ? 'Выберите предмет, чтобы увидеть доступные контрольные работы.'
+                : 'Выберите предмет, чтобы увидеть доступные тесты.';
             let html = `
                 <div class="subject-hub">
                     <div class="subject-hub-header">
                         <h3>Предметы</h3>
-                        <p>Выберите предмет, чтобы увидеть доступные тесты.</p>
+                        <p>${hint}</p>
                     </div>
                     <div class="subject-catalog">
             `;
@@ -256,6 +328,11 @@
 
             const subjectAssignments = this.getAssignmentsBySubjectId(selectedSubject.id);
             const testsCount = subjectAssignments.length;
+            const title = this.currentType === 'control' ? 'Контрольные по предмету' : 'Тесты по предмету';
+            const emptyTitle = this.currentType === 'control' ? 'По этому предмету пока нет контрольных' : 'По этому предмету пока нет тестов';
+            const emptyText = this.currentType === 'control'
+                ? 'Выберите другой предмет или подождите, пока учитель назначит контрольную работу.'
+                : 'Выберите другой предмет или подождите, пока учитель назначит тест.';
 
             let html = `
                 <div class="tests-section">
@@ -264,7 +341,7 @@
                             <span class="subject-badge" style="background-color: ${selectedSubject.color}20; color: ${selectedSubject.color}; border: 1px solid ${selectedSubject.color}55;">
                                 ${selectedSubject.name}
                             </span>
-                            <h3>Тесты по предмету</h3>
+                            <h3>${title}</h3>
                         </div>
                         <div class="subject-selection-actions">
                             <p>${testsCount} ${this.getTestsWord(testsCount)}</p>
@@ -276,8 +353,8 @@
             if (subjectAssignments.length === 0) {
                 html += `
                     <div class="empty-state">
-                        <h3>По этому предмету пока нет тестов</h3>
-                        <p>Выберите другой предмет или подождите, пока учитель назначит тест.</p>
+                        <h3>${emptyTitle}</h3>
+                        <p>${emptyText}</p>
                     </div>
                 `;
                 html += '</div>';
@@ -339,6 +416,11 @@
         },
 
         getTestsWord: function (count) {
+            if (this.currentType === 'control') {
+                if (count % 10 === 1 && count % 100 !== 11) return 'работа';
+                if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'работы';
+                return 'работ';
+            }
             if (count % 10 === 1 && count % 100 !== 11) return 'тест';
             if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'теста';
             return 'тестов';
@@ -351,6 +433,7 @@
             const bestScore = assignment.best_score !== null ? parseFloat(assignment.best_score).toFixed(1) : null;
             const hasPendingGrading = assignment.has_pending_grading === true;
             const passed = bestScore !== null && bestScore >= assignment.passing_score;
+            const isControl = this.normalizeAssignmentType(assignment) === 'control';
 
             let actionButton = '';
             if (status === 'active') {
@@ -395,6 +478,7 @@
                 <div class="test-card ${status} ${String(assignment.id) === String(this.focusAssignmentId) ? 'focused' : ''}" data-assignment-id="${assignment.id}">
                     <div class="test-card-header">
                         <span class="status-badge status-${status}">${statusLabel}</span>
+                        ${isControl ? `<span class="test-type-badge">Контрольная</span>` : ''}
                     </div>
                     <div class="test-card-body">
                         <h3 class="test-title">${assignment.test_title}</h3>
@@ -539,7 +623,8 @@
                 }
 
                 const data = await response.json();
-                this.renderResults(data.results);
+                this.results = Array.isArray(data.results) ? data.results : [];
+                this.renderResults(this.results);
             } catch (error) {
                 console.error('Load results error:', error);
                 container.innerHTML = `
@@ -555,10 +640,17 @@
             const container = document.getElementById('testsContainer');
             if (!container) return;
 
-            if (results.length === 0) {
+            const normalizedResults = Array.isArray(results) ? results : [];
+            const filteredResults = normalizedResults.filter((result) => {
+                const normalized = String(result?.assignment_type || 'test').trim().toLowerCase();
+                const type = normalized === 'control' ? 'control' : 'test';
+                return type === this.currentType;
+            });
+
+            if (filteredResults.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">Пока нет завершённых тестов.</p>
+                        <p style="color: var(--text-secondary);">${this.currentType === 'control' ? 'Пока нет завершённых контрольных.' : 'Пока нет завершённых тестов.'}</p>
                     </div>
                 `;
                 return;
@@ -581,7 +673,7 @@
                         <tbody>
             `;
 
-            results.forEach(result => {
+            filteredResults.forEach(result => {
                 const percentage = parseFloat(result.percentage);
                 const statusClass = percentage >= 60 ? 'status-active' : 'status-warning';
                 const statusText = percentage >= 60 ? 'Сдан' : 'Не сдан';

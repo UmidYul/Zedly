@@ -29,6 +29,7 @@
         attempt: null,
         questions: [],
         currentFilter: 'all',
+        hasManualGrading: false,
 
         icon: function (name) {
             return ICONS[name] || '';
@@ -142,6 +143,7 @@
 
             this.renderSummary();
             this.renderQuestions();
+            this.renderManualGradingBar();
         },
 
         renderSummary: function () {
@@ -175,11 +177,14 @@
             const answers = this.normalizeAnswersMap(this.attempt.answers);
 
             let html = '';
+            let hasManual = false;
             this.questions.forEach((question, index) => {
                 const answer = this.getAnswerByQuestionId(answers, question.id) || {};
                 const correctness = this.normalizeCorrectness(answer.is_correct);
                 const isCorrect = correctness === true;
                 const isWrong = correctness === false;
+                const isManual = correctness === null;
+                if (isManual) hasManual = true;
 
                 if (this.isAnswersDebugEnabled()) {
                     console.log('[answers-debug][teacher-attempt]', {
@@ -197,6 +202,9 @@
                 const statusClass = isCorrect ? 'correct' : (isWrong ? 'incorrect' : 'manual');
                 const statusIcon = this.icon(isCorrect ? 'pass' : (isWrong ? 'fail' : 'manual'));
                 const statusText = isCorrect ? 'Correct' : (isWrong ? 'Incorrect' : 'Manual Grading');
+                const maxMarks = Number(question.marks) || 0;
+                const currentEarned = Number(answer.earned_marks);
+                const earnedValue = Number.isFinite(currentEarned) ? currentEarned : 0;
 
                 html += `
                     <div class="question-review-card ${statusClass}">
@@ -218,12 +226,31 @@
                             <div class="answer-section">
                                 ${this.renderQuestionAnswer(question, answer)}
                             </div>
+
+                            ${isManual ? `
+                                <div class="manual-grade">
+                                    <div class="manual-grade-label">Grade (0..${maxMarks})</div>
+                                    <div class="manual-grade-controls">
+                                        <input
+                                            type="number"
+                                            class="grade-input"
+                                            data-question-id="${escapeHtml(question.id)}"
+                                            min="0"
+                                            max="${maxMarks}"
+                                            step="0.5"
+                                            value="${earnedValue}"
+                                        />
+                                        <span class="manual-grade-hint">Set points and press "Save grading"</span>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 `;
             });
 
             container.innerHTML = html || '<div class="no-results">No questions match the current filter.</div>';
+            this.hasManualGrading = hasManual;
         },
 
         renderQuestionAnswer: function (question, answer) {
@@ -238,6 +265,8 @@
                     return this.renderTrueFalseAnswer(question, studentAnswer);
                 case 'shortanswer':
                     return this.renderShortAnswer(question, studentAnswer, answer?.is_correct);
+                case 'essay':
+                    return this.renderEssayAnswer(studentAnswer);
                 case 'fillblanks':
                     return this.renderFillBlanksAnswer(question, studentAnswer);
                 case 'ordering':
@@ -247,6 +276,85 @@
                 default:
                     return '<p>Answer type not supported</p>';
             }
+        },
+
+        renderEssayAnswer: function (studentAnswer) {
+            const value = String(studentAnswer ?? '').trim();
+            if (!value) return '<div class="text-muted">No answer provided.</div>';
+            return `<div class="answer-text">${escapeHtml(value)}</div>`;
+        },
+
+        renderManualGradingBar: function () {
+            const header = document.querySelector('.questions-review .review-header');
+            if (!header) return;
+
+            const existing = document.getElementById('manualGradingBar');
+            if (existing) existing.remove();
+
+            if (!this.hasManualGrading) return;
+
+            const html = `
+                <div class="manual-grading-bar" id="manualGradingBar">
+                    <div class="manual-grading-text">This attempt has questions that require manual grading.</div>
+                    <button class="btn btn-primary" type="button" onclick="AttemptViewer.saveManualGrades()">
+                        Save grading
+                    </button>
+                </div>
+            `;
+            header.insertAdjacentHTML('beforeend', html);
+        },
+
+        saveManualGrades: async function () {
+            try {
+                const gradeInputs = Array.from(document.querySelectorAll('.grade-input'));
+                if (gradeInputs.length === 0) {
+                    await this.showInlineAlert('No manual questions found to grade.');
+                    return;
+                }
+
+                const grades = {};
+                gradeInputs.forEach((input) => {
+                    const qid = input.getAttribute('data-question-id');
+                    if (!qid) return;
+                    grades[String(qid)] = { earned_marks: Number(input.value) };
+                });
+
+                const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
+                const response = await fetch(`/api/teacher/attempts/${this.attemptId}/grade`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ grades })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to save grading');
+                }
+
+                if (window.ZedlyDialog?.alert) {
+                    await window.ZedlyDialog.alert('Grading saved.', { title: 'Saved' });
+                }
+
+                await this.loadAttempt();
+            } catch (error) {
+                console.error('Save manual grades error:', error);
+                if (window.ZedlyDialog?.alert) {
+                    await window.ZedlyDialog.alert(error.message || 'Failed to save grading', { title: 'Error' });
+                } else {
+                    alert(error.message || 'Failed to save grading');
+                }
+            }
+        },
+
+        showInlineAlert: function (message) {
+            if (window.ZedlyDialog?.alert) {
+                return window.ZedlyDialog.alert(message, { title: 'Info' });
+            }
+            alert(message);
+            return Promise.resolve(true);
         },
 
         renderChoiceAnswer: function (question, studentAnswer) {

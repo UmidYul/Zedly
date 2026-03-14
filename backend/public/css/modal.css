@@ -926,6 +926,23 @@
     font-weight: 500;
 }
 
+.assignment-type-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 800;
+    border: 1px solid rgba(239, 68, 68, 0.24);
+    background: rgba(239, 68, 68, 0.12);
+    color: rgba(185, 28, 28, 0.95);
+}
+
+[data-theme="dark"] .assignment-type-badge {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.28);
+    color: rgba(254, 202, 202, 0.95);
+}
+
 /* Text utility classes */
 .text-secondary {
     color: var(--text-secondary);

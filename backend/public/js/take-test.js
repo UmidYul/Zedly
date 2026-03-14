@@ -606,6 +606,8 @@
 
                 case 'shortanswer':
                     return this.renderShortAnswer(question, existingAnswer);
+                case 'essay':
+                    return this.renderEssay(question, existingAnswer);
 
                 case 'fillblanks':
                 case 'fill_blanks':
@@ -725,6 +727,18 @@
                     value="${safeExistingAnswer}"
                     placeholder="Type your answer here..."
                 />
+            `;
+        },
+
+        renderEssay: function (question, existingAnswer) {
+            const safeExistingAnswer = this.escapeHtml(existingAnswer || '');
+            return `
+                <textarea
+                    class="answer-input"
+                    id="answer_${question.id}"
+                    rows="6"
+                    placeholder="Type your answer here..."
+                >${safeExistingAnswer}</textarea>
             `;
         },
 
@@ -1145,6 +1159,10 @@
                     const input = document.getElementById(`answer_${question.id}`);
                     answer = input ? input.value.trim() : '';
                     break;
+                case 'essay':
+                    const essay = document.getElementById(`answer_${question.id}`);
+                    answer = essay ? essay.value.trim() : '';
+                    break;
 
                 case 'fillblanks':
                 case 'fill_blanks':
@@ -1234,8 +1252,15 @@
                 if (response.ok) {
                     this.clearTimerAnchor();
                     // Show success and redirect
+                    const pending = data.pending_manual_review === true;
+                    const statusLine = pending
+                        ? 'Status: Pending manual grading'
+                        : `Status: ${data.passed ? 'Passed' : 'Not Passed'}`;
+                    const extra = pending
+                        ? `\n\nSome answers require teacher review (${data.pending_manual_count || 0}). You will see the final result after grading.`
+                        : '';
                     await this.notify(
-                        `Test submitted successfully!\n\nYour score: ${data.score}/${data.max_score} (${data.percentage}%)\nStatus: ${data.passed ? 'Passed' : 'Not Passed'}`,
+                        `Test submitted successfully!\n\nYour score: ${data.score}/${data.max_score} (${data.percentage}%)\n${statusLine}${extra}`,
                         { title: 'Test Submitted' }
                     );
                     this.leavePage('/dashboard.html');

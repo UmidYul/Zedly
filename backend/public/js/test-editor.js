@@ -51,6 +51,12 @@
             icon: '✎',
             description: t('testEditor.typeShortAnswerDesc', 'Короткий текстовый ответ')
         },
+        ESSAY: {
+            id: 'essay',
+            name: t('testEditor.typeEssay', 'Развернутый ответ'),
+            icon: '📝',
+            description: t('testEditor.typeEssayDesc', 'Ответ проверяет учитель')
+        },
         MATCHING: {
             id: 'matching',
             name: t('testEditor.typeMatching', 'Сопоставление'),
@@ -623,7 +629,8 @@
                 options: [],
                 correct_answer: '',
                 marks: 1,
-                media_url: null
+                media_url: null,
+                requires_manual_review: type === 'essay'
             };
 
             this.showQuestionEditor(newQuestion);
@@ -686,6 +693,9 @@
                     break;
                 case 'shortanswer':
                     editorBodyHtml = this.renderShortAnswerEditor(question);
+                    break;
+                case 'essay':
+                    editorBodyHtml = this.renderEssayEditor(question);
                     break;
                 case 'matching':
                     editorBodyHtml = this.renderMatchingEditor(question);
@@ -821,8 +831,16 @@
 
         // Short Answer Editor
         renderShortAnswerEditor: function (question) {
+            const manual = question.requires_manual_review === true;
             const answers = Array.isArray(question.correct_answer) ? question.correct_answer : [question.correct_answer || ''];
             return `
+                <div class="form-group">
+                    <label class="multi-choice-option" for="requiresManualReview" style="margin-bottom: 8px;">
+                        <input type="checkbox" id="requiresManualReview" ${manual ? 'checked' : ''} />
+                        <span>${t('testEditor.manualReview', 'Ручная проверка (проверяет учитель)')}</span>
+                    </label>
+                    <span class="form-hint">${t('testEditor.manualReviewHint', 'Если включено, ответы ученика будут отправлены учителю на проверку.')}</span>
+                </div>
                 <div class="form-group">
                     <label class="form-label">${t('testEditor.acceptableAnswers', 'Допустимые ответы')} <span class="required">*</span></label>
                     <p class="form-hint">${t('testEditor.acceptableAnswersHint', 'Добавьте несколько допустимых ответов (без учета регистра)')}</p>
@@ -848,6 +866,19 @@
                         </svg>
                         ${t('testEditor.addAlternativeAnswer', 'Добавить альтернативный ответ')}
                     </button>
+                </div>
+            `;
+        },
+
+        renderEssayEditor: function (question) {
+            const manual = question.requires_manual_review !== false;
+            return `
+                <div class="form-group">
+                    <label class="multi-choice-option" for="requiresManualReview" style="margin-bottom: 8px;">
+                        <input type="checkbox" id="requiresManualReview" checked disabled />
+                        <span>${t('testEditor.manualReview', 'Ручная проверка (проверяет учитель)')}</span>
+                    </label>
+                    <span class="form-hint">${t('testEditor.essayHint', 'Развернутый ответ. После сдачи учитель выставит баллы вручную.')}</span>
                 </div>
             `;
         },
@@ -1213,6 +1244,9 @@
             const questionText = document.getElementById('questionText')?.value.trim();
             const marks = parseInt(document.getElementById('questionMarks')?.value) || 1;
             const mediaUrl = document.getElementById('questionMediaUrl')?.value.trim() || null;
+            const requiresManualReview = document.getElementById('requiresManualReview')
+                ? document.getElementById('requiresManualReview').checked === true
+                : false;
 
             // Validation
             if (questionType !== 'fillblanks' && !questionText) {
@@ -1263,14 +1297,21 @@
                     break;
 
                 case 'shortanswer':
-                    const answers = Array.from(document.querySelectorAll('.answer-input')).map(el => el.value.trim()).filter(a => a);
-                    if (answers.length === 0) {
-                        alert(t('testEditor.provideAtLeastOneAcceptable', 'Добавьте хотя бы один допустимый ответ'));
-                        return;
+                    if (requiresManualReview) {
+                        correctAnswer = null;
+                    } else {
+                        const answers = Array.from(document.querySelectorAll('.answer-input')).map(el => el.value.trim()).filter(a => a);
+                        if (answers.length === 0) {
+                            alert(t('testEditor.provideAtLeastOneAcceptable', 'Добавьте хотя бы один допустимый ответ'));
+                            return;
+                        }
+                        correctAnswer = answers.length === 1 ? answers[0] : answers;
                     }
-                    correctAnswer = answers.length === 1 ? answers[0] : answers;
                     break;
 
+                case 'essay':
+                    correctAnswer = null;
+                    break;
 
                 case 'matching':
                     const leftItems = Array.from(document.querySelectorAll('.pair-left')).map(el => el.value.trim());
@@ -1345,7 +1386,8 @@
                 options: options,
                 correct_answer: correctAnswer,
                 marks: marks,
-                media_url: questionType === 'imagebased' ? document.getElementById('imageUrl').value.trim() : mediaUrl
+                media_url: questionType === 'imagebased' ? document.getElementById('imageUrl').value.trim() : mediaUrl,
+                requires_manual_review: questionType === 'essay' ? true : requiresManualReview
             };
 
             // Add or update question

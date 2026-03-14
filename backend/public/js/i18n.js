@@ -1462,6 +1462,8 @@
     });
 
     Object.assign(translations.ru, {
+        'tests.typeTests': 'Тесты',
+        'tests.typeControlWorks': 'Контрольные работы',
         'tests.availableTests': 'Доступные тесты',
         'tests.completedTests': 'Завершенные тесты',
         'tests.searchPlaceholder': 'Поиск тестов...',
@@ -1579,6 +1581,8 @@
     });
 
     Object.assign(translations.uz, {
+        'tests.typeTests': 'Testlar',
+        'tests.typeControlWorks': 'Nazorat ishlari',
         'tests.availableTests': 'Mavjud testlar',
         'tests.completedTests': 'Tugallangan testlar',
         'tests.searchPlaceholder': 'Testlarni qidirish...',
@@ -1727,9 +1731,14 @@
         'assignments.viewDetails': 'Детали',
         'assignments.viewResults': 'Результаты',
         'assignments.createAssignment': 'Создать назначение',
+        'assignments.createControlWork': 'Создать контрольную',
         'assignments.createNewAssignment': 'Создать назначение',
         'assignments.updateAssignment': 'Обновить назначение',
         'assignments.editAssignment': 'Редактировать назначение',
+        'assignments.assignmentType': 'Тип',
+        'assignments.assignmentTypeTest': 'Обычный тест',
+        'assignments.assignmentTypeControl': 'Контрольная работа',
+        'assignments.revealAnswersAfterDeadline': 'Показывать правильные ответы после дедлайна',
         'assignments.assignmentTemplate': 'Шаблон назначения',
         'assignments.withoutTemplate': 'Без шаблона',
         'assignments.apply': 'Применить',
@@ -1805,9 +1814,14 @@
         'assignments.viewDetails': 'Tafsilotlar',
         'assignments.viewResults': 'Natijalar',
         'assignments.createAssignment': 'Topshiriq yaratish',
+        'assignments.createControlWork': 'Nazorat ishi yaratish',
         'assignments.createNewAssignment': 'Topshiriq yaratish',
         'assignments.updateAssignment': 'Topshiriqni yangilash',
         'assignments.editAssignment': 'Topshiriqni tahrirlash',
+        'assignments.assignmentType': 'Turi',
+        'assignments.assignmentTypeTest': 'Oddiy test',
+        'assignments.assignmentTypeControl': 'Nazorat ishi',
+        'assignments.revealAnswersAfterDeadline': 'To`g`ri javoblarni dedlayndan keyin ko`rsatish',
         'assignments.assignmentTemplate': 'Topshiriq shabloni',
         'assignments.withoutTemplate': 'Shablonsiz',
         'assignments.apply': 'Qo\'llash',

@@ -150,8 +150,13 @@
             `;
 
             this.filteredResults.forEach(result => {
-                const statusClass = result.is_completed ? 'status-completed' : 'status-pending';
-                const statusText = result.is_completed ? 'Completed' : 'Pending';
+                const needsReview = result.has_pending_grading === true;
+                const statusClass = !result.is_completed
+                    ? 'status-pending'
+                    : (needsReview ? 'status-review' : 'status-completed');
+                const statusText = !result.is_completed
+                    ? 'Pending'
+                    : (needsReview ? 'Needs review' : 'Completed');
                 const score = result.is_completed ? `${result.score} / ${result.max_score}` : '-';
                 const percentage = result.is_completed ? `${parseFloat(result.percentage).toFixed(1)}%` : '-';
                 const submittedAt = result.is_completed ? this.formatDateTime(result.submitted_at) : '-';

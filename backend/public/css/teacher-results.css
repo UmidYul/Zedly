@@ -363,6 +363,11 @@
     color: var(--warning);
 }
 
+.status-review {
+    background: rgba(66, 153, 225, 0.12);
+    color: var(--info);
+}
+
 /* Percentage Colors */
 .percentage-passed {
     color: var(--success);
