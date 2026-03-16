@@ -75,7 +75,8 @@
         init: async function () {
             // Get attempt ID from URL
             const urlParams = new URLSearchParams(window.location.search);
-            this.attemptId = urlParams.get('attempt_id');
+            // Support both ?attempt_id=... (current) and legacy ?attempt=...
+            this.attemptId = urlParams.get('attempt_id') || urlParams.get('attempt');
             this.timerAnchorStorageKey = this.attemptId ? `zedly_test_timer_anchor_${this.attemptId}` : null;
 
             if (!this.attemptId) {
@@ -116,12 +117,15 @@
         loadAttempt: async function () {
             try {
                 const response = await fetch(`/api/student/attempts/${this.attemptId}`);
+                const data = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
-                    throw new Error('Failed to load test');
+                    const message = data?.message
+                        || data?.error
+                        || `HTTP ${response.status}`;
+                    throw new Error(message);
                 }
 
-                const data = await response.json();
                 this.attempt = data.attempt;
                 this.questions = data.questions;
 
@@ -189,7 +193,7 @@
 
             } catch (error) {
                 console.error('Load attempt error:', error);
-                await this.notify('Failed to load test. Redirecting to dashboard.');
+                await this.notify(`Failed to load test: ${error?.message || 'Unknown error'}. Redirecting to dashboard.`);
                 this.leavePage('/dashboard.html');
             }
         },

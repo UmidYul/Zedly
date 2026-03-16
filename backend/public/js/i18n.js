@@ -1462,6 +1462,13 @@
     });
 
     Object.assign(translations.ru, {
+        'testEditor.stepSettings': 'Настройки',
+        'testEditor.stepQuestions': 'Вопросы',
+        'testEditor.stepPublish': 'Публикация',
+        'testEditor.creationSteps': 'Этапы создания теста',
+        'testEditor.preview': 'Предпросмотр',
+        'testEditor.noDescriptionShort': 'Описание не указано',
+        'testEditor.moreQuestionsCount': 'И ещё {count} вопросов',
         'tests.typeTests': 'Тесты',
         'tests.typeControlWorks': 'Контрольные работы',
         'tests.availableTests': 'Доступные тесты',
@@ -1581,6 +1588,13 @@
     });
 
     Object.assign(translations.uz, {
+        'testEditor.stepSettings': 'Sozlamalar',
+        'testEditor.stepQuestions': 'Savollar',
+        'testEditor.stepPublish': "E'lon qilish",
+        'testEditor.creationSteps': 'Test yaratish bosqichlari',
+        'testEditor.preview': "Ko'rib chiqish",
+        'testEditor.noDescriptionShort': "Tavsif ko'rsatilmagan",
+        'testEditor.moreQuestionsCount': 'Yana {count} ta savol',
         'tests.typeTests': 'Testlar',
         'tests.typeControlWorks': 'Nazorat ishlari',
         'tests.availableTests': 'Mavjud testlar',

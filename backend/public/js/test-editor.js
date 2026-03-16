@@ -3,7 +3,11 @@
     'use strict';
 
     function t(key, fallback) {
-        return window.ZedlyI18n?.translate(key) || fallback || key;
+        const translated = window.ZedlyI18n?.translate?.(key);
+        if (!translated || translated === key) {
+            return fallback || key;
+        }
+        return translated;
     }
 
     function escapeHtml(value) {

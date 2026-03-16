@@ -54,6 +54,8 @@
                 secondsShort: 'с',
                 trueLabel: 'Верно',
                 falseLabel: 'Неверно',
+                resultsLockedTitle: 'Результаты будут доступны после дедлайна',
+                resultsLockedText: 'Детальный разбор (верно/неверно и правильные ответы) появится после окончания времени.',
                 errorMissingAttempt: 'Некорректный запрос. Нет attempt_id или assignment_id.',
                 errorLoadFailed: 'Не удалось загрузить результаты',
                 errorNoCompleted: 'Нет завершённых попыток',
@@ -102,6 +104,8 @@
                 secondsShort: 'son',
                 trueLabel: 'Rost',
                 falseLabel: "Yolg'on",
+                resultsLockedTitle: 'Natijalar dedlayndan keyin ochiladi',
+                resultsLockedText: "Batafsil tahlil (to'g'ri/noto'g'ri va to'g'ri javoblar) vaqt tugagandan so'ng ko'rinadi.",
                 errorMissingAttempt: "Noto'g'ri so'rov. attempt_id yoki assignment_id yo'q.",
                 errorLoadFailed: "Natijalarni yuklab bo'lmadi",
                 errorNoCompleted: "Yakunlangan urinishlar yo'q",
@@ -298,13 +302,17 @@
         },
 
         renderSummary: function () {
+            const isLocked = this.attempt && this.attempt.results_locked === true;
             const percentage = parseFloat(this.attempt.percentage || 0);
             const answers = this.normalizeAnswersMap(this.attempt.answers);
             const hasUngradedQuestions = Object.values(answers).some(a => this.normalizeCorrectness(a?.is_correct) === null);
             const passed = percentage >= parseFloat(this.attempt.passing_score || 0);
 
             const badge = document.getElementById('testBadge');
-            if (hasUngradedQuestions) {
+            if (isLocked) {
+                badge.className = 'test-badge pending';
+                badge.textContent = `⏳ ${this.t('resultsLockedTitle', 'Результаты будут доступны после дедлайна')}`;
+            } else if (hasUngradedQuestions) {
                 badge.className = 'test-badge pending';
                 badge.textContent = `⏳ ${this.t('pendingReview', 'Ожидает проверки')}`;
             } else {
@@ -314,18 +322,24 @@
                     : `✗ ${this.t('failed', 'Не пройден')}`;
             }
 
-            document.getElementById('scoreValue').textContent = `${this.attempt.score} / ${this.attempt.max_score}`;
+            document.getElementById('scoreValue').textContent = isLocked
+                ? '-'
+                : `${this.attempt.score} / ${this.attempt.max_score}`;
 
             const percentageEl = document.getElementById('percentageValue');
-            percentageEl.textContent = `${percentage.toFixed(1)}%`;
-            percentageEl.className = hasUngradedQuestions
+            percentageEl.textContent = isLocked ? '-' : `${percentage.toFixed(1)}%`;
+            percentageEl.className = (isLocked || hasUngradedQuestions)
                 ? 'summary-value pending'
                 : `summary-value ${passed ? 'passed' : 'failed'}`;
 
             document.getElementById('timeValue').textContent = this.formatTime(this.attempt.time_spent_seconds || 0);
 
-            const correctCount = Object.values(answers).filter(a => this.normalizeCorrectness(a?.is_correct) === true).length;
-            document.getElementById('correctValue').textContent = `${correctCount} / ${this.questions.length}`;
+            if (isLocked) {
+                document.getElementById('correctValue').textContent = '-';
+            } else {
+                const correctCount = Object.values(answers).filter(a => this.normalizeCorrectness(a?.is_correct) === true).length;
+                document.getElementById('correctValue').textContent = `${correctCount} / ${this.questions.length}`;
+            }
 
             document.getElementById('testName').textContent = this.attempt.test_title || '-';
             document.getElementById('subjectName').textContent = this.attempt.subject_name || '-';
@@ -334,6 +348,15 @@
 
         renderQuestions: function () {
             const container = document.getElementById('questionsContainer');
+            if (this.attempt && this.attempt.results_locked === true) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>${this.t('resultsLockedTitle', 'Результаты будут доступны после дедлайна')}</h3>
+                        <p>${this.t('resultsLockedText', 'Детальный разбор появится после окончания времени.')}</p>
+                    </div>
+                `;
+                return;
+            }
             const answers = this.normalizeAnswersMap(this.attempt.answers);
 
             let html = '';

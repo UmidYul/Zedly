@@ -2457,12 +2457,6 @@
                             </select>
                         </div>
                         <div class="toolbar-right">
-                            <button class="btn btn-outline" id="addControlWorkBtn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 2v20M2 12h20"></path>
-                                </svg>
-                                ${t('assignments.createControlWork', 'Создать контрольную')}
-                            </button>
                             <button class="btn btn-primary" id="addAssignmentBtn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>

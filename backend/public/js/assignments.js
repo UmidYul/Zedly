@@ -112,13 +112,7 @@
                 addBtn.addEventListener('click', () => this.showAssignmentModal());
             }
 
-            const controlBtn = document.getElementById('addControlWorkBtn');
-            if (controlBtn) {
-                controlBtn.addEventListener('click', () => this.showAssignmentModal(null, {
-                    assignment_type: 'control',
-                    reveal_answers_after_deadline: true
-                }));
-            }
+            // Control work shortcut button removed (use assignment type selector in modal).
         },
 
         // Load assignments from API

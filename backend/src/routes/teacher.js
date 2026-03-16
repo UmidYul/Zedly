@@ -10,6 +10,25 @@ const { authenticate, authorize } = require('../middleware/auth');
 const bcrypt = require('bcrypt');
 const { notifyNewTest, notifyPasswordReset, notifyTestResults } = require('../utils/notifications');
 
+const COLUMN_CACHE = {};
+
+async function getTableColumns(tableName) {
+    if (COLUMN_CACHE[tableName]) {
+        return COLUMN_CACHE[tableName];
+    }
+
+    const result = await query(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1`,
+        [tableName]
+    );
+
+    const columns = new Set(result.rows.map(row => row.column_name));
+    COLUMN_CACHE[tableName] = columns;
+    return columns;
+}
+
 function generateOtp() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
     let otp = '';
@@ -4204,25 +4223,29 @@ router.post('/tests', async (req, res) => {
 
         // Add questions if provided
         if (questions && questions.length > 0) {
+            const questionColumns = await getTableColumns('test_questions');
+            const hasManualReview = questionColumns.has('requires_manual_review');
             for (let i = 0; i < questions.length; i++) {
                 const q = questions[i];
+                const columns = ['test_id', 'question_type', 'question_text', 'options', 'correct_answer', 'marks', 'order_number', 'media_url'];
+                const values = [
+                    testId,
+                    q.question_type,
+                    q.question_text,
+                    JSON.stringify(q.options || []),
+                    JSON.stringify(q.correct_answer),
+                    q.marks || 1,
+                    i + 1,
+                    q.media_url || null
+                ];
+                if (hasManualReview) {
+                    columns.push('requires_manual_review');
+                    values.push(q.requires_manual_review === true || String(q.question_type || '').toLowerCase() === 'essay');
+                }
+                const placeholders = values.map((_, idx) => `$${idx + 1}`).join(', ');
                 await query(
-                    `INSERT INTO test_questions (
-                        test_id, question_type, question_text, options,
-                        correct_answer, marks, order_number, media_url, requires_manual_review
-                     )
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-                    [
-                        testId,
-                        q.question_type,
-                        q.question_text,
-                        JSON.stringify(q.options || []),
-                        JSON.stringify(q.correct_answer),
-                        q.marks || 1,
-                        i + 1,
-                        q.media_url || null,
-                        q.requires_manual_review === true || String(q.question_type || '').toLowerCase() === 'essay'
-                    ]
+                    `INSERT INTO test_questions (${columns.join(', ')}) VALUES (${placeholders})`,
+                    values
                 );
             }
         }
@@ -4242,7 +4265,7 @@ router.post('/tests', async (req, res) => {
         console.error('Create test error:', error);
         res.status(500).json({
             error: 'server_error',
-            message: 'Failed to create test'
+            message: error.message || 'Failed to create test'
         });
     }
 });
@@ -4308,25 +4331,33 @@ router.put('/tests/:id', async (req, res) => {
 
         // Update questions if provided
         if (questions) {
+            const questionColumns = await getTableColumns('test_questions');
+            const hasManualReview = questionColumns.has('requires_manual_review');
             // Delete existing questions
             await query('DELETE FROM test_questions WHERE test_id = $1', [id]);
 
             // Add new questions
             for (let i = 0; i < questions.length; i++) {
                 const q = questions[i];
+                const columns = ['test_id', 'question_type', 'question_text', 'options', 'correct_answer', 'marks', 'order_number', 'media_url'];
+                const values = [
+                    id,
+                    q.question_type,
+                    q.question_text,
+                    JSON.stringify(q.options || []),
+                    JSON.stringify(q.correct_answer),
+                    q.marks || 1,
+                    i + 1,
+                    q.media_url || null
+                ];
+                if (hasManualReview) {
+                    columns.push('requires_manual_review');
+                    values.push(q.requires_manual_review === true || String(q.question_type || '').toLowerCase() === 'essay');
+                }
+                const placeholders = values.map((_, idx) => `$${idx + 1}`).join(', ');
                 await query(
-                    `INSERT INTO test_questions (
-                        test_id, question_type, question_text, options,
-                        correct_answer, marks, order_number, media_url, requires_manual_review
-                     )
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-                    [
-                        id, q.question_type, q.question_text,
-                        JSON.stringify(q.options || []),
-                        JSON.stringify(q.correct_answer), q.marks || 1, i + 1,
-                        q.media_url || null,
-                        q.requires_manual_review === true || String(q.question_type || '').toLowerCase() === 'essay'
-                    ]
+                    `INSERT INTO test_questions (${columns.join(', ')}) VALUES (${placeholders})`,
+                    values
                 );
             }
         }
@@ -4343,7 +4374,7 @@ router.put('/tests/:id', async (req, res) => {
         console.error('Update test error:', error);
         res.status(500).json({
             error: 'server_error',
-            message: 'Failed to update test'
+            message: error.message || 'Failed to update test'
         });
     }
 });
@@ -5804,6 +5835,13 @@ router.get('/assignments', async (req, res) => {
         const teacherId = req.user.id;
         const schoolId = req.user.school_id;
         const attempt = await getAttemptOverviewExpressions('att');
+        const assignmentColumns = await getTableColumns('test_assignments');
+        const assignmentTypeSelect = assignmentColumns.has('assignment_type')
+            ? 'COALESCE(ta.assignment_type, \'test\')'
+            : '\'test\'';
+        const revealAnswersSelect = assignmentColumns.has('reveal_answers_after_deadline')
+            ? 'COALESCE(ta.reveal_answers_after_deadline, false)'
+            : 'false';
 
         // Build WHERE clause
         let whereClause = `WHERE ta.assigned_by = $1
@@ -5848,8 +5886,8 @@ router.get('/assignments', async (req, res) => {
         const result = await query(
             `SELECT
                 ta.id, ta.test_id, ta.class_id, ta.start_date, ta.end_date, ta.is_active, ta.created_at,
-                COALESCE(ta.assignment_type, 'test') as assignment_type,
-                COALESCE(ta.reveal_answers_after_deadline, false) as reveal_answers_after_deadline,
+                ${assignmentTypeSelect} as assignment_type,
+                ${revealAnswersSelect} as reveal_answers_after_deadline,
                 t.title as test_title, t.duration_minutes, t.passing_score,
                 c.name as class_name, c.grade_level,
                 s.name as subject_name, s.color as subject_color,
@@ -6036,16 +6074,29 @@ router.post('/assignments', async (req, res) => {
         }
 
         const createdAssignments = [];
+        const assignmentColumns = await getTableColumns('test_assignments');
+        const hasAssignmentTypeColumn = assignmentColumns.has('assignment_type');
+        const hasRevealAnswersColumn = assignmentColumns.has('reveal_answers_after_deadline');
 
         for (const targetClassId of classIdsToCreate) {
+            const insertColumns = ['test_id', 'class_id', 'assigned_by', 'start_date', 'end_date', 'is_active'];
+            const insertValues = [test_id, targetClassId, teacherId, start_date, end_date, true];
+
+            if (hasAssignmentTypeColumn) {
+                insertColumns.push('assignment_type');
+                insertValues.push(normalizedAssignmentType);
+            }
+            if (hasRevealAnswersColumn) {
+                insertColumns.push('reveal_answers_after_deadline');
+                insertValues.push(normalizedRevealAnswers);
+            }
+
+            const placeholders = insertValues.map((_, idx) => `$${idx + 1}`).join(', ');
             const result = await query(
-                `INSERT INTO test_assignments (
-                    test_id, class_id, assigned_by, start_date, end_date, is_active,
-                    assignment_type, reveal_answers_after_deadline
-                 )
-                 VALUES ($1, $2, $3, $4, $5, true, $6, $7)
+                `INSERT INTO test_assignments (${insertColumns.join(', ')})
+                 VALUES (${placeholders})
                  RETURNING id, class_id, created_at`,
-                [test_id, targetClassId, teacherId, start_date, end_date, normalizedAssignmentType, normalizedRevealAnswers]
+                insertValues
             );
             const assignment = result.rows[0];
             createdAssignments.push(assignment);
@@ -6165,16 +6216,28 @@ router.put('/assignments/:id', async (req, res) => {
             });
         }
 
-        // Update assignment
+        const assignmentColumns = await getTableColumns('test_assignments');
+        const sets = ['start_date = $1', 'end_date = $2', 'is_active = $3'];
+        const values = [start_date, end_date, is_active];
+        let idx = 4;
+
+        if (assignmentColumns.has('assignment_type')) {
+            sets.push(`assignment_type = COALESCE($${idx}, assignment_type)`);
+            values.push(normalizedAssignmentType);
+            idx += 1;
+        }
+
+        if (assignmentColumns.has('reveal_answers_after_deadline')) {
+            sets.push(`reveal_answers_after_deadline = COALESCE($${idx}, reveal_answers_after_deadline)`);
+            values.push(normalizedRevealAnswers);
+            idx += 1;
+        }
+
+        values.push(id);
+
         await query(
-            `UPDATE test_assignments SET
-                start_date = $1,
-                end_date = $2,
-                is_active = $3,
-                assignment_type = COALESCE($4, assignment_type),
-                reveal_answers_after_deadline = COALESCE($5, reveal_answers_after_deadline)
-             WHERE id = $6`,
-            [start_date, end_date, is_active, normalizedAssignmentType, normalizedRevealAnswers, id]
+            `UPDATE test_assignments SET ${sets.join(', ')} WHERE id = $${idx}`,
+            values
         );
 
         // Log action

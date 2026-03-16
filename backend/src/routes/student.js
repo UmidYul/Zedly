@@ -1025,13 +1025,23 @@ router.get('/attempts/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const studentId = req.user.id;
+        const assignmentColumns = await getTableColumns('test_assignments');
+
+        const assignmentTypeSelect = assignmentColumns.has('assignment_type')
+            ? 'tass.assignment_type'
+            : `'test'`;
+        const revealAnswersSelect = assignmentColumns.has('reveal_answers_after_deadline')
+            ? 'tass.reveal_answers_after_deadline'
+            : 'false';
 
         // Get attempt with validation
         const attemptResult = await query(
             `SELECT
             ta.*, t.title as test_title, t.duration_minutes, t.passing_score,
             t.shuffle_questions, t.block_copy_paste, t.track_tab_switches, t.fullscreen_required,
-                tass.start_date, tass.end_date, tass.assignment_type, tass.reveal_answers_after_deadline,
+                tass.start_date, tass.end_date,
+                ${assignmentTypeSelect} as assignment_type,
+                ${revealAnswersSelect} as reveal_answers_after_deadline,
                 s.name as subject_name, s.color as subject_color
              FROM test_attempts ta
              JOIN tests t ON ta.test_id = t.id
@@ -1120,16 +1130,15 @@ router.get('/attempts/:id', async (req, res) => {
                 : questionsResult.rows;
         }
 
-        // Control works: hide correct answers until after deadline (and strip them from snapshots too).
+        // Hide per-question correctness/correct answers until after deadline to prevent leaks.
         const now = new Date();
         const assignmentType = String(attempt.assignment_type || 'test').trim().toLowerCase();
         const revealAfterDeadline = attempt.reveal_answers_after_deadline === true;
         const endDate = attempt.end_date ? new Date(attempt.end_date) : null;
-        const shouldHideCorrectAnswers = assignmentType === 'control'
-            && revealAfterDeadline
-            && endDate instanceof Date
-            && !Number.isNaN(endDate.getTime())
-            && now < endDate;
+        const beforeDeadline = endDate instanceof Date && !Number.isNaN(endDate.getTime()) && now < endDate;
+        // Current product rule: show detailed results only after deadline for tests/control works.
+        const shouldLockResults = beforeDeadline && attempt.is_completed;
+        const shouldHideCorrectAnswers = beforeDeadline;
 
         if (shouldHideCorrectAnswers) {
             questions = questions.map((q) => ({
@@ -1139,6 +1148,11 @@ router.get('/attempts/:id', async (req, res) => {
 
             for (const [qid, meta] of Object.entries(answersMap)) {
                 if (!meta || typeof meta !== 'object') continue;
+                // Remove correctness/points display before deadline.
+                if (beforeDeadline) {
+                    meta.is_correct = null;
+                    meta.earned_marks = null;
+                }
                 if (meta.question_snapshot && typeof meta.question_snapshot === 'object') {
                     meta.question_snapshot = { ...meta.question_snapshot, correct_answer: null };
                 }
@@ -1155,7 +1169,11 @@ router.get('/attempts/:id', async (req, res) => {
             attempt: {
                 ...attempt,
                 answers: answersMap,
-                has_pending_grading: hasPendingGrading
+                has_pending_grading: hasPendingGrading,
+                results_locked: shouldLockResults,
+                // Hide overall score/percentage before deadline if locked.
+                score: shouldLockResults ? null : attempt.score,
+                percentage: shouldLockResults ? null : attempt.percentage
             },
             questions: questions
         });
@@ -1225,8 +1243,12 @@ router.put('/attempts/:id/submit', async (req, res) => {
         const attempt = attemptResult.rows[0];
 
         // Get questions with full data to store immutable snapshot in attempt answers
+        const questionColumns = await getTableColumns('test_questions');
+        const manualColSelect = questionColumns.has('requires_manual_review')
+            ? ', requires_manual_review'
+            : '';
         const questionsResult = await query(
-            `SELECT id, question_type, question_text, options, correct_answer, marks, media_url, requires_manual_review
+            `SELECT id, question_type, question_text, options, correct_answer, marks, media_url${manualColSelect}
              FROM test_questions
              WHERE test_id = $1
              ORDER BY order_number ASC`,
@@ -1242,7 +1264,9 @@ router.put('/attempts/:id/submit', async (req, res) => {
             const studentAnswer = submittedAnswers[question.id];
             const correctAnswer = question.correct_answer;
             const questionType = String(question.question_type || '').trim().toLowerCase();
-            const requiresManual = question.requires_manual_review === true || questionType === 'essay';
+            const requiresManual = questionColumns.has('requires_manual_review')
+                ? (question.requires_manual_review === true || questionType === 'essay')
+                : (questionType === 'essay');
             const hasStudentResponse = (() => {
                 if (studentAnswer === undefined || studentAnswer === null) return false;
                 if (typeof studentAnswer === 'string') return studentAnswer.trim().length > 0;
