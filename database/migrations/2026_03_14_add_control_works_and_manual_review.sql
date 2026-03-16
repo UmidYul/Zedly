@@ -37,6 +37,38 @@ BEGIN
 END $$;
 
 -- ====================================
+-- 1b. test_assignments: end_date fallback for legacy due_date
+-- ====================================
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'test_assignments' AND column_name = 'end_date'
+    ) THEN
+        ALTER TABLE test_assignments
+            ADD COLUMN end_date TIMESTAMP;
+        RAISE NOTICE 'Added test_assignments.end_date';
+    ELSE
+        RAISE NOTICE 'test_assignments.end_date already exists';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'test_assignments' AND column_name = 'due_date'
+    ) THEN
+        UPDATE test_assignments
+        SET end_date = COALESCE(end_date, due_date)
+        WHERE end_date IS NULL AND due_date IS NOT NULL;
+        RAISE NOTICE 'Backfilled test_assignments.end_date from due_date where needed';
+    ELSE
+        RAISE NOTICE 'test_assignments.due_date does not exist; skip backfill';
+    END IF;
+END $$;
+
+-- ====================================
 -- 2. test_questions: requires_manual_review
 -- ====================================
 DO $$
@@ -71,4 +103,3 @@ BEGIN
         RAISE NOTICE 'chk_test_assignments_assignment_type already exists';
     END IF;
 END $$;
-

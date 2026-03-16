@@ -10,6 +10,19 @@
         return translated;
     }
 
+    function getCurrentLang() {
+        return window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+    }
+
+    function pluralizeRu(count, one, few, many) {
+        const abs = Math.abs(Number(count) || 0);
+        const mod10 = abs % 10;
+        const mod100 = abs % 100;
+        if (mod10 === 1 && mod100 !== 11) return one;
+        if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return few;
+        return many;
+    }
+
     window.StudentTestsManager = {
         currentTab: 'available', // available, completed
         currentType: 'test', // test, control
@@ -166,12 +179,12 @@
             const container = document.getElementById('testsContainer');
             if (!container) return;
 
-            container.innerHTML = `
-                <div style="text-align: center; padding: var(--spacing-3xl);">
-                    <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Загрузка тестов...</p>
-                </div>
-            `;
+	            container.innerHTML = `
+	                <div style="text-align: center; padding: var(--spacing-3xl);">
+	                    <div class="spinner" style="display: inline-block;"></div>
+	                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('tests.loading', 'Загрузка тестов...')}</p>
+	                </div>
+	            `;
 
             try {
                 const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
@@ -199,17 +212,17 @@
                 // Fallback to subjects from assignments if school subjects endpoint is empty
                 if (this.subjects.length === 0 && this.assignments.length > 0) {
                     const byId = new Map();
-                    this.assignments.forEach((assignment) => {
-                        if (assignment.subject_id == null) return;
-                        const key = String(assignment.subject_id);
-                        if (!byId.has(key)) {
-                            byId.set(key, {
-                                id: key,
-                                name: assignment.subject_name || 'Без предмета',
-                                color: assignment.subject_color || '#2563eb'
-                            });
-                        }
-                    });
+	                    this.assignments.forEach((assignment) => {
+	                        if (assignment.subject_id == null) return;
+	                        const key = String(assignment.subject_id);
+	                        if (!byId.has(key)) {
+	                            byId.set(key, {
+	                                id: key,
+	                                name: assignment.subject_name || t('tests.noSubject', 'Без предмета'),
+	                                color: assignment.subject_color || '#2563eb'
+	                            });
+	                        }
+	                    });
                     this.subjects = Array.from(byId.values());
                 }
 
@@ -228,29 +241,29 @@
                 }
 
                 this.renderAssignments();
-            } catch (error) {
-                console.error('Load assignments error:', error);
-                container.innerHTML = `
-                    <div class="error-message">
-                        <p>Не удалось загрузить тесты. Попробуйте ещё раз.</p>
-                    </div>
-                `;
-            }
-        },
+	            } catch (error) {
+	                console.error('Load assignments error:', error);
+	                container.innerHTML = `
+	                    <div class="error-message">
+	                        <p>${t('tests.failedLoadTryAgain', 'Не удалось загрузить тесты. Попробуйте ещё раз.')}</p>
+	                    </div>
+	                `;
+	            }
+	        },
 
         normalizeSubjects: function (subjects) {
             if (!Array.isArray(subjects)) {
                 return [];
             }
 
-            return subjects
-                .filter(subject => subject && subject.id != null)
-                .map(subject => ({
-                    id: String(subject.id),
-                    name: subject.name || 'Без названия',
-                    color: subject.color || '#2563eb'
-                }));
-        },
+	            return subjects
+	                .filter(subject => subject && subject.id != null)
+	                .map(subject => ({
+	                    id: String(subject.id),
+	                    name: subject.name || t('studentTests.subjectFallback', 'Без названия'),
+	                    color: subject.color || '#2563eb'
+	                }));
+	        },
 
         getAssignmentsBySubjectId: function (subjectId) {
             const id = String(subjectId);
@@ -266,18 +279,18 @@
             return this.assignments.filter((assignment) => this.normalizeAssignmentType(assignment) === this.currentType);
         },
 
-        renderSubjectsCatalog: function () {
-            const hint = this.currentType === 'control'
-                ? 'Выберите предмет, чтобы увидеть доступные контрольные работы.'
-                : 'Выберите предмет, чтобы увидеть доступные тесты.';
-            let html = `
-                <div class="subject-hub">
-                    <div class="subject-hub-header">
-                        <h3>Предметы</h3>
-                        <p>${hint}</p>
-                    </div>
-                    <div class="subject-catalog">
-            `;
+	        renderSubjectsCatalog: function () {
+	            const hint = this.currentType === 'control'
+	                ? t('studentTests.subjectHintControl', 'Выберите предмет, чтобы увидеть доступные контрольные работы.')
+	                : t('studentTests.subjectHintTest', 'Выберите предмет, чтобы увидеть доступные тесты.');
+	            let html = `
+	                <div class="subject-hub">
+	                    <div class="subject-hub-header">
+	                        <h3>${t('studentTests.subjectsTitle', 'Предметы')}</h3>
+	                        <p>${hint}</p>
+	                    </div>
+	                    <div class="subject-catalog">
+	            `;
 
             this.subjects.forEach(subject => {
                 const count = this.getAssignmentsBySubjectId(subject.id).length;
@@ -303,15 +316,15 @@
             const container = document.getElementById('testsContainer');
             if (!container) return;
 
-            if (this.subjects.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state subject-empty-state">
-                        <h3>Предметы пока не добавлены</h3>
-                        <p>Когда в школе появятся предметы, здесь отобразятся соответствующие тесты.</p>
-                    </div>
-                `;
-                return;
-            }
+	            if (this.subjects.length === 0) {
+	                container.innerHTML = `
+	                    <div class="empty-state subject-empty-state">
+	                        <h3>${t('studentTests.subjectsEmptyTitle', 'Предметы пока не добавлены')}</h3>
+	                        <p>${t('studentTests.subjectsEmptyText', 'Когда в школе появятся предметы, здесь отобразятся соответствующие тесты.')}</p>
+	                    </div>
+	                `;
+	                return;
+	            }
 
             // Step 1: show only subjects until user selects one
             if (!this.selectedSubjectId) {
@@ -326,13 +339,17 @@
                 return;
             }
 
-            const subjectAssignments = this.getAssignmentsBySubjectId(selectedSubject.id);
-            const testsCount = subjectAssignments.length;
-            const title = this.currentType === 'control' ? 'Контрольные по предмету' : 'Тесты по предмету';
-            const emptyTitle = this.currentType === 'control' ? 'По этому предмету пока нет контрольных' : 'По этому предмету пока нет тестов';
-            const emptyText = this.currentType === 'control'
-                ? 'Выберите другой предмет или подождите, пока учитель назначит контрольную работу.'
-                : 'Выберите другой предмет или подождите, пока учитель назначит тест.';
+	            const subjectAssignments = this.getAssignmentsBySubjectId(selectedSubject.id);
+	            const testsCount = subjectAssignments.length;
+	            const title = this.currentType === 'control'
+	                ? t('studentTests.subjectWorksTitle', 'Контрольные по предмету')
+	                : t('studentTests.subjectTestsTitle', 'Тесты по предмету');
+	            const emptyTitle = this.currentType === 'control'
+	                ? t('studentTests.subjectEmptyControlTitle', 'По этому предмету пока нет контрольных')
+	                : t('studentTests.subjectEmptyTestTitle', 'По этому предмету пока нет тестов');
+	            const emptyText = this.currentType === 'control'
+	                ? t('studentTests.subjectEmptyControlText', 'Выберите другой предмет или подождите, пока учитель назначит контрольную работу.')
+	                : t('studentTests.subjectEmptyTestText', 'Выберите другой предмет или подождите, пока учитель назначит тест.');
 
             let html = `
                 <div class="tests-section">
@@ -343,12 +360,12 @@
                             </span>
                             <h3>${title}</h3>
                         </div>
-                        <div class="subject-selection-actions">
-                            <p>${testsCount} ${this.getTestsWord(testsCount)}</p>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="StudentTestsManager.clearSubjectSelection()">Выбрать другой предмет</button>
-                        </div>
-                    </div>
-            `;
+	                        <div class="subject-selection-actions">
+	                            <p>${testsCount} ${this.getTestsWord(testsCount)}</p>
+	                            <button type="button" class="btn btn-outline btn-sm" onclick="StudentTestsManager.clearSubjectSelection()">${t('studentTests.pickAnotherSubject', 'Выбрать другой предмет')}</button>
+	                        </div>
+	                    </div>
+	            `;
 
             if (subjectAssignments.length === 0) {
                 html += `
@@ -380,29 +397,29 @@
                 }
             });
 
-            if (active.length > 0) {
-                html += '<h4 class="section-title">Доступные сейчас</h4><div class="tests-grid">';
-                active.forEach(assignment => {
-                    html += this.renderTestCard(assignment, 'active');
-                });
-                html += '</div>';
-            }
+	            if (active.length > 0) {
+	                html += `<h4 class="section-title">${t('studentTests.section.activeNow', 'Доступные сейчас')}</h4><div class="tests-grid">`;
+	                active.forEach(assignment => {
+	                    html += this.renderTestCard(assignment, 'active');
+	                });
+	                html += '</div>';
+	            }
 
-            if (upcoming.length > 0) {
-                html += '<h4 class="section-title">Скоро начнутся</h4><div class="tests-grid">';
-                upcoming.forEach(assignment => {
-                    html += this.renderTestCard(assignment, 'upcoming');
-                });
-                html += '</div>';
-            }
+	            if (upcoming.length > 0) {
+	                html += `<h4 class="section-title">${t('studentTests.section.upcoming', 'Скоро начнутся')}</h4><div class="tests-grid">`;
+	                upcoming.forEach(assignment => {
+	                    html += this.renderTestCard(assignment, 'upcoming');
+	                });
+	                html += '</div>';
+	            }
 
-            if (expired.length > 0) {
-                html += '<h4 class="section-title">Завершённые</h4><div class="tests-grid">';
-                expired.forEach(assignment => {
-                    html += this.renderTestCard(assignment, 'expired');
-                });
-                html += '</div>';
-            }
+	            if (expired.length > 0) {
+	                html += `<h4 class="section-title">${t('studentTests.section.expired', 'Завершённые')}</h4><div class="tests-grid">`;
+	                expired.forEach(assignment => {
+	                    html += this.renderTestCard(assignment, 'expired');
+	                });
+	                html += '</div>';
+	            }
 
             html += '</div>';
             container.innerHTML = html;
@@ -415,19 +432,21 @@
             }
         },
 
-        getTestsWord: function (count) {
-            if (this.currentType === 'control') {
-                if (count % 10 === 1 && count % 100 !== 11) return 'работа';
-                if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'работы';
-                return 'работ';
-            }
-            if (count % 10 === 1 && count % 100 !== 11) return 'тест';
-            if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'теста';
-            return 'тестов';
-        },
+	        getTestsWord: function (count) {
+	            const lang = getCurrentLang();
+	            if (lang === 'uz') {
+	                return this.currentType === 'control'
+	                    ? t('studentTests.word.control', 'ish')
+	                    : t('studentTests.word.test', 'test');
+	            }
+	            if (this.currentType === 'control') {
+	                return pluralizeRu(count, 'работа', 'работы', 'работ');
+	            }
+	            return pluralizeRu(count, 'тест', 'теста', 'тестов');
+	        },
 
         // Render test card
-        renderTestCard: function (assignment, status) {
+	        renderTestCard: function (assignment, status) {
             const attemptsLeft = assignment.max_attempts - assignment.attempts_made;
             const hasOngoing = assignment.ongoing_attempt_id !== null;
             const bestScore = assignment.best_score !== null ? parseFloat(assignment.best_score).toFixed(1) : null;
@@ -435,93 +454,93 @@
             const passed = bestScore !== null && bestScore >= assignment.passing_score;
             const isControl = this.normalizeAssignmentType(assignment) === 'control';
 
-            let actionButton = '';
-            if (status === 'active') {
-                if (hasOngoing) {
-                    actionButton = `
-                        <button class="btn btn-primary" onclick="StudentTestsManager.continueTest(${this.toJsArg(assignment.ongoing_attempt_id)})">
+	            let actionButton = '';
+	            if (status === 'active') {
+	                if (hasOngoing) {
+	                    actionButton = `
+	                        <button class="btn btn-primary" onclick="StudentTestsManager.continueTest(${this.toJsArg(assignment.ongoing_attempt_id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
-                            Продолжить
-                        </button>
-                    `;
-                } else if (attemptsLeft > 0) {
-                    actionButton = `
-                        <button class="btn btn-primary" onclick="StudentTestsManager.startTest(${this.toJsArg(assignment.id)})">
+	                            ${t('studentTests.continue', 'Продолжить')}
+	                        </button>
+	                    `;
+	                } else if (attemptsLeft > 0) {
+	                    actionButton = `
+	                        <button class="btn btn-primary" onclick="StudentTestsManager.startTest(${this.toJsArg(assignment.id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
-                            Начать тест
-                        </button>
-                    `;
-                } else {
-                    actionButton = '<span class="text-secondary">Лимит попыток исчерпан</span>';
-                }
-            } else if (status === 'upcoming') {
-                actionButton = `<button class="btn btn-outline" disabled>Старт: ${this.formatDate(assignment.start_date)}</button>`;
-            } else {
-                actionButton = `
-                    <button class="btn btn-outline" onclick="StudentTestsManager.viewResults(${this.toJsArg(assignment.id)})">
-                        Смотреть результат
-                    </button>
-                `;
-            }
+	                            ${t('studentTests.startTest', 'Начать тест')}
+	                        </button>
+	                    `;
+	                } else {
+	                    actionButton = `<span class="text-secondary">${t('studentTests.attemptsLimitReached', 'Лимит попыток исчерпан')}</span>`;
+	                }
+	            } else if (status === 'upcoming') {
+	                actionButton = `<button class="btn btn-outline" disabled>${t('studentTests.startsAt', 'Старт:')} ${this.formatDate(assignment.start_date)}</button>`;
+	            } else {
+	                actionButton = `
+	                    <button class="btn btn-outline" onclick="StudentTestsManager.viewResults(${this.toJsArg(assignment.id)})">
+	                        ${t('studentTests.viewResult', 'Смотреть результат')}
+	                    </button>
+	                `;
+	            }
 
-            const statusLabel = status === 'active'
-                ? 'Доступен'
-                : status === 'upcoming'
-                    ? 'Ожидается'
-                    : 'Завершён';
+	            const statusLabel = status === 'active'
+	                ? t('studentTests.status.available', 'Доступен')
+	                : status === 'upcoming'
+	                    ? t('studentTests.status.upcoming', 'Ожидается')
+	                    : t('studentTests.status.finished', 'Завершён');
 
             return `
                 <div class="test-card ${status} ${String(assignment.id) === String(this.focusAssignmentId) ? 'focused' : ''}" data-assignment-id="${assignment.id}">
-                    <div class="test-card-header">
-                        <span class="status-badge status-${status}">${statusLabel}</span>
-                        ${isControl ? `<span class="test-type-badge">Контрольная</span>` : ''}
-                    </div>
+	                    <div class="test-card-header">
+	                        <span class="status-badge status-${status}">${statusLabel}</span>
+	                        ${isControl ? `<span class="test-type-badge">${t('studentTests.badge.control', 'Контрольная')}</span>` : ''}
+	                    </div>
                     <div class="test-card-body">
                         <h3 class="test-title">${assignment.test_title}</h3>
                         <p class="test-class">${assignment.class_name}</p>
                         ${assignment.test_description ? `<p class="test-description">${assignment.test_description}</p>` : ''}
 
-                        <div class="test-meta">
+	                        <div class="test-meta">
                             <div class="meta-item">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
-                                ${assignment.duration_minutes} мин
-                            </div>
+	                                ${assignment.duration_minutes} ${t('tests.minShort', 'мин')}
+	                            </div>
                             <div class="meta-item">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M9 11l3 3L22 4"></path>
                                     <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
                                 </svg>
-                                ${assignment.question_count} вопросов
-                            </div>
+	                                ${assignment.question_count} ${getCurrentLang() === 'uz' ? t('studentTests.word.question', 'savol') : pluralizeRu(assignment.question_count, t('studentTests.word.questionOne', 'вопрос'), t('studentTests.word.questionFew', 'вопроса'), t('studentTests.word.questionMany', 'вопросов'))}
+	                            </div>
                             <div class="meta-item">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M12 2v20M2 12h20"></path>
                                 </svg>
-                                Порог: ${assignment.passing_score}%
-                            </div>
-                        </div>
+	                                ${t('tests.passingScoreLabel', 'Проходной балл')}: ${assignment.passing_score}%
+	                            </div>
+	                        </div>
 
-                        <div class="test-progress">
-                            <div class="progress-row">
-                                <span>Попытки:</span>
-                                <span>${assignment.attempts_made} / ${assignment.max_attempts}</span>
-                            </div>
-                            ${bestScore !== null ? `
-                                <div class="progress-row">
-                                    <span>Лучший результат:</span>
-                                    <span class="${hasPendingGrading ? 'text-warning' : (passed ? 'text-success' : 'text-warning')}">
-                                        ${hasPendingGrading ? 'Проверяется' : bestScore + '%'}
-                                    </span>
-                                </div>
-                            ` : ''}
-                        </div>
+	                        <div class="test-progress">
+	                            <div class="progress-row">
+	                                <span>${t('studentTests.attempts', 'Попытки')}:</span>
+	                                <span>${assignment.attempts_made} / ${assignment.max_attempts}</span>
+	                            </div>
+	                            ${bestScore !== null ? `
+	                                <div class="progress-row">
+	                                    <span>${t('studentTests.bestScore', 'Лучший результат')}:</span>
+	                                    <span class="${hasPendingGrading ? 'text-warning' : (passed ? 'text-success' : 'text-warning')}">
+	                                        ${hasPendingGrading ? t('studentTests.pendingReview', 'Проверяется') : bestScore + '%'}
+	                                    </span>
+	                                </div>
+	                            ` : ''}
+	                        </div>
 
                         ${status === 'active' ? `
                             <div class="test-deadline">
@@ -531,9 +550,9 @@
                                     <line x1="8" y1="2" x2="8" y2="6"></line>
                                     <line x1="3" y1="10" x2="21" y2="10"></line>
                                 </svg>
-                                Сдать до: ${this.formatDate(assignment.end_date)}
-                            </div>
-                        ` : ''}
+	                                ${t('studentTests.submitBy', 'Сдать до')}: ${this.formatDate(assignment.end_date)}
+	                            </div>
+	                        ` : ''}
                     </div>
                     <div class="test-card-footer">
                         ${actionButton}
@@ -554,11 +573,11 @@
         },
 
         // Start test
-        startTest: async function (assignmentId) {
-            const confirmed = await this.askConfirm(
-                'Вы уверены, что хотите начать тест? Таймер запустится сразу.',
-                { title: 'Начать тест', okText: 'Начать', cancelText: 'Отмена' }
-            );
+	        startTest: async function (assignmentId) {
+	            const confirmed = await this.askConfirm(
+	                t('studentTests.confirmStartText', 'Вы уверены, что хотите начать тест? Таймер запустится сразу.'),
+	                { title: t('studentTests.confirmStartTitle', 'Начать тест'), okText: t('studentTests.confirmStartOk', 'Начать'), cancelText: t('studentTests.confirmStartCancel', 'Отмена') }
+	            );
 
             if (!confirmed) {
                 return;
@@ -577,16 +596,16 @@
 
                 const data = await response.json();
 
-                if (response.ok) {
-                    window.location.href = `/take-test.html?attempt_id=${data.attempt_id}`;
-                } else {
-                    await this.notify(data.message || 'Не удалось начать тест');
-                }
-            } catch (error) {
-                console.error('Start test error:', error);
-                await this.notify('Не удалось начать тест. Попробуйте ещё раз.');
-            }
-        },
+	                if (response.ok) {
+	                    window.location.href = `/take-test.html?attempt_id=${data.attempt_id}`;
+	                } else {
+	                    await this.notify(data.message || t('studentTests.startFailed', 'Не удалось начать тест'));
+	                }
+	            } catch (error) {
+	                console.error('Start test error:', error);
+	                await this.notify(t('studentTests.startFailedTryAgain', 'Не удалось начать тест. Попробуйте ещё раз.'));
+	            }
+	        },
 
         // Continue test
         continueTest: function (attemptId) {
@@ -599,16 +618,16 @@
         },
 
         // Load test results
-        loadResults: async function () {
-            const container = document.getElementById('testsContainer');
-            if (!container) return;
+	        loadResults: async function () {
+	            const container = document.getElementById('testsContainer');
+	            if (!container) return;
 
-            container.innerHTML = `
-                <div style="text-align: center; padding: var(--spacing-3xl);">
-                    <div class="spinner" style="display: inline-block;"></div>
-                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Загрузка результатов...</p>
-                </div>
-            `;
+	            container.innerHTML = `
+	                <div style="text-align: center; padding: var(--spacing-3xl);">
+	                    <div class="spinner" style="display: inline-block;"></div>
+	                    <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">${t('studentTests.loadingResults', 'Загрузка результатов...')}</p>
+	                </div>
+	            `;
 
             try {
                 const token = window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
@@ -625,18 +644,18 @@
                 const data = await response.json();
                 this.results = Array.isArray(data.results) ? data.results : [];
                 this.renderResults(this.results);
-            } catch (error) {
-                console.error('Load results error:', error);
-                container.innerHTML = `
-                    <div class="error-message">
-                        <p>Не удалось загрузить результаты. Попробуйте ещё раз.</p>
-                    </div>
-                `;
-            }
-        },
+	            } catch (error) {
+	                console.error('Load results error:', error);
+	                container.innerHTML = `
+	                    <div class="error-message">
+	                        <p>${t('studentTests.failedLoadResultsTryAgain', 'Не удалось загрузить результаты. Попробуйте ещё раз.')}</p>
+	                    </div>
+	                `;
+	            }
+	        },
 
         // Render results
-        renderResults: function (results) {
+	        renderResults: function (results) {
             const container = document.getElementById('testsContainer');
             if (!container) return;
 
@@ -647,36 +666,36 @@
                 return type === this.currentType;
             });
 
-            if (filteredResults.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: var(--spacing-3xl);">
-                        <p style="color: var(--text-secondary);">${this.currentType === 'control' ? 'Пока нет завершённых контрольных.' : 'Пока нет завершённых тестов.'}</p>
-                    </div>
-                `;
-                return;
-            }
+	            if (filteredResults.length === 0) {
+	                container.innerHTML = `
+	                    <div style="text-align: center; padding: var(--spacing-3xl);">
+	                        <p style="color: var(--text-secondary);">${this.currentType === 'control' ? t('studentTests.noCompletedControls', 'Пока нет завершённых контрольных.') : t('studentTests.noCompletedTests', 'Пока нет завершённых тестов.')}</p>
+	                    </div>
+	                `;
+	                return;
+	            }
 
             let html = `
-                <div class="table-responsive mobile-stack-table">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Тест</th>
-                                <th>Предмет</th>
-                                <th>Класс</th>
-                                <th>Дата</th>
-                                <th>Баллы</th>
-                                <th>Результат</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
+	                <div class="table-responsive mobile-stack-table">
+	                    <table class="data-table">
+	                        <thead>
+	                            <tr>
+	                                <th>${t('studentTests.table.test', 'Тест')}</th>
+	                                <th>${t('studentTests.table.subject', 'Предмет')}</th>
+	                                <th>${t('studentTests.table.class', 'Класс')}</th>
+	                                <th>${t('studentTests.table.date', 'Дата')}</th>
+	                                <th>${t('studentTests.table.score', 'Баллы')}</th>
+	                                <th>${t('studentTests.table.result', 'Результат')}</th>
+	                                <th>${t('studentTests.table.actions', 'Действия')}</th>
+	                            </tr>
+	                        </thead>
                         <tbody>
             `;
 
-            filteredResults.forEach(result => {
-                const percentage = parseFloat(result.percentage);
-                const statusClass = percentage >= 60 ? 'status-active' : 'status-warning';
-                const statusText = percentage >= 60 ? 'Сдан' : 'Не сдан';
+	            filteredResults.forEach(result => {
+	                const percentage = parseFloat(result.percentage);
+	                const statusClass = percentage >= 60 ? 'status-active' : 'status-warning';
+	                const statusText = percentage >= 60 ? t('studentTests.passed', 'Сдан') : t('studentTests.notPassed', 'Не сдан');
 
                 html += `
                     <tr>
@@ -696,17 +715,17 @@
                         <td data-label="RESULT">
                             <span class="status-badge ${statusClass}">${percentage.toFixed(1)}% - ${statusText}</span>
                         </td>
-                        <td data-label="ACTIONS">
-                            <button class="btn-icon" onclick="StudentTestsManager.viewAttemptDetails(${this.toJsArg(result.attempt_id)})" title="Подробнее">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
+	                        <td data-label="ACTIONS">
+	                            <button class="btn-icon" onclick="StudentTestsManager.viewAttemptDetails(${this.toJsArg(result.attempt_id)})" title="${t('common.details', 'Подробнее')}">
+	                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+	                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+	                                    <circle cx="12" cy="12" r="3"></circle>
+	                                </svg>
+	                            </button>
+	                        </td>
+	                    </tr>
+	                `;
+	            });
 
             html += `
                         </tbody>

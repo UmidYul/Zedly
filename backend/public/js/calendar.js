@@ -4,6 +4,28 @@
 
     const API = '/api';
 
+    function looksLikeMojibake(value) {
+        if (typeof value !== 'string' || value.length < 4) return false;
+        const chunks = value.match(/(?:Р.|С.)/g) || [];
+        return chunks.length >= 3 && chunks.length / value.length > 0.2;
+    }
+
+    function t(key, fallback, params) {
+        const translated = window.ZedlyI18n?.translate?.(key, params);
+        if (!translated || translated === key || looksLikeMojibake(translated)) {
+            return fallback || key;
+        }
+        return translated;
+    }
+
+    function getCurrentLang() {
+        return window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+    }
+
+    function getLocale() {
+        return getCurrentLang() === 'uz' ? 'uz-UZ' : 'ru-RU';
+    }
+
     const state = {
         monthDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         selectedDate: new Date(),
@@ -46,6 +68,25 @@
         return d.toISOString().slice(0, 10);
     }
 
+    function formatMonthYearLabel(dateLike) {
+        const d = new Date(dateLike);
+        if (Number.isNaN(d.getTime())) return '-';
+        const year = String(d.getFullYear());
+        const month = t(`calendar.month.${d.getMonth()}`, String(d.getMonth() + 1));
+        return t('calendar.monthYear', '{month} {year}', { month, year });
+    }
+
+    function formatLongDateLabel(dateLike) {
+        const d = new Date(dateLike);
+        if (Number.isNaN(d.getTime())) return '-';
+        const day = String(d.getDate());
+        const year = String(d.getFullYear());
+        const month = t(`calendar.month.${d.getMonth()}`, String(d.getMonth() + 1));
+        const weekdayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()] || 'mon';
+        const weekday = t(`calendar.weekdayLong.${weekdayKey}`, weekdayKey);
+        return t('calendar.fullDate', '{weekday}, {day} {month} {year}', { weekday, day, month, year });
+    }
+
     function parseStatus(item) {
         const now = Date.now();
         const start = new Date(item.start_date).getTime();
@@ -57,16 +98,16 @@
     }
 
     function statusLabel(status) {
-        if (status === 'active') return 'Активно';
-        if (status === 'upcoming') return 'Предстоит';
-        if (status === 'completed') return 'Завершено';
-        return 'Неактивно';
+        if (status === 'active') return t('calendar.statusLabel.active', 'Активно');
+        if (status === 'upcoming') return t('calendar.statusLabel.upcoming', 'Предстоит');
+        if (status === 'completed') return t('calendar.statusLabel.completed', 'Завершено');
+        return t('calendar.statusLabel.inactive', 'Неактивно');
     }
 
     function formatDateTime(value) {
         const d = new Date(value);
         if (Number.isNaN(d.getTime())) return '-';
-        return d.toLocaleString('ru-RU', {
+        return d.toLocaleString(getLocale(), {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -76,14 +117,7 @@
     }
 
     function formatDateLabel(value) {
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return '-';
-        return d.toLocaleDateString('ru-RU', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        return formatLongDateLabel(value);
     }
 
     async function loadClasses() {
@@ -91,7 +125,7 @@
         state.classes = data.classes || [];
         const select = byId('calendarClassFilter');
         if (!select) return;
-        select.innerHTML = '<option value="all">Все классы</option>' + state.classes
+        select.innerHTML = `<option value="all">${escapeHtml(t('calendar.filter.allClasses', 'Все классы'))}</option>` + state.classes
             .map((cls) => `<option value="${cls.id}">${escapeHtml(cls.name)}</option>`)
             .join('');
     }
@@ -169,7 +203,7 @@
     function renderMonthGrid() {
         const label = byId('calendarMonthLabel');
         if (label) {
-            label.textContent = state.monthDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+            label.textContent = formatMonthYearLabel(state.monthDate);
         }
 
         const grid = byId('calendarGrid');
@@ -185,7 +219,7 @@
             const events = getEventsForDay(iter);
             const badge = events.length ? `<span class="calendar-day-count">${events.length}</span>` : '';
             const topEvents = events.slice(0, 2).map((ev) =>
-                `<div class="calendar-mini-event ${ev.status}">${escapeHtml(ev.test_title || 'Тест')}</div>`
+                `<div class="calendar-mini-event ${ev.status}">${escapeHtml(ev.test_title || t('studentOverview.fallbackTest', 'Тест'))}</div>`
             ).join('');
 
             cells.push(`
@@ -210,20 +244,20 @@
             .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
         if (!events.length) {
-            container.innerHTML = '<p class="text-secondary">На выбранную дату событий нет</p>';
+            container.innerHTML = `<p class="text-secondary">${t('calendar.dayEvents.none', 'На выбранную дату событий нет')}</p>`;
             return;
         }
 
         container.innerHTML = events.map((ev) => `
             <div class="calendar-event-card ${ev.status}">
                 <div>
-                    <strong>${escapeHtml(ev.test_title || 'Тест')}</strong>
-                    <p>${escapeHtml(ev.class_name || '-')} · ${escapeHtml(ev.subject_name || 'Без предмета')}</p>
+                    <strong>${escapeHtml(ev.test_title || t('studentOverview.fallbackTest', 'Тест'))}</strong>
+                    <p>${escapeHtml(ev.class_name || '-')} · ${escapeHtml(ev.subject_name || t('calendar.subject.none', 'Без предмета'))}</p>
                 </div>
                 <div class="calendar-event-card-meta">
                     <span>${formatDateTime(ev.start_date)}</span>
                     <span>${statusLabel(ev.status)}</span>
-                    <button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">Детали</button>
+                    <button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">${escapeHtml(t('calendar.details', 'Детали'))}</button>
                 </div>
             </div>
         `).join('');
@@ -239,19 +273,19 @@
             .slice(0, 20);
 
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="empty-row">Нет назначений по выбранным фильтрам</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="7" class="empty-row">${escapeHtml(t('calendar.upcoming.none', 'Нет назначений по выбранным фильтрам'))}</td></tr>`;
             return;
         }
 
         tbody.innerHTML = rows.map((ev) => `
             <tr>
-                <td data-label="Тест">${escapeHtml(ev.test_title || '-')}</td>
-                <td data-label="Класс">${escapeHtml(ev.class_name || '-')}</td>
-                <td data-label="Предмет">${escapeHtml(ev.subject_name || '-')}</td>
-                <td data-label="Начало">${formatDateTime(ev.start_date)}</td>
-                <td data-label="Окончание">${formatDateTime(ev.end_date)}</td>
-                <td data-label="Статус"><span class="students-band ${ev.status === 'active' ? 'high' : (ev.status === 'upcoming' ? 'mid' : 'risk')}">${statusLabel(ev.status)}</span></td>
-                <td data-label="Действия"><button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">Открыть</button></td>
+                <td data-label="${escapeHtml(t('calendar.col.test', 'Тест'))}">${escapeHtml(ev.test_title || '-')}</td>
+                <td data-label="${escapeHtml(t('calendar.col.class', 'Класс'))}">${escapeHtml(ev.class_name || '-')}</td>
+                <td data-label="${escapeHtml(t('calendar.col.subject', 'Предмет'))}">${escapeHtml(ev.subject_name || '-')}</td>
+                <td data-label="${escapeHtml(t('calendar.col.start', 'Начало'))}">${formatDateTime(ev.start_date)}</td>
+                <td data-label="${escapeHtml(t('calendar.col.end', 'Окончание'))}">${formatDateTime(ev.end_date)}</td>
+                <td data-label="${escapeHtml(t('common.status', 'Статус'))}"><span class="students-band ${ev.status === 'active' ? 'high' : (ev.status === 'upcoming' ? 'mid' : 'risk')}">${statusLabel(ev.status)}</span></td>
+                <td data-label="${escapeHtml(t('common.actions', 'Действия'))}"><button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">${escapeHtml(t('calendar.open', 'Открыть'))}</button></td>
             </tr>
         `).join('');
     }
@@ -281,7 +315,7 @@
 
     async function openEventDetails(assignmentId) {
         try {
-            openModal('Событие', '<p class="text-secondary">Загрузка...</p>');
+            openModal(t('calendar.event.title', 'Событие'), `<p class="text-secondary">${t('common.loading', 'Загрузка...')}</p>`);
             const data = await apiGet(`${API}/teacher/assignments/${encodeURIComponent(assignmentId)}`);
             const a = data.assignment || {};
             const students = data.students || [];
@@ -289,33 +323,39 @@
             const passed = students.filter((s) => Number(s.best_score || 0) >= Number(a.passing_score || 0)).length;
 
             openModal(
-                a.test_title || 'Событие',
+                a.test_title || t('calendar.event.title', 'Событие'),
                 `
                     <div class="calendar-event-details-grid">
-                        <div class="report-kpi"><span>Класс</span><strong>${escapeHtml(a.class_name || '-')}</strong></div>
-                        <div class="report-kpi"><span>Предмет</span><strong>${escapeHtml(a.subject_name || '-')}</strong></div>
-                        <div class="report-kpi"><span>Старт</span><strong>${formatDateTime(a.start_date)}</strong></div>
-                        <div class="report-kpi"><span>Дедлайн</span><strong>${formatDateTime(a.end_date)}</strong></div>
-                        <div class="report-kpi"><span>Прогресс</span><strong>${done}/${students.length}</strong></div>
-                        <div class="report-kpi"><span>Сдали</span><strong>${passed}</strong></div>
+                        <div class="report-kpi"><span>${escapeHtml(t('calendar.details.class', 'Класс'))}</span><strong>${escapeHtml(a.class_name || '-')}</strong></div>
+                        <div class="report-kpi"><span>${escapeHtml(t('calendar.details.subject', 'Предмет'))}</span><strong>${escapeHtml(a.subject_name || '-')}</strong></div>
+                        <div class="report-kpi"><span>${escapeHtml(t('calendar.details.start', 'Старт'))}</span><strong>${formatDateTime(a.start_date)}</strong></div>
+                        <div class="report-kpi"><span>${escapeHtml(t('calendar.details.deadline', 'Дедлайн'))}</span><strong>${formatDateTime(a.end_date)}</strong></div>
+                        <div class="report-kpi"><span>${escapeHtml(t('calendar.details.progress', 'Прогресс'))}</span><strong>${done}/${students.length}</strong></div>
+                        <div class="report-kpi"><span>${escapeHtml(t('calendar.details.passed', 'Сдали'))}</span><strong>${passed}</strong></div>
                     </div>
                     <div class="table-responsive">
                         <table class="data-table">
-                            <thead><tr><th>Ученик</th><th>Попытки</th><th>Лучший балл</th><th>Статус</th></tr></thead>
+                            <thead><tr><th>${escapeHtml(t('calendar.details.table.student', 'Ученик'))}</th><th>${escapeHtml(t('calendar.details.table.attempts', 'Попытки'))}</th><th>${escapeHtml(t('calendar.details.table.bestScore', 'Лучший балл'))}</th><th>${escapeHtml(t('common.status', 'Статус'))}</th></tr></thead>
                             <tbody>
                                 ${students.slice(0, 20).map((s) => `
                                     <tr>
                                         <td>${escapeHtml(s.student_name || '-')}</td>
                                         <td>${Number(s.attempts_made || 0)}</td>
                                         <td>${s.best_score != null ? `${Math.round(Number(s.best_score))}%` : '-'}</td>
-                                        <td>${Number(s.attempts_made || 0) === 0 ? 'Не начал' : (Number(s.best_score || 0) >= Number(a.passing_score || 0) ? 'Сдал' : 'В процессе')}</td>
+                                        <td>${Number(s.attempts_made || 0) === 0
+                                            ? escapeHtml(t('calendar.studentStatus.notStarted', 'Не начал'))
+                                            : (Number(s.best_score || 0) >= Number(a.passing_score || 0)
+                                                ? escapeHtml(t('calendar.studentStatus.passed', 'Сдал'))
+                                                : escapeHtml(t('calendar.studentStatus.inProgress', 'В процессе'))
+                                            )
+                                        }</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
                         </table>
                     </div>
                     <div class="calendar-event-modal-actions">
-                        <button class="btn btn-secondary" type="button" id="calendarGoAssignmentsBtn">Перейти в Назначения</button>
+                        <button class="btn btn-secondary" type="button" id="calendarGoAssignmentsBtn">${escapeHtml(t('calendar.goAssignments', 'Перейти в Назначения'))}</button>
                     </div>
                 `
             );
@@ -328,7 +368,7 @@
                 });
             }
         } catch (error) {
-            openModal('Событие', `<p class="text-secondary">${escapeHtml(error.message || 'Не удалось загрузить детали')}</p>`);
+            openModal(t('calendar.event.title', 'Событие'), `<p class="text-secondary">${escapeHtml(error.message || t('calendar.failedLoadDetails', 'Не удалось загрузить детали'))}</p>`);
         }
     }
 
@@ -340,13 +380,13 @@
 
     function exportIcs() {
         if (!state.filtered.length) {
-            alert('Нет событий для экспорта');
+            alert(t('calendar.export.noEvents', 'Нет событий для экспорта'));
             return;
         }
         const lines = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//Zedly//Calendar//RU'
+            `PRODID:-//Zedly//Calendar//${getCurrentLang().toUpperCase()}`
         ];
         state.filtered.forEach((ev) => {
             lines.push('BEGIN:VEVENT');
@@ -354,8 +394,8 @@
             lines.push(`DTSTAMP:${toIcsDate(new Date())}`);
             lines.push(`DTSTART:${toIcsDate(ev.start_date)}`);
             lines.push(`DTEND:${toIcsDate(ev.end_date)}`);
-            lines.push(`SUMMARY:${(ev.test_title || 'Тест').replace(/\n/g, ' ')}`);
-            lines.push(`DESCRIPTION:${(`Класс: ${ev.class_name || '-'}, Предмет: ${ev.subject_name || '-'}`).replace(/\n/g, ' ')}`);
+            lines.push(`SUMMARY:${(ev.test_title || t('studentOverview.fallbackTest', 'Тест')).replace(/\n/g, ' ')}`);
+            lines.push(`DESCRIPTION:${(`${t('calendar.ics.class', 'Класс')}: ${ev.class_name || '-'}, ${t('calendar.ics.subject', 'Предмет')}: ${ev.subject_name || '-'}`).replace(/\n/g, ' ')}`);
             lines.push('END:VEVENT');
         });
         lines.push('END:VCALENDAR');
@@ -375,7 +415,7 @@
 
         const printWindow = window.open('', '_blank', 'width=1200,height=800');
         if (!printWindow) {
-            alert('Popup blocked. Allow popups to export PDF.');
+            alert(t('calendar.pdf.popupBlocked', 'Popup blocked. Allow popups to export PDF.'));
             return;
         }
 
@@ -387,7 +427,7 @@
         printWindow.document.write(`
             <html>
             <head>
-                <title>Calendar PDF</title>
+                <title>${escapeHtml(t('calendar.pdf.windowTitleTeacher', 'Calendar PDF'))}</title>
                 ${styles}
                 <style>
                     :root {
@@ -541,7 +581,7 @@
         } catch (error) {
             console.error('Calendar init error:', error);
             const grid = byId('calendarGrid');
-            if (grid) grid.innerHTML = '<p class="text-secondary">Не удалось загрузить календарь</p>';
+            if (grid) grid.innerHTML = `<p class="text-secondary">${t('calendar.failedLoad', 'Не удалось загрузить календарь')}</p>`;
         }
     }
 

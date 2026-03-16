@@ -2,6 +2,23 @@
 (function () {
     'use strict';
 
+    function t(key, fallback, params) {
+        const translated = window.ZedlyI18n?.translate?.(key, params);
+        if (!translated || translated === key) {
+            return fallback || key;
+        }
+        return translated;
+    }
+
+    function getCurrentLang() {
+        return window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+    }
+
+    function getLocale() {
+        const lang = getCurrentLang();
+        return lang === 'uz' ? 'uz-UZ' : 'ru-RU';
+    }
+
     function token() {
         return window.ZedlyAuth?.getAuthToken?.() || 'cookie-session';
     }
@@ -32,7 +49,7 @@
         if (!value) return '-';
         const d = new Date(value);
         if (Number.isNaN(d.getTime())) return '-';
-        return d.toLocaleString('ru-RU', {
+        return d.toLocaleString(getLocale(), {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -42,9 +59,9 @@
     }
 
     function statusLabel(status) {
-        if (status === 'completed') return 'Сдано';
-        if (status === 'in_progress') return 'В процессе';
-        return 'Не начато';
+        if (status === 'completed') return t('studentMyClass.status.completed', 'Сдано');
+        if (status === 'in_progress') return t('studentMyClass.status.inProgress', 'В процессе');
+        return t('studentMyClass.status.notStarted', 'Не начато');
     }
 
     function statusClass(status) {
@@ -70,7 +87,7 @@
         });
 
         if (!response.ok) {
-            throw new Error('Не удалось загрузить данные класса');
+            throw new Error(t('studentMyClass.failedLoad', 'Не удалось загрузить данные класса'));
         }
 
         return response.json();
@@ -87,13 +104,18 @@
         const testsEl = byId('studentMyClassTests');
         const activeAssignEl = byId('studentMyClassActiveAssignments');
 
-        if (className) className.textContent = cls.name || 'Мой класс';
+        if (className) className.textContent = cls.name || t('dashboard.nav.myClass', 'Мой класс');
         if (classMeta) {
-            const grade = cls.grade_level ? `${cls.grade_level} класс` : 'Класс';
+            const gradeSuffix = t('classes.gradeSuffix', 'класс');
+            const grade = cls.grade_level ? `${cls.grade_level} ${gradeSuffix}` : t('myClass.classFallback', 'Класс');
             const year = cls.academic_year || '-';
-            const teacher = cls.homeroom_teacher_name || 'Не указан';
+            const teacher = cls.homeroom_teacher_name || t('myClass.teacher.notSpecified', 'Не указан');
             const count = cls.student_count || 0;
-            classMeta.textContent = `${grade} | ${year} | Классный руководитель: ${teacher} | ${count} учеников`;
+            classMeta.textContent = t(
+                'studentMyClass.meta',
+                `${grade} | ${year} | Классный руководитель: ${teacher} | ${count} учеников`,
+                { grade, year, teacher, count }
+            );
         }
 
         if (rankEl) {
@@ -109,18 +131,18 @@
         if (!tbody) return;
 
         if (!Array.isArray(items) || !items.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="empty-row">Сейчас нет активных назначений</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-row">${escapeHtml(t('studentMyClass.assignments.empty', 'Сейчас нет активных назначений'))}</td></tr>`;
             return;
         }
 
         tbody.innerHTML = items.map((item) => `
             <tr>
-                <td data-label="Тест">${escapeHtml(item.test_title || '-')}</td>
-                <td data-label="Предмет">${escapeHtml(item.subject_name || '-')}</td>
-                <td data-label="Дедлайн">${formatDate(item.end_date)}</td>
-                <td data-label="Мой статус"><span class="students-band ${statusClass(item.my_status)}">${statusLabel(item.my_status)}</span></td>
-                <td data-label="Действие">
-                    <button class="btn btn-outline btn-sm" type="button" data-action="open-tests">Открыть</button>
+                <td data-label="${escapeHtml(t('studentMyClass.col.test', 'Тест'))}">${escapeHtml(item.test_title || '-')}</td>
+                <td data-label="${escapeHtml(t('studentMyClass.col.subject', 'Предмет'))}">${escapeHtml(item.subject_name || '-')}</td>
+                <td data-label="${escapeHtml(t('studentMyClass.col.deadline', 'Дедлайн'))}">${formatDate(item.end_date)}</td>
+                <td data-label="${escapeHtml(t('studentMyClass.col.myStatus', 'Мой статус'))}"><span class="students-band ${statusClass(item.my_status)}">${statusLabel(item.my_status)}</span></td>
+                <td data-label="${escapeHtml(t('studentMyClass.col.action', 'Действие'))}">
+                    <button class="btn btn-outline btn-sm" type="button" data-action="open-tests">${escapeHtml(t('studentMyClass.open', 'Открыть'))}</button>
                 </td>
             </tr>
         `).join('');
@@ -137,7 +159,7 @@
         if (!container) return;
 
         if (!Array.isArray(items) || !items.length) {
-            container.innerHTML = '<div class="empty-state">Недостаточно данных по предметам</div>';
+            container.innerHTML = `<div class="empty-state">${escapeHtml(t('studentMyClass.subjects.empty', 'Недостаточно данных по предметам'))}</div>`;
             return;
         }
 
@@ -147,8 +169,8 @@
             return `
                 <div class="subject-item">
                     <div>
-                        <div class="subject-name">${escapeHtml(item.subject_name || 'Предмет')}</div>
-                        <div class="text-secondary" style="font-size:0.85rem;">Класс: ${classAvg} | Я: ${myAvg}</div>
+                        <div class="subject-name">${escapeHtml(item.subject_name || t('studentMyClass.subject', 'Предмет'))}</div>
+                        <div class="text-secondary" style="font-size:0.85rem;">${escapeHtml(t('studentMyClass.subjects.meta', 'Класс: {classAvg} | Я: {myAvg}', { classAvg, myAvg }))}</div>
                     </div>
                 </div>
             `;
@@ -160,19 +182,19 @@
         if (!tbody) return;
 
         if (!Array.isArray(items) || !items.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="empty-row">Список одноклассников пуст</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="4" class="empty-row">${escapeHtml(t('studentMyClass.classmates.empty', 'Список одноклассников пуст'))}</td></tr>`;
             return;
         }
 
         tbody.innerHTML = items.map((item, index) => `
             <tr>
-                <td data-label="№" class="classmate-roll">${escapeHtml(item.roll_number || String(index + 1))}</td>
-                <td data-label="ФИО" class="classmate-name">
+                <td data-label="${escapeHtml(t('studentMyClass.col.number', '№'))}" class="classmate-roll">${escapeHtml(item.roll_number || String(index + 1))}</td>
+                <td data-label="${escapeHtml(t('studentMyClass.col.fullName', 'ФИО'))}" class="classmate-name">
                     <span class="classmate-inline-number">${escapeHtml(item.roll_number || String(index + 1))}.</span>
                     ${escapeHtml(item.full_name || '-')}
                 </td>
-                <td data-label="Средний балл">${formatPercent(item.avg_score)}</td>
-                <td data-label="Тестов пройдено">${toNumber(item.tests_completed)}</td>
+                <td data-label="${escapeHtml(t('studentMyClass.col.avgScore', 'Средний балл'))}">${formatPercent(item.avg_score)}</td>
+                <td data-label="${escapeHtml(t('studentMyClass.col.testsCompleted', 'Тестов пройдено'))}">${toNumber(item.tests_completed)}</td>
             </tr>
         `).join('');
     }

@@ -3,6 +3,28 @@
 
     const API = '/api';
 
+    function looksLikeMojibake(value) {
+        if (typeof value !== 'string' || value.length < 4) return false;
+        const chunks = value.match(/(?:Р.|С.)/g) || [];
+        return chunks.length >= 3 && chunks.length / value.length > 0.2;
+    }
+
+    function t(key, fallback, params) {
+        const translated = window.ZedlyI18n?.translate?.(key, params);
+        if (!translated || translated === key || looksLikeMojibake(translated)) {
+            return fallback || key;
+        }
+        return translated;
+    }
+
+    function getCurrentLang() {
+        return window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+    }
+
+    function getLocale() {
+        return getCurrentLang() === 'uz' ? 'uz-UZ' : 'ru-RU';
+    }
+
     const state = {
         monthDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         selectedDate: new Date(),
@@ -46,6 +68,25 @@
         return `${y}-${m}-${day}`;
     }
 
+    function formatMonthYearLabel(dateLike) {
+        const d = new Date(dateLike);
+        if (Number.isNaN(d.getTime())) return '-';
+        const year = String(d.getFullYear());
+        const month = t(`calendar.month.${d.getMonth()}`, String(d.getMonth() + 1));
+        return t('calendar.monthYear', '{month} {year}', { month, year });
+    }
+
+    function formatLongDateLabel(dateLike) {
+        const d = new Date(dateLike);
+        if (Number.isNaN(d.getTime())) return '-';
+        const day = String(d.getDate());
+        const year = String(d.getFullYear());
+        const month = t(`calendar.month.${d.getMonth()}`, String(d.getMonth() + 1));
+        const weekdayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()] || 'mon';
+        const weekday = t(`calendar.weekdayLong.${weekdayKey}`, weekdayKey);
+        return t('calendar.fullDate', '{weekday}, {day} {month} {year}', { weekday, day, month, year });
+    }
+
     function parseStatus(item) {
         const explicit = String(item?.status || item?.assignment_status || '').toLowerCase();
         if (['active', 'upcoming', 'completed', 'inactive'].includes(explicit)) return explicit;
@@ -61,16 +102,16 @@
     }
 
     function statusLabel(status) {
-        if (status === 'active') return 'Активно';
-        if (status === 'upcoming') return 'Предстоит';
-        if (status === 'completed') return 'Завершено';
-        return 'Неактивно';
+        if (status === 'active') return t('calendar.statusLabel.active', 'Активно');
+        if (status === 'upcoming') return t('calendar.statusLabel.upcoming', 'Предстоит');
+        if (status === 'completed') return t('calendar.statusLabel.completed', 'Завершено');
+        return t('calendar.statusLabel.inactive', 'Неактивно');
     }
 
     function formatDateTime(value) {
         const d = new Date(value);
         if (Number.isNaN(d.getTime())) return '-';
-        return d.toLocaleString('ru-RU', {
+        return d.toLocaleString(getLocale(), {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -80,14 +121,7 @@
     }
 
     function formatDateLabel(value) {
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return '-';
-        return d.toLocaleDateString('ru-RU', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        return formatLongDateLabel(value);
     }
 
     async function loadAssignments() {
@@ -150,7 +184,7 @@
     function renderMonthGrid() {
         const label = byId('calendarMonthLabel');
         if (label) {
-            label.textContent = state.monthDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+            label.textContent = formatMonthYearLabel(state.monthDate);
         }
 
         const grid = byId('calendarGrid');
@@ -166,7 +200,7 @@
             const events = getEventsForDay(iter);
             const badge = events.length ? `<span class="calendar-day-count">${events.length}</span>` : '';
             const topEvents = events.slice(0, 2).map((ev) =>
-                `<div class="calendar-mini-event ${ev.status}">${escapeHtml(ev.test_title || 'Тест')}</div>`
+                `<div class="calendar-mini-event ${ev.status}">${escapeHtml(ev.test_title || t('studentOverview.fallbackTest', 'Тест'))}</div>`
             ).join('');
 
             cells.push(`
@@ -191,20 +225,20 @@
             .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
         if (!events.length) {
-            container.innerHTML = '<p class="text-secondary">На выбранную дату событий нет</p>';
+            container.innerHTML = `<p class="text-secondary">${t('calendar.dayEvents.none', 'На выбранную дату событий нет')}</p>`;
             return;
         }
 
         container.innerHTML = events.map((ev) => `
             <div class="calendar-event-card ${ev.status}">
                 <div>
-                    <strong>${escapeHtml(ev.test_title || 'Тест')}</strong>
-                    <p>${escapeHtml(ev.subject_name || 'Без предмета')}</p>
+                    <strong>${escapeHtml(ev.test_title || t('studentOverview.fallbackTest', 'Тест'))}</strong>
+                    <p>${escapeHtml(ev.subject_name || t('calendar.subject.none', 'Без предмета'))}</p>
                 </div>
                 <div class="calendar-event-card-meta">
                     <span>${formatDateTime(ev.start_date)}</span>
                     <span>${statusLabel(ev.status)}</span>
-                    <button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">Детали</button>
+                    <button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">${escapeHtml(t('calendar.details', 'Детали'))}</button>
                 </div>
             </div>
         `).join('');
@@ -220,18 +254,18 @@
             .slice(0, 20);
 
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="empty-row">Нет назначений по выбранным фильтрам</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-row">${escapeHtml(t('calendar.upcoming.none', 'Нет назначений по выбранным фильтрам'))}</td></tr>`;
             return;
         }
 
         tbody.innerHTML = rows.map((ev) => `
             <tr>
-                <td data-label="Тест">${escapeHtml(ev.test_title || '-')}</td>
-                <td data-label="Предмет">${escapeHtml(ev.subject_name || '-')}</td>
-                <td data-label="Начало">${formatDateTime(ev.start_date)}</td>
-                <td data-label="Окончание">${formatDateTime(ev.end_date)}</td>
-                <td data-label="Статус"><span class="students-band ${ev.status === 'active' ? 'high' : (ev.status === 'upcoming' ? 'mid' : 'risk')}">${statusLabel(ev.status)}</span></td>
-                <td data-label="Действия"><button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">Открыть</button></td>
+                <td data-label="${escapeHtml(t('calendar.col.test', 'Тест'))}">${escapeHtml(ev.test_title || '-')}</td>
+                <td data-label="${escapeHtml(t('calendar.col.subject', 'Предмет'))}">${escapeHtml(ev.subject_name || '-')}</td>
+                <td data-label="${escapeHtml(t('calendar.col.start', 'Начало'))}">${formatDateTime(ev.start_date)}</td>
+                <td data-label="${escapeHtml(t('calendar.col.end', 'Окончание'))}">${formatDateTime(ev.end_date)}</td>
+                <td data-label="${escapeHtml(t('common.status', 'Статус'))}"><span class="students-band ${ev.status === 'active' ? 'high' : (ev.status === 'upcoming' ? 'mid' : 'risk')}">${statusLabel(ev.status)}</span></td>
+                <td data-label="${escapeHtml(t('common.actions', 'Действия'))}"><button class="btn btn-outline calendar-open-event" data-id="${ev.id}" type="button">${escapeHtml(t('calendar.open', 'Открыть'))}</button></td>
             </tr>
         `).join('');
     }
@@ -265,18 +299,18 @@
         const bestScore = a.best_score != null ? `${Math.round(Number(a.best_score))}%` : '-';
 
         openModal(
-            a.test_title || 'Событие',
+            a.test_title || t('calendar.event.title', 'Событие'),
             `
                 <div class="calendar-event-details-grid">
-                    <div class="report-kpi"><span>Предмет</span><strong>${escapeHtml(a.subject_name || '-')}</strong></div>
-                    <div class="report-kpi"><span>Старт</span><strong>${formatDateTime(a.start_date)}</strong></div>
-                    <div class="report-kpi"><span>Дедлайн</span><strong>${formatDateTime(a.end_date)}</strong></div>
-                    <div class="report-kpi"><span>Статус</span><strong>${statusLabel(a.status || parseStatus(a))}</strong></div>
-                    <div class="report-kpi"><span>Попыток</span><strong>${attemptsMade}</strong></div>
-                    <div class="report-kpi"><span>Лучший балл</span><strong>${bestScore}</strong></div>
+                    <div class="report-kpi"><span>${escapeHtml(t('calendar.details.subject', 'Предмет'))}</span><strong>${escapeHtml(a.subject_name || '-')}</strong></div>
+                    <div class="report-kpi"><span>${escapeHtml(t('calendar.details.start', 'Старт'))}</span><strong>${formatDateTime(a.start_date)}</strong></div>
+                    <div class="report-kpi"><span>${escapeHtml(t('calendar.details.deadline', 'Дедлайн'))}</span><strong>${formatDateTime(a.end_date)}</strong></div>
+                    <div class="report-kpi"><span>${escapeHtml(t('common.status', 'Статус'))}</span><strong>${escapeHtml(statusLabel(a.status || parseStatus(a)))}</strong></div>
+                    <div class="report-kpi"><span>${escapeHtml(t('calendar.student.details.attempts', 'Попыток'))}</span><strong>${attemptsMade}</strong></div>
+                    <div class="report-kpi"><span>${escapeHtml(t('calendar.student.details.bestScore', 'Лучший балл'))}</span><strong>${bestScore}</strong></div>
                 </div>
                 <div class="calendar-event-modal-actions">
-                    <button class="btn btn-secondary" type="button" id="calendarGoTestsBtn">Перейти к тестам</button>
+                    <button class="btn btn-secondary" type="button" id="calendarGoTestsBtn">${escapeHtml(t('calendar.goTests', 'Перейти к тестам'))}</button>
                 </div>
             `
         );
@@ -298,13 +332,13 @@
 
     function exportIcs() {
         if (!state.filtered.length) {
-            alert('Нет событий для экспорта');
+            alert(t('calendar.export.noEvents', 'Нет событий для экспорта'));
             return;
         }
         const lines = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//Zedly//StudentCalendar//RU'
+            `PRODID:-//Zedly//StudentCalendar//${getCurrentLang().toUpperCase()}`
         ];
         state.filtered.forEach((ev) => {
             lines.push('BEGIN:VEVENT');
@@ -312,8 +346,8 @@
             lines.push(`DTSTAMP:${toIcsDate(new Date())}`);
             lines.push(`DTSTART:${toIcsDate(ev.start_date)}`);
             lines.push(`DTEND:${toIcsDate(ev.end_date)}`);
-            lines.push(`SUMMARY:${(ev.test_title || 'Тест').replace(/\n/g, ' ')}`);
-            lines.push(`DESCRIPTION:${(`Предмет: ${ev.subject_name || '-'}`).replace(/\n/g, ' ')}`);
+            lines.push(`SUMMARY:${(ev.test_title || t('studentOverview.fallbackTest', 'Тест')).replace(/\n/g, ' ')}`);
+            lines.push(`DESCRIPTION:${(`${t('calendar.ics.subject', 'Предмет')}: ${ev.subject_name || '-'}`).replace(/\n/g, ' ')}`);
             lines.push('END:VEVENT');
         });
         lines.push('END:VCALENDAR');
@@ -333,7 +367,7 @@
 
         const printWindow = window.open('', '_blank', 'width=1200,height=800');
         if (!printWindow) {
-            alert('Popup blocked. Allow popups to export PDF.');
+            alert(t('calendar.pdf.popupBlocked', 'Popup blocked. Allow popups to export PDF.'));
             return;
         }
 
@@ -345,7 +379,7 @@
         printWindow.document.write(`
             <html>
             <head>
-                <title>Student Calendar PDF</title>
+                <title>${escapeHtml(t('calendar.pdf.windowTitleStudent', 'Student Calendar PDF'))}</title>
                 ${styles}
                 <style>
                     :root {
@@ -492,7 +526,7 @@
         } catch (error) {
             console.error('Student calendar init error:', error);
             const grid = byId('calendarGrid');
-            if (grid) grid.innerHTML = '<p class="text-secondary">Не удалось загрузить календарь</p>';
+            if (grid) grid.innerHTML = `<p class="text-secondary">${t('calendar.failedLoad', 'Не удалось загрузить календарь')}</p>`;
         }
     }
 

@@ -2,7 +2,25 @@
     'use strict';
 
     const API_URL = '/api';
-    const i18n = window.ZedlyI18n || { translate: (k) => k };
+    const i18n = window.ZedlyI18n || { translate: (k) => k, getCurrentLang: () => 'ru' };
+
+    function getCurrentLocale() {
+        const lang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+        return lang === 'uz' ? 'uz-UZ' : 'ru-RU';
+    }
+
+    function t(key, paramsOrFallback, fallbackMaybe) {
+        let params = undefined;
+        let fallback = fallbackMaybe;
+        if (typeof paramsOrFallback === 'object' && paramsOrFallback !== null && !Array.isArray(paramsOrFallback)) {
+            params = paramsOrFallback;
+        } else {
+            fallback = paramsOrFallback;
+        }
+        const translated = window.ZedlyI18n?.translate?.(key, params);
+        if (!translated || translated === key) return fallback || key;
+        return translated;
+    }
 
     let currentUser = null;
     let profileUser = null;
@@ -14,6 +32,7 @@
     let activePhoneRequestId = '';
     let contactVerifyModalType = 'email';
     let contactVerifyModalValue = '';
+    let langListenerBound = false;
     const PROFILE_ACTIVITY_LIMIT = 10;
     function setProfileLoading(loading) {
         const stats = document.getElementById('statsContent');
@@ -46,7 +65,7 @@
             .replace(/'/g, '&#39;');
     }
 
-    async function showAlert(message, title = 'Информация') {
+    async function showAlert(message, title = t('common.info', 'Информация')) {
         if (window.ZedlyDialog?.alert) {
             return window.ZedlyDialog.alert(message, { title });
         }
@@ -54,7 +73,7 @@
         return Promise.resolve(true);
     }
 
-    async function showConfirm(message, title = 'Подтверждение') {
+    async function showConfirm(message, title = t('common.confirmation', 'Подтверждение')) {
         if (window.ZedlyDialog?.confirm) {
             return window.ZedlyDialog.confirm(message, { title });
         }
@@ -71,7 +90,7 @@
         }
 
         if (!response.ok) {
-            const err = new Error(data.message || 'Request failed');
+            const err = new Error(data.message || t('common.requestFailed', 'Request failed'));
             err.status = response.status;
             err.data = data;
             throw err;
@@ -84,7 +103,7 @@
         if (!dateString) return '-';
         const date = new Date(dateString);
         if (Number.isNaN(date.getTime())) return '-';
-        return date.toLocaleDateString('ru-RU', {
+        return date.toLocaleString(getCurrentLocale(), {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -117,15 +136,11 @@
     }
 
     function roleLabel(role) {
-        const map = {
-            superadmin: 'Супер Администратор',
-            super_admin: 'Супер Администратор',
-            school_admin: 'Администратор Школы',
-            teacher: 'Учитель',
-            student: 'Ученик',
-            psychologist: 'Психолог'
-        };
-        return map[role] || role || '-';
+        const normalized = String(role || '').trim().toLowerCase();
+        const keyRole = normalized === 'super_admin' ? 'superadmin' : normalized;
+        const key = `settings.role.${keyRole}`;
+        const label = t(key, null);
+        return label !== key ? label : (role || '-');
     }
 
     function setMiniStat(index, value, label) {
@@ -220,7 +235,7 @@
         const lastName = user.last_name || '';
 
         document.getElementById('profileAvatarText').textContent = getInitials(firstName, lastName);
-        document.getElementById('profileName').textContent = `${firstName} ${lastName}`.trim() || user.username || 'Пользователь';
+        document.getElementById('profileName').textContent = `${firstName} ${lastName}`.trim() || user.username || t('profile.userFallback', 'Пользователь');
         document.getElementById('profileRole').textContent = roleLabel(user.role);
         document.getElementById('profileSchool').textContent = user.school_name || '';
 
@@ -241,7 +256,7 @@
         document.getElementById('profileDOB').textContent = user.date_of_birth ? formatDate(user.date_of_birth) : '-';
         document.getElementById('profileGender').textContent = genderLabels[user.gender] || '-';
         document.getElementById('profileCreatedAt').textContent = formatDate(user.created_at);
-        document.getElementById('profileLastLogin').textContent = user.last_login ? formatDate(user.last_login) : 'Никогда';
+        document.getElementById('profileLastLogin').textContent = user.last_login ? formatDate(user.last_login) : t('profile.never', 'Никогда');
     }
 
     function showRoleSpecificCard(title, items) {
@@ -299,7 +314,7 @@
             cards = [
                 { value: String(studentsCount), label: i18n.translate('profile.totalStudents') },
                 { value: String(teachersCount), label: i18n.translate('profile.totalTeachers') },
-                { value: String(adminsCount), label: i18n.translate('profile.totalAdmins') || 'Всего администраторов' },
+                { value: String(adminsCount), label: i18n.translate('profile.totalAdmins') },
                 { value: String(totalUsers), label: i18n.translate('profile.totalUsers') },
                 { value: String(apiStats.classes ?? '-'), label: i18n.translate('profile.totalClasses') },
                 { value: String(apiStats.subjects ?? '-'), label: i18n.translate('profile.totalSubjects') },
@@ -308,9 +323,9 @@
         } else if (user.role === 'psychologist') {
             cards = [
                 { value: String(apiStats.students ?? 0), label: i18n.translate('profile.totalStudents') },
-                { value: String(apiStats.career_attempts ?? 0), label: 'Попытки профориентации' },
-                { value: String(apiStats.students_with_results ?? 0), label: 'Учеников с результатами' },
-                { value: String((statsResponse?.recent_activity || []).length), label: 'Активность (посл. 5)' }
+                { value: String(apiStats.career_attempts ?? 0), label: t('profile.careerAttempts', 'Попытки профориентации') },
+                { value: String(apiStats.students_with_results ?? 0), label: t('profile.studentsWithResults', 'Учеников с результатами') },
+                { value: String((statsResponse?.recent_activity || []).length), label: t('profile.recentActivityShort', 'Активность (посл. 5)') }
             ];
         } else {
             cards = [
@@ -328,9 +343,9 @@
             </div>
         `).join('');
 
-        setMiniStat(1, cards[0]?.value || '-', cards[0]?.label || 'Показатель 1');
-        setMiniStat(2, cards[1]?.value || '-', cards[1]?.label || 'Показатель 2');
-        setMiniStat(3, cards[2]?.value || '-', cards[2]?.label || 'Показатель 3');
+        setMiniStat(1, cards[0]?.value || '-', cards[0]?.label || t('profile.miniStat1', 'Показатель 1'));
+        setMiniStat(2, cards[1]?.value || '-', cards[1]?.label || t('profile.miniStat2', 'Показатель 2'));
+        setMiniStat(3, cards[2]?.value || '-', cards[2]?.label || t('profile.miniStat3', 'Показатель 3'));
 
         const roleItems = [];
         if (user.subjects) {
@@ -344,7 +359,7 @@
         }
 
         if (roleItems.length) {
-            showRoleSpecificCard('Дополнительная информация', roleItems);
+            showRoleSpecificCard(t('profile.extraInfoTitle', 'Дополнительная информация'), roleItems);
         }
     }
 
@@ -449,11 +464,11 @@
             const data = await apiFetch(`${API_URL}/analytics/student/${encodeURIComponent(profileUser.id)}/report`);
             const latest = data?.career?.latest || null;
             if (!latest) {
-                emptyEl.textContent = 'Ученик еще не проходил профориентацию.';
+                emptyEl.textContent = t('profile.careerNotTaken', 'Ученик еще не проходил профориентацию.');
                 emptyEl.style.display = 'block';
                 canvas.style.display = 'none';
-                topEl.innerHTML = '<span class="profile-career-tag">Нет данных</span>';
-                recEl.innerHTML = '<span class="profile-career-tag">Нет рекомендаций</span>';
+                topEl.innerHTML = `<span class="profile-career-tag">${escapeHtml(t('profile.careerNoData', 'Нет данных'))}</span>`;
+                recEl.innerHTML = `<span class="profile-career-tag">${escapeHtml(t('profile.noCareerRecommendations', 'Рекомендаций нет'))}</span>`;
                 return;
             }
 
@@ -471,16 +486,16 @@
 
             topEl.innerHTML = top.length
                 ? top.map((item) => `<span class="profile-career-tag">${escapeHtml(item)}</span>`).join('')
-                : '<span class="profile-career-tag">Нет данных</span>';
+                : `<span class="profile-career-tag">${escapeHtml(t('profile.careerNoData', 'Нет данных'))}</span>`;
             recEl.innerHTML = recommended.length
                 ? recommended.map((item) => `<span class="profile-career-tag">${escapeHtml(item)}</span>`).join('')
-                : '<span class="profile-career-tag">Нет рекомендаций</span>';
+                : `<span class="profile-career-tag">${escapeHtml(t('profile.noCareerRecommendations', 'Рекомендаций нет'))}</span>`;
 
             emptyEl.style.display = 'none';
 
             renderCareerRadarChart(labels, scores);
         } catch (error) {
-            emptyEl.textContent = 'Не удалось загрузить результаты профориентации.';
+            emptyEl.textContent = t('profile.careerLoadFailed', 'Не удалось загрузить результаты профориентации.');
             emptyEl.style.display = 'block';
             canvas.style.display = 'none';
         }
@@ -603,9 +618,13 @@
         const el = document.getElementById(type === 'email' ? 'emailStatusText' : 'phoneStatusText');
         if (!el) return;
         if (type === 'email') {
-            el.textContent = isVerified ? 'Email подтвержден' : 'Email не подтвержден';
+            el.textContent = isVerified
+                ? t('profile.emailVerified', 'Email подтвержден')
+                : t('profile.emailNotVerified', 'Email не подтвержден');
         } else {
-            el.textContent = isVerified ? 'Телефон подтвержден' : 'Телефон не подтвержден';
+            el.textContent = isVerified
+                ? t('profile.phoneVerified', 'Телефон подтвержден')
+                : t('profile.phoneNotVerified', 'Телефон не подтвержден');
         }
         el.style.color = isVerified ? '#16a34a' : '';
     }
@@ -616,10 +635,10 @@
 
         const missing = [];
         if (String(user?.email || '').trim() && !user?.email_verified) {
-            missing.push('Email');
+            missing.push(t('profile.email', 'Email'));
         }
         if (String(user?.phone || '').trim() && !user?.phone_verified) {
-            missing.push('Телефон');
+            missing.push(t('profile.phone', 'Телефон'));
         }
 
         if (!missing.length) {
@@ -628,7 +647,11 @@
             return;
         }
 
-        banner.textContent = `Не подтверждены: ${missing.join(', ')}. Доступ к системе не ограничен, но рекомендуем подтвердить контакты.`;
+        banner.textContent = t(
+            'profile.contactsNotVerifiedBanner',
+            { missing: missing.join(', ') },
+            'Не подтверждены: {missing}. Доступ к системе не ограничен, но рекомендуем подтвердить контакты.'
+        );
         banner.style.display = 'block';
     }
 
@@ -645,20 +668,20 @@
 
     function getEntityLabel(entity) {
         const map = {
-            user: 'пользователь',
-            users: 'пользователь',
-            profile: 'профиль',
-            test: 'тест',
-            tests: 'тест',
-            subject: 'предмет',
-            subjects: 'предмет',
-            class: 'класс',
-            classes: 'класс',
-            assignment: 'назначение',
-            result: 'результат',
-            login: 'вход'
+            user: t('profile.activity.entity.user', 'пользователь'),
+            users: t('profile.activity.entity.user', 'пользователь'),
+            profile: t('profile.activity.entity.profile', 'профиль'),
+            test: t('profile.activity.entity.test', 'тест'),
+            tests: t('profile.activity.entity.test', 'тест'),
+            subject: t('profile.activity.entity.subject', 'предмет'),
+            subjects: t('profile.activity.entity.subject', 'предмет'),
+            class: t('profile.activity.entity.class', 'класс'),
+            classes: t('profile.activity.entity.class', 'класс'),
+            assignment: t('profile.activity.entity.assignment', 'назначение'),
+            result: t('profile.activity.entity.result', 'результат'),
+            login: t('profile.activity.entity.login', 'вход')
         };
-        return map[String(entity || '').toLowerCase()] || 'запись';
+        return map[String(entity || '').toLowerCase()] || t('profile.activity.entity.record', 'запись');
     }
 
     function describeActivity(item, details) {
@@ -666,20 +689,20 @@
         const actionType = String(details.action_type || '').toLowerCase();
         const entityLabel = getEntityLabel(item.entity_type);
 
-        if (actionType === 'login' || action === 'login') return 'Вход в аккаунт';
-        if (actionType === 'logout' || action === 'logout') return 'Выход из аккаунта';
-        if (actionType === 'password_change') return 'Изменение пароля';
-        if (actionType === 'email_change') return 'Изменение email';
-        if (actionType === 'phone_change') return 'Изменение телефона';
+        if (actionType === 'login' || action === 'login') return t('profile.activity.login', 'Вход в аккаунт');
+        if (actionType === 'logout' || action === 'logout') return t('profile.activity.logout', 'Выход из аккаунта');
+        if (actionType === 'password_change') return t('profile.activity.passwordChange', 'Изменение пароля');
+        if (actionType === 'email_change') return t('profile.activity.emailChange', 'Изменение email');
+        if (actionType === 'phone_change') return t('profile.activity.phoneChange', 'Изменение телефона');
 
-        if (action === 'create') return `Создан: ${entityLabel}`;
-        if (action === 'update') return `Обновлен: ${entityLabel}`;
-        if (action === 'delete') return `Удален: ${entityLabel}`;
-        if (action === 'assign') return `Назначен: ${entityLabel}`;
-        if (action === 'export') return 'Экспорт данных';
-        if (action === 'import') return 'Импорт данных';
+        if (action === 'create') return t('profile.activity.create', { entity: entityLabel }, 'Создан: {entity}');
+        if (action === 'update') return t('profile.activity.update', { entity: entityLabel }, 'Обновлен: {entity}');
+        if (action === 'delete') return t('profile.activity.delete', { entity: entityLabel }, 'Удален: {entity}');
+        if (action === 'assign') return t('profile.activity.assign', { entity: entityLabel }, 'Назначен: {entity}');
+        if (action === 'export') return t('profile.activity.export', 'Экспорт данных');
+        if (action === 'import') return t('profile.activity.import', 'Импорт данных');
 
-        return 'Действие в системе';
+        return t('profile.activity.generic', 'Действие в системе');
     }
 
     function summarizeActivityDetails(details) {
@@ -687,7 +710,7 @@
         const parts = [];
 
         if (details.target_name) {
-            parts.push(`Объект: ${details.target_name}`);
+            parts.push(t('profile.activity.object', { name: details.target_name }, 'Объект: {name}'));
         }
 
         return parts.join(' • ');
@@ -749,7 +772,16 @@
     }
 
     function ensureContactVerifyModal() {
-        if (document.getElementById('contactVerifyModal')) return;
+        const existing = document.getElementById('contactVerifyModal');
+        if (existing) {
+            const codeInput = document.getElementById('contactVerifyCodeInput');
+            if (codeInput) codeInput.setAttribute('placeholder', t('profile.contactVerify.codePlaceholder', 'Код подтверждения'));
+            const cancelBtn = document.getElementById('cancelContactVerifyBtn');
+            if (cancelBtn) cancelBtn.textContent = t('common.close', 'Закрыть');
+            const submitBtn = document.getElementById('submitContactVerifyBtn');
+            if (submitBtn) submitBtn.textContent = t('profile.confirm', 'Подтвердить');
+            return;
+        }
 
         const backdrop = document.createElement('div');
         backdrop.id = 'contactVerifyModal';
@@ -757,16 +789,16 @@
         backdrop.innerHTML = `
             <div class="contact-verify-modal" role="dialog" aria-modal="true" aria-labelledby="contactVerifyTitle">
                 <div class="contact-verify-header">
-                    <h3 id="contactVerifyTitle">Подтверждение email</h3>
+                    <h3 id="contactVerifyTitle">${escapeHtml(t('profile.contactVerify.titleEmail', 'Подтверждение email'))}</h3>
                     <button type="button" id="closeContactVerifyModalBtn" class="contact-verify-close" aria-label="Close">&times;</button>
                 </div>
                 <div class="contact-verify-body">
                     <p id="contactVerifyTargetText" class="contact-verify-target"></p>
-                    <input id="contactVerifyCodeInput" class="contact-verify-input" type="text" maxlength="6" inputmode="numeric" placeholder="Код подтверждения">
+                    <input id="contactVerifyCodeInput" class="contact-verify-input" type="text" maxlength="6" inputmode="numeric" placeholder="${escapeHtml(t('profile.contactVerify.codePlaceholder', 'Код подтверждения'))}">
                     <p id="contactVerifyHint" class="contact-verify-hint"></p>
                     <div class="contact-verify-actions">
-                        <button type="button" id="cancelContactVerifyBtn" class="btn btn-outline">Отмена</button>
-                        <button type="button" id="submitContactVerifyBtn" class="btn btn-primary">Подтвердить</button>
+                        <button type="button" id="cancelContactVerifyBtn" class="btn btn-outline">${escapeHtml(t('common.close', 'Закрыть'))}</button>
+                        <button type="button" id="submitContactVerifyBtn" class="btn btn-primary">${escapeHtml(t('profile.confirm', 'Подтвердить'))}</button>
                     </div>
                 </div>
             </div>
@@ -814,13 +846,15 @@
         const backdrop = document.getElementById('contactVerifyModal');
 
         if (title) {
-            title.textContent = type === 'email' ? 'Подтверждение email' : 'Подтверждение телефона';
+            title.textContent = type === 'email'
+                ? t('profile.contactVerify.titleEmail', 'Подтверждение email')
+                : t('profile.contactVerify.titlePhone', 'Подтверждение телефона');
         }
         if (targetText) {
-            targetText.textContent = `Код отправлен на: ${value}`;
+            targetText.textContent = t('profile.contactVerify.sentTo', { value }, 'Код отправлен на: {value}');
         }
         if (hint) {
-            hint.textContent = 'Код действует 10 минут';
+            hint.textContent = t('profile.contactVerify.validFor', 'Код действует 10 минут');
         }
         if (codeInput) {
             codeInput.value = '';
@@ -839,7 +873,7 @@
 
     async function requestContactCode(type) {
         if (type !== 'email') {
-            await showAlert('Код подтверждения можно получить только по email', 'Информация');
+            await showAlert(t('profile.contactVerify.onlyEmail', 'Код подтверждения можно получить только по email'), t('common.info', 'Информация'));
             return;
         }
 
@@ -847,14 +881,17 @@
         const value = document.getElementById(inputId)?.value?.trim() || '';
 
         if (!value) {
-            await showAlert(`Введите ${type === 'email' ? 'email' : 'телефон'}`);
+            await showAlert(t('profile.contactVerify.enterValue', { field: type === 'email' ? 'email' : t('profile.phone', 'телефон') }, 'Введите {field}'));
             return;
         }
 
         if (isContactAlreadyConnected(type, value)) {
-            await showAlert(type === 'email'
-                ? 'Этот email уже привязан к вашему аккаунту'
-                : 'Этот телефон уже привязан к вашему аккаунту', 'Информация');
+            await showAlert(
+                type === 'email'
+                    ? t('profile.contactVerify.alreadyEmail', 'Этот email уже привязан к вашему аккаунту')
+                    : t('profile.contactVerify.alreadyPhone', 'Этот телефон уже привязан к вашему аккаунту'),
+                t('common.info', 'Информация')
+            );
             return;
         }
 
@@ -870,7 +907,7 @@
                 value
             });
         } catch (error) {
-            await showAlert(error.message || 'Не удалось отправить код', 'Ошибка');
+            await showAlert(error.message || t('profile.contactVerify.sendFailed', 'Не удалось отправить код'), t('common.error', 'Ошибка'));
         }
     }
 
@@ -878,7 +915,7 @@
         const code = String(codeArg || '').trim();
 
         if (!code) {
-            await showAlert('Введите код подтверждения', 'Ошибка');
+            await showAlert(t('profile.contactVerify.enterCode', 'Введите код подтверждения'), t('common.error', 'Ошибка'));
             return;
         }
 
@@ -908,9 +945,9 @@
             setVerificationStatus(type, true);
             updateContactVerificationBanner(profileUser);
             closeContactVerifyModal();
-            await showAlert(data.message || 'Контакт подтвержден', 'Успешно');
+            await showAlert(data.message || t('profile.contactVerify.verified', 'Контакт подтвержден'), t('common.success', 'Успешно'));
         } catch (error) {
-            await showAlert(error.message || 'Ошибка подтверждения', 'Ошибка');
+            await showAlert(error.message || t('profile.contactVerify.verifyFailed', 'Ошибка подтверждения'), t('common.error', 'Ошибка'));
         }
     }
 
@@ -954,9 +991,15 @@
                 setVerificationStatus('phone', true);
                 updateContactVerificationBanner(profileUser);
 
-                await showAlert('Номер телефона обновлен через Telegram', 'Успешно');
+                await showAlert(
+                    t('profile.telegramPhone.updated', 'Номер телефона обновлен через Telegram'),
+                    t('common.success', 'Успешно')
+                );
             } else {
-                await showAlert('Не удалось подтвердить номер через Telegram. Повторите попытку.', 'Ошибка');
+                await showAlert(
+                    t('profile.telegramPhone.verifyFailed', 'Не удалось подтвердить номер через Telegram. Повторите попытку.'),
+                    t('common.error', 'Ошибка')
+                );
             }
 
             activePhoneRequestId = '';
@@ -977,8 +1020,8 @@
 
             if (hasLinkedTelegram && hasPhoneToReplace) {
                 const confirmed = await showConfirm(
-                    'При смене номера текущий Telegram-аккаунт будет отвязан, и нужно будет привязать новый аккаунт в боте. Продолжить?',
-                    'Смена Telegram аккаунта'
+                    t('profile.telegramPhone.relinkConfirm', 'При смене номера текущий Telegram-аккаунт будет отвязан, и нужно будет привязать новый аккаунт в боте. Продолжить?'),
+                    t('profile.telegramPhone.relinkTitle', 'Смена Telegram аккаунта')
                 );
 
                 if (!confirmed) {
@@ -1009,8 +1052,8 @@
         } catch (error) {
             console.error('[TG_PHONE_UI] requestPhoneFromTelegram:error', error);
             await showAlert(
-                error.message || 'Не удалось отправить запрос в Telegram',
-                'Ошибка'
+                error.message || t('profile.telegramPhone.requestFailed', 'Не удалось отправить запрос в Telegram'),
+                t('common.error', 'Ошибка')
             );
         } finally {
             const btn = document.getElementById('requestPhoneFromTelegramBtn');
@@ -1043,9 +1086,9 @@
                 body: JSON.stringify({ notification_preferences })
             });
 
-            await showAlert(data.message || 'Настройки сохранены', 'Успешно');
+            await showAlert(data.message || t('profile.settingsSaved', 'Настройки сохранены'), t('common.success', 'Успешно'));
         } catch (error) {
-            await showAlert(error.message || 'Не удалось сохранить настройки', 'Ошибка');
+            await showAlert(error.message || t('profile.settingsSaveFailed', 'Не удалось сохранить настройки'), t('common.error', 'Ошибка'));
         }
     }
 
@@ -1069,9 +1112,9 @@
             profileUser.gender = data?.profile?.personal_info?.gender || gender;
             renderProfileInfo(profileUser);
 
-            await showAlert('Личные данные сохранены', 'Успешно');
+            await showAlert(t('profile.personalSaved', 'Личные данные сохранены'), t('common.success', 'Успешно'));
         } catch (error) {
-            await showAlert(error.message || 'Не удалось сохранить личные данные', 'Ошибка');
+            await showAlert(error.message || t('profile.personalSaveFailed', 'Не удалось сохранить личные данные'), t('common.error', 'Ошибка'));
         }
     }
 
@@ -1083,7 +1126,7 @@
             const data = await apiFetch(`/api/auth/profile/activity?limit=${PROFILE_ACTIVITY_LIMIT}`);
             const activity = Array.isArray(data.activity) ? data.activity : [];
             if (!activity.length) {
-                list.innerHTML = '<p class="no-data">Нет активности</p>';
+                list.innerHTML = `<p class="no-data">${escapeHtml(t('profile.activity.none', 'Нет активности'))}</p>`;
                 return;
             }
 
@@ -1103,7 +1146,7 @@
                 `;
             }).join('');
         } catch (error) {
-            list.innerHTML = '<p class="no-data">Не удалось загрузить активность</p>';
+            list.innerHTML = `<p class="no-data">${escapeHtml(t('profile.activity.loadFailed', 'Не удалось загрузить активность'))}</p>`;
         }
     }
 
@@ -1116,17 +1159,22 @@
     }
 
     function bindLanguageRefresh() {
-        const langButtons = document.querySelectorAll('.lang-btn');
-        langButtons.forEach((btn) => {
-            btn.addEventListener('click', () => {
-                setTimeout(async () => {
-                    if (!profileUser) return;
-                    renderProfileInfo(profileUser);
-                    await renderStatsByRole(profileUser);
-                    await loadCareerResults();
-                }, 120);
-            });
+        if (langListenerBound) return;
+        window.addEventListener('zedly:lang-changed', () => {
+            setTimeout(async () => {
+                if (!profileUser) return;
+                ensureContactVerifyModal();
+                renderProfileHeader(profileUser);
+                renderProfileInfo(profileUser);
+                await renderStatsByRole(profileUser);
+                await loadCareerResults();
+                if (isOwnProfile) {
+                    fillOwnForms(profileUser);
+                    await loadActivity();
+                }
+            }, 0);
         });
+        langListenerBound = true;
     }
 
     async function fetchCurrentUser() {
@@ -1160,7 +1208,7 @@
             };
         }
 
-        throw new Error('Просмотр чужого профиля недоступен для этой роли');
+        throw new Error(t('profile.viewNotAllowed', 'Просмотр чужого профиля недоступен для этой роли'));
     }
 
     async function init() {
@@ -1181,7 +1229,10 @@
                 try {
                     profileUser = await fetchProfileUserById(requestedId);
                 } catch (error) {
-                    await showAlert(error.message || 'Не удалось загрузить профиль, открыт ваш профиль', 'Ошибка');
+                    await showAlert(
+                        error.message || t('profile.loadFallback', 'Не удалось загрузить профиль, открыт ваш профиль'),
+                        t('common.error', 'Ошибка')
+                    );
                     isOwnProfile = true;
                     profileUser = currentUser;
                 }
@@ -1209,7 +1260,7 @@
         } catch (error) {
             console.error('Profile init error:', error);
             setProfileLoading(false);
-            await showAlert('Не удалось загрузить профиль', 'Ошибка');
+            await showAlert(t('profile.loadFailed', 'Не удалось загрузить профиль'), t('common.error', 'Ошибка'));
         }
     }
 

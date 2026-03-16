@@ -456,10 +456,30 @@
     }
 
     function refreshTranslations() {
-        if (window.ZedlyI18n?.getCurrentLang && window.ZedlyI18n?.setLang) {
-            const lang = window.ZedlyI18n.getCurrentLang();
-            window.ZedlyI18n.setLang(lang);
+        if (typeof window === 'undefined') return;
+
+        // i18n.js exposes a helper that re-translates the whole page without changing language.
+        if (typeof window.i18n?.translate === 'function') {
+            window.i18n.translate();
+            return;
         }
+
+        const lang = window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+        document.querySelectorAll('[data-i18n]').forEach((element) => {
+            const key = element.getAttribute('data-i18n');
+            const translation = window.ZedlyI18n?.translate?.(key, lang);
+            if (translation && translation !== key) element.textContent = translation;
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+            const key = element.getAttribute('data-i18n-placeholder');
+            const translation = window.ZedlyI18n?.translate?.(key, lang);
+            if (translation && translation !== key) element.placeholder = translation;
+        });
+        document.querySelectorAll('[data-i18n-title]').forEach((element) => {
+            const key = element.getAttribute('data-i18n-title');
+            const translation = window.ZedlyI18n?.translate?.(key, lang);
+            if (translation && translation !== key) element.title = translation;
+        });
     }
 
     function isPageAvailableForCurrentUser(pageId) {
@@ -564,55 +584,58 @@
         // Show skeleton loading (faster visual feedback than spinner-only)
         content.innerHTML = getDashboardSkeletonMarkup();
 
-        if (page === 'overview' && currentUser && currentUser.role === 'student') {
-            content.innerHTML = `
-                <div class="student-overview-page" id="studentOverviewPage">
-                    <section class="dashboard-section student-overview-welcome">
-                        <h1 class="student-overview-greeting" id="studentOverviewGreeting">Здравствуйте</h1>
-                        <p class="student-overview-date" id="studentOverviewDate">-</p>
-                    </section>
-
-                    <section class="dashboard-section">
-                        <div class="section-header">
-                            <h2 class="section-title">Прогресс по предметам</h2>
-                        </div>
-                        <div id="studentOverviewSubjectProgress"></div>
-                    </section>
-
-                    <section class="dashboard-section">
-                        <div class="section-header">
-                            <h2 class="section-title">Рекомендованный тест</h2>
-                        </div>
-                        <div id="studentOverviewRecommendedTest"></div>
-                    </section>
+	        if (page === 'overview' && currentUser && currentUser.role === 'student') {
+		            content.innerHTML = `
+		                <div class="student-overview-page" id="studentOverviewPage">
+	                    <section class="dashboard-section student-overview-welcome">
+	                        <h1 class="student-overview-greeting" id="studentOverviewGreeting">${t('studentOverview.greeting.hello', 'Здравствуйте')}</h1>
+	                        <p class="student-overview-date" id="studentOverviewDate">-</p>
+	                    </section>
+	
+	                    <section class="dashboard-section">
+	                        <div class="section-header">
+	                            <h2 class="section-title" data-i18n="studentOverview.section.progress">${t('studentOverview.section.progress', 'Прогресс по предметам')}</h2>
+	                        </div>
+	                        <div id="studentOverviewSubjectProgress"></div>
+	                    </section>
+	
+	                    <section class="dashboard-section">
+	                        <div class="section-header">
+	                            <h2 class="section-title" data-i18n="studentOverview.section.recommended">${t('studentOverview.section.recommended', 'Рекомендованный тест')}</h2>
+	                        </div>
+	                        <div id="studentOverviewRecommendedTest"></div>
+	                    </section>
 
                     <section class="dashboard-section student-overview-badge-wrap" id="studentOverviewBadgeWrap" style="display:none;">
                         <div id="studentOverviewBadge"></div>
                     </section>
+	
+	                    <section class="dashboard-section">
+	                        <div class="section-header">
+	                            <h2 class="section-title" data-i18n="studentOverview.section.activity">${t('studentOverview.section.activity', 'Последняя активность')}</h2>
+	                        </div>
+	                        <div id="studentOverviewLastActivity"></div>
+	                    </section>
+	                </div>
+		            `;
+	            refreshTranslations();
+	            await loadPageScript('student-overview');
+	            return;
+	        }
 
-                    <section class="dashboard-section">
-                        <div class="section-header">
-                            <h2 class="section-title">Последняя активность</h2>
-                        </div>
-                        <div id="studentOverviewLastActivity"></div>
-                    </section>
-                </div>
-            `;
-            await loadPageScript('student-overview');
-            return;
-        }
+	        if (page === 'overview' && currentUser && currentUser.role === 'school_admin') {
+	            content.innerHTML = '<div id="schoolDirectorOverviewPage"></div>';
+	            refreshTranslations();
+	            await loadPageScript('school-director-overview');
+	            return;
+	        }
 
-        if (page === 'overview' && currentUser && currentUser.role === 'school_admin') {
-            content.innerHTML = '<div id="schoolDirectorOverviewPage"></div>';
-            await loadPageScript('school-director-overview');
-            return;
-        }
-
-        if (page === 'overview' && currentUser && currentUser.role === 'teacher') {
-            content.innerHTML = '<div id="teacherOverviewPage"></div>';
-            await loadPageScript('teacher-overview');
-            return;
-        }
+	        if (page === 'overview' && currentUser && currentUser.role === 'teacher') {
+	            content.innerHTML = '<div id="teacherOverviewPage"></div>';
+	            refreshTranslations();
+	            await loadPageScript('teacher-overview');
+	            return;
+	        }
 
         // Load stats from API if overview page
         if (page === 'overview' && currentUser) {
@@ -629,8 +652,8 @@
 
                 const roleTitle = titles[currentUser.role] || titles.psychologist;
 
-                content.innerHTML = `
-                    <div class="page-header-section">
+	                content.innerHTML = `
+	                    <div class="page-header-section">
                         <h1 class="page-main-title">${roleTitle.title}</h1>
                         <p class="page-subtitle">${roleTitle.subtitle}</p>
                     </div>
@@ -642,10 +665,11 @@
                             <h2 class="section-title">${t('dashboard.activity.recentTitle', 'Недавняя активность')}</h2>
                         </div>
                         ${buildRecentActivity(currentUser.role, statsData)}
-                    </div>
-                `;
-                return;
-            }
+	                    </div>
+	                `;
+	                refreshTranslations();
+	                return;
+	            }
 
             const titles = {
                 superadmin: { title: t('dashboard.role.superadmin.title', 'Админ панель'), subtitle: t('dashboard.role.superadmin.subtitle', 'Управление системой и контроль') },
@@ -655,8 +679,8 @@
                 student: { title: t('dashboard.role.student.title', 'Панель ученика'), subtitle: t('dashboard.role.student.subtitle', 'Обучение и результаты') }
             };
             const roleTitle = titles[currentUser.role] || titles.psychologist;
-            content.innerHTML = `
-                <div class="page-header-section">
+	            content.innerHTML = `
+	                <div class="page-header-section">
                     <h1 class="page-main-title">${roleTitle.title}</h1>
                     <p class="page-subtitle">${roleTitle.subtitle}</p>
                 </div>
@@ -666,16 +690,18 @@
                         ${t('dashboard.stats.loadError', 'Не удалось загрузить актуальную статистику. Обновите страницу.')}
                     </p>
                 </div>
-            `;
-            return;
-        }
+	            `;
+	            refreshTranslations();
+	            return;
+	        }
 
-        // Set page content (fallback or non-overview pages)
-        content.innerHTML = getPageContent(page);
+	        // Set page content (fallback or non-overview pages)
+	        content.innerHTML = getPageContent(page);
 
-        // Load script and initialize if needed
-        await loadPageScript(page);
-    }
+	        // Load script and initialize if needed
+	        await loadPageScript(page);
+	        refreshTranslations();
+	    }
 
     function getDashboardSkeletonMarkup() {
         return `
@@ -858,24 +884,24 @@
                                 <h2 data-i18n="profile.contactChanges">Смена контактов</h2>
                                 <div id="contactVerificationBanner" class="contact-verification-banner" style="display:none;"></div>
                                 <div class="profile-form-grid">
-                                    <div class="field-block">
-                                        <label for="emailInput" data-i18n="profile.email">Email</label>
-                                        <div class="field-inline">
-                                            <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
-                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
-                                        </div>
-                                        <small id="emailStatusText">Email не подтвержден</small>
-                                    </div>
-                                    <div class="field-block">
-                                        <label for="phoneInput" data-i18n="profile.phone">Телефон</label>
-                                        <div class="field-inline">
-                                            <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567" readonly>
-                                            <button id="requestPhoneFromTelegramBtn" class="btn btn-outline" type="button">Запросить через Telegram</button>
-                                        </div>
-                                        <small id="phoneStatusText">Телефон не подтвержден</small>
-                                    </div>
-                                </div>
-                            </article>
+	                                    <div class="field-block">
+	                                        <label for="emailInput" data-i18n="profile.email">Email</label>
+	                                        <div class="field-inline">
+	                                            <input id="emailInput" class="field-input" type="email" placeholder="name@example.com">
+	                                            <button id="requestEmailCodeBtn" class="btn btn-outline" type="button" data-i18n="profile.getCode">Получить код</button>
+	                                        </div>
+	                                        <small id="emailStatusText" data-i18n="profile.emailNotVerified">Email не подтвержден</small>
+	                                    </div>
+	                                    <div class="field-block">
+	                                        <label for="phoneInput" data-i18n="profile.phone">Телефон</label>
+	                                        <div class="field-inline">
+	                                            <input id="phoneInput" class="field-input" type="text" placeholder="+998901234567" readonly>
+	                                            <button id="requestPhoneFromTelegramBtn" class="btn btn-outline" type="button" data-i18n="profile.telegramPhone.requestButton">Запросить через Telegram</button>
+	                                        </div>
+	                                        <small id="phoneStatusText" data-i18n="profile.phoneNotVerified">Телефон не подтвержден</small>
+	                                    </div>
+	                                </div>
+	                            </article>
 
                             <article class="profile-card card-surface" id="profilePersonalCard" style="display: none;">
                                 <h2 data-i18n="profile.personalEdit">Личные данные</h2>
@@ -896,34 +922,34 @@
                                 <div class="card-actions"><button id="savePersonalBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
                             </article>
 
-                            <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
-                                <h2 data-i18n="profile.notifications">Настройка уведомлений</h2>
-                                <div class="notification-grid">
-                                    <div class="field-block">
-                                        <h3 data-i18n="profile.notificationChannels">Каналы</h3>
-                                        <label class="check-row"><input type="checkbox" id="channelInApp"> В приложении</label>
-                                        <label class="check-row"><input type="checkbox" id="channelEmail"> Email</label>
-                                        <label class="check-row"><input type="checkbox" id="channelTelegram"> Telegram</label>
-                                    </div>
-                                    <div class="field-block">
-                                        <h3 data-i18n="profile.notificationEvents">События</h3>
-                                        <label class="check-row"><input type="checkbox" id="eventNewTest"> Новые тесты</label>
-                                        <label class="check-row"><input type="checkbox" id="eventTestResults"> Результаты тестов</label>
-                                        <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> Дедлайны</label>
-                                        <label class="check-row"><input type="checkbox" id="eventPasswordReset"> Сброс пароля</label>
-                                        <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> Изменения профиля</label>
-                                        <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> Системные</label>
-                                    </div>
-                                </div>
-                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
-                            </article>
+	                            <article class="profile-card card-surface" id="profileNotificationsCard" style="display: none;">
+	                                <h2 data-i18n="profile.notifications">Настройка уведомлений</h2>
+	                                <div class="notification-grid">
+	                                    <div class="field-block">
+	                                        <h3 data-i18n="profile.notificationChannels">Каналы</h3>
+	                                        <label class="check-row"><input type="checkbox" id="channelInApp"> <span data-i18n="settings.channel.in_app">В приложении</span></label>
+	                                        <label class="check-row"><input type="checkbox" id="channelEmail"> <span data-i18n="settings.channel.email">Email</span></label>
+	                                        <label class="check-row"><input type="checkbox" id="channelTelegram"> <span data-i18n="settings.channel.telegram">Telegram</span></label>
+	                                    </div>
+	                                    <div class="field-block">
+	                                        <h3 data-i18n="profile.notificationEvents">События</h3>
+	                                        <label class="check-row"><input type="checkbox" id="eventNewTest"> <span data-i18n="settings.event.new_test">Новый тест</span></label>
+	                                        <label class="check-row"><input type="checkbox" id="eventTestResults"> <span data-i18n="settings.event.test_results">Результаты тестов</span></label>
+	                                        <label class="check-row"><input type="checkbox" id="eventAssignmentDeadline"> <span data-i18n="settings.event.assignment_deadline">Дедлайн задания</span></label>
+	                                        <label class="check-row"><input type="checkbox" id="eventPasswordReset"> <span data-i18n="settings.event.password_reset">Сброс пароля</span></label>
+	                                        <label class="check-row"><input type="checkbox" id="eventProfileUpdates"> <span data-i18n="settings.event.profile_updates">Обновления профиля</span></label>
+	                                        <label class="check-row"><input type="checkbox" id="eventSystemUpdates"> <span data-i18n="settings.event.system_updates">Системные обновления</span></label>
+	                                    </div>
+	                                </div>
+	                                <div class="card-actions"><button id="saveNotificationsBtn" class="btn btn-primary" type="button" data-i18n="users.save">Сохранить</button></div>
+	                            </article>
                         </div>
 
-                        <div class="profile-col">
-                            <article class="profile-card card-surface" id="profileRoleInfoCard" style="display:none;">
-                                <h2 id="roleSpecificTitle">Дополнительная информация</h2>
-                                <div class="profile-info-grid" id="roleSpecificContent"></div>
-                            </article>
+	                        <div class="profile-col">
+	                            <article class="profile-card card-surface" id="profileRoleInfoCard" style="display:none;">
+	                                <h2 id="roleSpecificTitle" data-i18n="profile.extraInfoTitle">Дополнительная информация</h2>
+	                                <div class="profile-info-grid" id="roleSpecificContent"></div>
+	                            </article>
 
                             <article class="profile-card card-surface">
                                 <h2 data-i18n="profile.statistics">Краткая статистика</h2>
@@ -935,30 +961,30 @@
                                 <canvas id="performanceChart"></canvas>
                             </article>
 
-                            <article class="profile-card card-surface" id="careerSummaryCard" style="display:none;">
-                                <h2>Профориентация</h2>
-                                <div class="career-summary-actions">
-                                    <button class="btn btn-outline" id="profileCareerOpenBtn" type="button" style="display:none;">Открыть полную страницу</button>
-                                    <button class="btn btn-outline" id="profileCareerPdfBtn" type="button">Экспорт PDF</button>
-                                </div>
-                                <p class="no-data" id="careerSummaryEmpty">Результатов пока нет.</p>
-                                <canvas id="careerRadarChart" style="display:none;"></canvas>
-                                <div class="profile-career-grid">
-                                    <div class="profile-career-box">
-                                        <h3>Топ интересов</h3>
-                                        <div class="profile-career-tags" id="careerTopInterestsSummary"></div>
-                                    </div>
-                                    <div class="profile-career-box">
-                                        <h3>Рекомендуемые предметы</h3>
-                                        <div class="profile-career-tags" id="careerRecommendedSubjectsSummary"></div>
-                                    </div>
-                                </div>
-                            </article>
+	                            <article class="profile-card card-surface" id="careerSummaryCard" style="display:none;">
+	                                <h2 data-i18n="career.title">Профориентация</h2>
+	                                <div class="career-summary-actions">
+	                                    <button class="btn btn-outline" id="profileCareerOpenBtn" type="button" style="display:none;" data-i18n="profile.careerSummary.openFull">Открыть полную статистику</button>
+	                                    <button class="btn btn-outline" id="profileCareerPdfBtn" type="button" data-i18n="reports.exportPdf">Экспорт PDF</button>
+	                                </div>
+	                                <p class="no-data" id="careerSummaryEmpty" data-i18n="profile.careerSummary.empty">Результатов пока нет.</p>
+	                                <canvas id="careerRadarChart" style="display:none;"></canvas>
+	                                <div class="profile-career-grid">
+	                                    <div class="profile-career-box">
+	                                        <h3 data-i18n="profile.careerTopInterests">Топ интересов</h3>
+	                                        <div class="profile-career-tags" id="careerTopInterestsSummary"></div>
+	                                    </div>
+	                                    <div class="profile-career-box">
+	                                        <h3 data-i18n="profile.careerRecommendations">Рекомендуемые предметы</h3>
+	                                        <div class="profile-career-tags" id="careerRecommendedSubjectsSummary"></div>
+	                                    </div>
+	                                </div>
+	                            </article>
 
-                            <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
-                                <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'Последние действия')}</h2>
-                                <div class="activity-list" id="activityList"><p class="no-data">Нет данных</p></div>
-                            </article>
+	                            <article class="profile-card card-surface" id="profileActivityCard" style="display:none;">
+	                                <h2 data-i18n="profile.recentActions">${t('profile.recentActions', 'Последние действия')}</h2>
+	                                <div class="activity-list" id="activityList"><p class="no-data" data-i18n="profile.activity.noData">Нет данных</p></div>
+	                            </article>
                         </div>
                     </section>
                 </div>
@@ -985,29 +1011,29 @@
                 <div class="my-class-page" id="myClassPage">
                     <section class="my-class-hero" id="heroCard">
                         <div class="hero-info">
-                            <p class="hero-label">Мой класс</p>
+                            <p class="hero-label" data-i18n="dashboard.nav.myClass">Мой класс</p>
                             <div class="class-select-row hidden" id="classSelectRow">
-                                <label for="classSelect">Класс</label>
+                                <label for="classSelect" data-i18n="myClass.classLabel">Класс</label>
                                 <select id="classSelect" class="class-select"></select>
                             </div>
-                            <h1 id="className">Загрузка...</h1>
-                            <p id="classMeta">Подготовка данных</p>
+                            <h1 id="className">${t('common.loading', 'Загрузка...')}</h1>
+                            <p id="classMeta">${t('myClass.preparingData', 'Подготовка данных')}</p>
                         </div>
                         <div class="hero-metrics">
                             <div class="metric">
-                                <div class="metric-label">Учеников</div>
+                                <div class="metric-label" data-i18n="myClass.metric.students">Учеников</div>
                                 <div class="metric-value" id="studentCount">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Назначений</div>
+                                <div class="metric-label" data-i18n="myClass.metric.assignments">Назначений</div>
                                 <div class="metric-value" id="assignmentCount">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Активные</div>
+                                <div class="metric-label" data-i18n="myClass.metric.active">Активные</div>
                                 <div class="metric-value" id="activeAssignments">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Средний балл</div>
+                                <div class="metric-label" data-i18n="myClass.metric.avgScore">Средний балл</div>
                                 <div class="metric-value" id="avgScore">0%</div>
                             </div>
                         </div>
@@ -1016,42 +1042,42 @@
                     <section class="dashboard-section my-class-card" id="analyticsCard">
                         <div class="section-header">
                             <div>
-                                <h2 class="section-title">Предметная успеваемость</h2>
-                                <p class="page-subtitle">Средний результат по предметам вашего класса</p>
+                                <h2 class="section-title" data-i18n="myClass.subjectPerformance.title">Предметная успеваемость</h2>
+                                <p class="page-subtitle" data-i18n="myClass.subjectPerformance.subtitle">Средний результат по предметам вашего класса</p>
                             </div>
                         </div>
                         <div class="chart-wrap">
                             <canvas id="subjectChart" height="120"></canvas>
                         </div>
                         <div class="subject-performance" id="subjectPerformance">
-                            <div class="empty-state">Данных пока нет</div>
+                            <div class="empty-state">${t('reports.noData', 'Нет данных')}</div>
                         </div>
                     </section>
 
                     <section class="dashboard-section my-class-card" id="studentsCard">
                         <div class="section-header">
                             <div>
-                                <h2 class="section-title">Ученики класса</h2>
-                                <p class="page-subtitle">Управляйте доступом и паролями учеников</p>
+                                <h2 class="section-title" data-i18n="myClass.students.title">Ученики класса</h2>
+                                <p class="page-subtitle" data-i18n="myClass.students.subtitle">Управляйте доступом и паролями учеников</p>
                             </div>
                             <div class="table-controls">
-                                <input class="search-input" id="studentSearch" type="text" placeholder="Поиск по имени или логину">
+                                <input class="search-input" id="studentSearch" type="text" data-i18n-placeholder="myClass.search.placeholder" placeholder="Поиск по имени или логину">
                             </div>
                         </div>
                         <div class="table-wrap mobile-stack-table">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Имя</th>
-                                        <th>Логин</th>
-                                        <th>Тестов пройдено</th>
-                                        <th>Средний балл</th>
-                                        <th>Действия</th>
+                                        <th data-i18n="myClass.col.name">Имя</th>
+                                        <th data-i18n="myClass.col.login">Логин</th>
+                                        <th data-i18n="myClass.col.testsCompleted">Тестов пройдено</th>
+                                        <th data-i18n="myClass.col.avgScore">Средний балл</th>
+                                        <th data-i18n="myClass.col.actions">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody id="studentsTableBody">
                                     <tr>
-                                        <td colspan="5" class="empty-row">Загрузка...</td>
+                                        <td colspan="5" class="empty-row">${t('common.loading', 'Загрузка...')}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1060,25 +1086,25 @@
 
                     <section class="dashboard-section my-class-card hidden" id="emptyState">
                         <div class="empty-state">
-                            <h2>Класс не назначен</h2>
-                            <p>Пока у вас нет класса в качестве классного руководителя.</p>
+                            <h2 data-i18n="myClass.empty.title">Класс не назначен</h2>
+                            <p data-i18n="myClass.empty.subtitle">Пока у вас нет класса в качестве классного руководителя.</p>
                         </div>
                     </section>
 
                     <div class="modal-overlay hidden" id="passwordModal">
                         <div class="modal">
                             <div class="modal-header">
-                                <h3>Временный пароль</h3>
+                                <h3 data-i18n="myClass.password.title">Временный пароль</h3>
                                 <button class="modal-close" type="button" id="modalClose">&#215;</button>
                             </div>
                             <div class="modal-body">
-                                <p id="modalStudentName">Пароль для ученика</p>
+                                <p id="modalStudentName" data-i18n="myClass.password.forStudent">Пароль для ученика</p>
                                 <div class="password-box" id="modalPassword">—</div>
-                                <p class="modal-hint">Передайте пароль ученику и попросите сменить его после входа.</p>
+                                <p class="modal-hint" data-i18n="myClass.password.hint">Передайте пароль ученику и попросите сменить его после входа.</p>
                             </div>
                             <div class="modal-actions">
-                                <button class="btn btn-outline" type="button" id="modalCopy">Скопировать</button>
-                                <button class="btn btn-primary" type="button" id="modalOk">Готово</button>
+                                <button class="btn btn-outline" type="button" id="modalCopy" data-i18n="myClass.password.copy">Скопировать</button>
+                                <button class="btn btn-primary" type="button" id="modalOk" data-i18n="myClass.password.ok">Готово</button>
                             </div>
                         </div>
                     </div>
@@ -1091,25 +1117,25 @@
                 <div class="my-class-page student-my-class-page" id="studentMyClassPage">
                     <section class="my-class-hero">
                         <div class="hero-info">
-                            <p class="hero-label">Мой класс</p>
-                            <h1 id="studentMyClassName">Загрузка...</h1>
-                            <p id="studentMyClassMeta">Подготовка данных</p>
+                            <p class="hero-label" data-i18n="dashboard.nav.myClass">Мой класс</p>
+                            <h1 id="studentMyClassName">${t('common.loading', 'Загрузка...')}</h1>
+                            <p id="studentMyClassMeta">${t('studentMyClass.preparingData', 'Подготовка данных')}</p>
                         </div>
                         <div class="hero-metrics">
                             <div class="metric">
-                                <div class="metric-label">Моё место</div>
+                                <div class="metric-label" data-i18n="studentMyClass.metric.rank">Моё место</div>
                                 <div class="metric-value" id="studentMyClassRank">-</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Средний балл</div>
+                                <div class="metric-label" data-i18n="studentMyClass.metric.avgScore">Средний балл</div>
                                 <div class="metric-value" id="studentMyClassAvg">0%</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Тестов пройдено</div>
+                                <div class="metric-label" data-i18n="studentMyClass.metric.testsCompleted">Тестов пройдено</div>
                                 <div class="metric-value" id="studentMyClassTests">0</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Активных назначений</div>
+                                <div class="metric-label" data-i18n="studentMyClass.metric.activeAssignments">Активных назначений</div>
                                 <div class="metric-value" id="studentMyClassActiveAssignments">0</div>
                             </div>
                         </div>
@@ -1117,48 +1143,48 @@
 
                     <section class="students-grid-top">
                         <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Активные назначения класса</h2></div>
+                            <div class="section-header"><h2 class="section-title" data-i18n="studentMyClass.assignments.title">Активные назначения класса</h2></div>
                             <div class="table-responsive mobile-stack-table">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Тест</th>
-                                            <th>Предмет</th>
-                                            <th>Дедлайн</th>
-                                            <th>Мой статус</th>
-                                            <th>Действие</th>
+                                            <th data-i18n="studentMyClass.col.test">Тест</th>
+                                            <th data-i18n="studentMyClass.col.subject">Предмет</th>
+                                            <th data-i18n="studentMyClass.col.deadline">Дедлайн</th>
+                                            <th data-i18n="studentMyClass.col.myStatus">Мой статус</th>
+                                            <th data-i18n="studentMyClass.col.action">Действие</th>
                                         </tr>
                                     </thead>
                                     <tbody id="studentMyClassAssignmentsBody">
-                                        <tr><td colspan="5" class="empty-row">Загрузка...</td></tr>
+                                        <tr><td colspan="5" class="empty-row">${t('common.loading', 'Загрузка...')}</td></tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                         <div class="dashboard-section students-card">
-                            <div class="section-header"><h2 class="section-title">Прогресс по предметам</h2></div>
+                            <div class="section-header"><h2 class="section-title" data-i18n="studentMyClass.subjects.title">Прогресс по предметам</h2></div>
                             <div id="studentMyClassSubjects" class="subject-performance">
-                                <div class="empty-state">Загрузка...</div>
+                                <div class="empty-state">${t('common.loading', 'Загрузка...')}</div>
                             </div>
                         </div>
                     </section>
 
                     <section class="dashboard-section students-card">
                         <div class="section-header">
-                            <h2 class="section-title">Одноклассники</h2>
+                            <h2 class="section-title" data-i18n="studentMyClass.classmates.title">Одноклассники</h2>
                         </div>
                         <div class="table-responsive mobile-stack-table">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>№</th>
-                                        <th>ФИО</th>
-                                        <th>Средний балл</th>
-                                        <th>Тестов пройдено</th>
+                                        <th data-i18n="studentMyClass.col.number">№</th>
+                                        <th data-i18n="studentMyClass.col.fullName">ФИО</th>
+                                        <th data-i18n="studentMyClass.col.avgScore">Средний балл</th>
+                                        <th data-i18n="studentMyClass.col.testsCompleted">Тестов пройдено</th>
                                     </tr>
                                 </thead>
                                 <tbody id="studentMyClassStudentsBody">
-                                    <tr><td colspan="4" class="empty-row">Загрузка...</td></tr>
+                                    <tr><td colspan="4" class="empty-row">${t('common.loading', 'Загрузка...')}</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1166,8 +1192,8 @@
 
                     <section class="dashboard-section my-class-card hidden" id="studentMyClassEmpty">
                         <div class="empty-state">
-                            <h2>Класс не назначен</h2>
-                            <p>Вы пока не назначены в активный класс.</p>
+                            <h2 data-i18n="studentMyClass.empty.title">Класс не назначен</h2>
+                            <p data-i18n="studentMyClass.empty.subtitle">Вы пока не назначены в активный класс.</p>
                         </div>
                     </section>
                 </div>
@@ -1287,90 +1313,90 @@
                 <div class="calendar-page" id="calendarPage">
                     <section class="calendar-hero dashboard-section">
                         <div>
-                            <h1 class="section-title">Календарь</h1>
-                            <p class="page-subtitle">План назначений, дедлайнов и активностей по классам</p>
+                            <h1 class="section-title" data-i18n="dashboard.nav.calendar">Календарь</h1>
+                            <p class="page-subtitle" data-i18n="calendar.teacher.subtitle">План назначений, дедлайнов и активностей по классам</p>
                         </div>
                         <div class="calendar-hero-actions">
-                            <button class="btn btn-secondary" id="calendarTodayBtn" type="button">Сегодня</button>
-                            <button class="btn btn-outline" id="calendarExportIcsBtn" type="button">Экспорт .ics</button>
-                            <button class="btn btn-outline" id="calendarPdfBtn" type="button">Export PDF</button>
+                            <button class="btn btn-secondary" id="calendarTodayBtn" type="button" data-i18n="calendar.today">Сегодня</button>
+                            <button class="btn btn-outline" id="calendarExportIcsBtn" type="button" data-i18n="calendar.exportIcs">Экспорт .ics</button>
+                            <button class="btn btn-outline" id="calendarPdfBtn" type="button" data-i18n="reports.exportPdf">Экспорт PDF</button>
                         </div>
                     </section>
 
                     <section class="calendar-toolbar dashboard-section">
                         <div class="calendar-nav">
                             <button class="btn btn-outline" id="calendarPrevBtn" type="button">&#9664;</button>
-                            <h2 id="calendarMonthLabel">Месяц</h2>
+                            <h2 id="calendarMonthLabel" data-i18n="calendar.monthFallback">Месяц</h2>
                             <button class="btn btn-outline" id="calendarNextBtn" type="button">&#9654;</button>
                         </div>
                         <div class="calendar-filters">
                             <div class="filter-group">
-                                <label for="calendarClassFilter">Класс</label>
+                                <label for="calendarClassFilter" data-i18n="calendar.filter.class">Класс</label>
                                 <select id="calendarClassFilter" class="filter-select">
-                                    <option value="all">Все классы</option>
+                                    <option value="all" data-i18n="calendar.filter.allClasses">Все классы</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="calendarStatusFilter">Статус</label>
+                                <label for="calendarStatusFilter" data-i18n="common.status">Статус</label>
                                 <select id="calendarStatusFilter" class="filter-select">
-                                    <option value="all">Все</option>
-                                    <option value="upcoming">Предстоит</option>
-                                    <option value="active">Активные</option>
-                                    <option value="completed">Завершенные</option>
-                                    <option value="inactive">Неактивные</option>
+                                    <option value="all" data-i18n="calendar.status.all">Все</option>
+                                    <option value="upcoming" data-i18n="calendar.status.upcoming">Предстоит</option>
+                                    <option value="active" data-i18n="calendar.status.active">Активные</option>
+                                    <option value="completed" data-i18n="calendar.status.completed">Завершенные</option>
+                                    <option value="inactive" data-i18n="calendar.status.inactive">Неактивные</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="calendarSearchInput">Поиск</label>
-                                <input id="calendarSearchInput" class="form-input" type="text" placeholder="Тест, класс, предмет">
+                                <label for="calendarSearchInput" data-i18n="common.search">Поиск</label>
+                                <input id="calendarSearchInput" class="form-input" type="text" data-i18n-placeholder="calendar.search.teacher" placeholder="Тест, класс, предмет">
                             </div>
                         </div>
                     </section>
 
                     <section class="calendar-kpi-grid">
-                        <div class="report-kpi tone-blue"><span>Всего событий</span><strong id="calendarKpiTotal">0</strong></div>
-                        <div class="report-kpi tone-green"><span>Активные</span><strong id="calendarKpiActive">0</strong></div>
-                        <div class="report-kpi tone-orange"><span>Предстоят</span><strong id="calendarKpiUpcoming">0</strong></div>
-                        <div class="report-kpi tone-rose"><span>Завершены</span><strong id="calendarKpiCompleted">0</strong></div>
+                        <div class="report-kpi tone-blue"><span data-i18n="calendar.kpi.total">Всего событий</span><strong id="calendarKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-green"><span data-i18n="calendar.kpi.active">Активные</span><strong id="calendarKpiActive">0</strong></div>
+                        <div class="report-kpi tone-orange"><span data-i18n="calendar.kpi.upcoming">Предстоят</span><strong id="calendarKpiUpcoming">0</strong></div>
+                        <div class="report-kpi tone-rose"><span data-i18n="calendar.kpi.completed">Завершены</span><strong id="calendarKpiCompleted">0</strong></div>
                     </section>
 
                     <section class="calendar-layout">
                         <div class="dashboard-section">
                             <div class="calendar-weekdays">
-                                <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                                <span data-i18n="calendar.weekday.mon">Пн</span><span data-i18n="calendar.weekday.tue">Вт</span><span data-i18n="calendar.weekday.wed">Ср</span><span data-i18n="calendar.weekday.thu">Чт</span><span data-i18n="calendar.weekday.fri">Пт</span><span data-i18n="calendar.weekday.sat">Сб</span><span data-i18n="calendar.weekday.sun">Вс</span>
                             </div>
                             <div class="calendar-grid" id="calendarGrid"></div>
                         </div>
                         <div class="dashboard-section calendar-side">
                             <div class="section-header">
-                                <h2 class="section-title">События дня</h2>
+                                <h2 class="section-title" data-i18n="calendar.dayEvents.title">События дня</h2>
                                 <span id="calendarSelectedDateLabel">-</span>
                             </div>
                             <div class="calendar-day-events" id="calendarDayEvents">
-                                <p class="text-secondary">Выберите дату в календаре</p>
+                                <p class="text-secondary" data-i18n="calendar.dayEvents.pickDate">Выберите дату в календаре</p>
                             </div>
                         </div>
                     </section>
 
                     <section class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Ближайшие назначения</h2>
+                            <h2 class="section-title" data-i18n="calendar.upcoming.title">Ближайшие назначения</h2>
                         </div>
                         <div class="table-responsive mobile-stack-table">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Тест</th>
-                                        <th>Класс</th>
-                                        <th>Предмет</th>
-                                        <th>Начало</th>
-                                        <th>Окончание</th>
-                                        <th>Статус</th>
-                                        <th>Действия</th>
+                                        <th data-i18n="calendar.col.test">Тест</th>
+                                        <th data-i18n="calendar.col.class">Класс</th>
+                                        <th data-i18n="calendar.col.subject">Предмет</th>
+                                        <th data-i18n="calendar.col.start">Начало</th>
+                                        <th data-i18n="calendar.col.end">Окончание</th>
+                                        <th data-i18n="common.status">Статус</th>
+                                        <th data-i18n="common.actions">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody id="calendarUpcomingTableBody">
-                                    <tr><td colspan="7" class="empty-row">Загрузка...</td></tr>
+                                    <tr><td colspan="7" class="empty-row">${t('common.loading', 'Загрузка...')}</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1379,11 +1405,14 @@
                     <div class="modal-overlay hidden" id="calendarEventModal">
                         <div class="modal calendar-event-modal">
                             <div class="modal-header">
-                                <h3 id="calendarEventModalTitle">Событие</h3>
+                                <h3 id="calendarEventModalTitle" data-i18n="calendar.event.title">Событие</h3>
                                 <button class="modal-close" id="calendarEventModalClose" type="button">&#215;</button>
                             </div>
                             <div class="modal-body" id="calendarEventModalBody"></div>
+                            <div class="modal-actions">
+                                <button class="btn btn-primary" type="button" id="calendarEventModalOk" data-i18n="common.ok">ОК</button>
                             </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1394,83 +1423,83 @@
                 <div class="calendar-page" id="calendarPage">
                     <section class="calendar-hero dashboard-section">
                         <div>
-                            <h1 class="section-title">Календарь</h1>
-                            <p class="page-subtitle">Ваши тесты, дедлайны и активные назначения</p>
+                            <h1 class="section-title" data-i18n="dashboard.nav.calendar">Календарь</h1>
+                            <p class="page-subtitle" data-i18n="calendar.student.subtitle">Ваши тесты, дедлайны и активные назначения</p>
                         </div>
                         <div class="calendar-hero-actions">
-                            <button class="btn btn-secondary" id="calendarTodayBtn" type="button">Сегодня</button>
-                            <button class="btn btn-outline" id="calendarExportIcsBtn" type="button">Экспорт .ics</button>
-                            <button class="btn btn-outline" id="calendarPdfBtn" type="button">Export PDF</button>
+                            <button class="btn btn-secondary" id="calendarTodayBtn" type="button" data-i18n="calendar.today">Сегодня</button>
+                            <button class="btn btn-outline" id="calendarExportIcsBtn" type="button" data-i18n="calendar.exportIcs">Экспорт .ics</button>
+                            <button class="btn btn-outline" id="calendarPdfBtn" type="button" data-i18n="reports.exportPdf">Экспорт PDF</button>
                         </div>
                     </section>
 
                     <section class="calendar-toolbar dashboard-section">
                         <div class="calendar-nav">
                             <button class="btn btn-outline" id="calendarPrevBtn" type="button">&#9664;</button>
-                            <h2 id="calendarMonthLabel">Месяц</h2>
+                            <h2 id="calendarMonthLabel" data-i18n="calendar.monthFallback">Месяц</h2>
                             <button class="btn btn-outline" id="calendarNextBtn" type="button">&#9654;</button>
                         </div>
                         <div class="calendar-filters">
                             <div class="filter-group">
-                                <label for="calendarStatusFilter">Статус</label>
+                                <label for="calendarStatusFilter" data-i18n="common.status">Статус</label>
                                 <select id="calendarStatusFilter" class="filter-select">
-                                    <option value="all">Все</option>
-                                    <option value="upcoming">Предстоящие</option>
-                                    <option value="active">Активные</option>
-                                    <option value="completed">Завершенные</option>
-                                    <option value="inactive">Неактивные</option>
+                                    <option value="all" data-i18n="calendar.status.all">Все</option>
+                                    <option value="upcoming" data-i18n="calendar.status.upcomingMany">Предстоящие</option>
+                                    <option value="active" data-i18n="calendar.status.active">Активные</option>
+                                    <option value="completed" data-i18n="calendar.status.completed">Завершенные</option>
+                                    <option value="inactive" data-i18n="calendar.status.inactive">Неактивные</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label for="calendarSearchInput">Поиск</label>
-                                <input id="calendarSearchInput" class="form-input" type="text" placeholder="Тест, предмет">
+                                <label for="calendarSearchInput" data-i18n="common.search">Поиск</label>
+                                <input id="calendarSearchInput" class="form-input" type="text" data-i18n-placeholder="calendar.search.student" placeholder="Тест, предмет">
                             </div>
                         </div>
                     </section>
 
                     <section class="calendar-kpi-grid">
-                        <div class="report-kpi tone-blue"><span>Всего событий</span><strong id="calendarKpiTotal">0</strong></div>
-                        <div class="report-kpi tone-green"><span>Активные</span><strong id="calendarKpiActive">0</strong></div>
-                        <div class="report-kpi tone-orange"><span>Предстоят</span><strong id="calendarKpiUpcoming">0</strong></div>
-                        <div class="report-kpi tone-rose"><span>Завершены</span><strong id="calendarKpiCompleted">0</strong></div>
+                        <div class="report-kpi tone-blue"><span data-i18n="calendar.kpi.total">Всего событий</span><strong id="calendarKpiTotal">0</strong></div>
+                        <div class="report-kpi tone-green"><span data-i18n="calendar.kpi.active">Активные</span><strong id="calendarKpiActive">0</strong></div>
+                        <div class="report-kpi tone-orange"><span data-i18n="calendar.kpi.upcoming">Предстоят</span><strong id="calendarKpiUpcoming">0</strong></div>
+                        <div class="report-kpi tone-rose"><span data-i18n="calendar.kpi.completed">Завершены</span><strong id="calendarKpiCompleted">0</strong></div>
                     </section>
 
                     <section class="calendar-layout">
                         <div class="dashboard-section">
                             <div class="calendar-weekdays">
-                                <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                                <span data-i18n="calendar.weekday.mon">Пн</span><span data-i18n="calendar.weekday.tue">Вт</span><span data-i18n="calendar.weekday.wed">Ср</span><span data-i18n="calendar.weekday.thu">Чт</span><span data-i18n="calendar.weekday.fri">Пт</span><span data-i18n="calendar.weekday.sat">Сб</span><span data-i18n="calendar.weekday.sun">Вс</span>
                             </div>
                             <div class="calendar-grid" id="calendarGrid"></div>
                         </div>
                         <div class="dashboard-section calendar-side">
                             <div class="section-header">
-                                <h2 class="section-title">События дня</h2>
+                                <h2 class="section-title" data-i18n="calendar.dayEvents.title">События дня</h2>
                                 <span id="calendarSelectedDateLabel">-</span>
                             </div>
                             <div class="calendar-day-events" id="calendarDayEvents">
-                                <p class="text-secondary">Выберите дату в календаре</p>
+                                <p class="text-secondary" data-i18n="calendar.dayEvents.pickDate">Выберите дату в календаре</p>
                             </div>
                         </div>
                     </section>
 
                     <section class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Ближайшие назначения</h2>
+                            <h2 class="section-title" data-i18n="calendar.upcoming.title">Ближайшие назначения</h2>
                         </div>
                         <div class="table-responsive mobile-stack-table">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Тест</th>
-                                        <th>Предмет</th>
-                                        <th>Начало</th>
-                                        <th>Окончание</th>
-                                        <th>Статус</th>
-                                        <th>Действия</th>
+                                        <th data-i18n="calendar.col.test">Тест</th>
+                                        <th data-i18n="calendar.col.subject">Предмет</th>
+                                        <th data-i18n="calendar.col.start">Начало</th>
+                                        <th data-i18n="calendar.col.end">Окончание</th>
+                                        <th data-i18n="common.status">Статус</th>
+                                        <th data-i18n="common.actions">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody id="calendarUpcomingTableBody">
-                                    <tr><td colspan="6" class="empty-row">Загрузка...</td></tr>
+                                    <tr><td colspan="6" class="empty-row">${t('common.loading', 'Загрузка...')}</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1479,12 +1508,12 @@
                     <div class="modal-overlay hidden" id="calendarEventModal">
                         <div class="modal calendar-event-modal">
                             <div class="modal-header">
-                                <h3 id="calendarEventModalTitle">Событие</h3>
+                                <h3 id="calendarEventModalTitle" data-i18n="calendar.event.title">Событие</h3>
                                 <button class="modal-close" id="calendarEventModalClose" type="button">&#215;</button>
                             </div>
                             <div class="modal-body" id="calendarEventModalBody"></div>
                             <div class="modal-actions">
-                                <button class="btn btn-primary" type="button" id="calendarEventModalOk">ОК</button>
+                                <button class="btn btn-primary" type="button" id="calendarEventModalOk" data-i18n="common.ok">ОК</button>
                             </div>
                         </div>
                     </div>
@@ -2275,22 +2304,22 @@
 
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Карта знаний по предметам</h2>
+                            <h2 class="section-title" data-i18n="progress.knowledgeTitle">Карта знаний по предметам</h2>
                         </div>
                         <div id="studentProgressKnowledge"></div>
                     </div>
 
                     <div class="dashboard-section">
                         <div class="section-header progress-section-header">
-                            <h2 class="section-title">Прогресс во времени</h2>
+                            <h2 class="section-title" data-i18n="progress.timeTitle">Прогресс во времени</h2>
                             <div class="progress-chart-controls">
                                 <div class="progress-range-toggle" id="studentProgressRangeToggle">
-                                    <button class="progress-range-btn active" data-range="30" type="button">30 дней</button>
-                                    <button class="progress-range-btn" data-range="90" type="button">90 дней</button>
-                                    <button class="progress-range-btn" data-range="365" type="button">Год</button>
+                                    <button class="progress-range-btn active" data-range="30" type="button" data-i18n="progress.range.30days">30 дней</button>
+                                    <button class="progress-range-btn" data-range="90" type="button" data-i18n="progress.range.90days">90 дней</button>
+                                    <button class="progress-range-btn" data-range="365" type="button" data-i18n="progress.range.year">Год</button>
                                 </div>
                                 <select id="studentProgressChartSubjectFilter" class="filter-select">
-                                    <option value="all">Все предметы</option>
+                                    <option value="all" data-i18n="common.allSubjects">Все предметы</option>
                                 </select>
                             </div>
                         </div>
@@ -2299,24 +2328,24 @@
 
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">⚠️ Темы, которые стоит повторить</h2>
+                            <h2 class="section-title" data-i18n="progress.weakTopicsTitle">⚠️ Темы, которые стоит повторить</h2>
                         </div>
                         <div id="studentProgressWeakTopics"></div>
                     </div>
 
                     <div class="dashboard-section">
                         <div class="section-header">
-                            <h2 class="section-title">Достижения</h2>
+                            <h2 class="section-title" data-i18n="progress.achievementsTitle">Достижения</h2>
                         </div>
                         <div id="studentProgressAchievements"></div>
                     </div>
 
                     <div class="dashboard-section">
                         <div class="section-header progress-section-header">
-                            <h2 class="section-title">История тестов</h2>
+                            <h2 class="section-title" data-i18n="progress.historyTitle">История тестов</h2>
                             <div class="toolbar-filters">
                                 <select id="studentProgressHistorySubjectFilter" class="filter-select">
-                                    <option value="all">Все предметы</option>
+                                    <option value="all" data-i18n="common.allSubjects">Все предметы</option>
                                 </select>
                             </div>
                         </div>
@@ -2361,25 +2390,22 @@
                 <div class="career-hub" id="careerHub">
                     <div class="card career-hero-card" id="careerEmptyState">
                         <div class="career-hero-icon" aria-hidden="true">🎯</div>
-                        <h2 class="career-hero-title">Определи свои сильные стороны и профессиональные интересы</h2>
-                        <p class="career-hero-text">
-                            Пройди короткий тест и получи персональные рекомендации по предметам и направлениям.
-                            Это поможет выбрать учебный фокус и будущую профессию.
-                        </p>
+                        <h2 class="career-hero-title" data-i18n="career.hero.title">Определи свои сильные стороны и профессиональные интересы</h2>
+                        <p class="career-hero-text" data-i18n="career.hero.text">Пройди короткий тест и получи персональные рекомендации по предметам и направлениям. Это поможет выбрать учебный фокус и будущую профессию.</p>
                         <div class="career-hero-actions">
-                            <button class="btn btn-primary" id="careerStartBtn" type="button">Пройти тест профориентации</button>
+                            <button class="btn btn-primary" id="careerStartBtn" type="button" data-i18n="career.hero.startBtn">Пройти тест профориентации</button>
                         </div>
                     </div>
 
                     <div class="card career-results-card" id="careerResultsState" style="display:none;">
                         <div class="career-results-header">
                             <div>
-                                <h2 class="career-results-title">Ваш результат профориентации</h2>
-                                <p class="career-results-subtitle">Текущие интересы и рекомендации по предметам</p>
+                                <h2 class="career-results-title" data-i18n="career.results.header">Ваш результат профориентации</h2>
+                                <p class="career-results-subtitle" data-i18n="career.results.subheader">Текущие интересы и рекомендации по предметам</p>
                             </div>
                             <div class="career-results-actions">
-                                <button class="btn btn-outline" id="careerRetakeBtn" type="button">Пройти тест заново</button>
-                                <button class="btn btn-outline" id="careerPdfExportBtn" type="button">Экспорт PDF</button>
+                                <button class="btn btn-outline" id="careerRetakeBtn" type="button" data-i18n="career.results.retakeBtn">Пройти тест заново</button>
+                                <button class="btn btn-outline" id="careerPdfExportBtn" type="button" data-i18n="reports.exportPdf">Экспорт PDF</button>
                             </div>
                         </div>
 
@@ -2390,16 +2416,16 @@
 
                         <div class="career-chart-card">
                             <canvas id="careerRadarChart" class="career-radar" style="display:none;"></canvas>
-                            <div id="careerResultsEmpty" class="career-chart-empty">Результатов пока нет. Пройдите тест, чтобы увидеть профиль интересов.</div>
+                            <div id="careerResultsEmpty" class="career-chart-empty" data-i18n="career.results.empty">Результатов пока нет. Пройдите тест, чтобы увидеть профиль интересов.</div>
                         </div>
 
                         <section class="career-section">
-                            <h3 class="career-section-title">Топ-3 сферы интересов</h3>
+                            <h3 class="career-section-title" data-i18n="career.results.top3">Топ-3 сферы интересов</h3>
                             <div id="careerTopInterestsCards" class="career-top-grid"></div>
                         </section>
 
                         <section class="career-section">
-                            <h3 class="career-section-title">Рекомендуемые предметы</h3>
+                            <h3 class="career-section-title" data-i18n="career.recommendations">Рекомендуемые предметы</h3>
                             <div id="careerRecommendedCards" class="career-subject-grid"></div>
                         </section>
                     </div>
@@ -2412,20 +2438,20 @@
         if (page === 'career-admin' && (role === 'school_admin' || role === 'psychologist')) {
             return `
                 <div class="page-header-section">
-                    <h1 class="page-main-title">Профориентация: управление</h1>
-                    <p class="page-subtitle">Направления интересов и банк вопросов профориентации</p>
+                    <h1 class="page-main-title" data-i18n="careerAdmin.pageTitle">Профориентация: управление</h1>
+                    <p class="page-subtitle" data-i18n="careerAdmin.pageSubtitle">Направления интересов и банк вопросов профориентации</p>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Направления</h2>
-                        <button class="btn btn-primary" id="addCareerInterestBtn" type="button">Добавить направление</button>
+                        <h2 class="section-title" data-i18n="careerAdmin.interestsTitle">Направления</h2>
+                        <button class="btn btn-primary" id="addCareerInterestBtn" type="button" data-i18n="careerAdmin.addInterest">Добавить направление</button>
                     </div>
                     <div id="careerInterestsTable"></div>
                 </div>
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h2 class="section-title">Вопросы профориентации</h2>
-                        <button class="btn btn-primary" id="addCareerQuestionBtn" type="button">Добавить вопрос</button>
+                        <h2 class="section-title" data-i18n="careerAdmin.questionsTitle">Вопросы профориентации</h2>
+                        <button class="btn btn-primary" id="addCareerQuestionBtn" type="button" data-i18n="careerAdmin.addQuestion">Добавить вопрос</button>
                     </div>
                     <div id="careerQuestionsTable"></div>
                 </div>
@@ -3329,21 +3355,16 @@
             });
         }
 
-        // Language switcher - re-render navigation when language changes
-        const langButtons = document.querySelectorAll('.lang-btn');
-        langButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                // Wait for i18n to update, then re-render navigation and current page content
-                setTimeout(async () => {
-                    if (currentUser) {
-                        renderNavigation();
-                        await loadPageContent(currentPageId || 'overview');
-                    }
-                    refreshTranslations();
-                }, 100);
-            });
-        });
+	        // Language switcher - re-render dynamic content after i18n switches language.
+	        if (typeof window !== 'undefined') {
+	            window.addEventListener('zedly:lang-changed', async () => {
+	                if (!currentUser) return;
+	                renderNavigation();
+	                await loadPageContent(currentPageId || getRequestedPageFromUrl() || 'overview');
+	                refreshTranslations();
+	            });
+	        }
 
-        console.log('Dashboard initialized [ok]');
-    });
+	        console.log('Dashboard initialized [ok]');
+	    });
 })();

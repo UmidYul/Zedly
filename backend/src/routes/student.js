@@ -36,6 +36,13 @@ function pickColumn(columns, candidates, fallback = null) {
     return fallback;
 }
 
+function safeDate(value) {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    if (!date || Number.isNaN(date.getTime())) return null;
+    return date;
+}
+
 async function tableExists(tableName) {
     const result = await query(
         `SELECT 1
@@ -684,7 +691,7 @@ router.get('/assignments', async (req, res) => {
         const passingScoreColumn = pickColumn(testColumns, ['passing_score', 'pass_score', 'min_score'], null);
         const maxAttemptsColumn = pickColumn(testColumns, ['max_attempts', 'attempts_limit'], null);
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
-        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
+        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'due_date', 'end_at', 'ends_at', 'due_at'], null);
         const isActiveColumn = pickColumn(assignmentColumns, ['is_active', 'active'], null);
         const classStudentActiveFilter = classStudentColumns.has('is_active')
             ? 'AND class_students.is_active = true'
@@ -819,7 +826,7 @@ router.get('/assignments/:id', async (req, res) => {
         const passingScoreColumn = pickColumn(testColumns, ['passing_score', 'pass_score', 'min_score'], null);
         const maxAttemptsColumn = pickColumn(testColumns, ['max_attempts', 'attempts_limit'], null);
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
-        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
+        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'due_date', 'end_at', 'ends_at', 'due_at'], null);
         const classStudentActiveFilter = classStudentColumns.has('is_active')
             ? 'AND cs.is_active = true'
             : '';
@@ -904,10 +911,16 @@ router.post('/attempts', async (req, res) => {
             });
         }
 
+        const assignmentColumns = await getTableColumns('test_assignments');
+        const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
+        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'due_date', 'end_at', 'ends_at', 'due_at'], null);
+
         // Get assignment details
         const assignmentResult = await query(
             `SELECT ta.*, t.max_attempts, t.duration_minutes,
-                t.shuffle_questions, t.block_copy_paste, t.track_tab_switches, t.fullscreen_required
+                t.shuffle_questions, t.block_copy_paste, t.track_tab_switches, t.fullscreen_required,
+                ${startDateColumn ? `ta.${startDateColumn}` : 'NULL'} as start_date,
+                ${endDateColumn ? `ta.${endDateColumn}` : 'NULL'} as end_date
              FROM test_assignments ta
              JOIN tests t ON ta.test_id = t.id
              JOIN class_students cs ON ta.class_id = cs.class_id
@@ -928,17 +941,17 @@ router.post('/attempts', async (req, res) => {
 
         // Check if assignment is active
         const now = new Date();
-        const startDate = new Date(assignment.start_date);
-        const endDate = new Date(assignment.end_date);
+        const startDate = safeDate(assignment.start_date);
+        const endDate = safeDate(assignment.end_date);
 
-        if (now < startDate) {
+        if (startDate && now < startDate) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'This test has not started yet'
             });
         }
 
-        if (now > endDate) {
+        if (endDate && now > endDate) {
             return res.status(400).json({
                 error: 'validation_error',
                 message: 'This test has ended'
@@ -2947,7 +2960,7 @@ router.get('/dashboard/overview', async (req, res) => {
             : new Set();
 
         const startDateColumn = pickColumn(assignmentColumns, ['start_date', 'start_at', 'starts_at'], null);
-        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'end_at', 'ends_at'], null);
+        const endDateColumn = pickColumn(assignmentColumns, ['end_date', 'due_date', 'end_at', 'ends_at', 'due_at'], null);
         const assignmentIsActiveColumn = pickColumn(assignmentColumns, ['is_active', 'active'], null);
 
         const classStudentFilter = (alias = 'cs') => classStudentColumns.has('is_active')

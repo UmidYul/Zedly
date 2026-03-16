@@ -2,23 +2,7 @@
     'use strict';
 
     const API_URL = '/api';
-    const SUBJECT_HINTS = {
-        math: 'Развивает аналитическое мышление и решение задач.',
-        physics: 'Помогает понимать технологические и инженерные процессы.',
-        informatics: 'Формирует цифровые и программные навыки.',
-        biology: 'Укрепляет понимание живых систем и медицины.',
-        chemistry: 'Полезна для научных и медицинских направлений.',
-        language: 'Развивает коммуникацию и академическое письмо.',
-        history: 'Учит анализировать процессы и причинно-следственные связи.'
-    };
-
-    const SCALE_ITEMS = [
-        { value: 1, ru: 'Совсем не про меня', uz: 'Menga umuman mos emas' },
-        { value: 2, ru: 'Скорее нет', uz: 'Ko\'proq yo\'q' },
-        { value: 3, ru: 'Нейтрально', uz: 'Betaraf' },
-        { value: 4, ru: 'Скорее да', uz: 'Ko\'proq ha' },
-        { value: 5, ru: 'Полностью про меня', uz: 'To\'liq mos' }
-    ];
+    const SCALE_ITEMS = [1, 2, 3, 4, 5];
 
     const state = {
         questions: [],
@@ -33,8 +17,16 @@
         return window.ZedlyI18n?.getCurrentLang?.() || 'ru';
     }
 
-    function t(key, fallback) {
-        return window.ZedlyI18n?.translate?.(key) || fallback || key;
+    function getLocale() {
+        return getLang() === 'uz' ? 'uz-UZ' : 'ru-RU';
+    }
+
+    function t(key, fallback, params) {
+        const translated = window.ZedlyI18n?.translate?.(key, params);
+        if (!translated || translated === key) {
+            return fallback || key;
+        }
+        return translated;
     }
 
     function escapeHtml(value) {
@@ -267,7 +259,7 @@
         if (!value) return '-';
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return '-';
-        return date.toLocaleString('ru-RU', {
+        return date.toLocaleString(getLocale(), {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -282,19 +274,23 @@
             ? (interest.description_uz || interest.name_uz || interest.name_ru || '')
             : (interest.description_ru || interest.name_ru || interest.name_uz || '');
         const trimmed = String(raw || '').trim();
-        if (!trimmed) return 'Сфера с высоким потенциалом развития.';
+        if (!trimmed) return t('career.interestFallback', 'Сфера с высоким потенциалом развития.');
         return trimmed.length > 100 ? `${trimmed.slice(0, 97)}...` : trimmed;
     }
 
     function inferSubjectHint(subjectName) {
         const lower = String(subjectName || '').toLowerCase();
-        if (lower.includes('матем') || lower.includes('algebra') || lower.includes('геометр')) return SUBJECT_HINTS.math;
-        if (lower.includes('физ')) return SUBJECT_HINTS.physics;
-        if (lower.includes('информ') || lower.includes('програм') || lower.includes('it')) return SUBJECT_HINTS.informatics;
-        if (lower.includes('биолог')) return SUBJECT_HINTS.biology;
-        if (lower.includes('хими')) return SUBJECT_HINTS.chemistry;
-        if (lower.includes('истор')) return SUBJECT_HINTS.history;
-        return SUBJECT_HINTS.language;
+        if (lower.includes('матем') || lower.includes('algebra') || lower.includes('геометр')) {
+            return t('career.subjectHint.math', 'Развивает аналитическое мышление и решение задач.');
+        }
+        if (lower.includes('физ')) return t('career.subjectHint.physics', 'Помогает понимать технологические и инженерные процессы.');
+        if (lower.includes('информ') || lower.includes('програм') || lower.includes('it')) {
+            return t('career.subjectHint.informatics', 'Формирует цифровые и программные навыки.');
+        }
+        if (lower.includes('биолог')) return t('career.subjectHint.biology', 'Укрепляет понимание живых систем и медицины.');
+        if (lower.includes('хими')) return t('career.subjectHint.chemistry', 'Полезна для научных и медицинских направлений.');
+        if (lower.includes('истор')) return t('career.subjectHint.history', 'Учит анализировать процессы и причинно-следственные связи.');
+        return t('career.subjectHint.language', 'Развивает коммуникацию и академическое письмо.');
     }
 
     function parseRecommendedSubjects(result) {
@@ -452,7 +448,7 @@
                     </article>
                 `;
             }).join('')
-            : '<article class="career-top-item"><p>Пока нет данных по интересам.</p></article>';
+            : `<article class="career-top-item"><p>${escapeHtml(t('career.results.noInterests', 'Пока нет данных по интересам.'))}</p></article>`;
 
         const subjects = parseRecommendedSubjects(latestResult);
         subjWrap.innerHTML = subjects.length
@@ -462,13 +458,13 @@
                     <p>${escapeHtml(inferSubjectHint(subject))}</p>
                 </article>
             `).join('')
-            : '<article class="career-subject-item"><p>Пока нет рекомендаций по предметам.</p></article>';
+            : `<article class="career-subject-item"><p>${escapeHtml(t('career.results.noRecommendations', 'Пока нет рекомендаций по предметам.'))}</p></article>`;
 
         const reliability = latestResult?.reliability?.level || '-';
         const low = latestResult?.reliability?.low_confidence === true;
-        reliabilityEl.textContent = `Достоверность: ${reliability}`;
+        reliabilityEl.textContent = t('career.results.reliability', 'Достоверность: {level}', { level: reliability });
         reliabilityEl.style.color = low ? 'var(--warning)' : 'var(--text-secondary)';
-        lastDateEl.textContent = `Последняя попытка: ${formatDateTime(latestResult?.completed_at)}`;
+        lastDateEl.textContent = t('career.results.lastAttempt', 'Последняя попытка: {date}', { date: formatDateTime(latestResult?.completed_at) });
     }
 
     async function loadDashboardCareer() {
@@ -525,7 +521,7 @@
         const label = document.getElementById('careerProgressLabel');
         const percentEl = document.getElementById('careerProgressPercent');
         const bar = document.getElementById('careerProgressBar');
-        if (label) label.textContent = `Вопрос ${current} из ${total}`;
+        if (label) label.textContent = t('careerTest.progress', 'Вопрос {current} из {total}', { current, total });
         if (percentEl) percentEl.textContent = `${percent}%`;
         if (bar) bar.style.width = `${percent}%`;
     }
@@ -547,12 +543,12 @@
         indexEl.textContent = String(state.currentIndex + 1);
 
         const selected = selectedAnswerForCurrent();
-        optionsEl.innerHTML = SCALE_ITEMS.map((item) => {
-            const checked = Number(selected) === item.value;
-            const optionText = lang === 'uz' ? item.uz : item.ru;
+        optionsEl.innerHTML = SCALE_ITEMS.map((value) => {
+            const checked = Number(selected) === value;
+            const optionText = t(`career.scale${value}`, `scale${value}`);
             return `
                 <label class="career-step-option ${checked ? 'is-selected' : ''}">
-                    <input type="radio" name="career_current" value="${item.value}" ${checked ? 'checked' : ''} />
+                    <input type="radio" name="career_current" value="${value}" ${checked ? 'checked' : ''} />
                     <span>${escapeHtml(optionText)}</span>
                 </label>
             `;
@@ -599,6 +595,13 @@
     }
 
     async function initStandaloneTestPage() {
+        window.i18n?.translate?.();
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            const label = t('theme.toggleAria', 'Переключить тему');
+            themeToggle.setAttribute('aria-label', label);
+        }
+
         document.getElementById('careerBackBtn')?.addEventListener('click', () => {
             window.location.href = '/dashboard#career';
         });
@@ -652,6 +655,15 @@
         state.currentIndex = 0;
         state.answers = {};
         renderCurrentQuestion();
+
+        window.addEventListener('zedly:lang-changed', () => {
+            window.i18n?.translate?.();
+            const themeToggleEl = document.getElementById('themeToggle');
+            if (themeToggleEl) {
+                themeToggleEl.setAttribute('aria-label', t('theme.toggleAria', 'Переключить тему'));
+            }
+            renderCurrentQuestion();
+        });
     }
 
     async function initDashboardCareerPage() {
@@ -664,13 +676,14 @@
                 emptyState.style.display = 'block';
                 emptyState.innerHTML = `
                     <div class="career-hero-icon" aria-hidden="true">⚠️</div>
-                    <h2 class="career-hero-title">Не удалось загрузить данные профориентации</h2>
-                    <p class="career-hero-text">Обновите страницу и попробуйте снова.</p>
+                    <h2 class="career-hero-title">${escapeHtml(t('career.failedLoadTitle', 'Не удалось загрузить данные профориентации'))}</h2>
+                    <p class="career-hero-text">${escapeHtml(t('career.failedLoadText', 'Обновите страницу и попробуйте снова.'))}</p>
                     <div class="career-hero-actions">
-                        <button class="btn btn-primary" id="careerRetryBtn" type="button">Обновить</button>
+                        <button class="btn btn-primary" id="careerRetryBtn" type="button">${escapeHtml(t('common.refresh', 'Обновить'))}</button>
                     </div>
                 `;
                 document.getElementById('careerRetryBtn')?.addEventListener('click', () => window.location.reload());
+                window.i18n?.translate?.();
             }
         }
     }

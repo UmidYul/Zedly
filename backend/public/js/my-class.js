@@ -1,7 +1,16 @@
 ﻿(function () {
     'use strict';
 
-    function showConfirm(message, title = 'Подтверждение') {
+    function t(key, fallback, params) {
+        const translated = window.ZedlyI18n?.translate?.(key, params);
+        if (!translated || translated === key) {
+            return fallback || key;
+        }
+        return translated;
+    }
+
+    function showConfirm(message, title) {
+        title = title || t('common.confirmation', 'Подтверждение');
         if (window.ZedlyDialog?.confirm) {
             return window.ZedlyDialog.confirm(message, { title });
         }
@@ -72,7 +81,7 @@
         if (!container) return;
 
         if (!items || items.length === 0) {
-            container.innerHTML = '<div class="empty-state">Нет данных по предметам</div>';
+            container.innerHTML = `<div class="empty-state">${t('myClass.subjects.noData', 'Нет данных по предметам')}</div>`;
             return;
         }
 
@@ -82,7 +91,7 @@
             return `
                 <div class="subject-item">
                     <div>
-                        <div class="subject-name">${item.subject_name || 'Предмет'}</div>
+                        <div class="subject-name">${escapeHtml(item.subject_name || t('myClass.subject', 'Предмет'))}</div>
                         <div class="subject-bar"><span style="width: ${width}%"></span></div>
                     </div>
                     <div class="subject-score">${formatPercent(score)}</div>
@@ -103,8 +112,8 @@
             return;
         }
 
-        const labels = (items || []).map(item => item.subject_name || 'Предмет');
         const values = (items || []).map(item => Math.round(Number(item.avg_score || 0) * 10) / 10);
+        const translatedLabels = (items || []).map(item => item.subject_name || t('myClass.subject', 'Предмет'));
 
         if (state.chart) {
             state.chart.destroy();
@@ -113,9 +122,9 @@
         state.chart = new Chart(canvas, {
             type: 'bar',
             data: {
-                labels,
+                labels: translatedLabels,
                 datasets: [{
-                    label: 'Средний балл (%)',
+                    label: t('myClass.chart.avgScore', 'Средний балл (%)'),
                     data: values,
                     backgroundColor: 'rgba(74, 144, 226, 0.5)',
                     borderColor: 'rgba(74, 144, 226, 1)',
@@ -172,7 +181,8 @@
         }
 
         select.innerHTML = state.classes.map((cls) => {
-            const label = `${cls.name || 'Класс'} • ${cls.grade_level || '-'} класс`;
+            const gradeSuffix = t('classes.gradeSuffix', 'класс');
+            const label = `${cls.name || t('myClass.classFallback', 'Класс')} • ${cls.grade_level || '-'} ${gradeSuffix}`;
             return `<option value="${cls.id}">${label}</option>`;
         }).join('');
 
@@ -190,29 +200,29 @@
         if (!tbody) return;
 
         if (!students || students.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="empty-row">Ученики не найдены</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-row">${t('myClass.students.notFound', 'Ученики не найдены')}</td></tr>`;
             return;
         }
 
         tbody.innerHTML = students.map((student) => {
-            const name = `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Без имени';
+            const name = `${student.first_name || ''} ${student.last_name || ''}`.trim() || t('myClass.student.noName', 'Без имени');
             const avg = Number(student.avg_score);
             const profileHref = `student-details.html?id=${encodeURIComponent(student.id)}&class_id=${encodeURIComponent(state.activeClassId || '')}`;
             return `
                 <tr>
-                    <td data-label="ФИО">${escapeHtml(name)}</td>
-                    <td data-label="Логин">${escapeHtml(student.username || '-')}</td>
-                    <td data-label="Тестов пройдено">${student.tests_completed || 0}</td>
-                    <td data-label="Средний балл">${Number.isFinite(avg) ? formatPercent(avg) : '—'}</td>
-                    <td data-label="Действия">
+                    <td data-label="${escapeHtml(t('myClass.col.name', 'Имя'))}">${escapeHtml(name)}</td>
+                    <td data-label="${escapeHtml(t('myClass.col.login', 'Логин'))}">${escapeHtml(student.username || '-')}</td>
+                    <td data-label="${escapeHtml(t('myClass.col.testsCompleted', 'Тестов пройдено'))}">${student.tests_completed || 0}</td>
+                    <td data-label="${escapeHtml(t('myClass.col.avgScore', 'Средний балл'))}">${Number.isFinite(avg) ? formatPercent(avg) : '—'}</td>
+                    <td data-label="${escapeHtml(t('myClass.col.actions', 'Действия'))}">
                         <div class="student-actions">
-                            <button class="icon-action-btn" type="button" data-action="profile" data-profile-href="${profileHref}" title="Профиль ученика" aria-label="Профиль ученика">
+                            <button class="icon-action-btn" type="button" data-action="profile" data-profile-href="${profileHref}" title="${escapeHtml(t('myClass.action.profile', 'Профиль ученика'))}" aria-label="${escapeHtml(t('myClass.action.profile', 'Профиль ученика'))}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
                                 </svg>
                             </button>
-                            <button class="icon-action-btn danger" type="button" data-action="reset-password" data-student-id="${student.id}" title="Сбросить пароль" aria-label="Сбросить пароль">
+                            <button class="icon-action-btn danger" type="button" data-action="reset-password" data-student-id="${student.id}" title="${escapeHtml(t('myClass.action.resetPassword', 'Сбросить пароль'))}" aria-label="${escapeHtml(t('myClass.action.resetPassword', 'Сбросить пароль'))}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="5" y="11" width="14" height="10" rx="2"></rect>
                                     <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
@@ -240,7 +250,7 @@
     }
 
     async function handleResetPassword(studentId) {
-        const confirmed = await showConfirm('Сбросить пароль ученика? Будет выдан временный пароль.');
+        const confirmed = await showConfirm(t('myClass.reset.confirm', 'Сбросить пароль ученика? Будет выдан временный пароль.'));
         if (!confirmed) return;
 
         const response = await fetch(`/api/teacher/students/${studentId}/reset-password`, {
@@ -250,33 +260,33 @@
 
         if (!response.ok) {
             if (window.ZedlyDialog?.alert) {
-                await window.ZedlyDialog.alert('Не удалось сбросить пароль. Попробуйте позже.', { title: 'Ошибка' });
+                await window.ZedlyDialog.alert(t('myClass.reset.failed', 'Не удалось сбросить пароль. Попробуйте позже.'), { title: t('common.error', 'Ошибка') });
             } else {
-                alert('Не удалось сбросить пароль. Попробуйте позже.');
+                alert(t('myClass.reset.failed', 'Не удалось сбросить пароль. Попробуйте позже.'));
             }
             return;
         }
 
         const data = await response.json();
-        const studentName = data.user?.name || 'ученика';
+        const studentName = data.user?.name || t('myClass.student.generic', 'ученика');
 
         if (window.ZedlyDialog?.temporaryPassword) {
             await window.ZedlyDialog.temporaryPassword({
-                title: 'Временный пароль',
-                subtitle: `Пароль для ${studentName}:`,
+                title: t('myClass.password.title', 'Временный пароль'),
+                subtitle: t('myClass.password.subtitle', 'Пароль для {name}:', { name: studentName }),
                 password: data.tempPassword || '',
-                passwordLabel: 'Временный пароль',
-                copyText: 'Скопировать',
-                hint: 'Передайте пароль ученику и попросите сменить его после входа.',
-                okText: 'Готово'
+                passwordLabel: t('myClass.password.label', 'Временный пароль'),
+                copyText: t('myClass.password.copy', 'Скопировать'),
+                hint: t('myClass.password.hint', 'Передайте пароль ученику и попросите сменить его после входа.'),
+                okText: t('myClass.password.ok', 'Готово')
             });
             return;
         }
 
         if (window.ZedlyDialog?.alert) {
-            await window.ZedlyDialog.alert(`${studentName}: ${data.tempPassword || '-'}`, { title: 'Временный пароль' });
+            await window.ZedlyDialog.alert(`${studentName}: ${data.tempPassword || '-'}`, { title: t('myClass.password.title', 'Временный пароль') });
         } else {
-            alert(`Временный пароль для ${studentName}: ${data.tempPassword || '-'}`);
+            alert(t('myClass.password.fallbackAlert', 'Временный пароль для {name}: {password}', { name: studentName, password: data.tempPassword || '-' }));
         }
     }
 
@@ -284,8 +294,10 @@
         state.activeClassId = classId;
 
         const selected = state.classes.find((cls) => String(cls.id) === String(classId));
-        setText('className', selected?.name || 'Класс');
-        setText('classMeta', `Учебный год: ${selected?.academic_year || '-'} • Параллель: ${selected?.grade_level || '-'}`);
+        const year = selected?.academic_year || '-';
+        const gradeLevel = selected?.grade_level || '-';
+        setText('className', selected?.name || t('myClass.classFallback', 'Класс'));
+        setText('classMeta', t('myClass.meta', 'Учебный год: {year} • Параллель: {gradeLevel}', { year, gradeLevel }));
 
         const analytics = await loadAnalytics(classId);
 

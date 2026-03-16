@@ -2,6 +2,16 @@
 (function () {
     'use strict';
 
+    function getCurrentLang() {
+        return window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+    }
+
+    function getCurrentLocale() {
+        const lang = getCurrentLang();
+        if (lang === 'uz') return 'uz-UZ';
+        return 'ru-RU';
+    }
+
     function looksLikeMojibake(value) {
         if (typeof value !== 'string' || value.length < 4) return false;
         const chunks = value.match(/(?:Р.|С.)/g) || [];
@@ -9,9 +19,17 @@
     }
 
     function t(key, fallback) {
-        const translated = window.ZedlyI18n?.translate?.(key);
+        let params = undefined;
+        let actualFallback = fallback;
+
+        if (typeof fallback === 'object' && fallback !== null && !Array.isArray(fallback)) {
+            params = fallback;
+            actualFallback = arguments.length >= 3 ? arguments[2] : undefined;
+        }
+
+        const translated = window.ZedlyI18n?.translate?.(key, params);
         if (!translated || translated === key || looksLikeMojibake(translated)) {
-            return fallback || key;
+            return actualFallback || key;
         }
         return translated;
     }
@@ -43,7 +61,7 @@
         if (!value) return '-';
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return '-';
-        return date.toLocaleDateString('ru-RU', {
+        return date.toLocaleDateString(getCurrentLocale(), {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric'
@@ -51,9 +69,9 @@
     }
 
     function getGreetingByHour(hour) {
-        if (hour < 12) return 'Доброе утро';
-        if (hour < 18) return 'Добрый день';
-        return 'Добрый вечер';
+        if (hour < 12) return t('studentOverview.greeting.morning', 'Доброе утро');
+        if (hour < 18) return t('studentOverview.greeting.day', 'Добрый день');
+        return t('studentOverview.greeting.evening', 'Добрый вечер');
     }
 
     function getScoreToneClass(score) {
@@ -63,7 +81,7 @@
         return 'is-high';
     }
 
-    async function showAlert(message, title = 'Информация') {
+    async function showAlert(message, title = t('common.info', 'Информация')) {
         if (window.ZedlyDialog?.alert) {
             await window.ZedlyDialog.alert(message, { title });
             return;
@@ -76,9 +94,11 @@
             data: null,
             loading: false
         },
+        langListenerBound: false,
 
         init: async function () {
             this.bindEvents();
+            this.bindLangListener();
             await this.loadOverview();
         },
 
@@ -94,6 +114,21 @@
                 if (!assignmentId) return;
                 this.startAssignment(assignmentId, startButton);
             });
+        },
+
+        bindLangListener: function () {
+            if (this.langListenerBound) return;
+            window.addEventListener('zedly:lang-changed', () => {
+                if (this.state.loading) {
+                    this.renderLoading();
+                } else if (this.state.data) {
+                    this.renderAll();
+                } else {
+                    this.renderGreeting();
+                    this.renderRecentBadge();
+                }
+            });
+            this.langListenerBound = true;
         },
 
         loadOverview: async function () {
@@ -116,7 +151,7 @@
                 this.renderAll();
             } catch (error) {
                 console.error('Student overview load error:', error);
-                this.renderError(error.message || 'Не удалось загрузить обзор.');
+                this.renderError(error.message || t('studentOverview.loadFailed', 'Не удалось загрузить обзор.'));
             } finally {
                 this.state.loading = false;
             }
@@ -132,7 +167,7 @@
             ids.forEach((id) => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                el.innerHTML = '<p class="text-secondary">Загрузка...</p>';
+                el.innerHTML = `<p class="text-secondary">${escapeHtml(t('common.loading', 'Загрузка...'))}</p>`;
             });
 
             this.renderGreeting();
@@ -176,17 +211,24 @@
             const firstName = rawName.split(/\s+/)[0] || '';
 
             if (greetingEl) {
-                greetingEl.textContent = `${greeting}, ${firstName || 'ученик'}`;
+                greetingEl.textContent = t(
+                    'studentOverview.greeting.format',
+                    { greeting, name: firstName || t('studentOverview.fallbackStudent', 'ученик') },
+                    '{greeting}, {name}'
+                );
             }
 
             if (dateEl) {
-                const formattedDate = now.toLocaleDateString('ru-RU', {
+                const formattedDate = now.toLocaleDateString(getCurrentLocale(), {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric'
                 });
-                dateEl.textContent = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+                const normalized = formattedDate && formattedDate.length > 1
+                    ? formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)
+                    : formattedDate;
+                dateEl.textContent = normalized;
             }
         },
 
@@ -207,17 +249,17 @@
                 : [];
 
             if (!rows.length) {
-                container.innerHTML = '<p class="text-secondary">Нет данных по предметам.</p>';
+                container.innerHTML = `<p class="text-secondary">${escapeHtml(t('studentOverview.noSubjectData', 'Нет данных по предметам.'))}</p>`;
                 return;
             }
 
-            const html = rows.map((row) => {
-                const score = clamp(toNumber(row.avg_score, 0), 0, 100);
-                const toneClass = getScoreToneClass(score);
-                return `
+                const html = rows.map((row) => {
+                    const score = clamp(toNumber(row.avg_score, 0), 0, 100);
+                    const toneClass = getScoreToneClass(score);
+                    return `
                     <div class="student-overview-subject-item ${toneClass}">
                         <div class="student-overview-subject-top">
-                            <span>${escapeHtml(row.subject_name || 'Предмет')}</span>
+                            <span>${escapeHtml(row.subject_name || t('studentOverview.fallbackSubject', 'Предмет'))}</span>
                             <span>${formatPercent(score)}</span>
                         </div>
                         <div class="student-overview-progress-track">
@@ -236,18 +278,18 @@
 
             const recommendation = this.state.data?.recommended_test || null;
             if (!recommendation) {
-                container.innerHTML = '<p class="text-secondary">Сейчас нет подходящей рекомендации для тренировки.</p>';
+                container.innerHTML = `<p class="text-secondary">${escapeHtml(t('studentOverview.noRecommendation', 'Сейчас нет подходящей рекомендации для тренировки.'))}</p>`;
                 return;
             }
 
             container.innerHTML = `
                 <div class="student-overview-recommend-card">
-                    <div class="student-overview-recommend-topic">${escapeHtml(recommendation.topic_name || 'Тема')}</div>
-                    <h3 class="student-overview-recommend-title">${escapeHtml(recommendation.test_title || 'Тест')}</h3>
+                    <div class="student-overview-recommend-topic">${escapeHtml(recommendation.topic_name || t('studentOverview.fallbackTopic', 'Тема'))}</div>
+                    <h3 class="student-overview-recommend-title">${escapeHtml(recommendation.test_title || t('studentOverview.fallbackTest', 'Тест'))}</h3>
                     <p class="student-overview-recommend-reason">${escapeHtml(recommendation.reason || '')}</p>
                     <div class="student-overview-recommend-actions">
                         <button class="btn btn-primary js-student-overview-start" data-assignment-id="${escapeHtml(recommendation.assignment_id || '')}" type="button">
-                            Начать тренировку
+                            ${escapeHtml(t('studentOverview.startTraining', 'Начать тренировку'))}
                         </button>
                     </div>
                 </div>
@@ -263,7 +305,7 @@
                 : [];
 
             if (!rows.length) {
-                container.innerHTML = '<p class="text-secondary">Пока нет пройденных тестов.</p>';
+                container.innerHTML = `<p class="text-secondary">${escapeHtml(t('studentOverview.noActivity', 'Пока нет пройденных тестов.'))}</p>`;
                 return;
             }
 
@@ -271,7 +313,7 @@
                 const score = clamp(toNumber(row.percentage, 0), 0, 100);
                 return `
                     <tr>
-                        <td>${escapeHtml(row.test_title || 'Тест')}</td>
+                        <td>${escapeHtml(row.test_title || t('studentOverview.fallbackTest', 'Тест'))}</td>
                         <td>${escapeHtml(row.subject_name || '-')}</td>
                         <td><span class="student-overview-score-badge ${getScoreToneClass(score)}">${formatPercent(score)}</span></td>
                         <td>${formatDate(row.completed_at)}</td>
@@ -284,10 +326,10 @@
                     <table class="data-table student-overview-activity-table">
                         <thead>
                             <tr>
-                                <th>Название</th>
-                                <th>Предмет</th>
-                                <th>Балл</th>
-                                <th>Дата</th>
+                                <th>${escapeHtml(t('studentOverview.table.title', 'Название'))}</th>
+                                <th>${escapeHtml(t('studentOverview.table.subject', 'Предмет'))}</th>
+                                <th>${escapeHtml(t('studentOverview.table.score', 'Балл'))}</th>
+                                <th>${escapeHtml(t('studentOverview.table.date', 'Дата'))}</th>
                             </tr>
                         </thead>
                         <tbody>${body}</tbody>
@@ -309,12 +351,14 @@
             }
 
             wrap.style.display = '';
+            const badgeTitle = String(badge.title || '');
+            const unlockedAt = formatDate(badge.unlocked_at);
             container.innerHTML = `
                 <div class="student-overview-badge-card">
                     <div class="student-overview-badge-icon">${escapeHtml(badge.icon || '🏆')}</div>
                     <div>
-                        <div class="student-overview-badge-title">Поздравляем! Новый значок: ${escapeHtml(badge.title || '')}</div>
-                        <div class="student-overview-badge-date">Получен: ${formatDate(badge.unlocked_at)}</div>
+                        <div class="student-overview-badge-title">${escapeHtml(t('studentOverview.badge.congrats', { title: badgeTitle }, 'Поздравляем! Новый значок: {title}'))}</div>
+                        <div class="student-overview-badge-date">${escapeHtml(t('studentOverview.badge.unlockedAt', { date: unlockedAt }, 'Получен: {date}'))}</div>
                     </div>
                 </div>
             `;
@@ -326,10 +370,10 @@
 
             if (buttonEl) {
                 if (!buttonEl.dataset.originalText) {
-                    buttonEl.dataset.originalText = buttonEl.textContent || 'Начать';
+                    buttonEl.dataset.originalText = buttonEl.textContent || t('studentOverview.start', 'Начать');
                 }
                 buttonEl.disabled = true;
-                buttonEl.textContent = 'Запуск...';
+                buttonEl.textContent = t('studentOverview.starting', 'Запуск...');
             }
 
             try {
@@ -360,16 +404,16 @@
 
                 const attemptId = payload?.attempt_id;
                 if (!attemptId) {
-                    throw new Error('Не удалось открыть попытку теста');
+                    throw new Error(t('studentOverview.openAttemptFailed', 'Не удалось открыть попытку теста'));
                 }
 
                 window.location.href = `/student-attempt.html?attempt_id=${encodeURIComponent(String(attemptId))}`;
             } catch (error) {
                 console.error('Start test from overview error:', error);
-                await showAlert(error.message || 'Не удалось начать тест', 'Ошибка');
+                await showAlert(error.message || t('studentOverview.startFailed', 'Не удалось начать тест'), t('common.error', 'Ошибка'));
                 if (buttonEl) {
                     buttonEl.disabled = false;
-                    buttonEl.textContent = buttonEl.dataset.originalText || 'Начать';
+                    buttonEl.textContent = buttonEl.dataset.originalText || t('studentOverview.start', 'Начать');
                 }
             }
         }

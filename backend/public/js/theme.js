@@ -7,7 +7,10 @@
 
     // Get current theme from localStorage or default to 'dark'
     function getCurrentTheme() {
-        return localStorage.getItem(THEME_KEY) || 'dark';
+        const stored = localStorage.getItem(THEME_KEY);
+        if (stored) return stored;
+        if (document.body?.classList?.contains('landing-page')) return 'light';
+        return 'dark';
     }
 
     // Set theme

@@ -2,6 +2,14 @@
 (function () {
     'use strict';
 
+    function getLang() {
+        return window.ZedlyI18n?.getCurrentLang?.() || 'ru';
+    }
+
+    function getLocale() {
+        return getLang() === 'uz' ? 'uz-UZ' : 'ru-RU';
+    }
+
     function looksLikeMojibake(value) {
         if (typeof value !== 'string' || value.length < 4) return false;
         const chunks = value.match(/(?:Р.|С.)/g) || [];
@@ -42,20 +50,23 @@
         if (!value) return '-';
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return '-';
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}.${month}.${year}`;
+        return date.toLocaleDateString(getLocale(), {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
     }
 
     function formatDateUtc(value) {
         if (!value) return '-';
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return '-';
-        const day = String(date.getUTCDate()).padStart(2, '0');
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-        const year = date.getUTCFullYear();
-        return `${day}.${month}.${year}`;
+        return date.toLocaleDateString(getLocale(), {
+            timeZone: 'UTC',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
     }
 
     function formatDurationCompact(totalSeconds) {
@@ -64,14 +75,16 @@
         const minutes = Math.floor((safeSeconds % 3600) / 60);
 
         if (hours > 0) {
-            return `${hours}ч ${minutes}мин`;
+            return t('progress.duration.hoursMinutes', '{hours}ч {minutes}мин')
+                .replace('{hours}', String(hours))
+                .replace('{minutes}', String(minutes));
         }
 
         if (minutes > 0) {
-            return `${minutes}мин`;
+            return t('progress.duration.minutes', '{minutes}мин').replace('{minutes}', String(minutes));
         }
 
-        return 'меньше 1 мин';
+        return t('progress.duration.ltMinute', 'меньше 1 мин');
     }
 
     function formatDurationRow(totalSeconds) {
@@ -81,12 +94,16 @@
         const seconds = safeSeconds % 60;
 
         if (hours > 0) {
-            return `${hours}ч ${minutes}м`;
+            return t('progress.duration.hoursMinutesRow', '{hours}ч {minutes}м')
+                .replace('{hours}', String(hours))
+                .replace('{minutes}', String(minutes));
         }
         if (minutes > 0) {
-            return `${minutes}м ${seconds}с`;
+            return t('progress.duration.minutesSecondsRow', '{minutes}м {seconds}с')
+                .replace('{minutes}', String(minutes))
+                .replace('{seconds}', String(seconds));
         }
-        return `${seconds}с`;
+        return t('progress.duration.seconds', '{seconds}с').replace('{seconds}', String(seconds));
     }
 
     function getPerformanceTone(score) {
@@ -392,33 +409,33 @@
             container.innerHTML = `
                 <div class="stat-card student-progress-stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Средний балл</div>
+                        <div class="stat-label">${t('progress.averageScore', 'Средний балл')}</div>
                         <div class="stat-value">${formatPercent(avgScore)}</div>
-                        <div class="progress-stat-meta ${trendClass}">${trendArrow} ${Math.abs(avgTrend).toFixed(1)}% за последние 30 дней</div>
+                        <div class="progress-stat-meta ${trendClass}">${trendArrow} ${t('progress.stats.last30days', '{delta}% за последние 30 дней').replace('{delta}', Math.abs(avgTrend).toFixed(1))}</div>
                     </div>
                 </div>
 
                 <div class="stat-card student-progress-stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Пройдено тестов</div>
-                        <div class="stat-value">${testsCompleted} <span class="progress-stat-muted">из ${testsAssigned}</span></div>
-                        <div class="progress-stat-meta">Назначенных тестов</div>
+                        <div class="stat-label">${t('progress.stats.testsCompletedLabel', 'Пройдено тестов')}</div>
+                        <div class="stat-value">${testsCompleted} <span class="progress-stat-muted">${t('progress.stats.outOf', 'из {total}').replace('{total}', String(testsAssigned))}</span></div>
+                        <div class="progress-stat-meta">${t('progress.stats.testsAssignedMeta', 'Назначенных тестов')}</div>
                     </div>
                 </div>
 
                 <div class="stat-card student-progress-stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Streak</div>
+                        <div class="stat-label">${t('progress.stats.streak', 'Streak')}</div>
                         <div class="stat-value">🔥 ${streakDays}</div>
-                        <div class="progress-stat-meta">дней подряд</div>
+                        <div class="progress-stat-meta">${t('progress.stats.daysInRow', 'дней подряд')}</div>
                     </div>
                 </div>
 
                 <div class="stat-card student-progress-stat-card">
                     <div class="stat-content">
-                        <div class="stat-label">Потрачено времени</div>
+                        <div class="stat-label">${t('progress.stats.timeSpent', 'Потрачено времени')}</div>
                         <div class="stat-value">${formatDurationCompact(totalTimeSeconds)}</div>
-                        <div class="progress-stat-meta">на тесты</div>
+                        <div class="progress-stat-meta">${t('progress.stats.onTests', 'на тесты')}</div>
                     </div>
                 </div>
             `;
@@ -451,7 +468,7 @@
                         return `
                             <div class="knowledge-topic-row">
                                 <div class="knowledge-topic-top">
-                                    <span class="knowledge-topic-name">${escapeHtml(topic.topic_name || 'Тема')}</span>
+                                    <span class="knowledge-topic-name">${escapeHtml(topic.topic_name || t('studentOverview.fallbackTopic', 'Тема'))}</span>
                                     <span class="knowledge-topic-score">${formatPercent(topicScore)}</span>
                                 </div>
                                 <div class="knowledge-topic-track">
@@ -460,20 +477,20 @@
                             </div>
                         `;
                     }).join('')
-                    : `<p class="knowledge-topic-empty">Нет данных по темам.</p>`;
+                    : `<p class="knowledge-topic-empty">${t('progress.knowledge.noTopics', 'Нет данных по темам.')}</p>`;
 
                 return `
                     <article class="knowledge-item ${isExpanded ? 'is-expanded' : ''}">
                         <button type="button" class="knowledge-toggle js-knowledge-toggle" data-subject-id="${escapeHtml(subjectId)}" aria-expanded="${isExpanded ? 'true' : 'false'}">
                             <div class="knowledge-toggle-row">
-                                <span class="knowledge-subject-name">${escapeHtml(subject.subject_name || 'Предмет')}</span>
+                                <span class="knowledge-subject-name">${escapeHtml(subject.subject_name || t('studentOverview.fallbackSubject', 'Предмет'))}</span>
                                 <span class="${tone.badgeClass}">${formatPercent(avgScore)}</span>
                             </div>
                             <div class="knowledge-progress-wrap">
                                 <div class="knowledge-progress-rechart" data-progress="${avgScore}" data-color="${tone.color}"></div>
                             </div>
                             <div class="knowledge-toggle-row knowledge-toggle-meta-row">
-                                <span class="knowledge-subject-meta">${attempts} тестов</span>
+                                <span class="knowledge-subject-meta">${t('progress.knowledge.attempts', '{count} тестов').replace('{count}', String(attempts))}</span>
                                 <span class="knowledge-chevron">⌄</span>
                             </div>
                         </button>
@@ -603,7 +620,7 @@
             }
 
             if (!window.React || !window.ReactDOM || !window.Recharts) {
-                container.innerHTML = `<p class="no-data">Не удалось загрузить Recharts.</p>`;
+                container.innerHTML = `<p class="no-data">${t('progress.rechartsFailed', 'Не удалось загрузить Recharts.')}</p>`;
                 this.teardownTrendRoot();
                 return;
             }
@@ -680,7 +697,7 @@
 
             const root = createReactRoot(chartRootEl);
             if (!root) {
-                container.innerHTML = '<p class="no-data">Не удалось инициализировать график.</p>';
+                container.innerHTML = `<p class="no-data">${t('progress.chartInitFailed', 'Не удалось инициализировать график.')}</p>`;
                 return;
             }
 
@@ -694,17 +711,17 @@
 
             const rows = Array.isArray(weakTopics) ? weakTopics : [];
             if (!rows.length) {
-                container.innerHTML = '<p class="no-data">Слабых тем пока не найдено.</p>';
+                container.innerHTML = `<p class="no-data">${t('progress.weak.empty', 'Слабых тем пока не найдено.')}</p>`;
                 return;
             }
 
             const listHtml = rows.map((row) => {
                 const testsCount = toNumber(row.error_tests, 0);
-                const topicName = escapeHtml(row.topic_name || 'Тема');
+                const topicName = escapeHtml(row.topic_name || t('studentOverview.fallbackTopic', 'Тема'));
                 return `
                     <div class="weak-topic-item">
-                        <div class="weak-topic-content">${topicName} — ошибки в ${testsCount} тестах</div>
-                        <button type="button" class="btn btn-outline" disabled>Найти тест</button>
+                        <div class="weak-topic-content">${t('progress.weak.row', '{topic} — ошибки в {count} тестах').replace('{topic}', topicName).replace('{count}', String(testsCount))}</div>
+                        <button type="button" class="btn btn-outline" disabled>${t('progress.weak.findTest', 'Найти тест')}</button>
                     </div>
                 `;
             }).join('');
@@ -718,7 +735,7 @@
 
             const rows = Array.isArray(achievements) ? achievements : [];
             if (!rows.length) {
-                container.innerHTML = '<p class="no-data">Достижения пока не найдены.</p>';
+                container.innerHTML = `<p class="no-data">${t('progress.achievements.empty', 'Достижения пока не найдены.')}</p>`;
                 return;
             }
 
@@ -726,7 +743,7 @@
                 const obtained = Boolean(item.obtained);
                 const badgeClass = obtained ? 'achievement-item is-unlocked' : 'achievement-item is-locked';
                 const icon = escapeHtml(item.icon || '🏅');
-                const title = escapeHtml(item.title || 'Достижение');
+                const title = escapeHtml(item.title || t('progress.achievements.fallbackTitle', 'Достижение'));
                 const description = escapeHtml(item.description || '');
 
                 return `
@@ -757,7 +774,7 @@
                     });
                     return acc;
                 }, [])
-                .sort((a, b) => a.subject_name.localeCompare(b.subject_name, 'ru'));
+                .sort((a, b) => a.subject_name.localeCompare(b.subject_name, getLang() === 'uz' ? 'uz' : 'ru'));
 
             const historyOptions = this.state.results
                 .map((row) => String(row.subject_name || '').trim())
@@ -768,10 +785,11 @@
                     acc.push({ value, label: name });
                     return acc;
                 }, [])
-                .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+                .sort((a, b) => a.label.localeCompare(b.label, getLang() === 'uz' ? 'uz' : 'ru'));
 
-            this.populateSelect('studentProgressChartSubjectFilter', chartOptions, 'Все предметы', this.state.chartSubject);
-            this.populateSelect('studentProgressHistorySubjectFilter', historyOptions, 'Все предметы', this.state.historySubject);
+            const allSubjectsLabel = t('common.allSubjects', 'Все предметы');
+            this.populateSelect('studentProgressChartSubjectFilter', chartOptions, allSubjectsLabel, this.state.chartSubject);
+            this.populateSelect('studentProgressHistorySubjectFilter', historyOptions, allSubjectsLabel, this.state.historySubject);
         },
 
         populateSelect: function (id, options, allLabel, selectedValue) {
@@ -828,7 +846,7 @@
 
             const filteredRows = this.getFilteredHistoryRows();
             if (!filteredRows.length) {
-                container.innerHTML = '<p class="no-data">История тестов пока пуста.</p>';
+                container.innerHTML = `<p class="no-data">${t('progress.history.empty', 'История тестов пока пуста.')}</p>`;
                 return;
             }
 
@@ -840,16 +858,16 @@
                 const tone = getPerformanceTone(score);
                 const subjectName = row.subject_name ? escapeHtml(row.subject_name) : '—';
                 const timeSeconds = getDurationFromResult(row);
-                const testTitle = escapeHtml(row.test_title || 'Тест без названия');
+                const testTitle = escapeHtml(row.test_title || t('progress.history.untitled', 'Тест без названия'));
 
                 return `
                     <tr>
-                        <td data-label="Название теста">${testTitle}</td>
-                        <td data-label="Предмет">${subjectName}</td>
-                        <td data-label="Дата">${formatDate(row.submitted_at || row.started_at)}</td>
-                        <td data-label="Балл"><span class="${tone.badgeClass}">${formatPercent(score)}</span></td>
-                        <td data-label="Время">${formatDurationRow(timeSeconds)}</td>
-                        <td data-label="Действие"><button type="button" class="btn btn-outline progress-history-action" disabled>Подробнее</button></td>
+                        <td data-label="${escapeHtml(t('progress.history.col.test', 'Название теста'))}">${testTitle}</td>
+                        <td data-label="${escapeHtml(t('progress.history.col.subject', 'Предмет'))}">${subjectName}</td>
+                        <td data-label="${escapeHtml(t('progress.history.col.date', 'Дата'))}">${formatDate(row.submitted_at || row.started_at)}</td>
+                        <td data-label="${escapeHtml(t('progress.history.col.score', 'Балл'))}"><span class="${tone.badgeClass}">${formatPercent(score)}</span></td>
+                        <td data-label="${escapeHtml(t('progress.history.col.time', 'Время'))}">${formatDurationRow(timeSeconds)}</td>
+                        <td data-label="${escapeHtml(t('progress.history.col.action', 'Действие'))}"><button type="button" class="btn btn-outline progress-history-action" disabled>${escapeHtml(t('progress.history.details', 'Подробнее'))}</button></td>
                     </tr>
                 `;
             }).join('');
@@ -859,12 +877,12 @@
                     <table class="data-table progress-history-table">
                         <thead>
                             <tr>
-                                <th>Название теста</th>
-                                <th>Предмет</th>
-                                <th>Дата</th>
-                                <th>Балл</th>
-                                <th>Время</th>
-                                <th>Действие</th>
+                                <th>${t('progress.history.col.test', 'Название теста')}</th>
+                                <th>${t('progress.history.col.subject', 'Предмет')}</th>
+                                <th>${t('progress.history.col.date', 'Дата')}</th>
+                                <th>${t('progress.history.col.score', 'Балл')}</th>
+                                <th>${t('progress.history.col.time', 'Время')}</th>
+                                <th>${t('progress.history.col.action', 'Действие')}</th>
                             </tr>
                         </thead>
                         <tbody>${rowsHtml}</tbody>
@@ -872,7 +890,7 @@
                 </div>
                 ${hasMore ? `
                     <div class="progress-history-more-wrap">
-                        <button id="studentProgressHistoryLoadMore" type="button" class="btn btn-outline">Загрузить еще</button>
+                        <button id="studentProgressHistoryLoadMore" type="button" class="btn btn-outline">${t('progress.history.loadMore', 'Загрузить еще')}</button>
                     </div>
                 ` : ''}
             `;

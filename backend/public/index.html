@@ -8,7 +8,7 @@
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="google-site-verification" content="mZvA7NNo1FOwaHCih4pmfbiziKZQ3PzX_1aMz0HbfLo">
 
-    <title>ZEDLY - Образовательная платформа для школ Узбекистана</title>
+    <title data-i18n="landing.pageTitle">ZEDLY - Образовательная платформа для школ Узбекистана</title>
     <meta name="description" content="🚀 ZEDLY объединяет тестирование, аналитику и управление учебным процессом для школ, учителей и учеников Узбекистана.">
     <meta name="keywords" content="ZEDLY, образовательная платформа, школы Узбекистана, LMS, тестирование, аналитика обучения">
     <link rel="canonical" href="https://zedly.uz/">
@@ -67,8 +67,18 @@
     </div>
     <nav class="landing-actions">
       <a class="landing-link" href="/login" data-i18n="loginLink">Вход</a>
-      <span class="landing-separator">|</span>
-      <button class="landing-lang-btn" id="landingLangBtn">RU</button>
+      <div class="landing-controls">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button class="lang-btn" type="button" data-lang="ru">RU</button>
+          <button class="lang-btn" type="button" data-lang="uz">UZ</button>
+        </div>
+        <button class="theme-toggle" id="themeToggle" data-i18n-title="theme.toggle" data-i18n-aria-label="theme.toggleAria" aria-label="Переключить тему" type="button">
+          <svg class="theme-icon" viewBox="0 0 20 20" aria-hidden="true">
+            <path class="sun" d="M10 2v2m0 12v2M4.22 4.22l1.42 1.42m8.72 8.72l1.42 1.42M2 10h2m12 0h2M4.22 15.78l1.42-1.42m8.72-8.72l1.42-1.42M10 5.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z" />
+            <path class="moon" d="M10 2c1.34 0 2.62.26 3.77.74A6 6 0 017.5 14a6 6 0 01-5.26-6.49A8 8 0 0010 2z" />
+          </svg>
+        </button>
+      </div>
     </nav>
   </header>
 
@@ -194,7 +204,7 @@
 
   <footer class="landing-footer">
     <div class="landing-footer-main">
-      <span class="landing-footer-copy" data-i18n="footer">В© 2026 ZEDLY. Все права защищены.</span>
+      <span class="landing-footer-copy" data-i18n="footer">© 2026 ZEDLY. Все права защищены.</span>
       <a class="landing-footer-login" href="/login">
         <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
         <span data-i18n="footerLink">Перейти к входу</span>
@@ -217,11 +227,11 @@
       </a>
     </div>
   </footer>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/theme.js"></script>
   <script src="/js/landing.js"></script>
   <script src="/js/alert-modal.js"></script>
   <script src="/js/pwa.js"></script>
 </body>
 
 </html>
-
-
