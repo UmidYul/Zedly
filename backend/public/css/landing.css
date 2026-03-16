@@ -34,6 +34,26 @@
     --metric-bg: rgba(15, 23, 42, 0.03);
     --pill-bg: rgba(148, 163, 184, 0.22);
     --pill-text: rgba(51, 65, 85, 0.9);
+    --interactive-border: rgba(29, 78, 216, 0.22);
+    --interactive-bg: rgba(29, 78, 216, 0.06);
+    --faq-icon: rgba(29, 78, 216, 0.85);
+    --faq-icon-open: rgba(29, 78, 216, 1);
+    --card-text-hover: var(--text-primary);
+
+    --contact-form-bg: var(--bg-card);
+    --contact-form-bg-image: none;
+    --contact-form-border: var(--surface-border);
+    --contact-input-bg: rgba(255, 255, 255, 0.85);
+    --contact-input-border: rgba(15, 23, 42, 0.14);
+
+    --footer-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 0.96));
+    --footer-border: rgba(15, 23, 42, 0.10);
+    --footer-surface-bg: rgba(15, 23, 42, 0.04);
+    --footer-surface-border: rgba(15, 23, 42, 0.14);
+    --footer-surface-hover-bg: rgba(29, 78, 216, 0.08);
+    --footer-surface-hover-border: rgba(29, 78, 216, 0.35);
+    --footer-surface-hover-text: var(--text-primary);
+    --footer-contacts-title: var(--text-primary);
 
     --gradient-primary: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
     --gradient-hero: radial-gradient(circle at 20% 20%, rgba(29, 78, 216, 0.16), transparent 42%),
@@ -63,6 +83,26 @@ html[data-theme="dark"] {
     --metric-bg: rgba(255, 255, 255, 0.03);
     --pill-bg: rgba(43, 89, 195, 0.2);
     --pill-text: #cbd5f5;
+    --interactive-border: rgba(139, 181, 255, 0.35);
+    --interactive-bg: rgba(20, 33, 62, 0.72);
+    --faq-icon: #8bb5ff;
+    --faq-icon-open: #b3ccff;
+    --card-text-hover: #d8e3ff;
+
+    --contact-form-bg: var(--bg-card);
+    --contact-form-bg-image: linear-gradient(rgba(20, 33, 62, 0.6), rgba(15, 24, 45, 0.92));
+    --contact-form-border: rgba(255, 255, 255, 0.08);
+    --contact-input-bg: rgba(6, 10, 24, 0.6);
+    --contact-input-border: rgba(255, 255, 255, 0.14);
+
+    --footer-bg: linear-gradient(180deg, rgba(10, 16, 32, 0.6), rgba(7, 12, 24, 0.92));
+    --footer-border: rgba(255, 255, 255, 0.08);
+    --footer-surface-bg: rgba(255, 255, 255, 0.04);
+    --footer-surface-border: rgba(255, 255, 255, 0.2);
+    --footer-surface-hover-bg: rgba(37, 99, 235, 0.2);
+    --footer-surface-hover-border: rgba(96, 165, 250, 0.75);
+    --footer-surface-hover-text: #ffffff;
+    --footer-contacts-title: #e2e8f0;
 
     --gradient-hero: radial-gradient(circle at 20% 20%, rgba(29, 78, 216, 0.28), transparent 42%),
         radial-gradient(circle at 80% 10%, rgba(59, 130, 246, 0.2), transparent 38%);
@@ -521,7 +561,7 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
 
 .landing-card.is-interactive p,
 .landing-card:hover p {
-    color: #d8e3ff;
+    color: var(--card-text-hover);
 }
 
 .landing-faq-list {
@@ -531,16 +571,24 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
 
 .landing-faq-item {
     background: var(--bg-card);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--surface-border);
     border-radius: 14px;
     padding: 14px 16px;
     animation: landingFadeUp 0.6s ease both;
-    transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+    transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .landing-faq-item:hover {
-    border-color: rgba(139, 181, 255, 0.35);
-    background: rgba(20, 33, 62, 0.72);
+    border-color: var(--interactive-border);
+    background: var(--interactive-bg);
+    box-shadow: 0 12px 22px -16px rgba(15, 23, 42, 0.28);
+    transform: translateY(-1px);
+}
+
+.landing-faq-item[open] {
+    border-color: var(--interactive-border);
+    background: var(--interactive-bg);
+    box-shadow: 0 14px 28px -18px rgba(15, 23, 42, 0.32);
 }
 
 .landing-faq-item summary {
@@ -562,13 +610,13 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
     content: '+';
     font-size: 1.2rem;
     line-height: 1;
-    color: #8bb5ff;
+    color: var(--faq-icon);
     transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), color 0.25s ease;
 }
 
 .landing-faq-item[open] summary::after {
     transform: rotate(45deg);
-    color: #b3ccff;
+    color: var(--faq-icon-open);
 }
 
 .landing-faq-item p {
@@ -610,14 +658,14 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
 }
 
 .landing-contact-form {
-    background: var(--bg-card);
+    background: var(--contact-form-bg);
     border-radius: 18px;
     padding: 26px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--contact-form-border);
     box-shadow: var(--shadow);
     max-width: 760px;
     margin: 0 auto;
-    background-image: linear-gradient(rgba(20, 33, 62, 0.6), rgba(15, 24, 45, 0.92));
+    background-image: var(--contact-form-bg-image);
     animation: landingFadeUp 0.75s ease both;
 }
 
@@ -652,8 +700,8 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
 .landing-contact-form input,
 .landing-contact-form textarea {
     width: 100%;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(6, 10, 24, 0.6);
+    border: 1px solid var(--contact-input-border);
+    background: var(--contact-input-bg);
     color: var(--text-primary);
     border-radius: 10px;
     padding: 13px 14px;
@@ -690,7 +738,7 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
     justify-content: space-between;
     gap: 20px;
     padding: 32px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--surface-border);
 }
 
 .landing-highlight h2 {
@@ -707,8 +755,8 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
     display: grid;
     gap: 14px;
     color: var(--text-muted);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    background: linear-gradient(180deg, rgba(10, 16, 32, 0.6), rgba(7, 12, 24, 0.92));
+    border-top: 1px solid var(--footer-border);
+    background: var(--footer-bg);
 }
 
 .landing-footer-main {
@@ -729,9 +777,9 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
     gap: 8px;
     padding: 10px 14px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.04);
-    color: #f8fafc;
+    border: 1px solid var(--footer-surface-border);
+    background: var(--footer-surface-bg);
+    color: var(--text-primary);
     font-weight: 700;
     text-decoration: none;
     transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
@@ -739,9 +787,9 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
 
 .landing-footer-login:hover {
     transform: translateY(-1px);
-    border-color: rgba(96, 165, 250, 0.75);
-    background: rgba(37, 99, 235, 0.2);
-    color: #ffffff;
+    border-color: var(--footer-surface-hover-border);
+    background: var(--footer-surface-hover-bg);
+    color: var(--footer-surface-hover-text);
 }
 
 .landing-footer-contacts {
@@ -758,7 +806,7 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
     align-items: center;
     gap: 8px;
     margin-right: 2px;
-    color: #e2e8f0;
+    color: var(--footer-contacts-title);
 }
 
 .landing-footer-contact {
@@ -767,8 +815,8 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
     gap: 8px;
     padding: 8px 12px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--footer-surface-border);
+    background: var(--footer-surface-bg);
     color: var(--text-secondary);
     text-decoration: none;
     font-weight: 600;
@@ -776,9 +824,9 @@ html[data-theme="dark"] .lang-switch .lang-btn.active {
 }
 
 .landing-footer-contact:hover {
-    border-color: rgba(96, 165, 250, 0.7);
-    color: #f8fafc;
-    background: rgba(37, 99, 235, 0.16);
+    border-color: var(--footer-surface-hover-border);
+    color: var(--footer-surface-hover-text);
+    background: var(--footer-surface-hover-bg);
 }
 
 @keyframes landingFadeUp {
